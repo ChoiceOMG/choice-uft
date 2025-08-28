@@ -2,7 +2,7 @@
 Contributors: choiceomg
 Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tracking, elementor, contact form 7, gravity forms, ninja forms, avada
 Requires at least: 5.0
-Tested up to: 6.4
+Tested up to: 6.8
 Requires PHP: 7.4
 Stable tag: 3.1.0
 License: GPL-2.0-or-later
