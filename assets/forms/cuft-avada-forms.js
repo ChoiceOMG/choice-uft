@@ -82,6 +82,7 @@
 
   function isSuccessState(form) {
     var successSelectors = [
+      ".fusion-form-response-success",
       ".fusion-alert.success",
       ".fusion-form-success",
       ".fusion-success",
@@ -119,10 +120,22 @@
       form.classList.contains("sent") ||
       form.classList.contains("is-success") ||
       form.classList.contains("form-success") ||
-      form.classList.contains("successfully-submitted");
+      form.classList.contains("successfully-submitted") ||
+      form.classList.contains("fusion-form-response-success");
 
     if (hasSuccessClass) {
       log("Success state detected: form has success class");
+      return true;
+    }
+
+    // Check if parent container has success class
+    var formParent = form.parentNode;
+    if (
+      formParent &&
+      formParent.classList &&
+      formParent.classList.contains("fusion-form-response-success")
+    ) {
+      log("Success state detected: parent container has success class");
       return true;
     }
 
@@ -130,7 +143,9 @@
     var container = form.closest(".fusion-form-wrapper, .avada-form-wrapper");
     if (
       container &&
-      container.querySelector(".fusion-success, .success-message, .thank-you")
+      container.querySelector(
+        ".fusion-form-response-success, .fusion-success, .success-message, .thank-you"
+      )
     ) {
       log("Success state detected: success message in form container");
       return true;
@@ -243,6 +258,11 @@
   }
 
   function observeSuccess(form, email, phone) {
+    log("Starting success observation for form:", form.id || "unnamed", {
+      formClassName: form.className,
+      initialSuccessState: isSuccessState(form),
+    });
+
     var pushed = false;
     var cleanup = function () {};
 
@@ -301,7 +321,12 @@
   function handleFormSubmit(event) {
     try {
       var form = event.target;
-      if (!form || form.tagName !== "FORM") return;
+      log("Form submit event triggered:", event.type, form);
+
+      if (!form || form.tagName !== "FORM") {
+        log("Event target is not a form, skipping");
+        return;
+      }
 
       // Check if this is an Avada/Fusion form
       var isAvadaForm =
@@ -322,16 +347,56 @@
         return;
       }
 
+      log("Avada form submit detected! Starting tracking process...");
+
       if (form.hasAttribute("data-cuft-observing")) return;
       form.setAttribute("data-cuft-observing", "true");
 
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
 
+      log("Extracted form data:", {
+        email: email || "none",
+        phone: phone || "none",
+      });
+
       observeSuccess(form, email, phone);
       log("Form submit listener attached for:", form.id || "unnamed form");
     } catch (e) {
       log("Submit handler error:", e);
+    }
+  }
+
+  // Function to watch for AJAX form submissions
+  function watchAjaxForms() {
+    var fusionForms = document.querySelectorAll(".fusion-form");
+    log("Setting up AJAX watchers for", fusionForms.length, "Fusion forms");
+
+    for (var i = 0; i < fusionForms.length; i++) {
+      var form = fusionForms[i];
+      if (form.hasAttribute("data-cuft-ajax-watching")) continue;
+      form.setAttribute("data-cuft-ajax-watching", "true");
+
+      log("Setting up AJAX watcher for form:", form.className);
+
+      // Watch for form submissions via click events on submit buttons
+      var submitButtons = form.querySelectorAll(
+        'input[type="submit"], button[type="submit"], .fusion-button'
+      );
+      for (var j = 0; j < submitButtons.length; j++) {
+        var button = submitButtons[j];
+        button.addEventListener("click", function (event) {
+          var clickedForm = event.target.closest(".fusion-form");
+          if (clickedForm) {
+            log("Submit button clicked for Fusion form, starting observation");
+            setTimeout(function () {
+              var email = getFieldValue(clickedForm, "email");
+              var phone = getFieldValue(clickedForm, "phone");
+              observeSuccess(clickedForm, email, phone);
+            }, 100);
+          }
+        });
+      }
     }
   }
 
@@ -348,6 +413,40 @@
         id: form.id,
         className: form.className,
         action: form.action,
+      });
+    }
+
+    // Set up AJAX form watchers
+    watchAjaxForms();
+
+    // Also watch for dynamically added forms
+    if (window.MutationObserver) {
+      var documentObserver = new MutationObserver(function (mutations) {
+        var shouldRewatch = false;
+        mutations.forEach(function (mutation) {
+          if (mutation.type === "childList") {
+            for (var i = 0; i < mutation.addedNodes.length; i++) {
+              var node = mutation.addedNodes[i];
+              if (
+                node.nodeType === 1 &&
+                (node.classList.contains("fusion-form") ||
+                  node.querySelector(".fusion-form"))
+              ) {
+                shouldRewatch = true;
+                break;
+              }
+            }
+          }
+        });
+        if (shouldRewatch) {
+          log("New forms detected, re-running AJAX watchers");
+          watchAjaxForms();
+        }
+      });
+
+      documentObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
       });
     }
   });
