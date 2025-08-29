@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.2.0
+Stable tag: 3.3.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,17 @@ The plugin only tracks form submission events and does not store personal data p
 
 == Changelog ==
 
+= 3.3.0 =
+* Major Avada form tracking bug fixes and improvements
+* Fixed form submission detection reliability issues
+* Enhanced AJAX form support with improved success state detection
+* Resolved duplicate form submission tracking
+* Fixed email field validation preventing false positives
+* Improved error handling and debug logging for Avada forms
+* Enhanced compatibility with latest Avada/Fusion theme versions
+* Fixed timing issues with form initialization
+* Improved form selector specificity to prevent conflicts
+
 = 3.1.0 =
 * Added UTM campaign tracking for marketing attribution
 * Enhanced admin interface with campaign status display
@@ -142,6 +153,12 @@ Major update with UTM campaign tracking. Recommended for all users who want to t
 Complete rewrite with improved performance and universal form support. Backup recommended before upgrading.
 
 == Additional Information ==
+
+**Repository:** View the source code, releases, and technical documentation on GitHub: [https://github.com/ChoiceOMG/choice-uft](https://github.com/ChoiceOMG/choice-uft)
+
+**Releases:** Download the latest version and view release notes: [https://github.com/ChoiceOMG/choice-uft/releases](https://github.com/ChoiceOMG/choice-uft/releases)
+
+**Technical Documentation:** For detailed technical documentation, API references, and code examples, see the comprehensive README.md in the repository.
 
 **Support:** For technical support and feature requests, please visit [Choice OMG](https://choice.marketing)
 

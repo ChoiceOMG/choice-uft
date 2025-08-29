@@ -347,6 +347,15 @@
         return;
       }
 
+      // Check if form has email field (indicates it's a contact/lead form)
+      var hasEmailField = findField(form, "email") !== null;
+      if (!hasEmailField) {
+        log(
+          "Skipping Avada form - no email field detected (likely search form)"
+        );
+        return;
+      }
+
       log("Avada form submit detected! Starting tracking process...");
 
       if (form.hasAttribute("data-cuft-observing")) return;
@@ -370,14 +379,28 @@
   // Function to watch for AJAX form submissions
   function watchAjaxForms() {
     var fusionForms = document.querySelectorAll(".fusion-form");
-    log("Setting up AJAX watchers for", fusionForms.length, "Fusion forms");
+    log("Found", fusionForms.length, "Fusion forms, checking for email fields");
 
     for (var i = 0; i < fusionForms.length; i++) {
       var form = fusionForms[i];
       if (form.hasAttribute("data-cuft-ajax-watching")) continue;
-      form.setAttribute("data-cuft-ajax-watching", "true");
 
-      log("Setting up AJAX watcher for form:", form.className);
+      // Check if form has email field (indicates it's a contact/lead form)
+      var hasEmailField = findField(form, "email") !== null;
+
+      log("Form check:", {
+        className: form.className,
+        hasEmailField: hasEmailField,
+        action: form.action || "no action",
+      });
+
+      if (!hasEmailField) {
+        log("Skipping form - no email field detected (likely search form)");
+        continue;
+      }
+
+      form.setAttribute("data-cuft-ajax-watching", "true");
+      log("Setting up AJAX watcher for form with email field:", form.className);
 
       // Watch for form submissions via click events on submit buttons
       var submitButtons = form.querySelectorAll(

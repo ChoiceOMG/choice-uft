@@ -21,6 +21,22 @@ class CUFT_UTM_Tracker {
     );
     
     /**
+     * Click ID parameters to track
+     */
+    private $click_id_params = array(
+        'gclid',        // Google Ads click ID
+        'gbraid',       // Google Ads click ID for iOS app-to-web journeys
+        'wbraid',       // Google Ads click ID for web-to-app journeys
+        'fbclid',       // Facebook / Instagram (Meta Ads) click ID
+        'msclkid',      // Microsoft Advertising (Bing Ads) click ID
+        'ttclid',       // TikTok Ads click ID
+        'li_fat_id',    // LinkedIn Ads click ID
+        'twclid',       // Twitter / X Ads click ID
+        'snap_click_id', // Snapchat Ads click ID
+        'pclid'         // Pinterest Ads click ID
+    );
+    
+    /**
      * Constructor
      */
     public function __construct() {
@@ -48,43 +64,51 @@ class CUFT_UTM_Tracker {
         ) );
     }
     
-    /**
-     * AJAX handler to store UTM data in session
+        /**
+     * AJAX handler to store tracking data in session
      */
     public function ajax_store_utm() {
         check_ajax_referer( 'cuft_utm_tracking', 'nonce' );
         
-        $utm_data = array();
+        $tracking_data = array();
         
+        // Extract UTM parameters
         foreach ( $this->utm_params as $param ) {
             if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) ) {
-                $utm_data[ $param ] = sanitize_text_field( $_POST[ $param ] );
+                $tracking_data[ $param ] = sanitize_text_field( $_POST[ $param ] );
             }
         }
         
-        if ( ! empty( $utm_data ) ) {
+        // Extract Click ID parameters
+        foreach ( $this->click_id_params as $param ) {
+            if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) ) {
+                $tracking_data[ $param ] = sanitize_text_field( $_POST[ $param ] );
+            }
+        }
+        
+        if ( ! empty( $tracking_data ) ) {
             // Store in session (with cookie fallback)
             if ( ! session_id() ) {
                 session_start();
             }
-            $_SESSION['cuft_utm_data'] = $utm_data;
+            $_SESSION['cuft_utm_data'] = $tracking_data;
             $_SESSION['cuft_utm_timestamp'] = current_time( 'timestamp' );
             
             // Also store in cookie for persistence
-            $this->store_utm_cookie( $utm_data );
+            $this->store_utm_cookie( $tracking_data );
             
-            CUFT_Logger::log( 'UTM data stored for session', CUFT_Logger::DEBUG, $utm_data );
+            CUFT_Logger::log( 'Tracking data stored for session', CUFT_Logger::DEBUG, $tracking_data );
         }
         
         wp_die( wp_json_encode( array( 'success' => true ) ) );
     }
     
     /**
-     * Store UTM data in cookie
+     * Store tracking data in cookie
      */
-    private function store_utm_cookie( $utm_data ) {
+    private function store_utm_cookie( $tracking_data ) {
         $cookie_data = array(
-            'utm' => $utm_data,
+            'utm' => $tracking_data,
             'timestamp' => current_time( 'timestamp' )
         );
         

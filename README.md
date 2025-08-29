@@ -5,11 +5,13 @@ Universal WordPress plugin for tracking form submissions across multiple framewo
 ## Features
 
 - **Universal Form Support**: Tracks Avada/Fusion, Elementor Pro, Contact Form 7, Ninja Forms, and Gravity Forms
-- **Smart Detection**: Automatically detects available form frameworks
-- **Form Tracking**: Pushes `form_submit` events with `user_email` and `user_phone` data
+- **Smart Detection**: Automatically detects available form frameworks and email fields to prevent false positives
+- **Enhanced Form Tracking**: Pushes `form_submit` events with `user_email` and `user_phone` data
+- **Improved Success Detection**: Advanced Avada form success state detection with comprehensive debugging
 - **Link Tracking**: Tracks `phone_click` events on tel: links
 - **GTM Integration**: Optional Google Tag Manager container injection
 - **UTM Campaign Tracking**: Automatic detection and attribution of marketing campaigns
+- **Click ID Tracking**: Support for all major advertising platform click IDs (Google, Facebook, Microsoft, TikTok, LinkedIn, Twitter, Snapchat, Pinterest)
 - **GA4 Enhanced Compatibility**: Full Google Analytics 4 parameter alignment for maximum analytics value
 - **Generate Lead Events**: Automatic lead generation tracking for qualified form submissions
 - **Console Logging Control**: Granular browser console logging (No/Yes/Admin Only)
@@ -37,8 +39,8 @@ includes/
     └── class-cuft-gravity-forms.php
 assets/
 ├── cuft-links.js                    # Link tracking JavaScript
-├── cuft-utm-tracker.js              # UTM parameter detection
-├── cuft-utm-utils.js                # UTM utilities for forms
+├── cuft-utm-tracker.js              # UTM parameter and Click ID detection
+├── cuft-utm-utils.js                # UTM and Click ID utilities for forms
 ├── icon.svg                         # Plugin icon
 └── forms/                           # Framework-specific JavaScript
     ├── cuft-avada-forms.js
@@ -177,6 +179,13 @@ add_filter( 'cuft_debug', '__return_true' );
   utm_term: 'contact_form',
   utm_content: 'header_cta',
 
+  // Click ID Attribution (when available)
+  gclid: 'TeSter-123',               // Google Ads click ID
+  fbclid: 'IwAR1234567890',          // Facebook/Meta Ads click ID
+  msclkid: 'abc123def456',           // Microsoft Ads click ID
+  ttclid: 'tiktok_click_123',        // TikTok Ads click ID
+  li_fat_id: 'linkedin_123',         // LinkedIn Ads click ID
+
   submittedAt: '2024-01-01T12:00:00.000Z'
 }
 ```
@@ -271,8 +280,56 @@ add_filter( 'cuft_debug', '__return_true' );
 - Modern browser support (IE11+)
 - No jQuery dependency
 
+## Click ID Support
+
+The plugin automatically detects and tracks click IDs from all major advertising platforms:
+
+### Supported Click IDs
+
+| Platform      | Parameter       | Description                                     |
+| ------------- | --------------- | ----------------------------------------------- |
+| Google Ads    | `gclid`         | Standard Google Ads click ID                    |
+| Google Ads    | `gbraid`        | Google Ads click ID for iOS app-to-web journeys |
+| Google Ads    | `wbraid`        | Google Ads click ID for web-to-app journeys     |
+| Facebook/Meta | `fbclid`        | Facebook/Instagram Ads click ID                 |
+| Microsoft Ads | `msclkid`       | Microsoft Advertising (Bing Ads) click ID       |
+| TikTok Ads    | `ttclid`        | TikTok Ads click ID                             |
+| LinkedIn Ads  | `li_fat_id`     | LinkedIn Ads click ID                           |
+| Twitter/X Ads | `twclid`        | Twitter/X Ads click ID                          |
+| Snapchat Ads  | `snap_click_id` | Snapchat Ads click ID                           |
+| Pinterest Ads | `pclid`         | Pinterest Ads click ID                          |
+
+### How It Works
+
+1. **Automatic Detection**: Click IDs are automatically detected from URL parameters when visitors land on your site
+2. **Persistent Storage**: Click IDs are stored for 30 days (same as UTM parameters) to attribute form submissions
+3. **Form Attribution**: When a form is submitted, any stored click IDs are included in the dataLayer event
+4. **Cross-Platform Support**: Works with all major advertising platforms for comprehensive attribution
+
+### Example Usage
+
+When a visitor clicks a Google Ads link:
+
+```
+https://yoursite.com/contact?gclid=TeSter-123&utm_source=google&utm_campaign=summer_sale
+```
+
+The form submission will include:
+
+```javascript
+{
+  event: 'form_submit',
+  gclid: 'TeSter-123',
+  utm_source: 'google',
+  utm_campaign: 'summer_sale',
+  // ... other form data
+}
+```
+
 ## Version History
 
+- **3.3.0**: Major Avada form tracking bug fixes - improved AJAX support, enhanced success detection, resolved duplicate submissions, better error handling, and compatibility with latest Avada/Fusion versions
+- **3.2.1**: Enhanced Avada form tracking with improved success detection, email field validation, comprehensive debugging, and click ID support for all major advertising platforms
 - **3.1.0**: Added UTM campaign tracking for marketing attribution
 - **3.0.0**: Universal form framework support, vanilla JS, debug logging, framework detection
 - **2.0.0**: Refactored into modular structure with separate classes
