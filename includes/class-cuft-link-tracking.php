@@ -28,8 +28,8 @@ class CUFT_Link_Tracking {
             true
         );
         
-        // Set debug flag
-        $debug = apply_filters( 'cuft_debug', get_option( 'cuft_debug_enabled', false ) ) ? 'true' : 'false';
-        wp_add_inline_script( 'cuft-link-tracking', 'window.cuftDebug = ' . $debug . ';', 'before' );
+        // Set console logging flag
+        $console_logging = CUFT_Console_Logger::get_console_logging_setting() ? 'true' : 'false';
+        wp_add_inline_script( 'cuft-link-tracking', 'window.cuftDebug = ' . $console_logging . ';', 'before' );
     }
 }

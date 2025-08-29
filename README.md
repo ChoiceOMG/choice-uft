@@ -10,6 +10,9 @@ Universal WordPress plugin for tracking form submissions across multiple framewo
 - **Link Tracking**: Tracks `phone_click` events on tel: links
 - **GTM Integration**: Optional Google Tag Manager container injection
 - **UTM Campaign Tracking**: Automatic detection and attribution of marketing campaigns
+- **GA4 Enhanced Compatibility**: Full Google Analytics 4 parameter alignment for maximum analytics value
+- **Generate Lead Events**: Automatic lead generation tracking for qualified form submissions
+- **Console Logging Control**: Granular browser console logging (No/Yes/Admin Only)
 - **Debug Logging**: Comprehensive logging system for troubleshooting
 - **Admin Dashboard**: Beautiful admin interface with framework status and debug logs
 - **jQuery-Free**: Uses vanilla JavaScript for maximum compatibility
@@ -54,13 +57,16 @@ assets/
 ## Configuration
 
 ### GTM Integration
+
 - Go to **Settings > Universal Form Tracker**
 - Enter your GTM container ID (format: GTM-XXXXXXX)
 - Enable debug logging if needed
 - Save settings
 
 ### Framework Support
+
 The plugin automatically detects and supports:
+
 - **Avada/Fusion Forms**: Built-in theme forms
 - **Elementor Pro Forms**: Advanced form widget
 - **Contact Form 7**: Popular contact form plugin
@@ -68,11 +74,66 @@ The plugin automatically detects and supports:
 - **Gravity Forms**: Advanced form solution
 
 ### UTM Campaign Tracking
+
 The plugin automatically tracks UTM parameters for marketing attribution:
+
 - Detects UTM parameters when users first visit your site
 - Stores campaign data in user session for 30 days
 - Includes UTM data in all form submissions for proper attribution
 - Supports all standard UTM parameters: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`
+
+### GA4 Enhanced Measurement Compatibility
+
+This plugin is designed to be **additive** with Google Analytics 4's enhanced measurement, not competitive:
+
+**Why GA4 Enhanced Measurement Misses WordPress Form Plugins:**
+
+- GA4's built-in `form_submit` tracking only detects standard HTML form submissions
+- Popular WordPress form plugins (Elementor Pro, Contact Form 7, Gravity Forms, etc.) use AJAX submissions and custom event systems
+- These bypass GA4's automatic detection, creating tracking blind spots
+
+**Our Additive Approach:**
+
+- ✅ **Fills the Gap**: Tracks forms that GA4 enhanced measurement cannot see
+- ✅ **No Conflicts**: Uses unique event parameters (`cuft_tracked: true`, specific `cuft_source` values)
+- ✅ **GA4 Compatible**: All events include standard GA4 parameters (`page_location`, `engagement_time_msec`, etc.)
+- ✅ **Future-Proof**: Aligns with Google's recommended tracking practices
+
+**Result**: Complete form tracking coverage with both GA4's native capabilities AND comprehensive WordPress form plugin support.
+
+### Generate Lead Events
+
+The plugin can automatically fire `generate_lead` events for high-value form submissions:
+
+**Configuration:**
+
+- Enable via **Settings > Universal Form Tracker > Generate Lead Events**
+- Automatically triggers when forms are submitted with both:
+  - User email address
+  - UTM campaign data (indicating traffic from marketing campaigns)
+
+**Benefits:**
+
+- ✅ **Conversion Tracking**: Perfect for GA4 conversion goals and Google Ads tracking
+- ✅ **Lead Quality**: Only fires for submissions with marketing attribution
+- ✅ **Standard Compliance**: Uses GA4's recommended `generate_lead` event structure
+- ✅ **Debug Visibility**: All lead events appear in debug logs when enabled
+
+### Browser Console Logging
+
+Control JavaScript console output for debugging:
+
+**Settings Options:**
+
+- **No**: Disable all browser console logging (production default)
+- **Yes**: Enable console logging for all visitors (development mode)
+- **Admin Only**: Enable console logging only for logged-in administrators (recommended for production debugging)
+
+**Benefits:**
+
+- ✅ **Production Safe**: Debug live sites without exposing console logs to visitors
+- ✅ **Developer Friendly**: Full debugging capabilities when needed
+- ✅ **Performance Optimized**: No console overhead when disabled
 
 ### Filters
 
@@ -87,30 +148,120 @@ add_filter( 'cuft_debug', '__return_true' );
 ## DataLayer Events
 
 ### Form Submit
+
 ```javascript
 {
   event: 'form_submit',
-  formType: 'contact_form_7',    // Framework identifier
+  formType: 'contact_form_7',        // Framework identifier
   formId: 'contact-form-1',
   formName: 'Contact Form',
   user_email: 'user@example.com',
   user_phone: '1234567890',
-  utm_source: 'google',          // Campaign attribution
+
+  // GA4 Standard Parameters
+  page_location: 'https://example.com/contact',
+  page_referrer: 'https://google.com',
+  page_title: 'Contact Us',
+  language: 'en-US',
+  screen_resolution: '1920x1080',
+  engagement_time_msec: 15432,
+
+  // Plugin Identification
+  cuft_tracked: true,
+  cuft_source: 'contact_form_7',     // Specific tracking source
+
+  // UTM Campaign Attribution
+  utm_source: 'google',
   utm_medium: 'cpc',
   utm_campaign: 'summer_sale',
   utm_term: 'contact_form',
   utm_content: 'header_cta',
+
   submittedAt: '2024-01-01T12:00:00.000Z'
 }
 ```
 
 ### Phone Click
+
 ```javascript
 {
   event: 'phone_click',
-  phone: '1234567890',
+  clicked_phone: '1234567890',       // Non-reserved property name
   href: 'tel:+1-234-567-8890',
+
+  // GA4 Standard Parameters
+  page_location: 'https://example.com/contact',
+  page_referrer: 'https://google.com',
+  page_title: 'Contact Us',
+  language: 'en-US',
+  screen_resolution: '1920x1080',
+  engagement_time_msec: 8245,
+
+  // Plugin Identification
+  cuft_tracked: true,
+  cuft_source: 'link_tracking',
+
   clickedAt: '2024-01-01T12:00:00.000Z'
+}
+```
+
+### Email Click
+
+```javascript
+{
+  event: 'email_click',
+  clicked_email: 'contact@example.com', // Non-reserved property name
+  href: 'mailto:contact@example.com',
+
+  // GA4 Standard Parameters
+  page_location: 'https://example.com/contact',
+  page_referrer: 'https://google.com',
+  page_title: 'Contact Us',
+  language: 'en-US',
+  screen_resolution: '1920x1080',
+  engagement_time_msec: 12156,
+
+  // Plugin Identification
+  cuft_tracked: true,
+  cuft_source: 'link_tracking',
+
+  clickedAt: '2024-01-01T12:00:00.000Z'
+}
+```
+
+### Generate Lead (when enabled)
+
+```javascript
+{
+  event: 'generate_lead',
+  currency: 'USD',
+  value: 0,
+
+  // GA4 Standard Parameters
+  page_location: 'https://example.com/contact',
+  page_referrer: 'https://google.com',
+  page_title: 'Contact Us',
+  language: 'en-US',
+  screen_resolution: '1920x1080',
+  engagement_time_msec: 15432,
+
+  // Plugin Identification
+  cuft_tracked: true,
+  cuft_source: 'contact_form_7_lead',   // Indicates lead source
+
+  // Form Context
+  formType: 'contact_form_7',
+  formId: 'contact-form-1',
+  formName: 'Contact Form',
+
+  // UTM Campaign Attribution (required for lead generation)
+  utm_source: 'google',
+  utm_medium: 'cpc',
+  utm_campaign: 'summer_sale',
+  utm_term: 'contact_form',
+  utm_content: 'header_cta',
+
+  submittedAt: '2024-01-01T12:00:00.000Z'
 }
 ```
 

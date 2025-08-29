@@ -58,6 +58,7 @@ class Choice_Universal_Form_Tracker {
         require_once CUFT_PATH . 'includes/class-cuft-link-tracking.php';
         require_once CUFT_PATH . 'includes/class-cuft-logger.php';
         require_once CUFT_PATH . 'includes/class-cuft-utm-tracker.php';
+        require_once CUFT_PATH . 'includes/class-cuft-console-logger.php';
         
         // Form framework handlers
         require_once CUFT_PATH . 'includes/forms/class-cuft-avada-forms.php';

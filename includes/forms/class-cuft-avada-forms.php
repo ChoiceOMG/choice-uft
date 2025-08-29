@@ -50,6 +50,8 @@ class CUFT_Avada_Forms {
     private function localize_script() {
         wp_localize_script( 'cuft-avada-forms', 'cuftAvada', array(
             'debug' => apply_filters( 'cuft_debug', false ),
+            'console_logging' => CUFT_Console_Logger::get_console_logging_setting(),
+            'generate_lead_enabled' => get_option( 'cuft_generate_lead_enabled', false ),
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_avada_tracking' )
         ) );

@@ -41,6 +41,8 @@ class CUFT_Admin {
         
         $gtm_id = get_option( 'cuft_gtm_id', '' );
         $debug_enabled = get_option( 'cuft_debug_enabled', false );
+        $generate_lead_enabled = get_option( 'cuft_generate_lead_enabled', false );
+        $console_logging = get_option( 'cuft_console_logging', 'no' );
         ?>
         <div class="wrap">
             <div style="display: flex; align-items: center; margin-bottom: 20px;">
@@ -50,7 +52,7 @@ class CUFT_Admin {
                 <h1 style="margin: 0;">Choice Universal Form Tracker</h1>
             </div>
             
-            <?php $this->render_settings_form( $gtm_id, $debug_enabled ); ?>
+            <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging ); ?>
             <?php $this->render_framework_status(); ?>
             <?php $this->render_utm_status(); ?>
             <?php $this->render_debug_section(); ?>
@@ -61,7 +63,7 @@ class CUFT_Admin {
     /**
      * Render settings form
      */
-    private function render_settings_form( $gtm_id, $debug_enabled ) {
+    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging ) {
         ?>
         <div class="cuft-settings-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <h2 style="margin-top: 0;">Settings</h2>
@@ -87,6 +89,31 @@ class CUFT_Admin {
                             </label>
                             <p class="description">
                                 When enabled, form tracking events will be logged for debugging purposes.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Generate Lead Events</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="generate_lead_enabled" value="1" <?php checked( $generate_lead_enabled ); ?> />
+                                Fire generate_lead events for qualified form submissions
+                            </label>
+                            <p class="description">
+                                Automatically creates generate_lead events when forms are submitted with both user email and UTM campaign data. Ideal for conversion tracking in GA4.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Browser Console Logging</th>
+                        <td>
+                            <select name="console_logging">
+                                <option value="no" <?php selected( $console_logging, 'no' ); ?>>No - Disable console logging</option>
+                                <option value="yes" <?php selected( $console_logging, 'yes' ); ?>>Yes - Enable for all visitors</option>
+                                <option value="admin_only" <?php selected( $console_logging, 'admin_only' ); ?>>Admin Only - Enable only for logged-in administrators</option>
+                            </select>
+                            <p class="description">
+                                Controls browser console logging for debugging. "Admin Only" is recommended for production sites.
                             </p>
                         </td>
                     </tr>
@@ -153,11 +180,15 @@ class CUFT_Admin {
     private function save_settings() {
         $gtm_id = sanitize_text_field( $_POST['gtm_id'] );
         $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
+        $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
+        $console_logging = in_array( $_POST['console_logging'], array( 'no', 'yes', 'admin_only' ) ) ? $_POST['console_logging'] : 'no';
         
         // Validate GTM-ID format
         if ( empty( $gtm_id ) || $this->is_valid_gtm_id( $gtm_id ) ) {
             update_option( 'cuft_gtm_id', $gtm_id );
             update_option( 'cuft_debug_enabled', $debug_enabled );
+            update_option( 'cuft_generate_lead_enabled', $generate_lead_enabled );
+            update_option( 'cuft_console_logging', $console_logging );
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );
         } else {
             add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid GTM-ID format. Use format: GTM-XXXXXXX', 'error' );

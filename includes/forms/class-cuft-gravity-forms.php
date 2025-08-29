@@ -55,6 +55,13 @@ class CUFT_Gravity_Forms {
         // Push to dataLayer if GTM is configured
         if ( get_option( 'cuft_gtm_id' ) ) {
             wp_add_inline_script( 'cuft-gravity-forms', $this->generate_datalayer_push( $data ), 'after' );
+            
+            if ( get_option( 'cuft_generate_lead_enabled', false ) ) {
+                $lead_script = $this->generate_lead_event( $data );
+                if ( $lead_script ) {
+                    wp_add_inline_script( 'cuft-gravity-forms', $lead_script, 'after' );
+                }
+            }
         }
     }
     
@@ -92,7 +99,12 @@ class CUFT_Gravity_Forms {
             'formType' => 'gravity_forms',
             'formId' => $data['form_id'],
             'formName' => $data['form_name'],
-            'submittedAt' => gmdate( 'c' )
+            'submittedAt' => gmdate( 'c' ),
+            'cuft_tracked' => true,
+            'cuft_source' => 'gravity_forms_server',
+            'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
+            'page_title' => get_the_title(),
+            'language' => get_locale()
         );
         
         if ( ! empty( $data['user_email'] ) ) {
@@ -113,12 +125,48 @@ class CUFT_Gravity_Forms {
         return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
     }
     
+    private function generate_lead_event( $data ) {
+        if ( empty( $data['user_email'] ) ) {
+            return false;
+        }
+        
+        $utm_data = CUFT_UTM_Tracker::get_utm_data();
+        if ( empty( $utm_data['utm_campaign'] ) ) {
+            return false;
+        }
+        
+        $payload = array(
+            'event' => 'generate_lead',
+            'currency' => 'USD',
+            'value' => 0,
+            'cuft_tracked' => true,
+            'cuft_source' => 'gravity_forms_server_lead',
+            'formType' => 'gravity_forms',
+            'formId' => $data['form_id'],
+            'formName' => $data['form_name'],
+            'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
+            'page_title' => get_the_title(),
+            'language' => get_locale(),
+            'submittedAt' => gmdate( 'c' )
+        );
+        
+        foreach ( $utm_data as $key => $value ) {
+            $payload[ $key ] = $value;
+        }
+        
+        CUFT_Logger::log_form_submission( 'gravity_generate_lead', $payload );
+        
+        return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
+    }
+    
     /**
      * Localize script with configuration
      */
     private function localize_script() {
         wp_localize_script( 'cuft-gravity-forms', 'cuftGravity', array(
             'debug' => apply_filters( 'cuft_debug', false ),
+            'console_logging' => CUFT_Console_Logger::get_console_logging_setting(),
+            'generate_lead_enabled' => get_option( 'cuft_generate_lead_enabled', false ),
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_gravity_tracking' )
         ) );
