@@ -35,3 +35,4 @@ class CUFT_Console_Logger {
         return self::should_enable_console_logging();
     }
 }
+
