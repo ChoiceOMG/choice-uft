@@ -92,7 +92,13 @@
     ];
 
     for (var i = 0; i < successSelectors.length; i++) {
-      if (form.querySelector(successSelectors[i])) {
+      var element = form.querySelector(successSelectors[i]);
+      if (element) {
+        log(
+          "Success state detected with selector:",
+          successSelectors[i],
+          element
+        );
         return true;
       }
     }
@@ -103,13 +109,34 @@
         parent &&
         parent.querySelector('.thank-you, .success, [role="alert"]')
       ) {
+        log("Success state detected: form hidden and success element found");
         return true;
       }
     }
 
-    return (
-      form.classList.contains("sent") || form.classList.contains("is-success")
-    );
+    // Check for common success class patterns
+    var hasSuccessClass =
+      form.classList.contains("sent") ||
+      form.classList.contains("is-success") ||
+      form.classList.contains("form-success") ||
+      form.classList.contains("successfully-submitted");
+
+    if (hasSuccessClass) {
+      log("Success state detected: form has success class");
+      return true;
+    }
+
+    // Check if form is replaced with success message
+    var container = form.closest(".fusion-form-wrapper, .avada-form-wrapper");
+    if (
+      container &&
+      container.querySelector(".fusion-success, .success-message, .thank-you")
+    ) {
+      log("Success state detected: success message in form container");
+      return true;
+    }
+
+    return false;
   }
 
   function getGA4StandardParams() {
@@ -220,8 +247,13 @@
     var cleanup = function () {};
 
     function tryPush() {
+      log("Checking success state for form:", form.id || "unnamed", {
+        pushed: pushed,
+        isSuccessState: isSuccessState(form),
+      });
       if (!pushed && isSuccessState(form)) {
         pushed = true;
+        log("Success state confirmed, pushing to dataLayer");
         pushToDataLayer(form, email, phone);
         cleanup();
       }
@@ -278,7 +310,17 @@
         form.className.indexOf("fusion-form") > -1 ||
         form.id.indexOf("avada") > -1;
 
-      if (!isAvadaForm) return;
+      log("Form detection check:", {
+        form: form,
+        classList: form.className,
+        id: form.id,
+        isAvadaForm: isAvadaForm,
+      });
+
+      if (!isAvadaForm) {
+        log("Form not detected as Avada form, skipping");
+        return;
+      }
 
       if (form.hasAttribute("data-cuft-observing")) return;
       form.setAttribute("data-cuft-observing", "true");
@@ -296,5 +338,17 @@
   ready(function () {
     document.addEventListener("submit", handleFormSubmit, true);
     log("Avada forms tracking initialized");
+
+    // Debug: Log all forms found on page
+    var allForms = document.querySelectorAll("form");
+    log("Forms found on page:", allForms.length);
+    for (var i = 0; i < allForms.length; i++) {
+      var form = allForms[i];
+      log("Form " + i + ":", {
+        id: form.id,
+        className: form.className,
+        action: form.action,
+      });
+    }
   });
 })();
