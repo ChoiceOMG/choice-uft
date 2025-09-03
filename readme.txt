@@ -50,6 +50,13 @@ Choice Universal Form Tracker is a comprehensive solution for tracking form subm
   * UTM campaign monitoring
   * Debug log viewer
   * Easy GTM configuration
+  * GitHub auto-update management
+
+* **GitHub Auto-Updates**
+  * Automatic updates from GitHub repository
+  * No authentication required for public repos
+  * Seamless WordPress integration
+  * Fallback to WordPress.org if needed
 
 == Installation ==
 
@@ -58,6 +65,19 @@ Choice Universal Form Tracker is a comprehensive solution for tracking form subm
 3. Navigate to Settings > Universal Form Tracker to configure the plugin.
 4. Enter your Google Tag Manager container ID (optional but recommended).
 5. Enable debug logging if you need to troubleshoot form tracking.
+6. Enable GitHub auto-updates for the latest features (recommended).
+
+== GitHub Auto-Updates ==
+
+The plugin now includes automatic updates from the GitHub repository:
+
+* **Easy Setup**: Simply check "Enable automatic updates from GitHub repository" in the plugin settings
+* **No Authentication**: Public repository access requires no tokens or login
+* **WordPress Native**: Updates appear in the standard WordPress admin update notifications
+* **Automatic**: Checks for updates twice daily and notifies you when new versions are available
+* **Fallback**: If GitHub updates are disabled, falls back to WordPress.org update system
+
+This ensures you always have the latest features, bug fixes, and improvements directly from the development repository.
 
 == Frequently Asked Questions ==
 
@@ -94,6 +114,14 @@ UTM parameters are stored for 30 days from the user's first visit with UTM param
 = Is the plugin GDPR compliant? =
 
 The plugin only tracks form submission events and does not store personal data permanently. UTM parameters are stored in user sessions/cookies for attribution purposes. Please review your local privacy requirements.
+
+= How do I get updates for the plugin? =
+
+The plugin now supports automatic updates from GitHub:
+* Enable GitHub updates in Settings > Universal Form Tracker
+* Updates will appear in WordPress admin notifications
+* No additional accounts or tokens required
+* Updates are checked twice daily automatically
 
 == Screenshots ==
 
@@ -158,7 +186,9 @@ Complete rewrite with improved performance and universal form support. Backup re
 
 **Releases:** Download the latest version and view release notes: [https://github.com/ChoiceOMG/choice-uft/releases](https://github.com/ChoiceOMG/choice-uft/releases)
 
-**Technical Documentation:** For detailed technical documentation, API references, and code examples, see the comprehensive README.md in the repository.
+**Auto-Updates:** The plugin now automatically updates from GitHub releases. Enable this feature in the plugin settings for the latest features and improvements.
+
+**Technical Documentation:** For detailed technical documentation, API references, and code examples, see the comprehensive README.md and GITHUB-UPDATER.md in the repository.
 
 **Support:** For technical support and feature requests, please visit [Choice OMG](https://choice.marketing)
 
