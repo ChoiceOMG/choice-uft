@@ -59,6 +59,7 @@ class Choice_Universal_Form_Tracker {
         require_once CUFT_PATH . 'includes/class-cuft-logger.php';
         require_once CUFT_PATH . 'includes/class-cuft-utm-tracker.php';
         require_once CUFT_PATH . 'includes/class-cuft-console-logger.php';
+        require_once CUFT_PATH . 'includes/class-cuft-github-updater.php';
         
         // Form framework handlers
         require_once CUFT_PATH . 'includes/forms/class-cuft-avada-forms.php';
@@ -75,6 +76,16 @@ class Choice_Universal_Form_Tracker {
         add_action( 'plugins_loaded', array( $this, 'init' ) );
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+        
+        // Initialize GitHub updater
+        if ( CUFT_GitHub_Updater::updates_enabled() ) {
+            new CUFT_GitHub_Updater( 
+                __FILE__, 
+                CUFT_VERSION, 
+                'ChoiceOMG', 
+                'choice-uft'
+            );
+        }
     }
     
     /**
@@ -108,6 +119,9 @@ class Choice_Universal_Form_Tracker {
         }
         if ( false === get_option( 'cuft_debug_enabled' ) ) {
             add_option( 'cuft_debug_enabled', false );
+        }
+        if ( false === get_option( 'cuft_github_updates_enabled' ) ) {
+            add_option( 'cuft_github_updates_enabled', true );
         }
     }
     

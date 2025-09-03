@@ -43,6 +43,7 @@ class CUFT_Admin {
         $debug_enabled = get_option( 'cuft_debug_enabled', false );
         $generate_lead_enabled = get_option( 'cuft_generate_lead_enabled', false );
         $console_logging = get_option( 'cuft_console_logging', 'no' );
+        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
         ?>
         <div class="wrap">
             <div style="display: flex; align-items: center; margin-bottom: 20px;">
@@ -52,8 +53,9 @@ class CUFT_Admin {
                 <h1 style="margin: 0;">Choice Universal Form Tracker</h1>
             </div>
             
-            <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging ); ?>
+            <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ); ?>
             <?php $this->render_framework_status(); ?>
+            <?php $this->render_github_status(); ?>
             <?php $this->render_utm_status(); ?>
             <?php $this->render_debug_section(); ?>
         </div>
@@ -63,7 +65,7 @@ class CUFT_Admin {
     /**
      * Render settings form
      */
-    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging ) {
+    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ) {
         ?>
         <div class="cuft-settings-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <h2 style="margin-top: 0;">Settings</h2>
@@ -114,6 +116,24 @@ class CUFT_Admin {
                             </select>
                             <p class="description">
                                 Controls browser console logging for debugging. "Admin Only" is recommended for production sites.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" colspan="2" style="padding: 20px 0 10px 0; border-top: 1px solid #ddd;">
+                            <h3 style="margin: 0; color: #23282d;">GitHub Auto-Updates</h3>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th scope="row">Enable GitHub Updates</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="github_updates_enabled" value="1" <?php checked( $github_updates_enabled ); ?> />
+                                Enable automatic updates from GitHub repository
+                            </label>
+                            <p class="description">
+                                When enabled, the plugin will check for updates from the official GitHub repository instead of WordPress.org. 
+                                Updates are checked twice daily and you'll be notified in the WordPress admin. No authentication required for public repositories.
                             </p>
                         </td>
                     </tr>
@@ -182,6 +202,7 @@ class CUFT_Admin {
         $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
         $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
         $console_logging = in_array( $_POST['console_logging'], array( 'no', 'yes', 'admin_only' ) ) ? $_POST['console_logging'] : 'no';
+        $github_updates_enabled = isset( $_POST['github_updates_enabled'] ) && $_POST['github_updates_enabled'];
         
         // Validate GTM-ID format
         if ( empty( $gtm_id ) || $this->is_valid_gtm_id( $gtm_id ) ) {
@@ -189,6 +210,7 @@ class CUFT_Admin {
             update_option( 'cuft_debug_enabled', $debug_enabled );
             update_option( 'cuft_generate_lead_enabled', $generate_lead_enabled );
             update_option( 'cuft_console_logging', $console_logging );
+            update_option( 'cuft_github_updates_enabled', $github_updates_enabled );
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );
         } else {
             add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid GTM-ID format. Use format: GTM-XXXX or GTM-XXXXXXX', 'error' );
@@ -202,6 +224,75 @@ class CUFT_Admin {
      */
     private function is_valid_gtm_id( $gtm_id ) {
         return preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id );
+    }
+    
+    /**
+     * Render GitHub update status
+     */
+    private function render_github_status() {
+        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
+        $current_version = CUFT_VERSION;
+        
+        ?>
+        <div class="cuft-github-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <h2 style="margin-top: 0;">
+                <span style="margin-right: 8px;">🔄</span>
+                GitHub Auto-Updates
+            </h2>
+            
+            <?php if ( $github_updates_enabled ): ?>
+                <div style="padding: 15px; background: #e8f5e8; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <h4 style="margin-top: 0; color: #155724;">GitHub Updates Enabled</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d4edda;">
+                            <strong style="color: #495057; font-size: 12px; text-transform: uppercase;">Current Version</strong><br>
+                            <span style="color: #155724;"><?php echo esc_html( $current_version ); ?></span>
+                        </div>
+                        <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d4edda;">
+                            <strong style="color: #495057; font-size: 12px; text-transform: uppercase;">Repository</strong><br>
+                            <span style="color: #155724;">ChoiceOMG/choice-uft</span>
+                        </div>
+                        <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d4edda;">
+                            <strong style="color: #495057; font-size: 12px; text-transform: uppercase;">Access Type</strong><br>
+                            <span style="color: #155724;">Public Repository</span>
+                        </div>
+                    </div>
+                    <p style="margin-bottom: 0; color: #155724; font-size: 14px; margin-top: 10px;">
+                        <strong>✓</strong> Plugin will automatically check for updates from GitHub twice daily.
+                    </p>
+                </div>
+            <?php else: ?>
+                <div style="padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                    <h4 style="margin-top: 0; color: #856404;">GitHub Updates Disabled</h4>
+                    <p style="margin-bottom: 0; color: #856404;">
+                        GitHub updates are currently disabled. The plugin will use WordPress.org for updates instead. 
+                        Enable GitHub updates in the settings above to get the latest features directly from the public repository.
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                <h4 style="margin-top: 0;">How GitHub Updates Work</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
+                        <strong>1. Check for Updates</strong><br>
+                        <small>WordPress checks the GitHub repository for new releases twice daily</small>
+                    </div>
+                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
+                        <strong>2. Download & Install</strong><br>
+                        <small>Updates are downloaded directly from GitHub and installed automatically</small>
+                    </div>
+                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
+                        <strong>3. Stay Current</strong><br>
+                        <small>Get the latest features and fixes as soon as they're released</small>
+                    </div>
+                </div>
+                <p style="margin-top: 10px; margin-bottom: 0; color: #6c757d; font-size: 14px;">
+                    <strong>Repository:</strong> <a href="https://github.com/ChoiceOMG/choice-uft" target="_blank">https://github.com/ChoiceOMG/choice-uft</a>
+                </p>
+            </div>
+        </div>
+        <?php
     }
     
     /**

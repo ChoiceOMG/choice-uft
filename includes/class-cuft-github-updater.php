@@ -1,0 +1,323 @@
+<?php
+/**
+ * GitHub-based plugin updater
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class CUFT_GitHub_Updater {
+    
+    private $plugin_file;
+    private $plugin_basename;
+    private $version;
+    private $github_username;
+    private $github_repo;
+    private $plugin_slug;
+    
+    /**
+     * Constructor
+     */
+    public function __construct( $plugin_file, $version, $github_username, $github_repo ) {
+        $this->plugin_file = $plugin_file;
+        $this->plugin_basename = plugin_basename( $plugin_file );
+        $this->version = $version;
+        $this->github_username = $github_username;
+        $this->github_repo = $github_repo;
+        $this->plugin_slug = dirname( $this->plugin_basename );
+        
+        add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
+        add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
+        add_filter( 'upgrader_pre_download', array( $this, 'download_package' ), 10, 3 );
+        add_action( 'upgrader_process_complete', array( $this, 'purge_cache' ), 10, 2 );
+    }
+    
+    /**
+     * Check for plugin updates
+     */
+    public function check_for_update( $transient ) {
+        if ( empty( $transient->checked ) ) {
+            return $transient;
+        }
+        
+        $remote_version = $this->get_remote_version();
+        
+        if ( version_compare( $this->version, $remote_version, '<' ) ) {
+            $transient->response[ $this->plugin_basename ] = array(
+                'slug' => $this->plugin_slug,
+                'new_version' => $remote_version,
+                'url' => $this->get_github_repo_url(),
+                'package' => $this->get_download_url( $remote_version ),
+                'icons' => array(
+                    '1x' => CUFT_URL . '/assets/icon.svg',
+                    '2x' => CUFT_URL . '/assets/icon.svg',
+                ),
+                'banners' => array(),
+                'banners_rtl' => array(),
+                'tested' => '6.8',
+                'requires_php' => '7.4',
+                'compatibility' => new stdClass(),
+            );
+        }
+        
+        return $transient;
+    }
+    
+    /**
+     * Get plugin information for the update screen
+     */
+    public function plugin_info( $result, $action, $args ) {
+        if ( ! isset( $args->slug ) || $args->slug !== $this->plugin_slug ) {
+            return $result;
+        }
+        
+        $remote_version = $this->get_remote_version();
+        $changelog = $this->get_changelog();
+        
+        return array(
+            'name' => 'Choice Universal Form Tracker',
+            'slug' => $this->plugin_slug,
+            'version' => $remote_version,
+            'author' => '<a href="https://choice.marketing">Choice OMG</a>',
+            'author_profile' => 'https://choice.marketing',
+            'contributors' => array( 'choiceomg' ),
+            'homepage' => $this->get_github_repo_url(),
+            'short_description' => 'Universal form tracking for WordPress - supports multiple form frameworks and tracks submissions via Google Tag Manager\'s dataLayer.',
+            'sections' => array(
+                'description' => $this->get_description(),
+                'installation' => $this->get_installation_instructions(),
+                'changelog' => $changelog,
+            ),
+            'download_link' => $this->get_download_url( $remote_version ),
+            'trunk' => $this->get_download_url( $remote_version ),
+            'requires' => '5.0',
+            'tested' => '6.8',
+            'requires_php' => '7.4',
+            'last_updated' => $this->get_last_updated(),
+            'icons' => array(
+                '1x' => CUFT_URL . '/assets/icon.svg',
+                '2x' => CUFT_URL . '/assets/icon.svg',
+            ),
+            'banners' => array(),
+            'banners_rtl' => array(),
+        );
+    }
+    
+    /**
+     * Download the plugin package
+     */
+    public function download_package( $reply, $package, $upgrader ) {
+        if ( strpos( $package, 'github.com/' . $this->github_username . '/' . $this->github_repo ) !== false ) {
+            $args = array(
+                'timeout' => 300
+            );
+            
+            $download = wp_remote_get( $package, $args );
+            
+            if ( is_wp_error( $download ) ) {
+                return $download;
+            }
+            
+            $code = wp_remote_response_code( $download );
+            if ( $code !== 200 ) {
+                return new WP_Error( 'download_failed', 'Download failed with HTTP code: ' . $code );
+            }
+            
+            $body = wp_remote_retrieve_body( $download );
+            $temp_file = download_url( $package );
+            
+            if ( is_wp_error( $temp_file ) ) {
+                // Try manual download
+                $temp_file = wp_tempnam( $package );
+                if ( ! $temp_file ) {
+                    return new WP_Error( 'temp_file_failed', 'Could not create temporary file.' );
+                }
+                
+                file_put_contents( $temp_file, $body );
+            }
+            
+            return $temp_file;
+        }
+        
+        return $reply;
+    }
+    
+    /**
+     * Purge update cache
+     */
+    public function purge_cache( $upgrader, $options ) {
+        if ( isset( $options['plugins'] ) && in_array( $this->plugin_basename, $options['plugins'] ) ) {
+            delete_transient( 'cuft_github_version' );
+            delete_transient( 'cuft_github_changelog' );
+        }
+    }
+    
+    /**
+     * Get remote version from GitHub
+     */
+    private function get_remote_version() {
+        $version = get_transient( 'cuft_github_version' );
+        
+        if ( false === $version ) {
+            $api_url = "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases/latest";
+            $args = array(
+                'timeout' => 30
+            );
+            
+            $response = wp_remote_get( $api_url, $args );
+            
+            if ( is_wp_error( $response ) ) {
+                CUFT_Logger::log( 'GitHub API error: ' . $response->get_error_message(), 'error' );
+                return $this->version;
+            }
+            
+            $code = wp_remote_response_code( $response );
+            if ( $code !== 200 ) {
+                CUFT_Logger::log( "GitHub API returned code: $code", 'error' );
+                return $this->version;
+            }
+            
+            $body = wp_remote_retrieve_body( $response );
+            $data = json_decode( $body, true );
+            
+            if ( isset( $data['tag_name'] ) ) {
+                $version = ltrim( $data['tag_name'], 'v' );
+                set_transient( 'cuft_github_version', $version, HOUR_IN_SECONDS );
+            } else {
+                $version = $this->version;
+            }
+        }
+        
+        return $version;
+    }
+    
+    /**
+     * Get download URL for a specific version
+     */
+    private function get_download_url( $version ) {
+        return "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/v{$version}.zip";
+    }
+    
+    /**
+     * Get GitHub repository URL
+     */
+    private function get_github_repo_url() {
+        return "https://github.com/{$this->github_username}/{$this->github_repo}";
+    }
+    
+    /**
+     * Get changelog from GitHub releases
+     */
+    private function get_changelog() {
+        $changelog = get_transient( 'cuft_github_changelog' );
+        
+        if ( false === $changelog ) {
+            $api_url = "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases";
+            $args = array(
+                'timeout' => 30
+            );
+            
+            $response = wp_remote_get( $api_url, $args );
+            
+            if ( is_wp_error( $response ) ) {
+                return 'Could not retrieve changelog from GitHub.';
+            }
+            
+            $code = wp_remote_response_code( $response );
+            if ( $code !== 200 ) {
+                return 'Could not retrieve changelog from GitHub.';
+            }
+            
+            $body = wp_remote_retrieve_body( $response );
+            $releases = json_decode( $body, true );
+            
+            if ( ! is_array( $releases ) ) {
+                return 'Could not parse changelog from GitHub.';
+            }
+            
+            $changelog = '';
+            foreach ( $releases as $release ) {
+                if ( isset( $release['tag_name'] ) && isset( $release['body'] ) ) {
+                    $version = ltrim( $release['tag_name'], 'v' );
+                    $changelog .= "<h4>Version {$version}</h4>\n";
+                    $changelog .= wp_kses_post( $release['body'] ) . "\n\n";
+                }
+            }
+            
+            if ( empty( $changelog ) ) {
+                $changelog = 'No changelog available.';
+            }
+            
+            set_transient( 'cuft_github_changelog', $changelog, HOUR_IN_SECONDS );
+        }
+        
+        return $changelog;
+    }
+    
+    /**
+     * Get plugin description
+     */
+    private function get_description() {
+        return 'Choice Universal Form Tracker is a comprehensive solution for tracking form submissions across multiple WordPress form frameworks. Whether you\'re using Elementor Pro, Contact Form 7, Gravity Forms, Ninja Forms, or Avada/Fusion forms, this plugin automatically detects and tracks all form submissions with detailed analytics data.
+
+<h3>Key Features</h3>
+<ul>
+<li><strong>Universal Framework Support</strong> - Automatically detects and supports Avada/Fusion Forms, Elementor Pro Forms, Contact Form 7, Ninja Forms, and Gravity Forms</li>
+<li><strong>Advanced Tracking Capabilities</strong> - Form submission tracking with user email and phone data, phone number click tracking, and UTM campaign parameter tracking</li>
+<li><strong>Google Tag Manager Integration</strong> - Optional GTM container injection with structured dataLayer events</li>
+<li><strong>Marketing Attribution</strong> - Captures and stores UTM parameters for up to 30 days with form submission association</li>
+<li><strong>Developer-Friendly</strong> - Vanilla JavaScript, comprehensive debug logging, and WordPress coding standards compliant</li>
+</ul>';
+    }
+    
+    /**
+     * Get installation instructions
+     */
+    private function get_installation_instructions() {
+        return '<ol>
+<li>Upload the plugin folder to <code>/wp-content/plugins/</code></li>
+<li>Activate the plugin through the \'Plugins\' menu in WordPress</li>
+<li>Configure GTM container ID in Settings > Universal Form Tracker</li>
+</ol>';
+    }
+    
+    /**
+     * Get last updated date
+     */
+    private function get_last_updated() {
+        $api_url = "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases/latest";
+        $args = array(
+            'timeout' => 30
+        );
+        
+        $response = wp_remote_get( $api_url, $args );
+        
+        if ( is_wp_error( $response ) ) {
+            return date( 'Y-m-d' );
+        }
+        
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+        
+        if ( isset( $data['published_at'] ) ) {
+            return date( 'Y-m-d', strtotime( $data['published_at'] ) );
+        }
+        
+        return date( 'Y-m-d' );
+    }
+    
+    /**
+     * Check if updates are enabled
+     */
+    public static function updates_enabled() {
+        return get_option( 'cuft_github_updates_enabled', true );
+    }
+    
+    /**
+     * Enable or disable updates
+     */
+    public static function set_updates_enabled( $enabled ) {
+        update_option( 'cuft_github_updates_enabled', (bool) $enabled );
+    }
+}
