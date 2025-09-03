@@ -74,7 +74,7 @@ class CUFT_Admin {
                         <th scope="row">Google Tag Manager ID</th>
                         <td>
                             <input type="text" name="gtm_id" value="<?php echo esc_attr( $gtm_id ); ?>" 
-                                   placeholder="GTM-XXXXXXX" class="regular-text" />
+                                   placeholder="GTM-XXXX or GTM-XXXXXXX" class="regular-text" />
                             <p class="description">
                                 Enter your GTM container ID (e.g., GTM-ABC123). Leave empty to disable GTM injection.
                             </p>
@@ -191,7 +191,7 @@ class CUFT_Admin {
             update_option( 'cuft_console_logging', $console_logging );
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );
         } else {
-            add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid GTM-ID format. Use format: GTM-XXXXXXX', 'error' );
+            add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid GTM-ID format. Use format: GTM-XXXX or GTM-XXXXXXX', 'error' );
         }
         
         settings_errors( 'cuft_messages' );
@@ -201,7 +201,7 @@ class CUFT_Admin {
      * Validate GTM ID format
      */
     private function is_valid_gtm_id( $gtm_id ) {
-        return preg_match( '/^GTM-[A-Z0-9]{7,}$/i', $gtm_id );
+        return preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id );
     }
     
     /**

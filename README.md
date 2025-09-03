@@ -61,7 +61,7 @@ assets/
 ### GTM Integration
 
 - Go to **Settings > Universal Form Tracker**
-- Enter your GTM container ID (format: GTM-XXXXXXX)
+- Enter your GTM container ID (format: GTM-XXXX or GTM-XXXXXXX for older/newer containers)
 - Enable debug logging if needed
 - Save settings
 

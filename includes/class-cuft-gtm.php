@@ -71,6 +71,6 @@ class CUFT_GTM {
      * Validate GTM ID format
      */
     private function is_valid_gtm_id( $gtm_id ) {
-        return preg_match( '/^GTM-[A-Z0-9]{7,}$/i', $gtm_id );
+        return preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id );
     }
 }
