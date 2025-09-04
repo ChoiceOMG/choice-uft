@@ -15,6 +15,8 @@ class CUFT_Admin {
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+        add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
     /**
@@ -39,11 +41,34 @@ class CUFT_Admin {
             $this->save_settings();
         }
         
+        // Handle manual update check
+        if ( isset( $_POST['cuft_manual_update'] ) && wp_verify_nonce( $_POST['cuft_manual_nonce'], 'cuft_manual_update' ) ) {
+            $this->handle_manual_update_check();
+        }
+        
+        // Handle click tracking actions
+        if ( isset( $_POST['cuft_click_action'] ) && wp_verify_nonce( $_POST['cuft_click_nonce'], 'cuft_click_tracking' ) ) {
+            $this->handle_click_tracking_actions();
+        }
+        
+        // Handle CSV export
+        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_csv' && wp_verify_nonce( $_GET['nonce'], 'cuft_export_csv' ) ) {
+            $this->handle_csv_export();
+        }
+        
+        // Handle webhook key regeneration
+        if ( isset( $_GET['action'] ) && $_GET['action'] === 'regenerate_webhook_key' && wp_verify_nonce( $_GET['_wpnonce'], 'regenerate_webhook_key' ) ) {
+            $this->regenerate_webhook_key();
+        }
+        
         $gtm_id = get_option( 'cuft_gtm_id', '' );
         $debug_enabled = get_option( 'cuft_debug_enabled', false );
         $generate_lead_enabled = get_option( 'cuft_generate_lead_enabled', false );
         $console_logging = get_option( 'cuft_console_logging', 'no' );
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
+        
+        // Get current tab
+        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'settings';
         ?>
         <div class="wrap">
             <div style="display: flex; align-items: center; margin-bottom: 20px;">
@@ -53,11 +78,17 @@ class CUFT_Admin {
                 <h1 style="margin: 0;">Choice Universal Form Tracker</h1>
             </div>
             
-            <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ); ?>
-            <?php $this->render_framework_status(); ?>
-            <?php $this->render_github_status(); ?>
-            <?php $this->render_utm_status(); ?>
-            <?php $this->render_debug_section(); ?>
+            <?php $this->render_admin_tabs( $current_tab ); ?>
+            
+            <?php if ( $current_tab === 'settings' ): ?>
+                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ); ?>
+                <?php $this->render_framework_status(); ?>
+                <?php $this->render_github_status(); ?>
+                <?php $this->render_utm_status(); ?>
+                <?php $this->render_debug_section(); ?>
+            <?php elseif ( $current_tab === 'click-tracking' ): ?>
+                <?php $this->render_click_tracking_tab(); ?>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -260,6 +291,15 @@ class CUFT_Admin {
                     <p style="margin-bottom: 0; color: #155724; font-size: 14px; margin-top: 10px;">
                         <strong>✓</strong> Plugin will automatically check for updates from GitHub twice daily.
                     </p>
+                    
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #d4edda;">
+                        <form method="post" style="display: inline-block; margin-right: 10px;">
+                            <?php wp_nonce_field( 'cuft_manual_update', 'cuft_manual_nonce' ); ?>
+                            <input type="submit" name="cuft_manual_update" value="Check for Updates Now" class="button button-secondary" />
+                        </form>
+                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="display: none;">Check for Updates (AJAX)</button>
+                        <div id="cuft-update-result" style="margin-top: 10px;"></div>
+                    </div>
                 </div>
             <?php else: ?>
                 <div style="padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
@@ -268,6 +308,13 @@ class CUFT_Admin {
                         GitHub updates are currently disabled. The plugin will use WordPress.org for updates instead. 
                         Enable GitHub updates in the settings above to get the latest features directly from the public repository.
                     </p>
+                    
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffc107;">
+                        <form method="post" style="display: inline-block;">
+                            <?php wp_nonce_field( 'cuft_manual_update', 'cuft_manual_nonce' ); ?>
+                            <input type="submit" name="cuft_manual_update" value="Check for Updates Anyway" class="button button-secondary" disabled title="Enable GitHub updates first" />
+                        </form>
+                    </div>
                 </div>
             <?php endif; ?>
             
@@ -421,6 +468,577 @@ class CUFT_Admin {
             case 'debug': return '#6c757d';
             default: return '#6c757d';
         }
+    }
+    
+    /**
+     * Enqueue admin scripts
+     */
+    public function enqueue_admin_scripts( $hook ) {
+        if ( $hook !== 'settings_page_choice-universal-form-tracker' ) {
+            return;
+        }
+        
+        // Check if WordPress functions exist before enqueuing
+        if ( function_exists( 'wp_enqueue_script' ) && function_exists( 'wp_localize_script' ) ) {
+            wp_enqueue_script( 
+                'cuft-admin', 
+                CUFT_URL . '/assets/cuft-admin.js', 
+                array( 'jquery' ), 
+                CUFT_VERSION, 
+                true 
+            );
+        } else {
+            return; // Exit early if WordPress functions aren't available
+        }
+        
+        wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( 'cuft_ajax_nonce' )
+        ));
+    }
+    
+    /**
+     * Handle manual update check (form submission)
+     */
+    private function handle_manual_update_check() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Insufficient permissions' );
+        }
+        
+        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
+        
+        if ( ! $github_updates_enabled ) {
+            add_settings_error( 'cuft_messages', 'cuft_message', 'GitHub updates are disabled. Enable them in settings first.', 'error' );
+            settings_errors( 'cuft_messages' );
+            return;
+        }
+        
+        // Get GitHub updater instance
+        global $cuft_updater;
+        if ( ! $cuft_updater || ! method_exists( $cuft_updater, 'force_check' ) ) {
+            add_settings_error( 'cuft_messages', 'cuft_message', 'GitHub updater not available.', 'error' );
+            settings_errors( 'cuft_messages' );
+            return;
+        }
+        
+        try {
+            $remote_version = $cuft_updater->force_check();
+            $current_version = CUFT_VERSION;
+            
+            if ( version_compare( $current_version, $remote_version, '<' ) ) {
+                add_settings_error( 'cuft_messages', 'cuft_message', "Update available! Current: {$current_version}, Latest: {$remote_version}. You can update from the WordPress Plugins page.", 'updated' );
+            } else {
+                add_settings_error( 'cuft_messages', 'cuft_message', "Plugin is up to date. Current version: {$current_version}", 'updated' );
+            }
+        } catch ( Exception $e ) {
+            add_settings_error( 'cuft_messages', 'cuft_message', 'Error checking for updates: ' . $e->getMessage(), 'error' );
+        }
+        
+        settings_errors( 'cuft_messages' );
+    }
+    
+    /**
+     * Handle AJAX manual update check
+     */
+    public function manual_update_check() {
+        // Verify nonce and permissions
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Security check failed' ) ) );
+        }
+        
+        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
+        
+        if ( ! $github_updates_enabled ) {
+            wp_die( json_encode( array( 
+                'success' => false, 
+                'message' => 'GitHub updates are disabled. Enable them in settings first.' 
+            )));
+        }
+        
+        // Get GitHub updater instance
+        global $cuft_updater;
+        if ( ! $cuft_updater || ! method_exists( $cuft_updater, 'force_check' ) ) {
+            wp_die( json_encode( array( 
+                'success' => false, 
+                'message' => 'GitHub updater not available.' 
+            )));
+        }
+        
+        try {
+            $remote_version = $cuft_updater->force_check();
+            $current_version = CUFT_VERSION;
+            
+            $response = array( 'success' => true );
+            
+            if ( version_compare( $current_version, $remote_version, '<' ) ) {
+                $response['message'] = "Update available! Current: {$current_version}, Latest: {$remote_version}";
+                $response['update_available'] = true;
+                $response['current_version'] = $current_version;
+                $response['latest_version'] = $remote_version;
+            } else {
+                $response['message'] = "Plugin is up to date. Current version: {$current_version}";
+                $response['update_available'] = false;
+                $response['current_version'] = $current_version;
+            }
+            
+            wp_die( json_encode( $response ) );
+            
+        } catch ( Exception $e ) {
+            wp_die( json_encode( array( 
+                'success' => false, 
+                'message' => 'Error checking for updates: ' . $e->getMessage() 
+            )));
+        }
+    }
+    
+    /**
+     * Render admin tabs
+     */
+    private function render_admin_tabs( $current_tab ) {
+        $tabs = array(
+            'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
+            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
+        );
+        
+        echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
+        foreach ( $tabs as $tab_key => $tab_label ) {
+            $active_class = ( $current_tab === $tab_key ) ? ' nav-tab-active' : '';
+            $tab_url = add_query_arg( array( 'tab' => $tab_key ), admin_url( 'options-general.php?page=choice-universal-form-tracker' ) );
+            echo '<a href="' . esc_url( $tab_url ) . '" class="nav-tab' . $active_class . '">' . esc_html( $tab_label ) . '</a>';
+        }
+        echo '</nav>';
+    }
+    
+    /**
+     * Render click tracking tab
+     */
+    private function render_click_tracking_tab() {
+        // Handle pagination
+        $current_page = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+        $per_page = 20;
+        $offset = ( $current_page - 1 ) * $per_page;
+        
+        // Handle filters
+        $filter_qualified = isset( $_GET['filter_qualified'] ) ? sanitize_text_field( $_GET['filter_qualified'] ) : '';
+        $filter_platform = isset( $_GET['filter_platform'] ) ? sanitize_text_field( $_GET['filter_platform'] ) : '';
+        $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
+        $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
+        
+        $args = array(
+            'limit' => $per_page,
+            'offset' => $offset
+        );
+        
+        if ( $filter_qualified !== '' ) {
+            $args['qualified'] = (int) $filter_qualified;
+        }
+        if ( ! empty( $filter_platform ) ) {
+            $args['platform'] = $filter_platform;
+        }
+        if ( ! empty( $filter_date_from ) ) {
+            $args['date_from'] = $filter_date_from . ' 00:00:00';
+        }
+        if ( ! empty( $filter_date_to ) ) {
+            $args['date_to'] = $filter_date_to . ' 23:59:59';
+        }
+        
+        $clicks = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_clicks( $args ) : array();
+        $total_clicks = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_clicks_count( $args ) : 0;
+        $total_pages = ceil( $total_clicks / $per_page );
+        
+        ?>
+        <div class="cuft-click-tracking" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <h2 style="margin: 0;">
+                    <span style="margin-right: 8px;">🎯</span>
+                    Click Tracking Management
+                </h2>
+                <div>
+                    <?php 
+                    $export_url = wp_nonce_url( 
+                        add_query_arg( array( 'action' => 'export_csv' ), admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ), 
+                        'cuft_export_csv', 
+                        'nonce' 
+                    );
+                    ?>
+                    <a href="<?php echo esc_url( $export_url ); ?>" class="button button-secondary">
+                        📊 Export CSV
+                    </a>
+                </div>
+            </div>
+            
+            <?php $this->render_webhook_settings(); ?>
+            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_platform, $filter_date_from, $filter_date_to ); ?>
+            <?php $this->render_click_tracking_stats( $args ); ?>
+            <?php $this->render_click_tracking_table( $clicks ); ?>
+            <?php $this->render_click_tracking_pagination( $current_page, $total_pages ); ?>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render webhook settings
+     */
+    private function render_webhook_settings() {
+        $webhook_key = get_option( 'cuft_webhook_key', '' );
+        
+        if ( empty( $webhook_key ) ) {
+            $webhook_key = wp_generate_password( 32, false );
+            update_option( 'cuft_webhook_key', $webhook_key );
+        }
+        
+        $webhook_url = home_url( '/cuft-webhook/' );
+        $example_url = add_query_arg( array(
+            'key' => $webhook_key,
+            'click_id' => 'example_click_123',
+            'qualified' => '1',
+            'score' => '8'
+        ), $webhook_url );
+        
+        ?>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0;">Webhook Configuration</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label><strong>Webhook URL:</strong></label><br>
+                    <input type="text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly class="regular-text" onclick="this.select();" />
+                </div>
+                <div>
+                    <label><strong>Webhook Key:</strong></label><br>
+                    <input type="text" value="<?php echo esc_attr( $webhook_key ); ?>" readonly class="regular-text" onclick="this.select();" />
+                    <button type="button" class="button button-small" onclick="if(confirm('Generate new webhook key? This will invalidate the current key.')) { location.href='<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'regenerate_webhook_key' ) ), 'regenerate_webhook_key' ) ); ?>'; }">
+                        🔄 Regenerate
+                    </button>
+                </div>
+            </div>
+            <div>
+                <strong>Example Usage:</strong><br>
+                <code style="background: white; padding: 8px; display: block; border-radius: 4px; font-size: 12px; word-break: break-all;">
+                    <?php echo esc_html( $example_url ); ?>
+                </code>
+                <small style="color: #666;">
+                    Send GET requests to update click status. Parameters: key (required), click_id (required), qualified (0 or 1), score (0-10)
+                </small>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render click tracking filters
+     */
+    private function render_click_tracking_filters( $filter_qualified, $filter_platform, $filter_date_from, $filter_date_to ) {
+        ?>
+        <form method="GET" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            <input type="hidden" name="page" value="choice-universal-form-tracker" />
+            <input type="hidden" name="tab" value="click-tracking" />
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+                <div>
+                    <label><strong>Qualified Status:</strong></label><br>
+                    <select name="filter_qualified">
+                        <option value="">All</option>
+                        <option value="1" <?php selected( $filter_qualified, '1' ); ?>>Qualified</option>
+                        <option value="0" <?php selected( $filter_qualified, '0' ); ?>>Not Qualified</option>
+                    </select>
+                </div>
+                <div>
+                    <label><strong>Platform:</strong></label><br>
+                    <input type="text" name="filter_platform" value="<?php echo esc_attr( $filter_platform ); ?>" placeholder="e.g., facebook, google" />
+                </div>
+                <div>
+                    <label><strong>Date From:</strong></label><br>
+                    <input type="date" name="filter_date_from" value="<?php echo esc_attr( $filter_date_from ); ?>" />
+                </div>
+                <div>
+                    <label><strong>Date To:</strong></label><br>
+                    <input type="date" name="filter_date_to" value="<?php echo esc_attr( $filter_date_to ); ?>" />
+                </div>
+                <div>
+                    <input type="submit" value="Filter" class="button button-secondary" />
+                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ); ?>" class="button">Clear</a>
+                </div>
+            </div>
+        </form>
+        <?php
+    }
+    
+    /**
+     * Render click tracking stats
+     */
+    private function render_click_tracking_stats( $args ) {
+        if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
+            return;
+        }
+        
+        $total_clicks = CUFT_Click_Tracker::get_clicks_count( $args );
+        $qualified_args = array_merge( $args, array( 'qualified' => 1 ) );
+        $qualified_clicks = CUFT_Click_Tracker::get_clicks_count( $qualified_args );
+        $unqualified_clicks = $total_clicks - $qualified_clicks;
+        $qualification_rate = $total_clicks > 0 ? round( ( $qualified_clicks / $total_clicks ) * 100, 1 ) : 0;
+        
+        ?>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #1976d2;"><?php echo number_format( $total_clicks ); ?></div>
+                <div style="color: #666;">Total Clicks</div>
+            </div>
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 6px; text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #388e3c;"><?php echo number_format( $qualified_clicks ); ?></div>
+                <div style="color: #666;">Qualified Clicks</div>
+            </div>
+            <div style="background: #fff3e0; padding: 15px; border-radius: 6px; text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #f57c00;"><?php echo number_format( $unqualified_clicks ); ?></div>
+                <div style="color: #666;">Unqualified Clicks</div>
+            </div>
+            <div style="background: #f3e5f5; padding: 15px; border-radius: 6px; text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #7b1fa2;"><?php echo $qualification_rate; ?>%</div>
+                <div style="color: #666;">Qualification Rate</div>
+            </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render click tracking table
+     */
+    private function render_click_tracking_table( $clicks ) {
+        ?>
+        <div style="overflow-x: auto;">
+            <table class="widefat striped">
+                <thead>
+                    <tr>
+                        <th>Click ID</th>
+                        <th>Platform</th>
+                        <th>Campaign</th>
+                        <th>UTM Source</th>
+                        <th>Qualified</th>
+                        <th>Score</th>
+                        <th>Date Created</th>
+                        <th>Date Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ( empty( $clicks ) ): ?>
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
+                                No click tracking data found. Click data will appear here when tracking is active.
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ( $clicks as $click ): ?>
+                            <tr>
+                                <td>
+                                    <strong><?php echo esc_html( $click->click_id ); ?></strong>
+                                    <?php if ( ! empty( $click->ip_address ) ): ?>
+                                        <br><small style="color: #666;"><?php echo esc_html( $click->ip_address ); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html( $click->platform ?: '—' ); ?></td>
+                                <td><?php echo esc_html( $click->campaign ?: '—' ); ?></td>
+                                <td><?php echo esc_html( $click->utm_source ?: '—' ); ?></td>
+                                <td>
+                                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background: <?php echo $click->qualified ? '#28a745' : '#6c757d'; ?>;">
+                                        <?php echo $click->qualified ? 'YES' : 'NO'; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #f8f9fa;">
+                                        <?php echo (int) $click->score; ?>/10
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php echo esc_html( date( 'M j, Y g:i A', strtotime( $click->date_created ) ) ); ?>
+                                    <br><small style="color: #666;">UTC</small>
+                                </td>
+                                <td>
+                                    <?php if ( $click->date_updated !== $click->date_created ): ?>
+                                        <?php echo esc_html( date( 'M j, Y g:i A', strtotime( $click->date_updated ) ) ); ?>
+                                        <br><small style="color: #666;">UTC</small>
+                                    <?php else: ?>
+                                        —
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <button type="button" class="button button-small" onclick="editClick('<?php echo esc_js( $click->click_id ); ?>', <?php echo (int) $click->qualified; ?>, <?php echo (int) $click->score; ?>)">
+                                        ✏️ Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Edit Click Modal -->
+        <div id="edit-click-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 400px;">
+                <h3 style="margin-top: 0;">Edit Click Status</h3>
+                <form method="POST">
+                    <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
+                    <input type="hidden" name="cuft_click_action" value="update_status" />
+                    <input type="hidden" name="click_id" id="edit-click-id" />
+                    
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">Qualified:</th>
+                            <td>
+                                <label><input type="radio" name="qualified" value="1" id="edit-qualified-yes" /> Yes</label><br>
+                                <label><input type="radio" name="qualified" value="0" id="edit-qualified-no" /> No</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Score (0-10):</th>
+                            <td>
+                                <input type="number" name="score" id="edit-score" min="0" max="10" step="1" />
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button type="button" class="button" onclick="closeEditModal()">Cancel</button>
+                        <input type="submit" value="Update" class="button button-primary" />
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+        function editClick(clickId, qualified, score) {
+            document.getElementById('edit-click-id').value = clickId;
+            document.getElementById('edit-qualified-' + (qualified ? 'yes' : 'no')).checked = true;
+            document.getElementById('edit-score').value = score;
+            document.getElementById('edit-click-modal').style.display = 'block';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('edit-click-modal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('edit-click-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+        </script>
+        <?php
+    }
+    
+    /**
+     * Render pagination
+     */
+    private function render_click_tracking_pagination( $current_page, $total_pages ) {
+        if ( $total_pages <= 1 ) {
+            return;
+        }
+        
+        $base_url = admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' );
+        
+        // Preserve current filters
+        $filter_params = array();
+        foreach ( array( 'filter_qualified', 'filter_platform', 'filter_date_from', 'filter_date_to' ) as $param ) {
+            if ( ! empty( $_GET[ $param ] ) ) {
+                $filter_params[ $param ] = sanitize_text_field( $_GET[ $param ] );
+            }
+        }
+        
+        ?>
+        <div style="margin-top: 20px; text-align: center;">
+            <?php if ( $current_page > 1 ): ?>
+                <a href="<?php echo esc_url( add_query_arg( array_merge( $filter_params, array( 'paged' => $current_page - 1 ) ), $base_url ) ); ?>" class="button">« Previous</a>
+            <?php endif; ?>
+            
+            <span style="margin: 0 15px;">
+                Page <?php echo $current_page; ?> of <?php echo $total_pages; ?>
+            </span>
+            
+            <?php if ( $current_page < $total_pages ): ?>
+                <a href="<?php echo esc_url( add_query_arg( array_merge( $filter_params, array( 'paged' => $current_page + 1 ) ), $base_url ) ); ?>" class="button">Next »</a>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Handle click tracking actions
+     */
+    private function handle_click_tracking_actions() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Insufficient permissions' );
+        }
+        
+        $action = isset( $_POST['cuft_click_action'] ) ? sanitize_text_field( $_POST['cuft_click_action'] ) : '';
+        
+        if ( $action === 'update_status' ) {
+            $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( $_POST['click_id'] ) : '';
+            $qualified = isset( $_POST['qualified'] ) ? (int) $_POST['qualified'] : null;
+            $score = isset( $_POST['score'] ) ? (int) $_POST['score'] : null;
+            
+            if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
+                $result = CUFT_Click_Tracker::update_click_status( $click_id, $qualified, $score );
+                
+                if ( $result !== false ) {
+                    add_settings_error( 'cuft_messages', 'cuft_message', 'Click status updated successfully!', 'updated' );
+                } else {
+                    add_settings_error( 'cuft_messages', 'cuft_message', 'Failed to update click status.', 'error' );
+                }
+            }
+        }
+        
+        settings_errors( 'cuft_messages' );
+    }
+    
+    /**
+     * Handle CSV export
+     */
+    private function handle_csv_export() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Insufficient permissions' );
+        }
+        
+        if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
+            wp_die( 'Click tracker not available' );
+        }
+        
+        // Get filter parameters
+        $args = array();
+        
+        if ( isset( $_GET['filter_qualified'] ) && $_GET['filter_qualified'] !== '' ) {
+            $args['qualified'] = (int) $_GET['filter_qualified'];
+        }
+        if ( ! empty( $_GET['filter_platform'] ) ) {
+            $args['platform'] = sanitize_text_field( $_GET['filter_platform'] );
+        }
+        if ( ! empty( $_GET['filter_date_from'] ) ) {
+            $args['date_from'] = sanitize_text_field( $_GET['filter_date_from'] ) . ' 00:00:00';
+        }
+        if ( ! empty( $_GET['filter_date_to'] ) ) {
+            $args['date_to'] = sanitize_text_field( $_GET['filter_date_to'] ) . ' 23:59:59';
+        }
+        
+        CUFT_Click_Tracker::export_csv( $args );
+    }
+    
+    /**
+     * Regenerate webhook key
+     */
+    private function regenerate_webhook_key() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Insufficient permissions' );
+        }
+        
+        $new_key = wp_generate_password( 32, false );
+        update_option( 'cuft_webhook_key', $new_key );
+        
+        add_settings_error( 'cuft_messages', 'cuft_message', 'Webhook key regenerated successfully!', 'updated' );
+        settings_errors( 'cuft_messages' );
+        
+        // Redirect back to click tracking tab
+        wp_redirect( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) );
+        exit;
     }
     
     /**

@@ -13,6 +13,11 @@ class CUFT_Elementor_Forms {
      * Constructor
      */
     public function __construct() {
+        // Check if required WordPress functions exist
+        if ( ! function_exists( 'add_action' ) || ! function_exists( 'wp_enqueue_script' ) ) {
+            return;
+        }
+        
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         add_action( 'elementor_pro/forms/new_record', array( $this, 'track_submission' ), 10, 2 );
     }
@@ -21,6 +26,11 @@ class CUFT_Elementor_Forms {
      * Enqueue tracking script
      */
     public function enqueue_scripts() {
+        // Check if required functions exist
+        if ( ! function_exists( 'wp_enqueue_script' ) || ! class_exists( 'CUFT_Form_Detector' ) ) {
+            return;
+        }
+        
         if ( ! CUFT_Form_Detector::is_framework_detected( 'elementor' ) ) {
             return;
         }

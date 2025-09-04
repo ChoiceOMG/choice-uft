@@ -20,6 +20,16 @@ class CUFT_GitHub_Updater {
      * Constructor
      */
     public function __construct( $plugin_file, $version, $github_username, $github_repo ) {
+        // Validate required parameters
+        if ( empty( $plugin_file ) || empty( $version ) || empty( $github_username ) || empty( $github_repo ) ) {
+            return;
+        }
+        
+        // Check if required WordPress functions exist
+        if ( ! function_exists( 'plugin_basename' ) || ! function_exists( 'add_filter' ) ) {
+            return;
+        }
+        
         $this->plugin_file = $plugin_file;
         $this->plugin_basename = plugin_basename( $plugin_file );
         $this->version = $version;
@@ -27,10 +37,13 @@ class CUFT_GitHub_Updater {
         $this->github_repo = $github_repo;
         $this->plugin_slug = dirname( $this->plugin_basename );
         
-        add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
-        add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
-        add_filter( 'upgrader_pre_download', array( $this, 'download_package' ), 10, 3 );
-        add_action( 'upgrader_process_complete', array( $this, 'purge_cache' ), 10, 2 );
+        // Only add hooks if we're in a proper WordPress environment
+        if ( did_action( 'init' ) || doing_action( 'init' ) || did_action( 'plugins_loaded' ) ) {
+            add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
+            add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
+            add_filter( 'upgrader_pre_download', array( $this, 'download_package' ), 10, 3 );
+            add_action( 'upgrader_process_complete', array( $this, 'purge_cache' ), 10, 2 );
+        }
     }
     
     /**
@@ -38,6 +51,11 @@ class CUFT_GitHub_Updater {
      */
     public function check_for_update( $transient ) {
         if ( empty( $transient->checked ) ) {
+            return $transient;
+        }
+        
+        // Ensure WordPress HTTP functions are available
+        if ( ! function_exists( 'wp_remote_get' ) ) {
             return $transient;
         }
         
@@ -119,7 +137,13 @@ class CUFT_GitHub_Updater {
                 return $download;
             }
             
-            $code = wp_remote_response_code( $download );
+            // Check if wp_remote_response_code exists (WordPress 2.7+)
+            if ( ! function_exists( 'wp_remote_response_code' ) ) {
+                // Fallback for older WordPress versions
+                $code = isset( $download['response']['code'] ) ? $download['response']['code'] : 200;
+            } else {
+                $code = wp_remote_response_code( $download );
+            }
             if ( $code !== 200 ) {
                 return new WP_Error( 'download_failed', 'Download failed with HTTP code: ' . $code );
             }
@@ -154,9 +178,22 @@ class CUFT_GitHub_Updater {
     }
     
     /**
+     * Force check for updates (manual trigger)
+     */
+    public function force_check() {
+        delete_transient( 'cuft_github_version' );
+        delete_transient( 'cuft_github_changelog' );
+        return $this->get_remote_version();
+    }
+    
+    /**
      * Get remote version from GitHub
      */
     private function get_remote_version() {
+        // Ensure required WordPress functions are available
+        if ( ! function_exists( 'wp_remote_get' ) || ! function_exists( 'wp_remote_retrieve_body' ) ) {
+            return $this->version;
+        }
         $version = get_transient( 'cuft_github_version' );
         
         if ( false === $version ) {
@@ -168,11 +205,19 @@ class CUFT_GitHub_Updater {
             $response = wp_remote_get( $api_url, $args );
             
             if ( is_wp_error( $response ) ) {
-                CUFT_Logger::log( 'GitHub API error: ' . $response->get_error_message(), 'error' );
+                if ( class_exists( 'CUFT_Logger' ) ) {
+                    CUFT_Logger::log( 'GitHub API error: ' . $response->get_error_message(), 'error' );
+                }
                 return $this->version;
             }
             
-            $code = wp_remote_response_code( $response );
+            // Check if wp_remote_response_code exists (WordPress 2.7+)
+            if ( ! function_exists( 'wp_remote_response_code' ) ) {
+                // Fallback for older WordPress versions
+                $code = isset( $response['response']['code'] ) ? $response['response']['code'] : 200;
+            } else {
+                $code = wp_remote_response_code( $response );
+            }
             if ( $code !== 200 ) {
                 CUFT_Logger::log( "GitHub API returned code: $code", 'error' );
                 return $this->version;
@@ -224,7 +269,13 @@ class CUFT_GitHub_Updater {
                 return 'Could not retrieve changelog from GitHub.';
             }
             
-            $code = wp_remote_response_code( $response );
+            // Check if wp_remote_response_code exists (WordPress 2.7+)
+            if ( ! function_exists( 'wp_remote_response_code' ) ) {
+                // Fallback for older WordPress versions
+                $code = isset( $response['response']['code'] ) ? $response['response']['code'] : 200;
+            } else {
+                $code = wp_remote_response_code( $response );
+            }
             if ( $code !== 200 ) {
                 return 'Could not retrieve changelog from GitHub.';
             }
@@ -293,7 +344,7 @@ class CUFT_GitHub_Updater {
         
         $response = wp_remote_get( $api_url, $args );
         
-        if ( is_wp_error( $response ) ) {
+        if ( is_wp_error( $response ) || ! function_exists( 'wp_remote_retrieve_body' ) ) {
             return date( 'Y-m-d' );
         }
         
