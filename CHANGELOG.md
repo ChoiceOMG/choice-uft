@@ -5,6 +5,51 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2025-01-20
+
+### Added
+
+- **Server-Side GTM (sGTM) Support**: First-party tracking through custom domain
+  - Enable custom server URLs for GTM script delivery
+  - Built-in endpoint validation with real-time connection testing
+  - AJAX-powered configuration testing in admin panel
+  - Support for both `/gtm.js` and `/ns.html` endpoints
+  - Automatic fallback to standard GTM if validation fails
+  - Status display in Framework Detection section
+- **Enhanced Admin Interface**: Improved settings organization
+  - New Server-Side GTM configuration section
+  - Dynamic UI with show/hide based on configuration
+  - Real-time validation feedback
+  - Clear status indicators for sGTM configuration
+
+### Enhanced
+
+- **First-Party Tracking Benefits**: When sGTM is enabled
+  - Avoid third-party cookie restrictions
+  - Reduce ad blocker interference
+  - Improve tracking reliability
+  - Better privacy compliance
+  - Leverage your own CDN and caching
+
+### Technical
+
+- **Backward Compatibility**: 100% backward compatible
+  - Feature is disabled by default
+  - No changes to existing functionality
+  - Seamless upgrade path for all users
+  - Standard GTM continues to work exactly as before
+
+## [3.4.0] - 2024-12-XX
+
+### Added
+
+- **GitHub Auto-Update Feature**: Seamless plugin updates from GitHub
+  - Automatic update checking from GitHub releases
+  - No authentication required for public repository
+  - WordPress native update notifications
+  - Manual update check functionality
+  - Configurable enable/disable option
+
 ## [3.3.0] - 2024-12-XX
 
 ### Fixed

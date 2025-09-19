@@ -18,6 +18,7 @@ Universal WordPress plugin for tracking form submissions across multiple framewo
 - **Debug Logging**: Comprehensive logging system for troubleshooting
 - **Admin Dashboard**: Beautiful admin interface with framework status and debug logs
 - **jQuery-Free**: Uses vanilla JavaScript for maximum compatibility
+- **Server-Side GTM Support**: Optional first-party tracking through custom domain (new in v3.5.0)
 
 ## File Structure
 
@@ -74,6 +75,34 @@ The plugin automatically detects and supports:
 - **Contact Form 7**: Popular contact form plugin
 - **Ninja Forms**: Drag & drop form builder
 - **Gravity Forms**: Advanced form solution
+
+### Server-Side GTM (sGTM) Support
+
+**New in v3.5.0**: Enable first-party tracking through your own domain to avoid third-party cookie restrictions and improve tracking reliability.
+
+**Configuration:**
+
+1. Navigate to **Settings > Universal Form Tracker**
+2. Enable "Server-Side GTM" checkbox
+3. Enter your server GTM URL (e.g., `https://gtm.yourdomain.com`)
+4. Click "Test Connection" to validate endpoints
+5. Save settings once validation succeeds
+
+**Benefits:**
+
+- **First-Party Tracking**: Scripts served from your domain avoid browser restrictions
+- **Improved Privacy**: Better control over data collection and processing
+- **Ad Blocker Resistant**: Less likely to be blocked than third-party scripts
+- **Cookie Compliance**: First-party cookies have better browser support
+- **Faster Loading**: Can leverage your CDN and caching infrastructure
+
+**Requirements:**
+
+- A configured server-side GTM container
+- Proxy endpoints for `/gtm.js` and `/ns.html`
+- HTTPS connection to your server GTM domain
+
+**Fallback**: If validation fails or sGTM is disabled, the plugin automatically uses standard Google Tag Manager URLs.
 
 ### UTM Campaign Tracking
 

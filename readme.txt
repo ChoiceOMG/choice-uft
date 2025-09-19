@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.3.0
+Stable tag: 3.5.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,24 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.5.0 =
+* Added Server-Side GTM (sGTM) support for first-party tracking
+* Enable custom server URLs for GTM script delivery via your own domain
+* Built-in endpoint validation with real-time connection testing
+* Support for both standard and server-side GTM modes
+* AJAX-powered configuration testing in admin panel
+* Maintains full backward compatibility (disabled by default)
+* Helps avoid third-party cookie restrictions and ad blockers
+* Improves tracking reliability and privacy compliance
+
+= 3.4.0 =
+* Added GitHub auto-update feature for seamless plugin updates
+* Introduced automatic update checking from GitHub releases
+* Enhanced admin interface with update status display
+* Added manual update check functionality
+* Improved error handling and update notifications
+* No authentication required for public repository access
 
 = 3.3.0 =
 * Major Avada form tracking bug fixes and improvements
