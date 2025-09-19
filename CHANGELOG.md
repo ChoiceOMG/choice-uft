@@ -5,6 +5,42 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2025-01-20
+
+### Added
+
+- **One-Click Update Installation**: Install updates directly from the admin settings page
+  - New "Download & Install Update" button appears when updates are available
+  - No need to navigate to the plugins page anymore
+  - Real-time progress indicators during installation
+  - Automatic page reload after successful update
+
+### Enhanced
+
+- **Improved Update Experience**: Streamlined update process
+  - AJAX-powered installation with no page redirects
+  - Confirmation dialog before installing updates
+  - Progressive status messages during installation
+  - Clear error messages if installation fails
+  - Automatic cleanup of update transients
+
+### Technical
+
+- **Update Handler**: New AJAX endpoint for plugin self-updates
+  - Uses WordPress Plugin_Upgrader class
+  - Custom upgrader skin for capturing output
+  - Proper permission checks (update_plugins capability)
+  - Downloads directly from GitHub releases
+
+## [3.5.2] - 2025-01-20
+
+### Fixed
+
+- **sGTM Validation Persistence**: Fixed validation status being lost when saving settings
+  - Corrected URL comparison logic happening after update
+  - Added debug output for administrators when debug mode enabled
+  - Improved validation state management
+
 ## [3.5.1] - 2025-01-20
 
 ### Fixed

@@ -4,6 +4,9 @@ jQuery(document).ready(function ($) {
   // Show AJAX button if JavaScript is enabled
   $("#cuft-ajax-update-check").show();
 
+  // Store latest version for install button
+  var latestVersion = null;
+
   // Handle AJAX update check
   $("#cuft-ajax-update-check").on("click", function (e) {
     e.preventDefault();
@@ -33,6 +36,15 @@ jQuery(document).ready(function ($) {
           var borderColor = response.update_available ? "#28a745" : "#646970";
           var icon = response.update_available ? "🎉" : "✅";
 
+          // Store the latest version if update is available
+          if (response.update_available) {
+            latestVersion = response.latest_version;
+            $("#cuft-download-install").show();
+          } else {
+            latestVersion = null;
+            $("#cuft-download-install").hide();
+          }
+
           $result.html(
             '<div style="padding: 10px; background: ' +
               bgColor +
@@ -45,7 +57,7 @@ jQuery(document).ready(function ($) {
               response.message +
               "</strong>" +
               (response.update_available
-                ? "<br><small>Go to the WordPress Plugins page to update.</small>"
+                ? "<br><small>Click 'Download & Install Update' to update now!</small>"
                 : "") +
               "</div>"
           );
@@ -182,6 +194,121 @@ jQuery(document).ready(function ($) {
       complete: function () {
         // Re-enable button
         $button.prop("disabled", false).text("Test Connection");
+      },
+    });
+  });
+
+  // Handle Download & Install button
+  $("#cuft-download-install").on("click", function (e) {
+    e.preventDefault();
+
+    if (!latestVersion) {
+      alert("Please check for updates first.");
+      return;
+    }
+
+    var $button = $(this);
+    var $result = $("#cuft-update-result");
+    var $progress = $("#cuft-install-progress");
+    var $status = $("#cuft-install-status");
+
+    // Confirm the action
+    if (!confirm("Are you sure you want to update to version " + latestVersion + "?\n\nThe plugin will be updated automatically.")) {
+      return;
+    }
+
+    // Disable buttons and show progress
+    $button.prop("disabled", true);
+    $("#cuft-ajax-update-check").prop("disabled", true);
+    $progress.show();
+    $result.empty();
+
+    // Update status messages
+    var statusMessages = [
+      "Downloading update from GitHub...",
+      "Extracting files...",
+      "Installing update...",
+      "Cleaning up..."
+    ];
+    var messageIndex = 0;
+
+    var statusInterval = setInterval(function () {
+      if (messageIndex < statusMessages.length - 1) {
+        messageIndex++;
+        $status.text(statusMessages[messageIndex]);
+      }
+    }, 2000);
+
+    // Make AJAX request to install update
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: "POST",
+      data: {
+        action: "cuft_install_update",
+        nonce: cuftAdmin.nonce,
+        version: latestVersion,
+      },
+      dataType: "json",
+      timeout: 60000, // 60 second timeout for installation
+      success: function (response) {
+        clearInterval(statusInterval);
+
+        if (response.success) {
+          $progress.hide();
+          $result.html(
+            '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">' +
+              '<strong>✅ ' + response.message + '</strong>' +
+              '<br><small>Page will reload in 3 seconds...</small>' +
+              '</div>'
+          );
+
+          // Hide the install button since update is complete
+          $button.hide();
+
+          // Reload the page after 3 seconds
+          setTimeout(function () {
+            window.location.reload();
+          }, 3000);
+        } else {
+          $progress.hide();
+          $result.html(
+            '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
+              '<strong>❌ ' + response.message + '</strong>' +
+              (response.details && response.details.length ?
+                '<br><small>' + response.details.join('<br>') + '</small>' : '') +
+              '</div>'
+          );
+
+          // Re-enable buttons
+          $button.prop("disabled", false);
+          $("#cuft-ajax-update-check").prop("disabled", false);
+        }
+      },
+      error: function (xhr, status, error) {
+        clearInterval(statusInterval);
+        $progress.hide();
+
+        var errorMsg = "Installation failed";
+        if (status === "timeout") {
+          errorMsg = "Installation timed out - please try again";
+        } else if (xhr.responseText) {
+          try {
+            var response = JSON.parse(xhr.responseText);
+            errorMsg = response.message || errorMsg;
+          } catch (e) {
+            errorMsg = "Installation failed: " + error;
+          }
+        }
+
+        $result.html(
+          '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
+            '<strong>❌ ' + errorMsg + '</strong>' +
+            '</div>'
+        );
+
+        // Re-enable buttons
+        $button.prop("disabled", false);
+        $("#cuft-ajax-update-check").prop("disabled", false);
       },
     });
   });

@@ -17,6 +17,7 @@ class CUFT_Admin {
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
+        add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
@@ -404,8 +405,17 @@ class CUFT_Admin {
                             <?php wp_nonce_field( 'cuft_manual_update', 'cuft_manual_nonce' ); ?>
                             <input type="submit" name="cuft_manual_update" value="Check for Updates Now" class="button button-secondary" />
                         </form>
-                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="display: none;">Check for Updates (AJAX)</button>
+                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="display: none; margin-right: 10px;">Check for Updates (AJAX)</button>
+                        <button type="button" id="cuft-download-install" class="button button-primary" style="display: none;">
+                            <span class="dashicons dashicons-download" style="vertical-align: middle;"></span> Download & Install Update
+                        </button>
                         <div id="cuft-update-result" style="margin-top: 10px;"></div>
+                        <div id="cuft-install-progress" style="margin-top: 10px; display: none;">
+                            <div style="padding: 10px; background: #f0f0f1; border-radius: 4px;">
+                                <span class="spinner is-active" style="float: none; vertical-align: middle;"></span>
+                                <span id="cuft-install-status">Preparing update...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             <?php else: ?>
@@ -695,6 +705,101 @@ class CUFT_Admin {
                 'success' => false, 
                 'message' => 'Error checking for updates: ' . $e->getMessage() 
             )));
+        }
+    }
+
+    /**
+     * AJAX handler for installing plugin update
+     */
+    public function ajax_install_update() {
+        // Verify nonce and permissions
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'update_plugins' ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Security check failed' ) ) );
+        }
+
+        $latest_version = isset( $_POST['version'] ) ? sanitize_text_field( $_POST['version'] ) : '';
+        if ( empty( $latest_version ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'No version specified' ) ) );
+        }
+
+        // Include necessary WordPress files for plugin updates
+        require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+        require_once( ABSPATH . 'wp-admin/includes/file.php' );
+        require_once( ABSPATH . 'wp-admin/includes/misc.php' );
+        require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+
+        // Create a custom skin to capture the output
+        class CUFT_Ajax_Upgrader_Skin extends WP_Upgrader_Skin {
+            public $messages = array();
+
+            public function feedback( $string, ...$args ) {
+                if ( ! empty( $args ) ) {
+                    $string = vsprintf( $string, $args );
+                }
+                $this->messages[] = $string;
+            }
+
+            public function header() {}
+            public function footer() {}
+            public function error( $errors ) {
+                if ( is_string( $errors ) ) {
+                    $this->messages[] = 'Error: ' . $errors;
+                } elseif ( is_wp_error( $errors ) ) {
+                    $this->messages[] = 'Error: ' . $errors->get_error_message();
+                }
+            }
+        }
+
+        try {
+            // Get download URL for the latest version
+            $download_url = "https://github.com/ChoiceOMG/choice-uft/archive/refs/tags/v{$latest_version}.zip";
+
+            // Initialize the upgrader
+            $skin = new CUFT_Ajax_Upgrader_Skin();
+            $upgrader = new Plugin_Upgrader( $skin );
+
+            // Perform the upgrade
+            $result = $upgrader->upgrade( CUFT_BASENAME, array(
+                'package' => $download_url,
+                'destination' => WP_PLUGIN_DIR,
+                'clear_destination' => true,
+                'clear_working' => true,
+                'hook_extra' => array(
+                    'plugin' => CUFT_BASENAME,
+                    'type' => 'plugin',
+                    'action' => 'update'
+                )
+            ) );
+
+            if ( is_wp_error( $result ) ) {
+                wp_die( json_encode( array(
+                    'success' => false,
+                    'message' => 'Update failed: ' . $result->get_error_message(),
+                    'details' => $skin->messages
+                ) ) );
+            } elseif ( $result === false ) {
+                wp_die( json_encode( array(
+                    'success' => false,
+                    'message' => 'Update failed: Unknown error',
+                    'details' => $skin->messages
+                ) ) );
+            } else {
+                // Clear update transients
+                delete_site_transient( 'update_plugins' );
+                delete_transient( 'cuft_github_version' );
+
+                wp_die( json_encode( array(
+                    'success' => true,
+                    'message' => "Successfully updated to version {$latest_version}",
+                    'details' => $skin->messages,
+                    'reload_needed' => true
+                ) ) );
+            }
+        } catch ( Exception $e ) {
+            wp_die( json_encode( array(
+                'success' => false,
+                'message' => 'Update error: ' . $e->getMessage()
+            ) ) );
         }
     }
 
