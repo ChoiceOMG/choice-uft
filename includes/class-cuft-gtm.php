@@ -25,15 +25,29 @@ class CUFT_GTM {
         if ( ! $gtm_id ) {
             return;
         }
-        
+
+        // Get sGTM settings
+        $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false );
+        $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+        $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
+
+        // Determine which URL to use
+        $gtm_base_url = 'https://www.googletagmanager.com';
+        $comment_prefix = 'Google Tag Manager';
+
+        if ( $sgtm_enabled && $sgtm_url && $sgtm_validated ) {
+            $gtm_base_url = rtrim( $sgtm_url, '/' );
+            $comment_prefix = 'Server-Side GTM';
+        }
+
         ?>
-        <!-- Google Tag Manager -->
+        <!-- <?php echo $comment_prefix; ?> -->
         <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        '<?php echo esc_js( $gtm_base_url ); ?>/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','<?php echo esc_js( $gtm_id ); ?>');</script>
-        <!-- End Google Tag Manager -->
+        <!-- End <?php echo $comment_prefix; ?> -->
         <?php
     }
     
@@ -45,12 +59,26 @@ class CUFT_GTM {
         if ( ! $gtm_id ) {
             return;
         }
-        
+
+        // Get sGTM settings
+        $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false );
+        $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+        $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
+
+        // Determine which URL to use
+        $gtm_base_url = 'https://www.googletagmanager.com';
+        $comment_prefix = 'Google Tag Manager';
+
+        if ( $sgtm_enabled && $sgtm_url && $sgtm_validated ) {
+            $gtm_base_url = rtrim( $sgtm_url, '/' );
+            $comment_prefix = 'Server-Side GTM';
+        }
+
         ?>
-        <!-- Google Tag Manager (noscript) -->
-        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr( $gtm_id ); ?>"
+        <!-- <?php echo $comment_prefix; ?> (noscript) -->
+        <noscript><iframe src="<?php echo esc_attr( $gtm_base_url ); ?>/ns.html?id=<?php echo esc_attr( $gtm_id ); ?>"
         height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-        <!-- End Google Tag Manager (noscript) -->
+        <!-- End <?php echo $comment_prefix; ?> (noscript) -->
         <?php
     }
     
