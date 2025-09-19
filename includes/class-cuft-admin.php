@@ -16,6 +16,7 @@ class CUFT_Admin {
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
+        add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
@@ -110,6 +111,47 @@ class CUFT_Admin {
                                    placeholder="GTM-XXXX or GTM-XXXXXXX" class="regular-text" />
                             <p class="description">
                                 Enter your GTM container ID (e.g., GTM-ABC123). Leave empty to disable GTM injection.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" colspan="2" style="padding: 20px 0 10px 0; border-top: 1px solid #ddd;">
+                            <h3 style="margin: 0; color: #23282d;">Server-Side GTM (sGTM)</h3>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th scope="row">Enable Server-Side GTM</th>
+                        <td>
+                            <?php $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false ); ?>
+                            <label>
+                                <input type="checkbox" name="sgtm_enabled" value="1" <?php checked( $sgtm_enabled ); ?> id="cuft-sgtm-enabled" />
+                                Use custom server for GTM scripts (first-party tracking)
+                            </label>
+                            <p class="description">
+                                Enable this if you have a server-side GTM setup to proxy Google's scripts through your own domain.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr id="cuft-sgtm-url-row" style="<?php echo $sgtm_enabled ? '' : 'display:none;'; ?>">
+                        <th scope="row">Server GTM URL</th>
+                        <td>
+                            <?php
+                            $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+                            $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
+                            ?>
+                            <input type="text" name="sgtm_url" value="<?php echo esc_attr( $sgtm_url ); ?>"
+                                   placeholder="https://gtm.yourdomain.com" class="regular-text" id="cuft-sgtm-url" />
+                            <button type="button" class="button button-secondary" id="cuft-test-sgtm">Test Connection</button>
+                            <div id="cuft-sgtm-status" style="margin-top: 10px;">
+                                <?php if ( $sgtm_url && $sgtm_validated ): ?>
+                                    <span style="color: #28a745;">✓ Server GTM endpoint validated</span>
+                                <?php elseif ( $sgtm_url && ! $sgtm_validated ): ?>
+                                    <span style="color: #dc3545;">✗ Server GTM endpoint not validated - please test connection</span>
+                                <?php endif; ?>
+                            </div>
+                            <p class="description">
+                                Enter your server-side GTM URL (without trailing slash). This will replace googletagmanager.com in script sources.<br>
+                                Example: <code>https://gtm.yourdomain.com</code> or <code>https://yourdomain.com/gtm</code>
                             </p>
                         </td>
                     </tr>
@@ -219,6 +261,25 @@ class CUFT_Admin {
                             <?php endif; ?>
                         </td>
                     </tr>
+                    <tr>
+                        <td><strong>Server-Side GTM</strong></td>
+                        <td>
+                            <?php
+                            $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false );
+                            $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+                            $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
+
+                            if ( $sgtm_enabled && $sgtm_url && $sgtm_validated ): ?>
+                                <span style="color: #28a745;">✓</span> Active - <?php echo esc_html( $sgtm_url ); ?>
+                            <?php elseif ( $sgtm_enabled && $sgtm_url && ! $sgtm_validated ): ?>
+                                <span style="color: #ffc107;">⚠</span> Configured but not validated - <?php echo esc_html( $sgtm_url ); ?>
+                            <?php elseif ( $sgtm_enabled && ! $sgtm_url ): ?>
+                                <span style="color: #dc3545;">✗</span> Enabled but no URL configured
+                            <?php else: ?>
+                                <span style="color: #6c757d;">—</span> Disabled - Using standard GTM
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -234,7 +295,12 @@ class CUFT_Admin {
         $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
         $console_logging = in_array( $_POST['console_logging'], array( 'no', 'yes', 'admin_only' ) ) ? $_POST['console_logging'] : 'no';
         $github_updates_enabled = isset( $_POST['github_updates_enabled'] ) && $_POST['github_updates_enabled'];
-        
+        $sgtm_enabled = isset( $_POST['sgtm_enabled'] ) && $_POST['sgtm_enabled'];
+        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
+
+        // Remove trailing slash from sGTM URL
+        $sgtm_url = rtrim( $sgtm_url, '/' );
+
         // Validate GTM-ID format
         if ( empty( $gtm_id ) || $this->is_valid_gtm_id( $gtm_id ) ) {
             update_option( 'cuft_gtm_id', $gtm_id );
@@ -242,11 +308,28 @@ class CUFT_Admin {
             update_option( 'cuft_generate_lead_enabled', $generate_lead_enabled );
             update_option( 'cuft_console_logging', $console_logging );
             update_option( 'cuft_github_updates_enabled', $github_updates_enabled );
+            update_option( 'cuft_sgtm_enabled', $sgtm_enabled );
+
+            // Only save sGTM URL if sGTM is enabled
+            if ( $sgtm_enabled ) {
+                if ( $this->is_valid_sgtm_url( $sgtm_url ) ) {
+                    update_option( 'cuft_sgtm_url', $sgtm_url );
+                    // Reset validation when URL changes
+                    $old_url = get_option( 'cuft_sgtm_url', '' );
+                    if ( $old_url !== $sgtm_url ) {
+                        update_option( 'cuft_sgtm_validated', false );
+                    }
+                } else {
+                    add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid Server GTM URL format. Please enter a valid HTTPS URL.', 'error' );
+                    return;
+                }
+            }
+
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );
         } else {
             add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid GTM-ID format. Use format: GTM-XXXX or GTM-XXXXXXX', 'error' );
         }
-        
+
         settings_errors( 'cuft_messages' );
     }
     
@@ -255,6 +338,22 @@ class CUFT_Admin {
      */
     private function is_valid_gtm_id( $gtm_id ) {
         return preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id );
+    }
+
+    /**
+     * Validate sGTM URL format
+     */
+    private function is_valid_sgtm_url( $sgtm_url ) {
+        if ( empty( $sgtm_url ) ) {
+            return false;
+        }
+
+        // Check if it's a valid URL starting with https
+        if ( ! filter_var( $sgtm_url, FILTER_VALIDATE_URL ) || strpos( $sgtm_url, 'https://' ) !== 0 ) {
+            return false;
+        }
+
+        return true;
     }
     
     /**
@@ -590,7 +689,133 @@ class CUFT_Admin {
             )));
         }
     }
-    
+
+    /**
+     * AJAX handler for testing sGTM endpoint
+     */
+    public function ajax_test_sgtm() {
+        // Verify nonce and permissions
+        if ( ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Security check failed' ) ) );
+        }
+
+        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
+        $gtm_id = get_option( 'cuft_gtm_id', '' );
+
+        if ( empty( $sgtm_url ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Please enter a Server GTM URL' ) ) );
+        }
+
+        if ( empty( $gtm_id ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Please configure a GTM ID first' ) ) );
+        }
+
+        // Remove trailing slash
+        $sgtm_url = rtrim( $sgtm_url, '/' );
+
+        // Validate URL format
+        if ( ! $this->is_valid_sgtm_url( $sgtm_url ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Invalid URL format. Please use HTTPS.' ) ) );
+        }
+
+        // Test the endpoints
+        $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+
+        if ( $test_results['success'] ) {
+            // Save validation status
+            update_option( 'cuft_sgtm_validated', true );
+            wp_die( json_encode( array(
+                'success' => true,
+                'message' => 'Server GTM endpoints validated successfully!',
+                'details' => $test_results['details']
+            ) ) );
+        } else {
+            update_option( 'cuft_sgtm_validated', false );
+            wp_die( json_encode( array(
+                'success' => false,
+                'message' => $test_results['message'],
+                'details' => $test_results['details']
+            ) ) );
+        }
+    }
+
+    /**
+     * Test sGTM endpoints
+     */
+    private function test_sgtm_endpoints( $sgtm_url, $gtm_id ) {
+        $results = array(
+            'success' => false,
+            'message' => '',
+            'details' => array()
+        );
+
+        // Test gtm.js endpoint
+        $gtm_js_url = $sgtm_url . '/gtm.js?id=' . $gtm_id;
+        $gtm_js_response = wp_remote_get( $gtm_js_url, array(
+            'timeout' => 10,
+            'sslverify' => true
+        ) );
+
+        if ( is_wp_error( $gtm_js_response ) ) {
+            $results['message'] = 'Failed to connect to gtm.js endpoint: ' . $gtm_js_response->get_error_message();
+            $results['details']['gtm_js'] = 'Error: ' . $gtm_js_response->get_error_message();
+            return $results;
+        }
+
+        $gtm_js_code = wp_remote_retrieve_response_code( $gtm_js_response );
+        $gtm_js_body = wp_remote_retrieve_body( $gtm_js_response );
+
+        if ( $gtm_js_code !== 200 ) {
+            $results['message'] = 'gtm.js endpoint returned status code: ' . $gtm_js_code;
+            $results['details']['gtm_js'] = 'HTTP ' . $gtm_js_code;
+            return $results;
+        }
+
+        // Check if response looks like GTM JavaScript
+        if ( strpos( $gtm_js_body, 'google' ) === false && strpos( $gtm_js_body, 'gtm' ) === false ) {
+            $results['message'] = 'gtm.js endpoint does not return valid GTM JavaScript';
+            $results['details']['gtm_js'] = 'Invalid response content';
+            return $results;
+        }
+
+        $results['details']['gtm_js'] = '✓ OK (HTTP 200)';
+
+        // Test ns.html endpoint
+        $ns_html_url = $sgtm_url . '/ns.html?id=' . $gtm_id;
+        $ns_html_response = wp_remote_get( $ns_html_url, array(
+            'timeout' => 10,
+            'sslverify' => true
+        ) );
+
+        if ( is_wp_error( $ns_html_response ) ) {
+            $results['message'] = 'Failed to connect to ns.html endpoint: ' . $ns_html_response->get_error_message();
+            $results['details']['ns_html'] = 'Error: ' . $ns_html_response->get_error_message();
+            return $results;
+        }
+
+        $ns_html_code = wp_remote_retrieve_response_code( $ns_html_response );
+        $ns_html_body = wp_remote_retrieve_body( $ns_html_response );
+
+        if ( $ns_html_code !== 200 ) {
+            $results['message'] = 'ns.html endpoint returned status code: ' . $ns_html_code;
+            $results['details']['ns_html'] = 'HTTP ' . $ns_html_code;
+            return $results;
+        }
+
+        // Check if response looks like valid HTML
+        if ( strpos( $ns_html_body, '<' ) === false ) {
+            $results['message'] = 'ns.html endpoint does not return valid HTML';
+            $results['details']['ns_html'] = 'Invalid response content';
+            return $results;
+        }
+
+        $results['details']['ns_html'] = '✓ OK (HTTP 200)';
+        $results['success'] = true;
+        $results['message'] = 'Both endpoints validated successfully';
+
+        return $results;
+    }
+
     /**
      * Render admin tabs
      */

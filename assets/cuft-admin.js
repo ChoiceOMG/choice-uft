@@ -86,4 +86,103 @@ jQuery(document).ready(function ($) {
       },
     });
   });
+
+  // Handle sGTM checkbox toggle
+  $("#cuft-sgtm-enabled").on("change", function () {
+    if ($(this).is(":checked")) {
+      $("#cuft-sgtm-url-row").slideDown();
+    } else {
+      $("#cuft-sgtm-url-row").slideUp();
+    }
+  });
+
+  // Handle sGTM test button
+  $("#cuft-test-sgtm").on("click", function (e) {
+    e.preventDefault();
+
+    var $button = $(this);
+    var $status = $("#cuft-sgtm-status");
+    var sgtmUrl = $("#cuft-sgtm-url").val();
+
+    if (!sgtmUrl) {
+      $status.html(
+        '<span style="color: #dc3545;">✗ Please enter a Server GTM URL</span>'
+      );
+      return;
+    }
+
+    // Disable button and show loading
+    $button.prop("disabled", true).text("Testing...");
+    $status.html(
+      '<span style="color: #666;">🔄 Testing connection to server GTM endpoints...</span>'
+    );
+
+    // Make AJAX request
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: "POST",
+      data: {
+        action: "cuft_test_sgtm",
+        nonce: cuftAdmin.nonce,
+        sgtm_url: sgtmUrl,
+      },
+      dataType: "json",
+      timeout: 15000, // 15 second timeout
+      success: function (response) {
+        if (response.success) {
+          var detailsHtml = "";
+          if (response.details) {
+            detailsHtml = "<br><small>";
+            if (response.details.gtm_js) {
+              detailsHtml += "gtm.js: " + response.details.gtm_js;
+            }
+            if (response.details.ns_html) {
+              detailsHtml += " | ns.html: " + response.details.ns_html;
+            }
+            detailsHtml += "</small>";
+          }
+
+          $status.html(
+            '<span style="color: #28a745;">✓ ' +
+              response.message +
+              detailsHtml +
+              "</span>"
+          );
+        } else {
+          var errorHtml = '<span style="color: #dc3545;">✗ ' + response.message;
+          if (response.details) {
+            errorHtml += "<br><small>";
+            if (response.details.gtm_js) {
+              errorHtml += "gtm.js: " + response.details.gtm_js;
+            }
+            if (response.details.ns_html) {
+              errorHtml += " | ns.html: " + response.details.ns_html;
+            }
+            errorHtml += "</small>";
+          }
+          errorHtml += "</span>";
+          $status.html(errorHtml);
+        }
+      },
+      error: function (xhr, status, error) {
+        var errorMsg = "Network error occurred";
+        if (status === "timeout") {
+          errorMsg = "Request timed out - server may be unreachable";
+        } else if (xhr.responseText) {
+          try {
+            var response = JSON.parse(xhr.responseText);
+            errorMsg = response.message || errorMsg;
+          } catch (e) {
+            // Keep default error message
+          }
+        }
+
+        $status.html('<span style="color: #dc3545;">✗ ' + errorMsg + "</span>");
+      },
+      complete: function () {
+        // Re-enable button
+        $button.prop("disabled", false).text("Test Connection");
+      },
+    });
+  });
 });
