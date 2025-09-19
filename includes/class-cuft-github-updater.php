@@ -62,21 +62,24 @@ class CUFT_GitHub_Updater {
         $remote_version = $this->get_remote_version();
         
         if ( version_compare( $this->version, $remote_version, '<' ) ) {
-            $transient->response[ $this->plugin_basename ] = array(
-                'slug' => $this->plugin_slug,
-                'new_version' => $remote_version,
-                'url' => $this->get_github_repo_url(),
-                'package' => $this->get_download_url( $remote_version ),
-                'icons' => array(
-                    '1x' => CUFT_URL . '/assets/icon.svg',
-                    '2x' => CUFT_URL . '/assets/icon.svg',
-                ),
-                'banners' => array(),
-                'banners_rtl' => array(),
-                'tested' => '6.8',
-                'requires_php' => '7.4',
-                'compatibility' => new stdClass(),
+            $obj = new stdClass();
+            $obj->slug = $this->plugin_slug;
+            $obj->new_version = $remote_version;
+            $obj->url = $this->get_github_repo_url();
+            $obj->package = $this->get_download_url( $remote_version );
+            $obj->icons = array(
+                '1x' => CUFT_URL . '/assets/icon.svg',
+                '2x' => CUFT_URL . '/assets/icon.svg',
             );
+            $obj->banners = array();
+            $obj->banners_rtl = array();
+            $obj->tested = '6.8';
+            $obj->requires_php = '7.4';
+            $obj->compatibility = new stdClass();
+            $obj->plugin = $this->plugin_basename;
+            $obj->id = $this->plugin_basename;
+
+            $transient->response[ $this->plugin_basename ] = $obj;
         }
         
         return $transient;
@@ -89,37 +92,38 @@ class CUFT_GitHub_Updater {
         if ( ! isset( $args->slug ) || $args->slug !== $this->plugin_slug ) {
             return $result;
         }
-        
+
         $remote_version = $this->get_remote_version();
         $changelog = $this->get_changelog();
-        
-        return array(
-            'name' => 'Choice Universal Form Tracker',
-            'slug' => $this->plugin_slug,
-            'version' => $remote_version,
-            'author' => '<a href="https://choice.marketing">Choice OMG</a>',
-            'author_profile' => 'https://choice.marketing',
-            'contributors' => array( 'choiceomg' ),
-            'homepage' => $this->get_github_repo_url(),
-            'short_description' => 'Universal form tracking for WordPress - supports multiple form frameworks and tracks submissions via Google Tag Manager\'s dataLayer.',
-            'sections' => array(
-                'description' => $this->get_description(),
-                'installation' => $this->get_installation_instructions(),
-                'changelog' => $changelog,
-            ),
-            'download_link' => $this->get_download_url( $remote_version ),
-            'trunk' => $this->get_download_url( $remote_version ),
-            'requires' => '5.0',
-            'tested' => '6.8',
-            'requires_php' => '7.4',
-            'last_updated' => $this->get_last_updated(),
-            'icons' => array(
-                '1x' => CUFT_URL . '/assets/icon.svg',
-                '2x' => CUFT_URL . '/assets/icon.svg',
-            ),
-            'banners' => array(),
-            'banners_rtl' => array(),
+
+        $info = new stdClass();
+        $info->name = 'Choice Universal Form Tracker';
+        $info->slug = $this->plugin_slug;
+        $info->version = $remote_version;
+        $info->author = '<a href="https://choice.marketing">Choice OMG</a>';
+        $info->author_profile = 'https://choice.marketing';
+        $info->contributors = array( 'choiceomg' );
+        $info->homepage = $this->get_github_repo_url();
+        $info->short_description = 'Universal form tracking for WordPress - supports multiple form frameworks and tracks submissions via Google Tag Manager\'s dataLayer.';
+        $info->sections = array(
+            'description' => $this->get_description(),
+            'installation' => $this->get_installation_instructions(),
+            'changelog' => $changelog,
         );
+        $info->download_link = $this->get_download_url( $remote_version );
+        $info->trunk = $this->get_download_url( $remote_version );
+        $info->requires = '5.0';
+        $info->tested = '6.8';
+        $info->requires_php = '7.4';
+        $info->last_updated = $this->get_last_updated();
+        $info->icons = array(
+            '1x' => CUFT_URL . '/assets/icon.svg',
+            '2x' => CUFT_URL . '/assets/icon.svg',
+        );
+        $info->banners = array();
+        $info->banners_rtl = array();
+
+        return $info;
     }
     
     /**
