@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.5.1
+Stable tag: 3.5.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,12 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.5.2 =
+* Fixed sGTM validation persistence when saving settings
+* Improved validation state handling to prevent losing validated status
+* Added debug output for administrators to troubleshoot sGTM configuration
+* Fixed URL comparison logic to properly detect changes
 
 = 3.5.1 =
 * Fixed GitHub updater one-click update functionality

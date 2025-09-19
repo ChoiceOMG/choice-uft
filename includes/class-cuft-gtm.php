@@ -31,6 +31,13 @@ class CUFT_GTM {
         $sgtm_url = get_option( 'cuft_sgtm_url', '' );
         $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
 
+        // Debug output for administrators
+        if ( current_user_can( 'manage_options' ) && get_option( 'cuft_debug_enabled', false ) ) {
+            echo "<!-- CUFT Debug: sGTM enabled=" . var_export( $sgtm_enabled, true ) .
+                 ", URL='" . esc_html( $sgtm_url ) .
+                 "', validated=" . var_export( $sgtm_validated, true ) . " -->\n";
+        }
+
         // Determine which URL to use
         $gtm_base_url = 'https://www.googletagmanager.com';
         $comment_prefix = 'Google Tag Manager';

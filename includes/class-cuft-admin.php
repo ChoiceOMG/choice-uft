@@ -313,16 +313,24 @@ class CUFT_Admin {
             // Only save sGTM URL if sGTM is enabled
             if ( $sgtm_enabled ) {
                 if ( $this->is_valid_sgtm_url( $sgtm_url ) ) {
-                    update_option( 'cuft_sgtm_url', $sgtm_url );
-                    // Reset validation when URL changes
+                    // Get old URL BEFORE updating it
                     $old_url = get_option( 'cuft_sgtm_url', '' );
-                    if ( $old_url !== $sgtm_url ) {
+
+                    update_option( 'cuft_sgtm_url', $sgtm_url );
+
+                    // Reset validation only if URL actually changed
+                    if ( $old_url !== $sgtm_url && ! empty( $old_url ) ) {
                         update_option( 'cuft_sgtm_validated', false );
+                        add_settings_error( 'cuft_messages', 'cuft_message', 'Server GTM URL changed. Please test the connection again to validate.', 'info' );
                     }
+                    // Otherwise preserve the current validation status - don't change it!
                 } else {
                     add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid Server GTM URL format. Please enter a valid HTTPS URL.', 'error' );
                     return;
                 }
+            } else {
+                // If sGTM is disabled, clear the validation
+                update_option( 'cuft_sgtm_validated', false );
             }
 
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );
