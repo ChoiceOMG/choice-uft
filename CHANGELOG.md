@@ -5,6 +5,32 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2025-01-20
+
+### Fixed
+
+- **Fatal Error on Activation**: Fixed PHP fatal error caused by class declaration inside method
+  - Moved `CUFT_Ajax_Upgrader_Skin` class to separate file
+  - Proper class loading with existence check
+  - Maintains all update functionality
+
+### Added
+
+- **GitHub CI/CD Workflows**: Automated testing on commits and pull requests
+  - PHP syntax checking across multiple versions (7.4, 8.0, 8.1, 8.2)
+  - PHP compatibility verification
+  - WordPress coding standards checks
+  - Security vulnerability scanning
+  - JavaScript syntax validation
+  - Plugin structure verification
+
+### Technical
+
+- **Code Quality**: Improved code structure and testing
+  - Separated concerns with dedicated class files
+  - Added automated checks to prevent future issues
+  - Version consistency validation
+
 ## [3.6.0] - 2025-01-20
 
 ### Added

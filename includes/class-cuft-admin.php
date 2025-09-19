@@ -728,26 +728,9 @@ class CUFT_Admin {
         require_once( ABSPATH . 'wp-admin/includes/misc.php' );
         require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 
-        // Create a custom skin to capture the output
-        class CUFT_Ajax_Upgrader_Skin extends WP_Upgrader_Skin {
-            public $messages = array();
-
-            public function feedback( $string, ...$args ) {
-                if ( ! empty( $args ) ) {
-                    $string = vsprintf( $string, $args );
-                }
-                $this->messages[] = $string;
-            }
-
-            public function header() {}
-            public function footer() {}
-            public function error( $errors ) {
-                if ( is_string( $errors ) ) {
-                    $this->messages[] = 'Error: ' . $errors;
-                } elseif ( is_wp_error( $errors ) ) {
-                    $this->messages[] = 'Error: ' . $errors->get_error_message();
-                }
-            }
+        // Check if the class already exists (in case of multiple calls)
+        if ( ! class_exists( 'CUFT_Ajax_Upgrader_Skin' ) ) {
+            require_once( CUFT_PATH . 'includes/class-cuft-ajax-upgrader-skin.php' );
         }
 
         try {

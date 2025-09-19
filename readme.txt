@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.6.0
+Stable tag: 3.6.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,14 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.6.1 =
+* Fixed fatal error caused by class declaration inside method
+* Moved CUFT_Ajax_Upgrader_Skin to separate file for proper PHP compatibility
+* Added GitHub CI workflows for automated testing
+* Added PHP syntax checking for pull requests
+* Added JavaScript syntax validation
+* Added WordPress coding standards checks
 
 = 3.6.0 =
 * Added one-click update installation directly from admin settings page
