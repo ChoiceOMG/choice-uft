@@ -5,6 +5,37 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0] - 2025-01-20
+
+### Fixed
+
+- **WordPress Coding Standards**: Complete compliance overhaul
+  - Replaced all `wp_die(json_encode())` with `wp_send_json_error()` and `wp_send_json_success()`
+  - Fixed AJAX response handling to use WordPress standard functions
+  - Added proper nonce validation with isset() checks in all AJAX handlers
+  - Standardized error and success responses across all endpoints
+
+### Enhanced
+
+- **Security Improvements**: Strengthened validation and checks
+  - Added missing isset() checks before nonce validation
+  - Improved input validation in AJAX handlers
+  - Enhanced error handling with proper WordPress functions
+
+- **CI/CD Workflows**: More comprehensive automated testing
+  - Added check for `wp_die(json_encode())` anti-pattern
+  - Improved class declaration detection in PHP files
+  - Enhanced security checks with better error reporting
+  - Added validation for proper WordPress coding standards
+
+### Technical
+
+- **Code Quality**: WordPress best practices implementation
+  - Consistent use of `wp_send_json_*` functions for AJAX responses
+  - Proper error handling without exposing sensitive information
+  - Cleaner, more maintainable AJAX handler code
+  - Better alignment with WordPress core coding standards
+
 ## [3.6.1] - 2025-01-20
 
 ### Fixed

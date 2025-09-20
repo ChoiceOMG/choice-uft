@@ -659,34 +659,32 @@ class CUFT_Admin {
      */
     public function manual_update_check() {
         // Verify nonce and permissions
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Security check failed' ) ) );
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
-        
+
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
-        
+
         if ( ! $github_updates_enabled ) {
-            wp_die( json_encode( array( 
-                'success' => false, 
-                'message' => 'GitHub updates are disabled. Enable them in settings first.' 
-            )));
+            wp_send_json_error( array(
+                'message' => 'GitHub updates are disabled. Enable them in settings first.'
+            ) );
         }
-        
+
         // Get GitHub updater instance
         global $cuft_updater;
         if ( ! $cuft_updater || ! method_exists( $cuft_updater, 'force_check' ) ) {
-            wp_die( json_encode( array( 
-                'success' => false, 
-                'message' => 'GitHub updater not available.' 
-            )));
+            wp_send_json_error( array(
+                'message' => 'GitHub updater not available.'
+            ) );
         }
-        
+
         try {
             $remote_version = $cuft_updater->force_check();
             $current_version = CUFT_VERSION;
-            
-            $response = array( 'success' => true );
-            
+
+            $response = array();
+
             if ( version_compare( $current_version, $remote_version, '<' ) ) {
                 $response['message'] = "Update available! Current: {$current_version}, Latest: {$remote_version}";
                 $response['update_available'] = true;
@@ -697,14 +695,13 @@ class CUFT_Admin {
                 $response['update_available'] = false;
                 $response['current_version'] = $current_version;
             }
-            
-            wp_die( json_encode( $response ) );
-            
+
+            wp_send_json_success( $response );
+
         } catch ( Exception $e ) {
-            wp_die( json_encode( array( 
-                'success' => false, 
-                'message' => 'Error checking for updates: ' . $e->getMessage() 
-            )));
+            wp_send_json_error( array(
+                'message' => 'Error checking for updates: ' . $e->getMessage()
+            ) );
         }
     }
 
@@ -713,13 +710,13 @@ class CUFT_Admin {
      */
     public function ajax_install_update() {
         // Verify nonce and permissions
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'update_plugins' ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Security check failed' ) ) );
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'update_plugins' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
         $latest_version = isset( $_POST['version'] ) ? sanitize_text_field( $_POST['version'] ) : '';
         if ( empty( $latest_version ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'No version specified' ) ) );
+            wp_send_json_error( array( 'message' => 'No version specified' ) );
         }
 
         // Include necessary WordPress files for plugin updates
@@ -755,34 +752,30 @@ class CUFT_Admin {
             ) );
 
             if ( is_wp_error( $result ) ) {
-                wp_die( json_encode( array(
-                    'success' => false,
+                wp_send_json_error( array(
                     'message' => 'Update failed: ' . $result->get_error_message(),
                     'details' => $skin->messages
-                ) ) );
+                ) );
             } elseif ( $result === false ) {
-                wp_die( json_encode( array(
-                    'success' => false,
+                wp_send_json_error( array(
                     'message' => 'Update failed: Unknown error',
                     'details' => $skin->messages
-                ) ) );
+                ) );
             } else {
                 // Clear update transients
                 delete_site_transient( 'update_plugins' );
                 delete_transient( 'cuft_github_version' );
 
-                wp_die( json_encode( array(
-                    'success' => true,
+                wp_send_json_success( array(
                     'message' => "Successfully updated to version {$latest_version}",
                     'details' => $skin->messages,
                     'reload_needed' => true
-                ) ) );
+                ) );
             }
         } catch ( Exception $e ) {
-            wp_die( json_encode( array(
-                'success' => false,
+            wp_send_json_error( array(
                 'message' => 'Update error: ' . $e->getMessage()
-            ) ) );
+            ) );
         }
     }
 
@@ -791,19 +784,19 @@ class CUFT_Admin {
      */
     public function ajax_test_sgtm() {
         // Verify nonce and permissions
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Security check failed' ) ) );
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
         $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
         $gtm_id = get_option( 'cuft_gtm_id', '' );
 
         if ( empty( $sgtm_url ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Please enter a Server GTM URL' ) ) );
+            wp_send_json_error( array( 'message' => 'Please enter a Server GTM URL' ) );
         }
 
         if ( empty( $gtm_id ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Please configure a GTM ID first' ) ) );
+            wp_send_json_error( array( 'message' => 'Please configure a GTM ID first' ) );
         }
 
         // Remove trailing slash
@@ -811,7 +804,7 @@ class CUFT_Admin {
 
         // Validate URL format
         if ( ! $this->is_valid_sgtm_url( $sgtm_url ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Invalid URL format. Please use HTTPS.' ) ) );
+            wp_send_json_error( array( 'message' => 'Invalid URL format. Please use HTTPS.' ) );
         }
 
         // Test the endpoints
@@ -820,18 +813,16 @@ class CUFT_Admin {
         if ( $test_results['success'] ) {
             // Save validation status
             update_option( 'cuft_sgtm_validated', true );
-            wp_die( json_encode( array(
-                'success' => true,
+            wp_send_json_success( array(
                 'message' => 'Server GTM endpoints validated successfully!',
                 'details' => $test_results['details']
-            ) ) );
+            ) );
         } else {
             update_option( 'cuft_sgtm_validated', false );
-            wp_die( json_encode( array(
-                'success' => false,
+            wp_send_json_error( array(
                 'message' => $test_results['message'],
                 'details' => $test_results['details']
-            ) ) );
+            ) );
         }
     }
 
