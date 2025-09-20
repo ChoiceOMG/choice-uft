@@ -33,10 +33,14 @@ jobs:
     - name: Check for common PHP errors
       run: |
         # Check for class declarations inside functions/methods
-        if grep -r "^\s*class\s" --include="*.php" . | grep -v "^[^:]*class-.*\.php:"; then
-          echo "❌ Found class declarations that might be inside methods"
-          exit 1
-        fi
+        # Exclude properly named class files and check for nested class declarations
+        for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*"); do
+          # Check if file contains class declaration inside a function/method
+          if php -r "\$code = file_get_contents('$file'); \$tokens = token_get_all(\$code); \$depth = 0; \$in_function = false; for(\$i = 0; \$i < count(\$tokens); \$i++) { if(is_array(\$tokens[\$i])) { if(\$tokens[\$i][0] == T_FUNCTION) \$in_function = true; if(\$tokens[\$i][0] == T_CLASS && \$in_function) { echo 'Found class inside function in $file'; exit(1); } } elseif(\$tokens[\$i] === '{' && \$in_function) \$depth++; elseif(\$tokens[\$i] === '}' && \$in_function) { \$depth--; if(\$depth == 0) \$in_function = false; } }" 2>/dev/null; then
+            echo "❌ Found class declaration inside method/function in $file"
+            exit 1
+          fi
+        done
         echo "✅ No problematic class declarations found"
 
   php-compatibility:
@@ -107,25 +111,50 @@ jobs:
     - name: Check for common security issues
       run: |
         echo "Checking for potential security issues..."
+        has_warnings=false
 
         # Check for eval() usage
-        if grep -r "eval(" --include="*.php" .; then
+        if grep -r "eval(" --include="*.php" . --exclude-dir=vendor --exclude-dir=node_modules 2>/dev/null; then
           echo "⚠️ Warning: Found eval() usage - please review for security"
+          has_warnings=true
         fi
 
         # Check for SQL injection vulnerabilities
-        if grep -r "\$wpdb->query.*\$_" --include="*.php" .; then
+        if grep -r "\$wpdb->query.*\$_" --include="*.php" . --exclude-dir=vendor --exclude-dir=node_modules 2>/dev/null; then
           echo "⚠️ Warning: Potential SQL injection - ensure queries are properly prepared"
+          has_warnings=true
         fi
 
         # Check for direct file access prevention
-        files_without_abspath=$(find . -name "*.php" -not -path "./vendor/*" -exec grep -L "defined.*ABSPATH" {} \; | grep -v "^./choice-universal-form-tracker.php$")
+        files_without_abspath=$(find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" -exec grep -L "defined.*ABSPATH" {} \; | grep -v "^./choice-universal-form-tracker.php$")
         if [ ! -z "$files_without_abspath" ]; then
           echo "⚠️ Warning: Following files might be missing ABSPATH check:"
           echo "$files_without_abspath"
+          has_warnings=true
         fi
 
-        echo "✅ Security check complete"
+        # Check for wp_die with json_encode (should use wp_send_json instead)
+        if grep -r "wp_die.*json_encode" --include="*.php" . --exclude-dir=vendor --exclude-dir=node_modules 2>/dev/null; then
+          echo "❌ Error: Found wp_die(json_encode()) - use wp_send_json_error() or wp_send_json_success() instead"
+          exit 1
+        fi
+
+        # Check for unverified nonces in AJAX handlers
+        if grep -r "wp_verify_nonce.*\$_POST\['nonce'\]" --include="*.php" . --exclude-dir=vendor --exclude-dir=node_modules 2>/dev/null | while read line; do
+          file=$(echo "$line" | cut -d: -f1)
+          if ! grep -B2 "$line" "$file" | grep -q "isset.*\$_POST\['nonce'\]"; then
+            echo "⚠️ Warning: Possible missing isset() check before wp_verify_nonce in $file"
+            return 1
+          fi
+        done; then
+          has_warnings=true
+        fi
+
+        if [ "$has_warnings" = true ]; then
+          echo "⚠️ Security check completed with warnings"
+        else
+          echo "✅ Security check passed without warnings"
+        fi
 
   plugin-check:
     name: Plugin Structure Check

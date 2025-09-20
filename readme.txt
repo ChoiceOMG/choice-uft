@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.6.1
+Stable tag: 3.7.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,16 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.7.0 =
+* Fixed WordPress coding standards compliance issues
+* Replaced all wp_die(json_encode()) with proper wp_send_json_error/success functions
+* Enhanced security checks for nonce validation in AJAX handlers
+* Improved CI/CD workflows with more comprehensive checks
+* Added automated detection for WordPress coding violations
+* Fixed missing isset() checks before nonce validation
+* Standardized AJAX response handling across all endpoints
+* Enhanced error reporting in CI workflows
 
 = 3.6.1 =
 * Fixed fatal error caused by class declaration inside method

@@ -100,7 +100,7 @@ class CUFT_UTM_Tracker {
             CUFT_Logger::log( 'Tracking data stored for session', CUFT_Logger::DEBUG, $tracking_data );
         }
         
-        wp_die( wp_json_encode( array( 'success' => true ) ) );
+        wp_send_json_success();
     }
     
     /**
