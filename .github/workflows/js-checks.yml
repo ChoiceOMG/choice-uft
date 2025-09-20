@@ -1,0 +1,45 @@
+name: JavaScript Checks
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  js-syntax:
+    name: JavaScript Syntax Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Check JavaScript syntax
+      run: |
+        echo "Checking JavaScript syntax..."
+        for file in $(find assets -name "*.js" -not -path "*/vendor/*" -not -path "*/node_modules/*"); do
+          node -c "$file" || exit 1
+        done
+        echo "✅ JavaScript syntax check passed"
+
+    - name: Check for common JS issues
+      run: |
+        echo "Checking for common JavaScript issues..."
+
+        # Check for console.log statements (except in debug mode checks)
+        if grep -r "console\.log" --include="*.js" assets/ | grep -v "DEBUG\|debug\|cuftConfig"; then
+          echo "⚠️ Warning: Found console.log statements that might need to be removed"
+        fi
+
+        # Check for undefined variables
+        if grep -r "undefined" --include="*.js" assets/ | grep -v "typeof.*undefined"; then
+          echo "ℹ️ Info: Found 'undefined' usage - please verify it's intentional"
+        fi
+
+        echo "✅ JavaScript check complete"

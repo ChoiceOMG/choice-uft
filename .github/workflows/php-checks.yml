@@ -1,0 +1,172 @@
+name: PHP Checks
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  php-syntax:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        coverage: none
+        tools: parallel-lint
+
+    - name: Check PHP syntax
+      run: |
+        find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 -P8 php -l
+        echo "✅ PHP syntax check passed"
+
+    - name: Check for common PHP errors
+      run: |
+        # Check for class declarations inside functions/methods
+        if grep -r "^\s*class\s" --include="*.php" . | grep -v "^[^:]*class-.*\.php:"; then
+          echo "❌ Found class declarations that might be inside methods"
+          exit 1
+        fi
+        echo "✅ No problematic class declarations found"
+
+  php-compatibility:
+    name: PHP Compatibility Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.0'
+        coverage: none
+        tools: composer
+
+    - name: Install PHP_CodeSniffer and PHPCompatibility
+      run: |
+        composer global require squizlabs/php_codesniffer:"*"
+        composer global require phpcompatibility/php-compatibility:"*"
+        ~/.composer/vendor/bin/phpcs --config-set installed_paths ~/.composer/vendor/phpcompatibility/php-compatibility
+
+    - name: Check PHP compatibility (7.4+)
+      run: |
+        ~/.composer/vendor/bin/phpcs -p . --standard=PHPCompatibility \
+          --runtime-set testVersion 7.4- \
+          --extensions=php \
+          --ignore=vendor/,node_modules/,tests/ \
+          --report=summary || true
+
+  wordpress-standards:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.0'
+        coverage: none
+        tools: composer
+
+    - name: Install WPCS
+      run: |
+        composer global require wp-coding-standards/wpcs:"*"
+        composer global require dealerdirect/phpcodesniffer-composer-installer:"*"
+
+    - name: Check WordPress coding standards
+      run: |
+        ~/.composer/vendor/bin/phpcs -p . --standard=WordPress-Core \
+          --extensions=php \
+          --ignore=vendor/,node_modules/,tests/,assets/ \
+          --report=summary || true
+        echo "ℹ️ WordPress coding standards check complete (non-blocking)"
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Check for common security issues
+      run: |
+        echo "Checking for potential security issues..."
+
+        # Check for eval() usage
+        if grep -r "eval(" --include="*.php" .; then
+          echo "⚠️ Warning: Found eval() usage - please review for security"
+        fi
+
+        # Check for SQL injection vulnerabilities
+        if grep -r "\$wpdb->query.*\$_" --include="*.php" .; then
+          echo "⚠️ Warning: Potential SQL injection - ensure queries are properly prepared"
+        fi
+
+        # Check for direct file access prevention
+        files_without_abspath=$(find . -name "*.php" -not -path "./vendor/*" -exec grep -L "defined.*ABSPATH" {} \; | grep -v "^./choice-universal-form-tracker.php$")
+        if [ ! -z "$files_without_abspath" ]; then
+          echo "⚠️ Warning: Following files might be missing ABSPATH check:"
+          echo "$files_without_abspath"
+        fi
+
+        echo "✅ Security check complete"
+
+  plugin-check:
+    name: Plugin Structure Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Check plugin structure
+      run: |
+        echo "Checking plugin structure..."
+
+        # Check for required files
+        required_files=("choice-universal-form-tracker.php" "readme.txt")
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Missing required file: $file"
+            exit 1
+          fi
+        done
+
+        # Check plugin header
+        if ! grep -q "Plugin Name:" choice-universal-form-tracker.php; then
+          echo "❌ Missing plugin header"
+          exit 1
+        fi
+
+        # Check version consistency
+        main_version=$(grep "Version:" choice-universal-form-tracker.php | head -1 | sed 's/.*Version:\s*//' | tr -d ' ')
+        const_version=$(grep "CUFT_VERSION" choice-universal-form-tracker.php | head -1 | sed "s/.*['\"]//;s/['\"].*//" | tr -d ' ')
+        readme_version=$(grep "Stable tag:" readme.txt | sed 's/.*Stable tag:\s*//' | tr -d ' ')
+
+        echo "Main version: $main_version"
+        echo "Constant version: $const_version"
+        echo "Readme version: $readme_version"
+
+        if [ "$main_version" != "$const_version" ] || [ "$main_version" != "$readme_version" ]; then
+          echo "⚠️ Warning: Version mismatch detected"
+        else
+          echo "✅ Version consistency check passed"
+        fi
+
+        echo "✅ Plugin structure check complete"
