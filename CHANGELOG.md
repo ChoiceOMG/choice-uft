@@ -5,6 +5,22 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.2] - 2025-01-22
+
+### Fixed
+
+- **Critical PHP Error**: Resolved WP_Upgrader_Skin class loading issue
+  - Fixed nested class declaration error in admin update handler
+  - Modified CUFT_Ajax_Upgrader_Skin to be created at runtime using eval()
+  - Ensured WordPress upgrader classes are loaded before extending them
+
+### Improved
+
+- **Documentation**: Reorganized and cleaned up testing documentation
+  - Moved detailed testing procedures to docs/TESTING.md
+  - Streamlined CLAUDE.md with essential testing checklist
+  - Better organization of development guidelines
+
 ## [3.8.0] - 2025-01-22
 
 ### Added
