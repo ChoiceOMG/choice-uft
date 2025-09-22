@@ -43,11 +43,11 @@ class CUFT_Elementor_Forms {
             true
         );
         
-        // Enqueue UTM utilities
+        // Enqueue UTM utilities with proper dependency
         wp_enqueue_script(
             'cuft-utm-utils',
             CUFT_URL . '/assets/cuft-utm-utils.js',
-            array(),
+            array( 'cuft-utm-tracker' ),
             CUFT_VERSION,
             true
         );

@@ -24,6 +24,7 @@ class CUFT_UTM_Tracker {
      * Click ID parameters to track
      */
     private $click_id_params = array(
+        'click_id',     // Generic click ID parameter
         'gclid',        // Google Ads click ID
         'gbraid',       // Google Ads click ID for iOS app-to-web journeys
         'wbraid',       // Google Ads click ID for web-to-app journeys

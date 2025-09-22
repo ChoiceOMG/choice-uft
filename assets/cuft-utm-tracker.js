@@ -29,6 +29,7 @@
    * Click ID parameters to track
    */
   var CLICK_ID_PARAMS = [
+    "click_id", // Generic click ID parameter
     "gclid", // Google Ads click ID
     "gbraid", // Google Ads click ID for iOS app-to-web journeys
     "wbraid", // Google Ads click ID for web-to-app journeys
@@ -138,6 +139,52 @@
   }
 
   /**
+   * Get cookie value by name
+   */
+  function getCookie(name) {
+    try {
+      var value = "; " + document.cookie;
+      var parts = value.split("; " + name + "=");
+      if (parts.length === 2) {
+        return parts.pop().split(";").shift();
+      }
+    } catch (e) {
+      log("Error reading cookie:", e);
+    }
+    return null;
+  }
+
+  /**
+   * Get stored tracking data from cookies
+   */
+  function getStoredTrackingDataFromCookie() {
+    try {
+      var cookieValue = getCookie("cuft_utm_data");
+      if (cookieValue) {
+        var decodedValue = decodeURIComponent(cookieValue);
+        var data = JSON.parse(decodedValue);
+
+        // Check if cookie data has the expected structure
+        if (data && data.utm) {
+          // Check if cookie is not too old (30 days)
+          if (
+            data.timestamp &&
+            Date.now() / 1000 - data.timestamp < 30 * 24 * 60 * 60
+          ) {
+            log("Tracking data retrieved from cookie:", data.utm);
+            return data.utm;
+          } else {
+            log("Cookie data is too old");
+          }
+        }
+      }
+    } catch (e) {
+      log("Error reading tracking data from cookie:", e);
+    }
+    return null;
+  }
+
+  /**
    * Get stored tracking data from sessionStorage
    */
   function getStoredTrackingData() {
@@ -150,13 +197,18 @@
           data.timestamp &&
           Date.now() - data.timestamp < 30 * 24 * 60 * 60 * 1000
         ) {
+          log("Tracking data retrieved from sessionStorage:", data.tracking);
           return data.tracking;
+        } else {
+          log("SessionStorage data is too old");
         }
       }
     } catch (e) {
-      log("Error reading stored tracking data:", e);
+      log("Error reading stored tracking data from sessionStorage:", e);
     }
-    return null;
+
+    // Fallback to cookie if sessionStorage fails
+    return getStoredTrackingDataFromCookie();
   }
 
   /**
@@ -190,17 +242,54 @@
   }
 
   /**
-   * Get current tracking data (from URL or storage)
+   * Get current tracking data with graceful fallback
+   * Priority: URL parameters -> SessionStorage -> Cookie -> Empty
    */
   function getCurrentTrackingData() {
-    // First check URL for fresh tracking parameters
-    var urlTracking = getTrackingParams();
-    if (urlTracking) {
-      return urlTracking;
+    var trackingData = null;
+
+    // 1. First check URL for fresh tracking parameters
+    log("Checking URL for tracking parameters...");
+    trackingData = getTrackingParams();
+    if (trackingData && Object.keys(trackingData).length > 0) {
+      log("Tracking data found in URL:", trackingData);
+      return trackingData;
     }
 
-    // Fallback to stored data
-    return getStoredTrackingData();
+    // 2. Then check sessionStorage
+    log("No URL parameters found, checking sessionStorage...");
+    var sessionData = null;
+    try {
+      var stored = sessionStorage.getItem("cuft_tracking_data");
+      if (stored) {
+        var data = JSON.parse(stored);
+        if (
+          data.timestamp &&
+          Date.now() - data.timestamp < 30 * 24 * 60 * 60 * 1000
+        ) {
+          sessionData = data.tracking;
+          log("Tracking data found in sessionStorage:", sessionData);
+        }
+      }
+    } catch (e) {
+      log("Error reading sessionStorage:", e);
+    }
+
+    if (sessionData && Object.keys(sessionData).length > 0) {
+      return sessionData;
+    }
+
+    // 3. Finally check cookies
+    log("No sessionStorage data found, checking cookies...");
+    var cookieData = getStoredTrackingDataFromCookie();
+    if (cookieData && Object.keys(cookieData).length > 0) {
+      log("Tracking data found in cookie:", cookieData);
+      return cookieData;
+    }
+
+    // 4. Return empty object if nothing found
+    log("No tracking data found in any source");
+    return {};
   }
 
   /**
