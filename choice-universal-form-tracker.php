@@ -64,6 +64,7 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-github-updater.php',
             'includes/class-cuft-click-tracker.php',
             'includes/class-cuft-click-integration.php',
+            'includes/class-cuft-test-forms.php',
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
