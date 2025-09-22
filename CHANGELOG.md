@@ -5,6 +5,21 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.3] - 2025-01-22
+
+### Fixed
+
+- **AJAX Response Handling**: Fixed "undefined" error in update check
+  - Corrected response data access pattern (response.data instead of response directly)
+  - Fixed all AJAX handlers to properly access WordPress JSON response structure
+  - Added fallback error messages for undefined response properties
+
+### Improved
+
+- **Error Handling**: Better error message display in admin interface
+  - Added multiple fallback checks for error messages
+  - Improved user feedback when API calls fail
+
 ## [3.8.2] - 2025-01-22
 
 ### Fixed

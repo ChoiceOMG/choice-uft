@@ -31,14 +31,15 @@ jQuery(document).ready(function ($) {
       dataType: "json",
       timeout: 30000, // 30 second timeout
       success: function (response) {
-        if (response.success) {
-          var bgColor = response.update_available ? "#e8f5e8" : "#f0f0f1";
-          var borderColor = response.update_available ? "#28a745" : "#646970";
-          var icon = response.update_available ? "🎉" : "✅";
+        if (response.success && response.data) {
+          var data = response.data;
+          var bgColor = data.update_available ? "#e8f5e8" : "#f0f0f1";
+          var borderColor = data.update_available ? "#28a745" : "#646970";
+          var icon = data.update_available ? "🎉" : "✅";
 
           // Store the latest version if update is available
-          if (response.update_available) {
-            latestVersion = response.latest_version;
+          if (data.update_available) {
+            latestVersion = data.latest_version;
             $("#cuft-download-install").show();
           } else {
             latestVersion = null;
@@ -54,18 +55,20 @@ jQuery(document).ready(function ($) {
               "<strong>" +
               icon +
               " " +
-              response.message +
+              data.message +
               "</strong>" +
-              (response.update_available
+              (data.update_available
                 ? "<br><small>Click 'Download & Install Update' to update now!</small>"
                 : "") +
               "</div>"
           );
         } else {
+          var errorMessage = (response.data && response.data.message) ? response.data.message :
+                            (response.message ? response.message : "Unknown error occurred");
           $result.html(
             '<div style="padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">' +
               "<strong>⚠️ " +
-              response.message +
+              errorMessage +
               "</strong>" +
               "</div>"
           );
@@ -141,34 +144,36 @@ jQuery(document).ready(function ($) {
       dataType: "json",
       timeout: 15000, // 15 second timeout
       success: function (response) {
-        if (response.success) {
+        if (response.success && response.data) {
           var detailsHtml = "";
-          if (response.details) {
+          if (response.data.details) {
             detailsHtml = "<br><small>";
-            if (response.details.gtm_js) {
-              detailsHtml += "gtm.js: " + response.details.gtm_js;
+            if (response.data.details.gtm_js) {
+              detailsHtml += "gtm.js: " + response.data.details.gtm_js;
             }
-            if (response.details.ns_html) {
-              detailsHtml += " | ns.html: " + response.details.ns_html;
+            if (response.data.details.ns_html) {
+              detailsHtml += " | ns.html: " + response.data.details.ns_html;
             }
             detailsHtml += "</small>";
           }
 
           $status.html(
             '<span style="color: #28a745;">✓ ' +
-              response.message +
+              response.data.message +
               detailsHtml +
               "</span>"
           );
         } else {
-          var errorHtml = '<span style="color: #dc3545;">✗ ' + response.message;
-          if (response.details) {
+          var errorMessage = (response.data && response.data.message) ? response.data.message :
+                           (response.message ? response.message : "Connection test failed");
+          var errorHtml = '<span style="color: #dc3545;">✗ ' + errorMessage;
+          if (response.data && response.data.details) {
             errorHtml += "<br><small>";
-            if (response.details.gtm_js) {
-              errorHtml += "gtm.js: " + response.details.gtm_js;
+            if (response.data.details.gtm_js) {
+              errorHtml += "gtm.js: " + response.data.details.gtm_js;
             }
-            if (response.details.ns_html) {
-              errorHtml += " | ns.html: " + response.details.ns_html;
+            if (response.data.details.ns_html) {
+              errorHtml += " | ns.html: " + response.data.details.ns_html;
             }
             errorHtml += "</small>";
           }
@@ -253,11 +258,11 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         clearInterval(statusInterval);
 
-        if (response.success) {
+        if (response.success && response.data) {
           $progress.hide();
           $result.html(
             '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">' +
-              '<strong>✅ ' + response.message + '</strong>' +
+              '<strong>✅ ' + response.data.message + '</strong>' +
               '<br><small>Page will reload in 3 seconds...</small>' +
               '</div>'
           );
@@ -271,11 +276,15 @@ jQuery(document).ready(function ($) {
           }, 3000);
         } else {
           $progress.hide();
+          var errorMessage = (response.data && response.data.message) ? response.data.message :
+                            (response.message ? response.message : "Update installation failed");
+          var details = (response.data && response.data.details) ? response.data.details :
+                       (response.details ? response.details : null);
           $result.html(
             '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
-              '<strong>❌ ' + response.message + '</strong>' +
-              (response.details && response.details.length ?
-                '<br><small>' + response.details.join('<br>') + '</small>' : '') +
+              '<strong>❌ ' + errorMessage + '</strong>' +
+              (details && details.length ?
+                '<br><small>' + details.join('<br>') + '</small>' : '') +
               '</div>'
           );
 
