@@ -312,4 +312,113 @@ jQuery(document).ready(function ($) {
       },
     });
   });
+
+  // Handle test form submissions
+  $(document).on("click", ".cuft-test-form-submit", function (e) {
+    e.preventDefault();
+
+    var $button = $(this);
+    var framework = $button.data("framework");
+    var email = $button.data("email"); // Email is now from data attribute
+    var $result = $("#test-result-" + framework);
+
+    // Disable button and show loading
+    $button.prop("disabled", true).html("📧 Sending...");
+    $result
+      .html(
+        '<div style="padding: 8px; background: #f0f0f1; border-radius: 4px; color: #646970;">⏳ Sending test form submission...</div>'
+      )
+      .slideDown();
+
+    // Make AJAX request
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: "POST",
+      data: {
+        action: "cuft_test_form_submit",
+        nonce: cuftAdmin.nonce,
+        framework: framework,
+      },
+      dataType: "json",
+      timeout: 15000,
+      success: function (response) {
+        if (response.success && response.data) {
+          var data = response.data.data;
+          var gtmStatus = response.data.gtm_active
+            ? '<span style="color: #28a745;">✓ GTM Active</span>'
+            : '<span style="color: #dc3545;">✗ GTM Not Configured</span>';
+
+          var detailsHtml =
+            "<strong>Test Data Sent:</strong><br>" +
+            '<div style="margin-top: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; font-family: monospace;">' +
+            "📧 Email: " + data.user_email + "<br>" +
+            "📞 Phone: " + data.user_phone + "<br>" +
+            "🎯 Framework: " + data.form_framework + "<br>" +
+            "📝 Form ID: " + data.form_id + "<br>" +
+            "🔗 Click ID: " + data.click_id + "<br>" +
+            "🏷️ Tracking ID: " + response.data.tracking_id + "<br>";
+
+          if (data.utm_source || data.utm_medium || data.utm_campaign) {
+            detailsHtml += "<strong>UTM Data:</strong><br>";
+            if (data.utm_source) detailsHtml += "Source: " + data.utm_source + "<br>";
+            if (data.utm_medium) detailsHtml += "Medium: " + data.utm_medium + "<br>";
+            if (data.utm_campaign) detailsHtml += "Campaign: " + data.utm_campaign + "<br>";
+          }
+
+          detailsHtml += "</div>";
+
+          var emailStatus = response.data.email_sent
+            ? '<span style="color: #28a745;">✓ Email sent to admin</span>'
+            : '<span style="color: #dc3545;">✗ Email send failed</span>';
+
+          $result.html(
+            '<div style="padding: 8px; background: #d4edda; border-left: 3px solid #28a745; border-radius: 4px; color: #155724;">' +
+              '<strong>✅ Test form submitted successfully!</strong><br>' +
+              '<div style="margin-top: 5px; font-size: 13px;">' +
+              emailStatus + " | " + gtmStatus + "<br>" +
+              detailsHtml +
+              "</div>" +
+              "</div>"
+          );
+        } else {
+          $result.html(
+            '<div style="padding: 8px; background: #ffeaea; border-left: 3px solid #dc3545; border-radius: 4px; color: #721c24;">' +
+              "❌ " +
+              (response.data ? response.data.message : "Test submission failed") +
+              "</div>"
+          );
+        }
+      },
+      error: function (xhr, status, error) {
+        var errorMsg = "Network error occurred";
+        if (status === "timeout") {
+          errorMsg = "Request timed out - please try again";
+        } else if (xhr.responseText) {
+          try {
+            var response = JSON.parse(xhr.responseText);
+            errorMsg = response.data ? response.data.message : errorMsg;
+          } catch (e) {
+            // Keep default error message
+          }
+        }
+
+        $result.html(
+          '<div style="padding: 8px; background: #ffeaea; border-left: 3px solid #dc3545; border-radius: 4px; color: #721c24;">' +
+            "❌ " +
+            errorMsg +
+            "</div>"
+        );
+      },
+      complete: function () {
+        // Re-enable button
+        $button.prop("disabled", false).html("📧 Submit Test Form");
+      },
+    });
+  });
+
+  // Email validation helper
+  function isValidEmail(email) {
+    var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
 });
