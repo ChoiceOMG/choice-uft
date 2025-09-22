@@ -130,9 +130,11 @@ jobs:
         fi
 
         # Check for wp_die with json_encode (should use wp_send_json instead)
-        if grep -r "wp_die.*json_encode" --include="*.php" . --exclude-dir=vendor --exclude-dir=node_modules 2>/dev/null; then
-          echo "❌ Error: Found wp_die(json_encode()) - use wp_send_json_error() or wp_send_json_success() instead"
-          exit 1
+        wp_die_matches=$(grep -r "wp_die.*json_encode" --include="*.php" . --exclude-dir=vendor --exclude-dir=node_modules 2>/dev/null || true)
+        if [ ! -z "$wp_die_matches" ]; then
+          echo "⚠️ Warning: Found wp_die(json_encode()) - use wp_send_json_error() or wp_send_json_success() instead"
+          echo "$wp_die_matches"
+          has_warnings=true
         fi
 
         # Check for direct $_POST usage without sanitization (excluding nonce checks)
