@@ -628,6 +628,17 @@ class CUFT_Admin {
      * Enqueue admin scripts
      */
     public function enqueue_admin_scripts( $hook ) {
+        // Always enqueue admin CSS for the notice styling
+        if ( function_exists( 'wp_enqueue_style' ) ) {
+            wp_enqueue_style( 
+                'cuft-admin', 
+                CUFT_URL . '/assets/cuft-admin.css', 
+                array(), 
+                CUFT_VERSION 
+            );
+        }
+        
+        // Only enqueue JS on the settings page
         if ( $hook !== 'settings_page_choice-universal-form-tracker' ) {
             return;
         }
@@ -762,9 +773,32 @@ class CUFT_Admin {
         require_once( ABSPATH . 'wp-admin/includes/misc.php' );
         require_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
 
-        // Check if the class already exists (in case of multiple calls)
+        // Define custom upgrader skin class after WP_Upgrader_Skin is loaded
         if ( ! class_exists( 'CUFT_Ajax_Upgrader_Skin' ) ) {
-            require_once( CUFT_PATH . 'includes/class-cuft-ajax-upgrader-skin.php' );
+            // Create an anonymous class that extends WP_Upgrader_Skin
+            eval('
+            class CUFT_Ajax_Upgrader_Skin extends WP_Upgrader_Skin {
+                public $messages = array();
+
+                public function feedback( $string, ...$args ) {
+                    if ( ! empty( $args ) ) {
+                        $string = vsprintf( $string, $args );
+                    }
+                    $this->messages[] = $string;
+                }
+
+                public function header() {}
+                public function footer() {}
+
+                public function error( $errors ) {
+                    if ( is_string( $errors ) ) {
+                        $this->messages[] = "Error: " . $errors;
+                    } elseif ( is_wp_error( $errors ) ) {
+                        $this->messages[] = "Error: " . $errors->get_error_message();
+                    }
+                }
+            }
+            ');
         }
 
         try {
@@ -1584,8 +1618,11 @@ class CUFT_Admin {
             ? " GTM container <code>$gtm_id</code> active." 
             : ' <a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Configure GTM</a>';
         
-        echo '<div class="notice notice-success is-dismissible">';
-        echo '<p><strong>Choice Universal Form Tracker</strong> active with ' . $detected_count . ' form framework(s) detected.' . $gtm_status . '</p>';
+        $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
+        
+        echo '<div class="notice notice-success is-dismissible cuft-admin-notice">';
+        echo '<p><strong>Choice Universal Form Tracker</strong> active with ' . $detected_count . ' form framework(s) detected.</p>';
+        echo '<p>' . $gtm_status . ' <a href="' . $settings_url . '">Settings</a></p>';
         echo '</div>';
     }
 }

@@ -17,7 +17,7 @@ Universal WordPress plugin for tracking form submissions across multiple framewo
 - **Console Logging Control**: Granular browser console logging (No/Yes/Admin Only)
 - **Debug Logging**: Comprehensive logging system for troubleshooting
 - **Admin Dashboard**: Beautiful admin interface with framework status and debug logs
-- **jQuery-Free**: Uses vanilla JavaScript for maximum compatibility
+- **JavaScript-First Design**: Prefers vanilla JavaScript with jQuery fallbacks for maximum compatibility
 - **Server-Side GTM Support**: Optional first-party tracking through custom domain (new in v3.5.0)
 
 ## File Structure
@@ -49,6 +49,29 @@ assets/
     ├── cuft-cf7-forms.js
     ├── cuft-ninja-forms.js
     └── cuft-gravity-forms.js
+```
+
+## Core Design Principles
+
+### JavaScript-First Approach
+The plugin prioritizes pure vanilla JavaScript implementations with jQuery as a fallback option. This ensures:
+- Maximum compatibility across different WordPress setups
+- Works with or without jQuery
+- Supports modern Elementor (3.5+) and legacy versions
+- Multiple fallback detection methods for reliability
+
+### Robust Event Tracking
+Implements multiple layers of event detection:
+1. Native JavaScript CustomEvents (modern browsers)
+2. jQuery events (when available)
+3. MutationObserver (DOM changes)
+4. Ajax interceptors (fetch and XMLHttpRequest)
+5. Form submission handlers
+
+### Data Fallback Chain
+Tracking data is retrieved with graceful degradation:
+```
+URL Parameters → SessionStorage → Cookies → Empty Object
 ```
 
 ## Installation

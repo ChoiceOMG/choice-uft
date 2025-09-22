@@ -1,0 +1,32 @@
+/* Choice Universal Form Tracker Admin Styles */
+
+.cuft-admin-notice {
+  width: 100% !important;
+  margin: 0 0 15px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+.cuft-admin-notice p {
+  margin: 0 0 8px 0 !important;
+  line-height: 1.4 !important;
+  text-align: right !important;
+  max-width: 500px !important;
+}
+
+.cuft-admin-notice p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+  .cuft-admin-notice {
+    align-items: stretch !important;
+  }
+
+  .cuft-admin-notice p {
+    text-align: left !important;
+    max-width: none !important;
+  }
+}
