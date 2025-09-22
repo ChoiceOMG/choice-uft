@@ -5,6 +5,31 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2025-01-22
+
+### Added
+
+- **Mock Form Submission Testing**: New testing capability for debugging and verification
+  - Test form submission buttons in admin panel for each detected framework
+  - Frontend test page generation with actual form elements
+  - Email notifications for test submissions to verify tracking pipeline
+  - Helps debug form tracking issues without live form submissions
+
+### Fixed
+
+- **CI/CD Workflow Issues**: Resolved dependency and validation problems
+  - Fixed composer plugin permissions for WPCS and PHPCompatibility
+  - Corrected version conflicts in PHP_CodeSniffer dependencies
+  - Improved grep command handling in security checks
+  - Made security warnings non-blocking to prevent false positives
+
+### Improved
+
+- **Security Checks**: Enhanced validation with reduced false positives
+  - Better handling of legitimate $_POST usage with nonce validation
+  - Improved detection patterns for actual security issues
+  - More informative output showing actual matches found
+
 ## [3.7.0] - 2025-01-20
 
 ### Fixed

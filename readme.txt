@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.7.0
+Stable tag: 3.8.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,15 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.8.0 =
+* Added mock form submission testing capability for debugging and verification
+* New test form submission buttons in admin panel for each detected framework
+* Created frontend test page generation with actual form elements
+* Added email notifications for test submissions to verify tracking pipeline
+* Fixed CI/CD workflow dependency and validation issues
+* Improved security checks to reduce false positives
+* Enhanced WordPress coding standards compliance
 
 = 3.7.0 =
 * Fixed WordPress coding standards compliance issues
