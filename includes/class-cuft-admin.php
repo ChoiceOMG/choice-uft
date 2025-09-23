@@ -447,6 +447,9 @@ class CUFT_Admin {
                         <button type="button" id="cuft-download-install" class="button button-primary" style="display: none;">
                             <span class="dashicons dashicons-download" style="vertical-align: middle;"></span> Download & Install Update
                         </button>
+                        <button type="button" id="cuft-reinstall-current" class="button button-secondary" style="margin-right: 10px;">
+                            <span class="dashicons dashicons-update" style="vertical-align: middle;"></span> Re-install Current Version
+                        </button>
                         <div id="cuft-update-result" style="margin-top: 10px;"></div>
                         <div id="cuft-install-progress" style="margin-top: 10px; display: none;">
                             <div style="padding: 10px; background: #f0f0f1; border-radius: 4px;">
@@ -659,7 +662,8 @@ class CUFT_Admin {
         
         wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'cuft_ajax_nonce' )
+            'nonce' => wp_create_nonce( 'cuft_ajax_nonce' ),
+            'current_version' => CUFT_VERSION
         ));
     }
     
@@ -764,6 +768,8 @@ class CUFT_Admin {
         }
 
         $latest_version = isset( $_POST['version'] ) ? sanitize_text_field( $_POST['version'] ) : '';
+        $is_reinstall = isset( $_POST['reinstall_current'] ) && $_POST['reinstall_current'];
+
         if ( empty( $latest_version ) ) {
             wp_send_json_error( array( 'message' => 'No version specified' ) );
         }
@@ -776,30 +782,28 @@ class CUFT_Admin {
 
         // Define custom upgrader skin class after WP_Upgrader_Skin is loaded
         if ( ! class_exists( 'CUFT_Ajax_Upgrader_Skin' ) ) {
-            // Create an anonymous class that extends WP_Upgrader_Skin
-            eval('
-            class CUFT_Ajax_Upgrader_Skin extends WP_Upgrader_Skin {
-                public $messages = array();
-
-                public function feedback( $string, ...$args ) {
-                    if ( ! empty( $args ) ) {
-                        $string = vsprintf( $string, $args );
-                    }
-                    $this->messages[] = $string;
-                }
-
-                public function header() {}
-                public function footer() {}
-
-                public function error( $errors ) {
-                    if ( is_string( $errors ) ) {
-                        $this->messages[] = "Error: " . $errors;
-                    } elseif ( is_wp_error( $errors ) ) {
-                        $this->messages[] = "Error: " . $errors->get_error_message();
-                    }
-                }
+            if ( ! class_exists( 'WP_Upgrader_Skin' ) ) {
+                wp_send_json_error( array(
+                    'message' => 'Update failed: WordPress upgrader classes are not available.'
+                ) );
             }
-            ');
+
+            // Include the upgrader skin class file
+            $upgrader_skin_file = CUFT_PATH . '/includes/class-cuft-ajax-upgrader-skin.php';
+            if ( file_exists( $upgrader_skin_file ) ) {
+                require_once( $upgrader_skin_file );
+            } else {
+                wp_send_json_error( array(
+                    'message' => 'Update failed: Upgrader skin class file not found.'
+                ) );
+            }
+        }
+
+        // Verify the class was properly defined
+        if ( ! class_exists( 'CUFT_Ajax_Upgrader_Skin' ) ) {
+            wp_send_json_error( array(
+                'message' => 'Update failed: Upgrader skin class could not be loaded.'
+            ) );
         }
 
         try {
@@ -838,15 +842,20 @@ class CUFT_Admin {
                 delete_site_transient( 'update_plugins' );
                 delete_transient( 'cuft_github_version' );
 
+                $success_message = $is_reinstall
+                    ? "Successfully re-installed version {$latest_version} - updater mechanism is working correctly!"
+                    : "Successfully updated to version {$latest_version}";
+
                 wp_send_json_success( array(
-                    'message' => "Successfully updated to version {$latest_version}",
+                    'message' => $success_message,
                     'details' => $skin->messages,
                     'reload_needed' => true
                 ) );
             }
         } catch ( Exception $e ) {
+            $error_prefix = $is_reinstall ? 'Re-installation error' : 'Update error';
             wp_send_json_error( array(
-                'message' => 'Update error: ' . $e->getMessage()
+                'message' => $error_prefix . ': ' . $e->getMessage()
             ) );
         }
     }
