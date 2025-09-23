@@ -45,22 +45,70 @@
           "") + ""
       ).toLowerCase();
       var pattern = input.getAttribute("pattern") || "";
+      var name = (input.name || "").toLowerCase();
+      var id = (input.id || "").toLowerCase();
+      var placeholder = (input.placeholder || "").toLowerCase();
+      var ariaLabel = (input.getAttribute("aria-label") || "").toLowerCase();
+
+      // Get the label text if available
+      var labelElement = form.querySelector('label[for="' + input.id + '"]');
+      var labelText = labelElement ? (labelElement.textContent || "").toLowerCase() : "";
 
       if (type === "email") {
         if (
           inputType === "email" ||
           inputMode === "email" ||
           dataValidate.indexOf("email") > -1 ||
-          /@/.test(pattern)
+          name.indexOf("email") > -1 ||
+          name.indexOf("e-mail") > -1 ||
+          id.indexOf("email") > -1 ||
+          id.indexOf("e-mail") > -1 ||
+          placeholder.indexOf("email") > -1 ||
+          placeholder.indexOf("e-mail") > -1 ||
+          ariaLabel.indexOf("email") > -1 ||
+          labelText.indexOf("email") > -1 ||
+          labelText.indexOf("e-mail") > -1 ||
+          (pattern && pattern.indexOf("@") > -1)
         ) {
           return input;
         }
       } else if (type === "phone") {
+        // Check if pattern contains numbers but safely
+        var hasNumberPattern = false;
+        try {
+          hasNumberPattern = pattern && (
+            pattern.indexOf("0-9") > -1 ||
+            pattern.indexOf("\\d") > -1 ||
+            pattern.indexOf("[0-9") > -1
+          );
+        } catch (e) {
+          // Pattern check failed, continue without it
+        }
+
         if (
           inputType === "tel" ||
           inputMode === "tel" ||
           inputMode === "numeric" ||
-          /\d|\[0-9]/.test(pattern)
+          dataValidate.indexOf("phone") > -1 ||
+          dataValidate.indexOf("tel") > -1 ||
+          dataValidate.indexOf("number") > -1 ||
+          name.indexOf("phone") > -1 ||
+          name.indexOf("tel") > -1 ||
+          name.indexOf("mobile") > -1 ||
+          name.indexOf("number") > -1 ||
+          id.indexOf("phone") > -1 ||
+          id.indexOf("tel") > -1 ||
+          id.indexOf("mobile") > -1 ||
+          id.indexOf("number") > -1 ||
+          placeholder.indexOf("phone") > -1 ||
+          placeholder.indexOf("mobile") > -1 ||
+          placeholder.indexOf("number") > -1 ||
+          ariaLabel.indexOf("phone") > -1 ||
+          ariaLabel.indexOf("mobile") > -1 ||
+          labelText.indexOf("phone") > -1 ||
+          labelText.indexOf("mobile") > -1 ||
+          labelText.indexOf("number") > -1 ||
+          hasNumberPattern
         ) {
           return input;
         }
@@ -168,13 +216,38 @@
     };
   }
 
-  function fireGenerateLeadEvent(basePayload, email) {
+  function fireGenerateLeadEvent(basePayload, email, phone) {
     if (!window.cuftAvada || !window.cuftAvada.generate_lead_enabled) {
+      log("Generate lead skipped - not enabled");
       return;
     }
 
-    if (!email || !basePayload.utm_campaign) {
-      log("Generate lead skipped - missing email or utm_campaign");
+    // Check for any click ID parameter
+    var clickIdParams = [
+      "click_id",
+      "gclid",
+      "gbraid",
+      "wbraid",
+      "fbclid",
+      "msclkid",
+      "ttclid",
+      "li_fat_id",
+      "twclid",
+      "snap_click_id",
+      "pclid"
+    ];
+
+    var hasClickId = false;
+    for (var i = 0; i < clickIdParams.length; i++) {
+      if (basePayload[clickIdParams[i]]) {
+        hasClickId = true;
+        break;
+      }
+    }
+
+    if (!email || !phone || !hasClickId) {
+      log("Generate lead skipped - missing required fields (email, phone, or click_id)");
+      log("Has email:", !!email, "Has phone:", !!phone, "Has click_id:", !!hasClickId);
       return;
     }
 
@@ -201,6 +274,19 @@
       "formType",
       "formId",
       "formName",
+      "click_id",
+      "gclid",
+      "gbraid",
+      "wbraid",
+      "fbclid",
+      "msclkid",
+      "ttclid",
+      "li_fat_id",
+      "twclid",
+      "snap_click_id",
+      "pclid",
+      "user_email",
+      "user_phone"
     ];
 
     for (var i = 0; i < copyFields.length; i++) {
@@ -209,6 +295,10 @@
         leadPayload[field] = basePayload[field];
       }
     }
+
+    // Add email and phone to lead payload
+    if (email) leadPayload.user_email = email;
+    if (phone) leadPayload.user_phone = phone;
 
     leadPayload.submittedAt = new Date().toISOString();
 
@@ -251,7 +341,7 @@
     try {
       getDL().push(payload);
       log("Form submission tracked:", payload);
-      fireGenerateLeadEvent(payload, email);
+      fireGenerateLeadEvent(payload, email, phone);
     } catch (e) {
       log("DataLayer push error:", e);
     }
