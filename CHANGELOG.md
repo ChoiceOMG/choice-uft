@@ -5,6 +5,26 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.10] - 2025-01-23
+
+### Added
+
+- **Enhanced Plugin Page Display**: Improved plugin appearance on WordPress plugins page
+  - Added "Settings" link next to Deactivate for quick access
+  - Added "GitHub" link for repository access
+  - Added "View Releases" link in plugin details
+  - Added "Changelog" and "Support" links for better user experience
+  - Custom update notification with direct links to release notes
+  - Update messages now show preview of what's new
+
+### Improved
+
+- **Update Experience**: Better visibility for GitHub-based updates
+  - Clear indication that updates come from GitHub, not WordPress.org
+  - Direct links to view release notes before updating
+  - Force update check link in update notification
+  - Styled update messages for better readability
+
 ## [3.8.9] - 2025-01-23
 
 ### Critical Fix
