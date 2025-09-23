@@ -5,6 +5,22 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.1] - 2025-09-23
+
+### Fixed
+
+- **Asset Loading**: Fixed CUFT_URL constant missing trailing slash causing 404 errors on test form assets
+- **Tracking Display Sync**: Test forms now show actual stored values instead of hardcoded placeholders
+- **Data Consistency**: Values displayed in test forms now match values submitted to Tag Manager
+- **SessionStorage Sync**: Updated sessionStorage before test form submissions to ensure consistency
+
+### Technical
+
+- Enhanced `cuft-test-common.js` with new tracking sync functions
+- Applied consistent updates across all framework-specific test files (Avada, Elementor, CF7, Gravity, Ninja)
+- Maintained backward compatibility and existing functionality
+- All syntax checks pass for PHP 7.4+ and JavaScript
+
 ## [3.8.16] - 2025-09-23
 
 ### Added
