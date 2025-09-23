@@ -1632,18 +1632,18 @@ class CUFT_Admin {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
-        
+
         $gtm_id = get_option( 'cuft_gtm_id' );
         $detected_count = count( array_filter( CUFT_Form_Detector::get_detected_frameworks() ) );
-        $gtm_status = $gtm_id && $this->is_valid_gtm_id( $gtm_id ) 
-            ? " GTM container <code>$gtm_id</code> active." 
+        $gtm_status = $gtm_id && $this->is_valid_gtm_id( $gtm_id )
+            ? " GTM container <code>$gtm_id</code> active."
             : ' <a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Configure GTM</a>';
-        
+
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
-        
-        echo '<div class="notice notice-success is-dismissible cuft-admin-notice">';
-        echo '<p><strong>Choice Universal Form Tracker</strong> active with ' . $detected_count . ' form framework(s) detected.</p>';
-        echo '<p>' . $gtm_status . ' <a href="' . $settings_url . '">Settings</a></p>';
+
+        echo '<div class="notice notice-success is-dismissible">';
+        echo '<p><strong>Choice Universal Form Tracker</strong> active with ' . $detected_count . ' form framework(s) detected. ';
+        echo $gtm_status . ' <a href="' . $settings_url . '">Settings</a></p>';
         echo '</div>';
     }
 }

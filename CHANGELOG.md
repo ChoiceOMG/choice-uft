@@ -5,6 +5,16 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.7] - 2025-01-23
+
+### Fixed
+
+- **Admin Notice Positioning**: Reverted admin notice to standard WordPress positioning
+  - Removed complex CSS flex positioning that forced notice to right side
+  - Removed custom alignment and width restrictions
+  - Notice now appears in standard admin notice area with other WordPress notices
+  - Simplified HTML structure to single paragraph format
+
 ## [3.8.6] - 2025-01-23
 
 ### Fixed
