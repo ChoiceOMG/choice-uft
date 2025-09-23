@@ -5,6 +5,22 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.16] - 2025-09-23
+
+### Added
+
+- **Test Forms Interface**: Added comprehensive test forms for all supported form plugins
+  - Elementor Forms test interface with form submission simulation
+  - Contact Form 7, Gravity Forms, Ninja Forms, and Avada Forms test interfaces
+  - Common test utilities for form validation and event tracking
+  - Enhanced admin interface for testing form tracking functionality
+
+### Improved
+
+- **Admin Interface**: Enhanced admin page layout and styling
+- **Update Mechanism**: Improved update interface with better user feedback
+- **Code Organization**: Added test form assets in organized structure
+
 ## [3.8.15] - 2025-09-23
 
 ### Fixed
