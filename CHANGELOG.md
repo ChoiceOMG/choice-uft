@@ -5,6 +5,35 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.13] - 2025-09-23
+
+### Fixed
+
+- **Form Tracking Issues**: Major fixes across all form frameworks
+  - `generate_lead` event now correctly requires email + phone + click_id (not utm_campaign)
+  - Fixed Avada forms not triggering tracking events
+  - Fixed Ninja Forms not triggering tracking events
+  - Resolved Elementor forms not detecting email/phone fields
+
+- **Field Detection**: Enhanced field detection for all form types
+  - Added support for Elementor-specific attributes (data-field-type, data-original-name)
+  - Improved detection of form field arrays (form_fields[email])
+  - Added support for field variations (email/e-mail, phone/tel/mobile/number)
+  - Now checks labels, placeholders, ARIA labels, and parent containers
+
+- **Browser Console Errors**: Fixed regex pattern errors
+  - Replaced regex testing with safe string checking
+  - Added try-catch blocks for pattern validation
+  - Eliminates "invalid character in class in regular expression" errors
+
+### Improved
+
+- **Value Capture Timing**: Better handling of form values
+  - Captures field values at submit time (before form is cleared)
+  - Stores values as data attributes on form element
+  - Uses stored values when processing success events
+  - Ensures values are available even after form resets
+
 ## [3.8.12] - 2025-01-23
 
 ### Testing
