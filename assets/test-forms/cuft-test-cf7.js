@@ -31,6 +31,11 @@
             // Add testing controls
             common.addTestingControls(formElement, 'contact_form_7');
 
+            // Update tracking info display with actual stored values
+            setTimeout(() => {
+                common.updateTrackingInfoDisplay('contact_form_7', formElement);
+            }, 100);
+
             common.log('CF7 test form initialized');
         },
 
@@ -80,6 +85,10 @@
 
             // Prepare tracking data
             const formId = formElement.dataset.formId || 'wpcf7-f123-p456-o1';
+
+            // Update sessionStorage with test tracking data BEFORE getting tracking data
+            common.updateTrackingDataForTest('contact_form_7', formId);
+
             const trackingData = common.getTestTrackingData('contact_form_7', formId);
 
             // Add form field values

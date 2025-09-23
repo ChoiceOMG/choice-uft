@@ -31,6 +31,11 @@
             // Add testing controls
             common.addTestingControls(formElement, 'ninja_forms');
 
+            // Update tracking info display with actual stored values
+            setTimeout(() => {
+                common.updateTrackingInfoDisplay('ninja_forms', formElement);
+            }, 100);
+
             common.log('Ninja Forms test form initialized');
         },
 
@@ -80,6 +85,10 @@
 
             // Prepare tracking data
             const formId = formElement.dataset.formId || 'nf-form-3';
+
+            // Update sessionStorage with test tracking data BEFORE getting tracking data
+            common.updateTrackingDataForTest('ninja_forms', formId);
+
             const trackingData = common.getTestTrackingData('ninja_forms', formId);
 
             // Add form field values

@@ -31,6 +31,11 @@
             // Add testing controls
             common.addTestingControls(formElement, 'avada');
 
+            // Update tracking info display with actual stored values
+            setTimeout(() => {
+                common.updateTrackingInfoDisplay('avada', formElement);
+            }, 100);
+
             common.log('Avada test form initialized');
         },
 
@@ -80,6 +85,10 @@
 
             // Prepare tracking data
             const formId = formElement.dataset.formId || 'fusion_form_1';
+
+            // Update sessionStorage with test tracking data BEFORE getting tracking data
+            common.updateTrackingDataForTest('avada', formId);
+
             const trackingData = common.getTestTrackingData('avada', formId);
 
             // Add form field values

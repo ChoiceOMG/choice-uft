@@ -380,6 +380,109 @@
             };
 
             return messages[framework] || messages.elementor;
+        },
+
+        /**
+         * Update tracking info display with actual stored values
+         */
+        updateTrackingInfoDisplay: function(framework, formElement) {
+            // Find the tracking info display for this form
+            const trackingDisplay = formElement.parentNode.querySelector('.cuft-tracking-info, [style*="background: #f8f9fa"]');
+            if (!trackingDisplay) return;
+
+            // Get actual tracking data from storage
+            const actualTrackingData = this.getCurrentTrackingDataFromStorage();
+
+            // Update the display with actual values
+            const clickIdDisplay = trackingDisplay.querySelector('div:contains("Click ID:")') ||
+                                 Array.from(trackingDisplay.querySelectorAll('div')).find(div =>
+                                     div.textContent.includes('Click ID:'));
+
+            if (clickIdDisplay && actualTrackingData) {
+                const clickIds = [];
+                if (actualTrackingData.click_id) clickIds.push(`click_id: ${actualTrackingData.click_id}`);
+                if (actualTrackingData.gclid) clickIds.push(`gclid: ${actualTrackingData.gclid}`);
+                if (actualTrackingData.fbclid) clickIds.push(`fbclid: ${actualTrackingData.fbclid}`);
+                if (actualTrackingData.wbraid) clickIds.push(`wbraid: ${actualTrackingData.wbraid}`);
+                if (actualTrackingData.gbraid) clickIds.push(`gbraid: ${actualTrackingData.gbraid}`);
+
+                const displayValue = clickIds.length > 0 ? clickIds.join(', ') : 'None stored';
+                clickIdDisplay.innerHTML = `<strong>Stored Click IDs:</strong> ${displayValue}`;
+            }
+
+            // Add UTM info if available
+            if (actualTrackingData) {
+                const utmDisplay = document.createElement('div');
+                const utmParams = [];
+                if (actualTrackingData.utm_source) utmParams.push(`source: ${actualTrackingData.utm_source}`);
+                if (actualTrackingData.utm_medium) utmParams.push(`medium: ${actualTrackingData.utm_medium}`);
+                if (actualTrackingData.utm_campaign) utmParams.push(`campaign: ${actualTrackingData.utm_campaign}`);
+
+                const utmValue = utmParams.length > 0 ? utmParams.join(', ') : 'None stored';
+                utmDisplay.innerHTML = `<strong>Stored UTM:</strong> ${utmValue}`;
+                trackingDisplay.appendChild(utmDisplay);
+            }
+        },
+
+        /**
+         * Get current tracking data from storage (sessionStorage -> cookie -> empty)
+         */
+        getCurrentTrackingDataFromStorage: function() {
+            try {
+                // Try sessionStorage first
+                const sessionData = sessionStorage.getItem('cuft_tracking_data');
+                if (sessionData) {
+                    const parsed = JSON.parse(sessionData);
+                    if (parsed.tracking) {
+                        return parsed.tracking;
+                    }
+                }
+            } catch (e) {
+                // Fall back to cookie or return empty
+            }
+
+            try {
+                // Try cookie fallback
+                const cookieData = this.getCookieValue('cuft_tracking_data');
+                if (cookieData) {
+                    return JSON.parse(cookieData);
+                }
+            } catch (e) {
+                // Return empty object if all fails
+            }
+
+            return {};
+        },
+
+        /**
+         * Get cookie value by name
+         */
+        getCookieValue: function(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        },
+
+        /**
+         * Update sessionStorage with test tracking data before form submission
+         */
+        updateTrackingDataForTest: function(framework, formId) {
+            const testTrackingData = this.getTestTrackingData(framework, formId);
+
+            try {
+                const data = {
+                    tracking: testTrackingData,
+                    timestamp: Date.now()
+                };
+                sessionStorage.setItem('cuft_tracking_data', JSON.stringify(data));
+                this.log(`Updated sessionStorage with test data for ${framework}:`, 'info');
+                this.log(testTrackingData, 'data');
+            } catch (e) {
+                this.log(`Error updating sessionStorage: ${e.message}`, 'error');
+            }
+
+            return testTrackingData;
         }
     };
 
