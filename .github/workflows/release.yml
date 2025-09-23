@@ -1,0 +1,123 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create plugin directory
+        run: |
+          mkdir -p choice-universal-form-tracker
+          rsync -av --exclude-from='.distignore' . choice-universal-form-tracker/ || \
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='.gitignore' \
+            --exclude='.env' \
+            --exclude='*.zip' \
+            --exclude='.distignore' \
+            --exclude='tests' \
+            --exclude='phpunit.xml' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='pnpm-lock.yaml' \
+            --exclude='.eslintrc*' \
+            --exclude='.prettierrc*' \
+            --exclude='webpack.config.js' \
+            --exclude='*.log' \
+            --exclude='.DS_Store' \
+            --exclude='Thumbs.db' \
+            . choice-universal-form-tracker/
+
+      - name: Create zip file
+        run: |
+          zip -r choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip choice-universal-form-tracker/
+          echo "Created plugin zip: choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip"
+          ls -lh choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          echo "Extracting release notes for version $VERSION"
+
+          # Extract the section for this version from CHANGELOG.md
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if ($2 == "["ver"]") found=1
+            }
+            found && !/^## \[/ { print }
+          ' CHANGELOG.md > release_notes.md
+
+          # Add installation instructions
+          cat >> release_notes.md << 'EOF'
+
+## Installation
+
+### Automatic Update
+If you already have the plugin installed, it should automatically detect this update. Go to **Plugins** in your WordPress admin and click **Update Now**.
+
+### Manual Installation
+1. Download the `choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip` file from the assets below
+2. In WordPress admin, go to **Plugins → Add New → Upload Plugin**
+3. Choose the downloaded zip file and click **Install Now**
+4. Activate the plugin after installation
+
+## Requirements
+- WordPress 5.0 or higher
+- PHP 7.4 or higher
+
+## Support
+For issues or questions, please visit: https://github.com/ChoiceOMG/choice-uft/issues
+EOF
+
+          echo "Release notes generated"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Version ${{ steps.get_version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip
+          asset_content_type: application/zip
+
+      - name: Summary
+        run: |
+          echo "✅ Release created successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Asset:** choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The plugin will be available for automatic updates within a few minutes." >> $GITHUB_STEP_SUMMARY

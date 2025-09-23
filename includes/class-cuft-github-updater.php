@@ -245,7 +245,78 @@ class CUFT_GitHub_Updater {
      * Get download URL for a specific version
      */
     private function get_download_url( $version ) {
+        // Try to get the release asset URL first
+        $asset_url = $this->get_release_asset_url( $version );
+        if ( $asset_url ) {
+            return $asset_url;
+        }
+
+        // Fallback to archive URL if no release asset found
         return "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/v{$version}.zip";
+    }
+
+    /**
+     * Get release asset URL from GitHub API
+     */
+    private function get_release_asset_url( $version ) {
+        // Check transient cache first
+        $cache_key = 'cuft_asset_url_' . $version;
+        $cached_url = get_transient( $cache_key );
+        if ( false !== $cached_url ) {
+            return $cached_url;
+        }
+
+        // Ensure required WordPress functions are available
+        if ( ! function_exists( 'wp_remote_get' ) || ! function_exists( 'wp_remote_retrieve_body' ) ) {
+            return false;
+        }
+
+        $api_url = "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases/tags/v{$version}";
+        $args = array(
+            'timeout' => 30
+        );
+
+        $response = wp_remote_get( $api_url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'Failed to fetch release asset: ' . $response->get_error_message(), 'error' );
+            }
+            return false;
+        }
+
+        // Check response code
+        if ( ! function_exists( 'wp_remote_response_code' ) ) {
+            $code = isset( $response['response']['code'] ) ? $response['response']['code'] : 200;
+        } else {
+            $code = wp_remote_response_code( $response );
+        }
+
+        if ( $code !== 200 ) {
+            return false;
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+
+        // Look for a zip file in assets
+        if ( isset( $data['assets'] ) && is_array( $data['assets'] ) ) {
+            foreach ( $data['assets'] as $asset ) {
+                // Look for the plugin zip file
+                if ( isset( $asset['name'] ) && isset( $asset['browser_download_url'] ) ) {
+                    // Match files like choice-uft-v3.8.3.zip or choice-uft.zip
+                    if ( preg_match( '/choice-uft.*\.zip$/i', $asset['name'] ) ) {
+                        $download_url = $asset['browser_download_url'];
+                        // Cache for 1 hour
+                        set_transient( $cache_key, $download_url, HOUR_IN_SECONDS );
+                        return $download_url;
+                    }
+                }
+            }
+        }
+
+        // No asset found
+        return false;
     }
     
     /**

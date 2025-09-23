@@ -358,6 +358,11 @@ jQuery(document).ready(function ($) {
             : '<span style="color: #dc3545;">✗ GTM Not Configured</span>';
 
           var detailsHtml =
+            "<strong>Events Triggered:</strong><br>" +
+            '<div style="margin-top: 5px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 12px;">' +
+            "✅ <strong>form_submit</strong> - Always fires<br>" +
+            "✅ <strong>generate_lead</strong> - Fires (email + phone + click_id present)<br>" +
+            "</div>" +
             "<strong>Test Data Sent:</strong><br>" +
             '<div style="margin-top: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; font-family: monospace;">' +
             "📧 Email: " + data.user_email + "<br>" +
@@ -365,6 +370,7 @@ jQuery(document).ready(function ($) {
             "🎯 Framework: " + data.form_framework + "<br>" +
             "📝 Form ID: " + data.form_id + "<br>" +
             "🔗 Click ID: " + data.click_id + "<br>" +
+            "🔗 GCLID: " + (data.gclid || "N/A") + "<br>" +
             "🏷️ Tracking ID: " + response.data.tracking_id + "<br>";
 
           if (data.utm_source || data.utm_medium || data.utm_campaign) {

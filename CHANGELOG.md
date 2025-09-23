@@ -5,6 +5,23 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.4] - 2025-01-23
+
+### Fixed
+
+- **Critical Auto-Update Issue**: Fixed GitHub updater to download proper release assets
+  - Updater now uses uploaded plugin zip files instead of raw source archives
+  - Added automatic detection of release assets via GitHub API
+  - Includes fallback to source archive if no release asset is available
+  - Prevents development files from being installed on production sites
+
+### Improved
+
+- **Release Process**: Enhanced auto-update reliability
+  - Added caching for release asset URLs to reduce API calls
+  - Better error handling and logging for update failures
+  - Consistent version numbering across all plugin files
+
 ## [3.8.3] - 2025-01-22
 
 ### Fixed

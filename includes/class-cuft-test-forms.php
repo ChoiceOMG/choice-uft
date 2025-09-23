@@ -166,19 +166,28 @@ class CUFT_Test_Forms {
 
                                 console.log('[CUFT] Submitting form:', framework);
 
-                                // Create the event data
+                                // Create the event data with all fields for generate_lead
                                 const testData = {
                                     event: 'form_submit',
                                     user_email: email,
                                     user_phone: phone,
                                     form_framework: framework,
                                     form_id: formId,
+                                    form_name: 'Test ' + framework + ' Form',
                                     test_submission: true,
-                                    click_id: 'click_id_' + framework + '_test',
-                                    utm_campaign: 'test_campaign_' + framework + '_test',
+                                    // Include multiple click IDs to ensure generate_lead fires
+                                    click_id: 'test_click_' + Date.now(),
+                                    gclid: 'test_gclid_' + Date.now(),
+                                    // Full UTM parameters
                                     utm_source: 'cuft_test',
                                     utm_medium: 'test_form',
-                                    timestamp: new Date().toISOString()
+                                    utm_campaign: 'test_campaign_' + framework,
+                                    utm_term: 'test_term',
+                                    utm_content: 'test_content',
+                                    // Additional metadata
+                                    generate_lead_test: true,
+                                    timestamp: new Date().toISOString(),
+                                    submittedAt: new Date().toISOString()
                                 };
 
                                 // Push to dataLayer
@@ -191,7 +200,10 @@ class CUFT_Test_Forms {
                                     const resultDiv = form.querySelector('.test-result');
                                     if (resultDiv) {
                                         resultDiv.style.display = 'block';
-                                        resultDiv.innerHTML = '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; color: #155724;">✅ Form submitted! Check Tag Assistant for the <code>form_submit</code> event.<br><small>Framework: ' + framework + ' | Click ID: ' + testData.click_id + '</small></div>';
+                                        resultDiv.innerHTML = '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; color: #155724;">✅ Form submitted! Check Tag Assistant for:<br>' +
+                                            '<strong>• form_submit</strong> event (always fires)<br>' +
+                                            '<strong>• generate_lead</strong> event (fires with email + phone + click_id)<br>' +
+                                            '<small>Framework: ' + framework + ' | Click ID: ' + testData.click_id + ' | GCLID: ' + testData.gclid + '</small></div>';
 
                                         // Disable button temporarily
                                         this.disabled = true;
@@ -231,10 +243,20 @@ class CUFT_Test_Forms {
                     <li>Open Google Tag Assistant or GTM Preview mode</li>
                     <li>Click "Submit Test Form" for any framework above</li>
                     <li>Check the browser console for real-time events</li>
-                    <li>Verify the <code>form_submit</code> event in Tag Assistant</li>
-                    <li>Confirm all parameters are correctly passed</li>
+                    <li>Verify the <code>form_submit</code> event in Tag Assistant (always fires)</li>
+                    <li>Verify the <code>generate_lead</code> event in Tag Assistant (fires with email + phone + click_id)</li>
+                    <li>Confirm all parameters are correctly passed (click_id, gclid, UTM params, etc.)</li>
                     <li>Check your WordPress admin email for the test submission notification</li>
                 </ol>
+
+                <h4 style="margin-top: 15px; color: #0c5460;">🎯 Generate Lead Requirements</h4>
+                <p style="margin: 5px 0;">The <code>generate_lead</code> event fires when ALL three conditions are met:</p>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    <li>✅ Email field has a value</li>
+                    <li>✅ Phone field has a value</li>
+                    <li>✅ Click ID is present (click_id, gclid, fbclid, etc.)</li>
+                </ul>
+                <p style="margin: 5px 0; color: #28a745;"><strong>Test forms include all required fields to trigger both events!</strong></p>
 
                 <h4 style="margin-top: 15px; color: #0c5460;">URL Parameter Testing</h4>
                 <p style="margin: 5px 0;">You can also trigger automatic tests using URL parameters:</p>

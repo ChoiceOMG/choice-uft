@@ -1016,26 +1016,41 @@ class CUFT_Admin {
         );
         $form_id = isset( $form_id_map[ $framework ] ) ? $form_id_map[ $framework ] : 'test_form_1';
 
-        // Prepare test data
+        // Prepare test data with all fields needed for generate_lead
         $test_data = array(
             'event' => 'form_submit',
             'user_email' => $email,
             'user_phone' => $phone,
             'form_framework' => $framework,
             'form_id' => $form_id,
+            'form_name' => 'Test ' . $framework_name . ' Form',
             'test_submission' => true,
             'timestamp' => current_time( 'mysql' ),
-            'click_id' => 'click_id_' . $framework . '_test',
-            'utm_campaign' => 'test_campaign_' . $framework . '_test'
+            // Include multiple click ID types to ensure generate_lead fires
+            'click_id' => 'test_click_' . uniqid(),
+            'gclid' => 'test_gclid_' . uniqid(),
+            // UTM parameters
+            'utm_source' => 'cuft_test',
+            'utm_medium' => 'test_form',
+            'utm_campaign' => 'test_campaign_' . $framework,
+            'utm_term' => 'test_term',
+            'utm_content' => 'test_content',
+            // Additional data for completeness
+            'generate_lead_test' => true
         );
 
-        // Add UTM data if available (but preserve our test utm_campaign)
+        // Add UTM data if available (but preserve our test values)
         $utm_data = CUFT_UTM_Tracker::get_utm_data();
         if ( ! empty( $utm_data ) ) {
-            // Preserve our test campaign but merge other UTM data
-            $test_campaign = $test_data['utm_campaign'];
-            $test_data = array_merge( $test_data, $utm_data );
-            $test_data['utm_campaign'] = $test_campaign; // Override with test campaign
+            // Merge real UTM data but keep our test click_id and campaign
+            $preserve_fields = array(
+                'click_id' => $test_data['click_id'],
+                'gclid' => $test_data['gclid'],
+                'utm_campaign' => $test_data['utm_campaign'],
+                'test_submission' => true,
+                'generate_lead_test' => true
+            );
+            $test_data = array_merge( $test_data, $utm_data, $preserve_fields );
         }
 
         // Log the test submission
@@ -1082,11 +1097,17 @@ class CUFT_Admin {
         $message .= "TRACKING ID: {$tracking_id}\n";
         $message .= "==================================================\n\n";
 
+        $message .= "EVENTS TRIGGERED:\n";
+        $message .= "--------------------------------------------------\n";
+        $message .= "✓ form_submit (always fires)\n";
+        $message .= "✓ generate_lead (email + phone + click_id present)\n\n";
+
         $message .= "FORM DATA:\n";
         $message .= "--------------------------------------------------\n";
         $message .= "Email: {$test_data['user_email']}\n";
         $message .= "Phone: {$test_data['user_phone']}\n";
         $message .= "Click ID: {$test_data['click_id']}\n";
+        $message .= "GCLID: {$test_data['gclid']}\n";
         $message .= "Form ID: {$test_data['form_id']}\n";
         $message .= "Timestamp: {$test_data['timestamp']}\n";
         $message .= "\n";
