@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Update Notice Direction**: Fixed update notification to guide users correctly
+  - Update notice now directs to "Settings → Force Update" instead of WordPress Plugins page
+  - Provides clear path to the plugin's update mechanism
+  - Users are directed to the proper Force Update Check button in settings
+  - Maintains link to view release notes on GitHub
+
 - **Simplified Update Notice**: Removed complex styling from update notifications
   - Removed custom background, borders, and width calculations from update message
   - Now uses standard WordPress update notice formatting
