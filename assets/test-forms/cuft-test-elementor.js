@@ -30,6 +30,11 @@
             // Add testing controls
             common.addTestingControls(formElement, 'elementor');
 
+            // Update tracking info display with actual stored values
+            setTimeout(() => {
+                common.updateTrackingInfoDisplay('elementor', formElement);
+            }, 100);
+
             common.log('Elementor test form initialized');
         },
 
@@ -78,6 +83,10 @@
 
             // Prepare tracking data
             const formId = formElement.dataset.formId || 'elementor-form-widget-test';
+
+            // Update sessionStorage with test tracking data BEFORE getting tracking data
+            common.updateTrackingDataForTest('elementor', formId);
+
             const trackingData = common.getTestTrackingData('elementor', formId);
 
             // Add form field values

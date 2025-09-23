@@ -31,6 +31,11 @@
             // Add testing controls
             common.addTestingControls(formElement, 'gravity_forms');
 
+            // Update tracking info display with actual stored values
+            setTimeout(() => {
+                common.updateTrackingInfoDisplay('gravity_forms', formElement);
+            }, 100);
+
             common.log('Gravity Forms test form initialized');
         },
 
@@ -80,6 +85,10 @@
 
             // Prepare tracking data
             const formId = formElement.dataset.formId || 'gform_1';
+
+            // Update sessionStorage with test tracking data BEFORE getting tracking data
+            common.updateTrackingDataForTest('gravity_forms', formId);
+
             const trackingData = common.getTestTrackingData('gravity_forms', formId);
 
             // Add form field values
