@@ -5,6 +5,24 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.11] - 2025-01-23
+
+### Fixed
+
+- **Simplified Update Notice**: Removed complex styling from update notifications
+  - Removed custom background, borders, and width calculations from update message
+  - Now uses standard WordPress update notice formatting
+  - Simplified to just show version and release notes link
+  - Removed changelog preview to keep notices clean
+
+### Simplified
+
+- **Plugin Links**: Streamlined plugin page links
+  - Kept only essential "Settings" link in action links
+  - Removed redundant GitHub and releases links
+  - Kept only "Support" link in meta for help access
+  - Removed all inline CSS styling from links
+
 ## [3.8.10] - 2025-01-23
 
 ### Added

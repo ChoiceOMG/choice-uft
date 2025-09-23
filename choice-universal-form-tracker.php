@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.8.10
+ * Version:           3.8.11
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.8.10' );
+define( 'CUFT_VERSION', '3.8.11' );
 define( 'CUFT_URL', plugins_url( '', __FILE__ ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -220,13 +220,9 @@ class Choice_Universal_Form_Tracker {
      */
     public function add_action_links( $links ) {
         $settings_link = '<a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Settings</a>';
-        $github_link = '<a href="https://github.com/ChoiceOMG/choice-uft" target="_blank" style="color: #0073aa;">GitHub</a>';
 
         // Add settings link at the beginning
         array_unshift( $links, $settings_link );
-
-        // Add GitHub link after settings
-        array_unshift( $links, $github_link );
 
         return $links;
     }
@@ -240,8 +236,6 @@ class Choice_Universal_Form_Tracker {
         }
 
         $row_meta = array(
-            'releases' => '<a href="https://github.com/ChoiceOMG/choice-uft/releases" target="_blank" style="color: #0073aa;">View Releases</a>',
-            'changelog' => '<a href="https://github.com/ChoiceOMG/choice-uft/blob/master/CHANGELOG.md" target="_blank">Changelog</a>',
             'support' => '<a href="https://github.com/ChoiceOMG/choice-uft/issues" target="_blank">Support</a>'
         );
 
@@ -256,27 +250,12 @@ class Choice_Universal_Form_Tracker {
             return;
         }
 
-        $current_version = CUFT_VERSION;
         $new_version = $response->new_version;
 
-        echo '<br />';
-        echo '<span style="display: inline-block; margin-top: 10px; padding: 8px 12px; background: #f0f8ff; border-left: 4px solid #0073aa; width: calc(100% - 20px);">';
-        echo '<strong>Update Available:</strong> Version ' . esc_html( $new_version ) . ' is available on GitHub. ';
-        echo '<a href="https://github.com/ChoiceOMG/choice-uft/releases/tag/v' . esc_attr( $new_version ) . '" target="_blank">View release notes</a> | ';
-        echo '<a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Force update check</a>';
-
-        // Show what's new if we can fetch it
-        if ( ! empty( $response->sections['changelog'] ) ) {
-            $changelog = $response->sections['changelog'];
-            // Extract first paragraph or first 200 chars
-            $preview = substr( strip_tags( $changelog ), 0, 200 );
-            if ( strlen( $preview ) >= 200 ) {
-                $preview .= '...';
-            }
-            echo '<br /><em style="color: #666; font-size: 12px; margin-top: 5px; display: block;">' . esc_html( $preview ) . '</em>';
-        }
-
-        echo '</span>';
+        echo ' ';
+        echo 'Version ' . esc_html( $new_version ) . ' is available. ';
+        echo '<a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Go to Settings → Force Update</a> | ';
+        echo '<a href="https://github.com/ChoiceOMG/choice-uft/releases/tag/v' . esc_attr( $new_version ) . '" target="_blank">View release notes</a>';
     }
 
     /**
