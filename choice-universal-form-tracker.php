@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.8.16
+ * Version:           3.9.0
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.8.16' );
+define( 'CUFT_VERSION', '3.9.0' );
 define( 'CUFT_URL', plugins_url( '', __FILE__ ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -89,6 +89,7 @@ class Choice_Universal_Form_Tracker {
      */
     private function init_hooks() {
         add_action( 'plugins_loaded', array( $this, 'init' ) );
+        add_action( 'wp_loaded', array( $this, 'ensure_updater_hooks' ) );
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 
@@ -100,17 +101,6 @@ class Choice_Universal_Form_Tracker {
 
         // Customize update notification message
         add_action( 'in_plugin_update_message-' . CUFT_BASENAME, array( $this, 'update_message' ), 10, 2 );
-
-        // Initialize GitHub updater
-        if ( class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
-            global $cuft_updater;
-            $cuft_updater = new CUFT_GitHub_Updater(
-                __FILE__,
-                CUFT_VERSION,
-                'ChoiceOMG',
-                'choice-uft'
-            );
-        }
     }
     
     /**
@@ -171,7 +161,21 @@ class Choice_Universal_Form_Tracker {
             if ( class_exists( 'CUFT_Click_Integration' ) ) {
                 new CUFT_Click_Integration();
             }
-            
+
+            // Initialize GitHub updater
+            if ( class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
+                global $cuft_updater;
+                $cuft_updater = new CUFT_GitHub_Updater(
+                    __FILE__,
+                    CUFT_VERSION,
+                    'ChoiceOMG',
+                    'choice-uft'
+                );
+
+                // Ensure the update filter is registered (workaround for timing issues)
+                add_filter( 'pre_set_site_transient_update_plugins', array( $cuft_updater, 'check_for_update' ) );
+            }
+
         } catch ( Exception $e ) {
             error_log( "CUFT Error during initialization: " . $e->getMessage() );
             if ( is_admin() ) {
@@ -179,7 +183,21 @@ class Choice_Universal_Form_Tracker {
             }
         }
     }
-    
+
+    /**
+     * Ensure updater hooks are properly registered
+     */
+    public function ensure_updater_hooks() {
+        global $cuft_updater;
+
+        if ( $cuft_updater && class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
+            // Ensure the critical update filter is registered
+            if ( ! has_filter( 'pre_set_site_transient_update_plugins', array( $cuft_updater, 'check_for_update' ) ) ) {
+                add_filter( 'pre_set_site_transient_update_plugins', array( $cuft_updater, 'check_for_update' ), 10 );
+            }
+        }
+    }
+
     /**
      * Plugin activation
      */

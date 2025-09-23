@@ -37,13 +37,12 @@ class CUFT_GitHub_Updater {
         $this->github_repo = $github_repo;
         $this->plugin_slug = dirname( $this->plugin_basename );
         
-        // Only add hooks if we're in a proper WordPress environment
-        if ( did_action( 'init' ) || doing_action( 'init' ) || did_action( 'plugins_loaded' ) ) {
-            add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
-            add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
-            // Removed upgrader_pre_download filter - let WordPress handle the download
-            add_action( 'upgrader_process_complete', array( $this, 'purge_cache' ), 10, 2 );
-        }
+        // Add hooks - WordPress is fully loaded when this constructor is called from the init method
+        // Note: pre_set_site_transient_update_plugins is also registered in the main plugin file as a workaround
+        add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
+        add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
+        add_filter( 'upgrader_pre_download', array( $this, 'download_package' ), 10, 3 );
+        add_action( 'upgrader_process_complete', array( $this, 'purge_cache' ), 10, 2 );
     }
     
     /**
