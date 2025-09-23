@@ -81,157 +81,65 @@ class CUFT_Test_Forms {
             <!-- Test Forms Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
                 <?php foreach ( $detected_frameworks as $framework ): ?>
-                    <?php
-                    $form_id_map = array(
-                        'avada' => 'fusion_form_1',
-                        'elementor' => 'elementor-form-widget-7a2c4f9',
-                        'contact_form_7' => 'wpcf7-f123-p456-o1',
-                        'ninja_forms' => 'nf-form-3',
-                        'gravity_forms' => 'gform_1'
-                    );
-                    $form_id = isset( $form_id_map[ $framework['key'] ] ) ? $form_id_map[ $framework['key'] ] : 'test_form_1';
-                    ?>
-                    <div class="cuft-test-form-card" style="background: white; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0; color: #495057;"><?php echo esc_html( $framework['name'] ); ?></h3>
-                            <span style="background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">ACTIVE</span>
-                        </div>
-
-                        <form class="cuft-test-form"
-                              data-framework="<?php echo esc_attr( $framework['key'] ); ?>"
-                              data-form-id="<?php echo esc_attr( $form_id ); ?>"
-                              onsubmit="return false;"
-                              style="display: flex; flex-direction: column; gap: 10px;">
-
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; color: #6c757d; font-size: 14px;">Email Address</label>
-                                <input type="email"
-                                       name="email"
-                                       value="<?php echo esc_attr( $admin_email ); ?>"
-                                       readonly
-                                       style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa;">
-                            </div>
-
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; color: #6c757d; font-size: 14px;">Phone Number</label>
-                                <input type="tel"
-                                       name="phone"
-                                       value="1-555-555-5555"
-                                       readonly
-                                       style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa;">
-                            </div>
-
-                            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d;">
-                                <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
-                                <div><strong>Click ID:</strong> click_id_<?php echo esc_html( $framework['key'] ); ?>_test</div>
-                                <div><strong>Campaign:</strong> test_campaign_<?php echo esc_html( $framework['key'] ); ?>_test</div>
-                            </div>
-
-                            <button type="button"
-                                    class="button button-primary cuft-submit-btn"
-                                    data-framework="<?php echo esc_attr( $framework['key'] ); ?>"
-                                    style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
-                                🚀 Submit Test Form
-                            </button>
-
-                            <div class="test-result" style="display: none; margin-top: 10px;"></div>
-                        </form>
-                    </div>
+                    <?php echo $this->render_framework_test_form( $framework, $admin_email ); ?>
                 <?php endforeach; ?>
             </div>
 
 
-            <!-- Inline script for immediate functionality -->
+            <!-- Framework-Specific Scripts Loading -->
             <script>
-                // Simple working implementation
+                // Initialize framework-specific test forms
                 (function() {
-                    function setupTestForms() {
-                        console.log('[CUFT] Setting up test form handlers...');
+                    'use strict';
 
-                        document.querySelectorAll('.cuft-submit-btn').forEach(function(btn) {
-                            btn.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
+                    function initFrameworkTestForms() {
+                        console.log('[CUFT] Initializing framework-specific test forms...');
 
-                                const form = this.closest('.cuft-test-form');
-                                if (!form) {
-                                    console.error('[CUFT] Form not found');
-                                    return;
-                                }
+                        // Initialize each detected framework
+                        const frameworks = <?php echo json_encode( array_keys( $detected_frameworks ) ); ?>;
 
-                                const framework = form.dataset.framework;
-                                const formId = form.dataset.formId;
-                                const email = form.querySelector('[name="email"]').value;
-                                const phone = form.querySelector('[name="phone"]').value;
+                        frameworks.forEach(function(frameworkKey) {
+                            const formElements = document.querySelectorAll('.cuft-test-form[data-framework="' + frameworkKey + '"]');
 
-                                console.log('[CUFT] Submitting form:', framework);
-
-                                // Create the event data with all fields for generate_lead
-                                const testData = {
-                                    event: 'form_submit',
-                                    user_email: email,
-                                    user_phone: phone,
-                                    form_framework: framework,
-                                    form_id: formId,
-                                    form_name: 'Test ' + framework + ' Form',
-                                    test_submission: true,
-                                    // Include multiple click IDs to ensure generate_lead fires
-                                    click_id: 'test_click_' + Date.now(),
-                                    gclid: 'test_gclid_' + Date.now(),
-                                    // Full UTM parameters
-                                    utm_source: 'cuft_test',
-                                    utm_medium: 'test_form',
-                                    utm_campaign: 'test_campaign_' + framework,
-                                    utm_term: 'test_term',
-                                    utm_content: 'test_content',
-                                    // Additional metadata
-                                    generate_lead_test: true,
-                                    timestamp: new Date().toISOString(),
-                                    submittedAt: new Date().toISOString()
-                                };
-
-                                // Push to dataLayer
-                                if (window.dataLayer) {
-                                    window.dataLayer.push(testData);
-                                    console.log('[CUFT] Event pushed to dataLayer:', testData);
-
-
-                                    // Show success message
-                                    const resultDiv = form.querySelector('.test-result');
-                                    if (resultDiv) {
-                                        resultDiv.style.display = 'block';
-                                        resultDiv.innerHTML = '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px; color: #155724;">✅ Form submitted! Check Tag Assistant for:<br>' +
-                                            '<strong>• form_submit</strong> event (always fires)<br>' +
-                                            '<strong>• generate_lead</strong> event (fires with email + phone + click_id)<br>' +
-                                            '<small>Framework: ' + framework + ' | Click ID: ' + testData.click_id + ' | GCLID: ' + testData.gclid + '</small></div>';
-
-                                        // Disable button temporarily
-                                        this.disabled = true;
-                                        this.textContent = '✓ Submitted';
-
-                                        const button = this;
-                                        setTimeout(function() {
-                                            resultDiv.style.display = 'none';
-                                            button.disabled = false;
-                                            button.textContent = '🚀 Submit Test Form';
-                                        }, 5000);
-                                    }
+                            formElements.forEach(function(formElement) {
+                                // Initialize framework-specific behavior
+                                if (window.CUFTTestForms && window.CUFTTestForms[frameworkKey]) {
+                                    window.CUFTTestForms[frameworkKey].init(formElement);
+                                    console.log('[CUFT] Initialized ' + frameworkKey + ' test form');
                                 } else {
-                                    alert('Error: dataLayer not found. Please ensure GTM is configured.');
-                                    console.error('[CUFT] dataLayer not found');
+                                    console.warn('[CUFT] Framework module not found: ' + frameworkKey);
+                                    // Fallback to generic handler if framework module not loaded
+                                    initGenericHandler(formElement, frameworkKey);
                                 }
                             });
                         });
-
-
-                        console.log('[CUFT] Test forms ready!');
                     }
 
-                    // Run when DOM is ready
+                    function initGenericHandler(formElement, framework) {
+                        const submitButton = formElement.querySelector('.cuft-submit-btn');
+                        if (submitButton) {
+                            submitButton.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                alert('Framework module for ' + framework + ' not loaded. Please check console for errors.');
+                            });
+                        }
+                    }
+
+                    // Initialize when all scripts are loaded
+                    function attemptInit() {
+                        if (window.CUFTTestForms && window.CUFTTestForms.common) {
+                            initFrameworkTestForms();
+                        } else {
+                            console.log('[CUFT] Waiting for framework scripts to load...');
+                            setTimeout(attemptInit, 200);
+                        }
+                    }
+
+                    // Start initialization
                     if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', setupTestForms);
+                        document.addEventListener('DOMContentLoaded', attemptInit);
                     } else {
-                        setupTestForms();
+                        attemptInit();
                     }
                 })();
             </script>
@@ -249,14 +157,21 @@ class CUFT_Test_Forms {
                     <li>Check your WordPress admin email for the test submission notification</li>
                 </ol>
 
-                <h4 style="margin-top: 15px; color: #0c5460;">🎯 Generate Lead Requirements</h4>
-                <p style="margin: 5px 0;">The <code>generate_lead</code> event fires when ALL three conditions are met:</p>
-                <ul style="margin: 5px 0; padding-left: 20px;">
-                    <li>✅ Email field has a value</li>
-                    <li>✅ Phone field has a value</li>
-                    <li>✅ Click ID is present (click_id, gclid, fbclid, etc.)</li>
-                </ul>
-                <p style="margin: 5px 0; color: #28a745;"><strong>Test forms include all required fields to trigger both events!</strong></p>
+                <h4 style="margin-top: 15px; color: #0c5460;">🎯 Generate Lead Requirements by Framework</h4>
+                <p style="margin: 5px 0;">The <code>generate_lead</code> event has different requirements per framework:</p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 10px 0;">
+                    <div style="background: #f0f8ff; border: 1px solid #cce7ff; border-radius: 4px; padding: 8px; font-size: 12px;">
+                        <strong>Elementor, Avada, Ninja:</strong><br>
+                        Email + Phone + Click ID
+                    </div>
+                    <div style="background: #fff0f5; border: 1px solid #ffcce7; border-radius: 4px; padding: 8px; font-size: 12px;">
+                        <strong>Contact Form 7, Gravity:</strong><br>
+                        Email + UTM Campaign only
+                    </div>
+                </div>
+
+                <p style="margin: 5px 0; color: #28a745;"><strong>Test forms include appropriate fields for each framework's requirements!</strong></p>
 
                 <h4 style="margin-top: 15px; color: #0c5460;">URL Parameter Testing</h4>
                 <p style="margin: 5px 0;">You can also trigger automatic tests using URL parameters:</p>
@@ -266,7 +181,12 @@ class CUFT_Test_Forms {
             </div>
         </div>
 
-        <!-- Force load the script -->
+        <!-- Load Framework-Specific Test Scripts -->
+        <script src="<?php echo CUFT_URL; ?>assets/test-forms/cuft-test-common.js?ver=<?php echo CUFT_VERSION; ?>"></script>
+        <?php foreach ( $detected_frameworks as $framework ): ?>
+            <script src="<?php echo CUFT_URL; ?>assets/test-forms/cuft-test-<?php echo esc_attr( $framework['key'] === 'contact_form_7' ? 'cf7' : $framework['key'] ); ?>.js?ver=<?php echo CUFT_VERSION; ?>"></script>
+        <?php endforeach; ?>
+        <!-- Legacy script for fallback -->
         <script src="<?php echo CUFT_URL; ?>assets/cuft-test-forms.js?ver=<?php echo CUFT_VERSION; ?>"></script>
         <script>
             // Ensure config is available
@@ -293,6 +213,391 @@ class CUFT_Test_Forms {
                 }
             }, 500);
         </script>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render framework-specific test form
+     */
+    private function render_framework_test_form( $framework, $admin_email ) {
+        $form_id_map = array(
+            'avada' => 'fusion_form_1',
+            'elementor' => 'elementor-form-widget-7a2c4f9',
+            'contact_form_7' => 'wpcf7-f123-p456-o1',
+            'ninja_forms' => 'nf-form-3',
+            'gravity_forms' => 'gform_1'
+        );
+        $form_id = isset( $form_id_map[ $framework['key'] ] ) ? $form_id_map[ $framework['key'] ] : 'test_form_1';
+
+        ob_start();
+        ?>
+        <div class="cuft-test-form-card" style="background: white; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #495057;"><?php echo esc_html( $framework['name'] ); ?></h3>
+                <span style="background: #28a745; color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px;">ACTIVE</span>
+            </div>
+
+            <?php echo $this->render_framework_form_html( $framework['key'], $form_id, $admin_email ); ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render framework-specific form HTML
+     */
+    private function render_framework_form_html( $framework_key, $form_id, $admin_email ) {
+        switch ( $framework_key ) {
+            case 'elementor':
+                return $this->render_elementor_form( $form_id, $admin_email );
+            case 'contact_form_7':
+                return $this->render_cf7_form( $form_id, $admin_email );
+            case 'gravity_forms':
+                return $this->render_gravity_form( $form_id, $admin_email );
+            case 'avada':
+                return $this->render_avada_form( $form_id, $admin_email );
+            case 'ninja_forms':
+                return $this->render_ninja_form( $form_id, $admin_email );
+            default:
+                return $this->render_generic_form( $framework_key, $form_id, $admin_email );
+        }
+    }
+
+    /**
+     * Render Elementor form HTML
+     */
+    private function render_elementor_form( $form_id, $admin_email ) {
+        ob_start();
+        ?>
+        <form class="cuft-test-form elementor-form"
+              data-framework="elementor"
+              data-form-id="<?php echo esc_attr( $form_id ); ?>"
+              onsubmit="return false;">
+            <div class="elementor-form-fields-wrapper">
+                <div class="elementor-field-group elementor-column elementor-col-100">
+                    <label for="form-field-email" class="elementor-field-label">Email Address</label>
+                    <input size="1"
+                           type="email"
+                           name="form_fields[email]"
+                           id="form-field-email"
+                           class="elementor-field elementor-size-sm"
+                           data-field-type="email"
+                           data-field="email"
+                           inputmode="email"
+                           value="<?php echo esc_attr( $admin_email ); ?>"
+                           readonly>
+                </div>
+                <div class="elementor-field-group elementor-column elementor-col-100">
+                    <label for="form-field-phone" class="elementor-field-label">Phone Number</label>
+                    <input size="1"
+                           type="tel"
+                           name="form_fields[phone]"
+                           id="form-field-phone"
+                           class="elementor-field elementor-size-sm"
+                           data-field-type="tel"
+                           data-field="phone"
+                           inputmode="tel"
+                           value="1-555-555-5555"
+                           readonly>
+                </div>
+                <div class="elementor-field-group elementor-column elementor-col-100">
+                    <button type="submit"
+                            class="elementor-button elementor-size-sm cuft-submit-btn"
+                            style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        🚀 Submit Test Form
+                    </button>
+                </div>
+            </div>
+            <div class="test-result" style="display: none; margin-top: 10px;"></div>
+        </form>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
+            <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
+            <div><strong>Click ID:</strong> test_click_elementor_<?php echo time(); ?></div>
+            <div><strong>Campaign:</strong> test_campaign_elementor</div>
+            <div><strong>Generate Lead:</strong> Email + Phone + Click ID (all required)</div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render Contact Form 7 HTML
+     */
+    private function render_cf7_form( $form_id, $admin_email ) {
+        ob_start();
+        ?>
+        <div class="wpcf7">
+            <form class="wpcf7-form init cuft-test-form"
+                  data-framework="contact_form_7"
+                  data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                  novalidate="novalidate"
+                  data-status="init">
+                <p>
+                    <label>Email Address<br>
+                        <span class="wpcf7-form-control-wrap" data-name="your-email">
+                            <input size="40"
+                                   class="wpcf7-form-control wpcf7-text wpcf7-email wpcf7-validates-as-required wpcf7-validates-as-email"
+                                   type="email"
+                                   name="your-email"
+                                   value="<?php echo esc_attr( $admin_email ); ?>"
+                                   readonly>
+                        </span>
+                    </label>
+                </p>
+                <p>
+                    <label>Phone Number<br>
+                        <span class="wpcf7-form-control-wrap" data-name="your-phone">
+                            <input size="40"
+                                   class="wpcf7-form-control wpcf7-text wpcf7-tel"
+                                   type="tel"
+                                   name="your-phone"
+                                   value="1-555-555-5555"
+                                   readonly>
+                        </span>
+                    </label>
+                </p>
+                <p>
+                    <input class="wpcf7-form-control wpcf7-submit has-spinner cuft-submit-btn"
+                           type="submit"
+                           value="🚀 Submit Test Form"
+                           style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                </p>
+            </form>
+            <div class="wpcf7-response-output" aria-hidden="true" style="display: none;"></div>
+            <div class="test-result" style="display: none; margin-top: 10px;"></div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
+            <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
+            <div><strong>Click ID:</strong> test_click_cf7_<?php echo time(); ?></div>
+            <div><strong>Campaign:</strong> test_campaign_contact_form_7</div>
+            <div><strong>Generate Lead:</strong> Email + UTM Campaign (phone & click_id NOT required)</div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render Gravity Forms HTML
+     */
+    private function render_gravity_form( $form_id, $admin_email ) {
+        $numeric_id = preg_replace( '/\D/', '', $form_id ) ?: '1';
+
+        ob_start();
+        ?>
+        <div class="gform_wrapper">
+            <form id="<?php echo esc_attr( $form_id ); ?>"
+                  class="cuft-test-form"
+                  data-framework="gravity_forms"
+                  data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                  data-formid="<?php echo esc_attr( $numeric_id ); ?>">
+                <div class="gform_body">
+                    <ul class="gform_fields">
+                        <li class="gfield gfield_email gfield_required">
+                            <label class="gfield_label" for="input_<?php echo esc_attr( $numeric_id ); ?>_1">Email Address</label>
+                            <div class="ginput_container ginput_container_email">
+                                <input name="input_1"
+                                       id="input_<?php echo esc_attr( $numeric_id ); ?>_1"
+                                       type="email"
+                                       value="<?php echo esc_attr( $admin_email ); ?>"
+                                       class="large"
+                                       readonly>
+                            </div>
+                        </li>
+                        <li class="gfield gfield_phone">
+                            <label class="gfield_label" for="input_<?php echo esc_attr( $numeric_id ); ?>_2">Phone Number</label>
+                            <div class="ginput_container ginput_container_phone">
+                                <input name="input_2"
+                                       id="input_<?php echo esc_attr( $numeric_id ); ?>_2"
+                                       type="tel"
+                                       value="1-555-555-5555"
+                                       class="large"
+                                       readonly>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="gform_footer">
+                    <input type="submit"
+                           class="gform_button button cuft-submit-btn"
+                           value="🚀 Submit Test Form"
+                           style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                </div>
+            </form>
+            <div class="gform_confirmation_message" style="display: none;"></div>
+            <div class="test-result" style="display: none; margin-top: 10px;"></div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
+            <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
+            <div><strong>Click ID:</strong> test_click_gravity_<?php echo time(); ?></div>
+            <div><strong>Campaign:</strong> test_campaign_gravity_forms</div>
+            <div><strong>Generate Lead:</strong> Email + UTM Campaign (phone & click_id NOT required)</div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render Avada/Fusion form HTML
+     */
+    private function render_avada_form( $form_id, $admin_email ) {
+        ob_start();
+        ?>
+        <div class="fusion-form">
+            <form class="fusion-form-form cuft-test-form"
+                  data-framework="avada"
+                  data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                  method="post"
+                  enctype="multipart/form-data">
+                <div class="fusion-form-field fusion-form-field-email">
+                    <label for="fusion-form-field-email">Email Address</label>
+                    <input type="email"
+                           name="email"
+                           id="fusion-form-field-email"
+                           class="fusion-form-input"
+                           value="<?php echo esc_attr( $admin_email ); ?>"
+                           readonly>
+                </div>
+                <div class="fusion-form-field fusion-form-field-phone">
+                    <label for="fusion-form-field-phone">Phone Number</label>
+                    <input type="tel"
+                           name="phone"
+                           id="fusion-form-field-phone"
+                           class="fusion-form-input"
+                           value="1-555-555-5555"
+                           readonly>
+                </div>
+                <div class="fusion-form-field fusion-form-submit-field">
+                    <button type="submit"
+                            class="fusion-button fusion-button-default cuft-submit-btn"
+                            style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        🚀 Submit Test Form
+                    </button>
+                </div>
+            </form>
+            <div class="fusion-form-response-success" style="display: none;">
+                <div class="fusion-alert success">Form submitted successfully!</div>
+            </div>
+            <div class="test-result" style="display: none; margin-top: 10px;"></div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
+            <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
+            <div><strong>Click ID:</strong> test_click_avada_<?php echo time(); ?></div>
+            <div><strong>Campaign:</strong> test_campaign_avada</div>
+            <div><strong>Generate Lead:</strong> Email + Phone + Click ID (all required)</div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render Ninja Forms HTML
+     */
+    private function render_ninja_form( $form_id, $admin_email ) {
+        $numeric_id = preg_replace( '/\D/', '', $form_id ) ?: '3';
+
+        ob_start();
+        ?>
+        <div class="nf-form-cont">
+            <div class="nf-form-wrap">
+                <form class="nf-form cuft-test-form"
+                      data-framework="ninja_forms"
+                      data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                      method="post">
+                    <div class="nf-field-container email-container">
+                        <div class="nf-field" data-field-type="email">
+                            <label for="nf-field-<?php echo esc_attr( $numeric_id ); ?>-email" class="nf-label">Email Address</label>
+                            <input type="email"
+                                   name="email"
+                                   id="nf-field-<?php echo esc_attr( $numeric_id ); ?>-email"
+                                   class="nf-element"
+                                   value="<?php echo esc_attr( $admin_email ); ?>"
+                                   readonly>
+                        </div>
+                    </div>
+                    <div class="nf-field-container phone-container">
+                        <div class="nf-field" data-field-type="phone">
+                            <label for="nf-field-<?php echo esc_attr( $numeric_id ); ?>-phone" class="nf-label">Phone Number</label>
+                            <input type="tel"
+                                   name="phone"
+                                   id="nf-field-<?php echo esc_attr( $numeric_id ); ?>-phone"
+                                   class="nf-element"
+                                   value="1-555-555-5555"
+                                   readonly>
+                        </div>
+                    </div>
+                    <div class="nf-field-container submit-container">
+                        <input type="button"
+                               class="nf-element cuft-submit-btn"
+                               value="🚀 Submit Test Form"
+                               style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    </div>
+                </form>
+                <div class="nf-response-msg" style="display: none;"></div>
+            </div>
+            <div class="test-result" style="display: none; margin-top: 10px;"></div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
+            <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
+            <div><strong>Click ID:</strong> test_click_ninja_<?php echo time(); ?></div>
+            <div><strong>Campaign:</strong> test_campaign_ninja_forms</div>
+            <div><strong>Generate Lead:</strong> Email + Phone + Click ID (all required)</div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render generic form HTML (fallback)
+     */
+    private function render_generic_form( $framework_key, $form_id, $admin_email ) {
+        ob_start();
+        ?>
+        <form class="cuft-test-form"
+              data-framework="<?php echo esc_attr( $framework_key ); ?>"
+              data-form-id="<?php echo esc_attr( $form_id ); ?>"
+              onsubmit="return false;"
+              style="display: flex; flex-direction: column; gap: 10px;">
+
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #6c757d; font-size: 14px;">Email Address</label>
+                <input type="email"
+                       name="email"
+                       value="<?php echo esc_attr( $admin_email ); ?>"
+                       readonly
+                       style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa;">
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #6c757d; font-size: 14px;">Phone Number</label>
+                <input type="tel"
+                       name="phone"
+                       value="1-555-555-5555"
+                       readonly
+                       style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa;">
+            </div>
+
+            <button type="button"
+                    class="button button-primary cuft-submit-btn"
+                    data-framework="<?php echo esc_attr( $framework_key ); ?>"
+                    style="background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                🚀 Submit Test Form
+            </button>
+
+            <div class="test-result" style="display: none; margin-top: 10px;"></div>
+        </form>
+
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
+            <div><strong>Form ID:</strong> <?php echo esc_html( $form_id ); ?></div>
+            <div><strong>Click ID:</strong> test_click_<?php echo esc_html( $framework_key ); ?>_<?php echo time(); ?></div>
+            <div><strong>Campaign:</strong> test_campaign_<?php echo esc_html( $framework_key ); ?></div>
+            <div><strong>Generate Lead:</strong> Framework-specific requirements</div>
+        </div>
         <?php
         return ob_get_clean();
     }

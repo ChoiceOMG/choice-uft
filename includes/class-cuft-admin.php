@@ -45,10 +45,6 @@ class CUFT_Admin {
             $this->save_settings();
         }
         
-        // Handle manual update check
-        if ( isset( $_POST['cuft_manual_update'] ) && wp_verify_nonce( $_POST['cuft_manual_nonce'], 'cuft_manual_update' ) ) {
-            $this->handle_manual_update_check();
-        }
         
         // Handle click tracking actions
         if ( isset( $_POST['cuft_click_action'] ) && wp_verify_nonce( $_POST['cuft_click_nonce'], 'cuft_click_tracking' ) ) {
@@ -460,11 +456,7 @@ class CUFT_Admin {
                     </p>
                     
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #d4edda;">
-                        <form method="post" style="display: inline-block; margin-right: 10px;">
-                            <?php wp_nonce_field( 'cuft_manual_update', 'cuft_manual_nonce' ); ?>
-                            <input type="submit" name="cuft_manual_update" value="Check for Updates Now" class="button button-secondary" />
-                        </form>
-                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="display: none; margin-right: 10px;">Check for Updates (AJAX)</button>
+                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="margin-right: 10px;">Check for Updates</button>
                         <button type="button" id="cuft-download-install" class="button button-primary" style="display: none;">
                             <span class="dashicons dashicons-download" style="vertical-align: middle;"></span> Download & Install Update
                         </button>
@@ -487,36 +479,8 @@ class CUFT_Admin {
                         GitHub updates are currently disabled. The plugin will use WordPress.org for updates instead. 
                         Enable GitHub updates in the settings above to get the latest features directly from the public repository.
                     </p>
-                    
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffc107;">
-                        <form method="post" style="display: inline-block;">
-                            <?php wp_nonce_field( 'cuft_manual_update', 'cuft_manual_nonce' ); ?>
-                            <input type="submit" name="cuft_manual_update" value="Check for Updates Anyway" class="button button-secondary" disabled title="Enable GitHub updates first" />
-                        </form>
-                    </div>
                 </div>
             <?php endif; ?>
-            
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
-                <h4 style="margin-top: 0;">How GitHub Updates Work</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>1. Check for Updates</strong><br>
-                        <small>WordPress checks the GitHub repository for new releases twice daily</small>
-                    </div>
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>2. Download & Install</strong><br>
-                        <small>Updates are downloaded directly from GitHub and installed automatically</small>
-                    </div>
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>3. Stay Current</strong><br>
-                        <small>Get the latest features and fixes as soon as they're released</small>
-                    </div>
-                </div>
-                <p style="margin-top: 10px; margin-bottom: 0; color: #6c757d; font-size: 14px;">
-                    <strong>Repository:</strong> <a href="https://github.com/ChoiceOMG/choice-uft" target="_blank">https://github.com/ChoiceOMG/choice-uft</a>
-                </p>
-            </div>
         </div>
         <?php
     }
@@ -688,45 +652,6 @@ class CUFT_Admin {
         ));
     }
     
-    /**
-     * Handle manual update check (form submission)
-     */
-    private function handle_manual_update_check() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Insufficient permissions' );
-        }
-        
-        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
-        
-        if ( ! $github_updates_enabled ) {
-            add_settings_error( 'cuft_messages', 'cuft_message', 'GitHub updates are disabled. Enable them in settings first.', 'error' );
-            settings_errors( 'cuft_messages' );
-            return;
-        }
-        
-        // Get GitHub updater instance
-        global $cuft_updater;
-        if ( ! $cuft_updater || ! method_exists( $cuft_updater, 'force_check' ) ) {
-            add_settings_error( 'cuft_messages', 'cuft_message', 'GitHub updater not available.', 'error' );
-            settings_errors( 'cuft_messages' );
-            return;
-        }
-        
-        try {
-            $remote_version = $cuft_updater->force_check();
-            $current_version = CUFT_VERSION;
-            
-            if ( version_compare( $current_version, $remote_version, '<' ) ) {
-                add_settings_error( 'cuft_messages', 'cuft_message', "Update available! Current: {$current_version}, Latest: {$remote_version}. You can update from the WordPress Plugins page.", 'updated' );
-            } else {
-                add_settings_error( 'cuft_messages', 'cuft_message', "Plugin is up to date. Current version: {$current_version}", 'updated' );
-            }
-        } catch ( Exception $e ) {
-            add_settings_error( 'cuft_messages', 'cuft_message', 'Error checking for updates: ' . $e->getMessage(), 'error' );
-        }
-        
-        settings_errors( 'cuft_messages' );
-    }
     
     /**
      * Handle AJAX manual update check
