@@ -34,42 +34,151 @@
   }
 
   function getFieldValue(form, type) {
-    var selector =
-      type === "email" ? 'input[type="email"]' : 'input[type="tel"]';
-    var field = form.querySelector(selector);
+    var inputs = form.querySelectorAll("input");
+    var field = null;
 
-    if (!field) {
-      // Fallback: search by field name/id
-      var inputs = form.querySelectorAll("input");
-      for (var i = 0; i < inputs.length; i++) {
-        var input = inputs[i];
-        var name = (input.name || "").toLowerCase();
-        var id = (input.id || "").toLowerCase();
+    log("Searching for " + type + " field in form with " + inputs.length + " inputs");
+
+    for (var i = 0; i < inputs.length; i++) {
+      var input = inputs[i];
+
+      // Skip hidden inputs
+      if (input.type === "hidden") continue;
+
+      var inputType = (input.getAttribute("type") || "").toLowerCase();
+      var inputMode = (input.getAttribute("inputmode") || "").toLowerCase();
+      var name = (input.name || "").toLowerCase();
+      var id = (input.id || "").toLowerCase();
+      var placeholder = (input.placeholder || "").toLowerCase();
+      var ariaLabel = (input.getAttribute("aria-label") || "").toLowerCase();
+      var dataValidation = (input.getAttribute("data-parsley-type") || "").toLowerCase();
+      var pattern = input.getAttribute("pattern") || "";
+
+      // Check for Elementor-specific field attributes
+      var fieldType = (input.getAttribute("data-field-type") || "").toLowerCase();
+      var originalName = (input.getAttribute("data-original-name") || "").toLowerCase();
+
+      // Get the label text if available
+      var labelElement = form.querySelector('label[for="' + input.id + '"]');
+      var labelText = labelElement ? (labelElement.textContent || "").toLowerCase() : "";
+
+      // Also check parent container for field type clues
+      var parentContainer = input.closest(".elementor-field-group");
+      var parentLabel = parentContainer ? parentContainer.querySelector("label") : null;
+      var parentLabelText = parentLabel ? (parentLabel.textContent || "").toLowerCase() : "";
+
+      log("Checking input " + i + ":", {
+        type: inputType,
+        name: name,
+        id: id,
+        fieldType: fieldType,
+        originalName: originalName,
+        placeholder: placeholder,
+        labelText: labelText || parentLabelText
+      });
+
+      if (type === "email") {
+        if (
+          inputType === "email" ||
+          inputMode === "email" ||
+          dataValidation === "email" ||
+          fieldType === "email" ||
+          name.indexOf("email") > -1 ||
+          name.indexOf("e-mail") > -1 ||
+          name === "form_fields[email]" ||
+          originalName === "email" ||
+          id.indexOf("email") > -1 ||
+          id.indexOf("e-mail") > -1 ||
+          placeholder.indexOf("email") > -1 ||
+          placeholder.indexOf("e-mail") > -1 ||
+          placeholder.indexOf("@") > -1 ||
+          ariaLabel.indexOf("email") > -1 ||
+          labelText.indexOf("email") > -1 ||
+          labelText.indexOf("e-mail") > -1 ||
+          parentLabelText.indexOf("email") > -1 ||
+          parentLabelText.indexOf("e-mail") > -1 ||
+          (pattern && pattern.indexOf("@") > -1)
+        ) {
+          field = input;
+          log("Found email field:", input);
+          break;
+        }
+      } else if (type === "phone") {
+        // Check if pattern contains numbers but safely
+        var hasNumberPattern = false;
+        try {
+          hasNumberPattern = pattern && (
+            pattern.indexOf("0-9") > -1 ||
+            pattern.indexOf("\\d") > -1 ||
+            pattern.indexOf("[0-9") > -1
+          );
+        } catch (e) {
+          // Pattern check failed, continue without it
+        }
 
         if (
-          type === "email" &&
-          (name.indexOf("email") > -1 || id.indexOf("email") > -1)
+          inputType === "tel" ||
+          inputMode === "tel" ||
+          inputMode === "numeric" ||
+          dataValidation === "phone" ||
+          dataValidation === "number" ||
+          fieldType === "tel" ||
+          fieldType === "phone" ||
+          name.indexOf("phone") > -1 ||
+          name.indexOf("tel") > -1 ||
+          name.indexOf("mobile") > -1 ||
+          name.indexOf("number") > -1 ||
+          name === "form_fields[phone]" ||
+          name === "form_fields[tel]" ||
+          originalName === "phone" ||
+          originalName === "tel" ||
+          id.indexOf("phone") > -1 ||
+          id.indexOf("tel") > -1 ||
+          id.indexOf("mobile") > -1 ||
+          id.indexOf("number") > -1 ||
+          placeholder.indexOf("phone") > -1 ||
+          placeholder.indexOf("mobile") > -1 ||
+          placeholder.indexOf("number") > -1 ||
+          placeholder.indexOf("(") > -1 ||
+          ariaLabel.indexOf("phone") > -1 ||
+          ariaLabel.indexOf("mobile") > -1 ||
+          labelText.indexOf("phone") > -1 ||
+          labelText.indexOf("mobile") > -1 ||
+          labelText.indexOf("number") > -1 ||
+          parentLabelText.indexOf("phone") > -1 ||
+          parentLabelText.indexOf("mobile") > -1 ||
+          parentLabelText.indexOf("number") > -1 ||
+          hasNumberPattern
         ) {
           field = input;
-          break;
-        } else if (
-          type === "phone" &&
-          (name.indexOf("phone") > -1 ||
-            name.indexOf("tel") > -1 ||
-            id.indexOf("phone") > -1 ||
-            id.indexOf("tel") > -1)
-        ) {
-          field = input;
+          log("Found phone field:", input);
           break;
         }
       }
     }
 
-    if (!field) return "";
+    if (!field) {
+      log("No " + type + " field found in form - dumping all input details:");
+      for (var j = 0; j < Math.min(inputs.length, 10); j++) {
+        if (inputs[j].type !== "hidden") {
+          log("Input " + j + ":", {
+            type: inputs[j].type,
+            name: inputs[j].name,
+            id: inputs[j].id,
+            placeholder: inputs[j].placeholder
+          });
+        }
+      }
+      return "";
+    }
 
     var value = (field.value || "").trim();
+    log("Field value for " + type + ":", value);
+
     if (type === "phone" && value) {
-      return value.replace(/(?!^\+)[^\d]/g, "");
+      var cleanedValue = value.replace(/(?!^\+)[^\d]/g, "");
+      log("Cleaned phone value:", cleanedValue);
+      return cleanedValue;
     }
     return value;
   }
@@ -213,10 +322,24 @@
         return;
       }
 
-      var email = getFieldValue(targetForm, "email");
-      var phone = getFieldValue(targetForm, "phone");
+      // Try to get stored values first (captured at submit time)
+      var email = targetForm.getAttribute("data-cuft-email") || "";
+      var phone = targetForm.getAttribute("data-cuft-phone") || "";
+
+      // If not found, try to get current values
+      if (!email) email = getFieldValue(targetForm, "email");
+      if (!phone) phone = getFieldValue(targetForm, "phone");
+
+      log("Processing success event with values:", {
+        email: email || "not found",
+        phone: phone || "not found"
+      });
 
       pushToDataLayer(targetForm, email, phone);
+
+      // Clean up stored attributes
+      targetForm.removeAttribute("data-cuft-email");
+      targetForm.removeAttribute("data-cuft-phone");
     } catch (e) {
       log("Success handler error:", e);
     }
@@ -234,10 +357,19 @@
 
       if (!isElementorForm) return;
 
-      // Store form reference for potential later use
-      form.setAttribute("data-cuft-tracking", "pending");
+      // Capture field values before submission
+      var email = getFieldValue(form, "email");
+      var phone = getFieldValue(form, "phone");
 
-      log("Elementor form submit detected, waiting for success event");
+      // Store form reference and field values for later use
+      form.setAttribute("data-cuft-tracking", "pending");
+      form.setAttribute("data-cuft-email", email || "");
+      form.setAttribute("data-cuft-phone", phone || "");
+
+      log("Elementor form submit detected, captured values:", {
+        email: email || "not found",
+        phone: phone || "not found"
+      });
     } catch (e) {
       log("Submit handler error:", e);
     }
@@ -329,6 +461,7 @@
         );
         if (pendingForms.length > 0) {
           form = pendingForms[0];
+          log("Found form with pending tracking");
         }
       }
 
@@ -352,6 +485,17 @@
       }
 
       if (form) {
+        // Log if this form has stored values
+        var storedEmail = form.getAttribute("data-cuft-email");
+        var storedPhone = form.getAttribute("data-cuft-phone");
+
+        if (storedEmail || storedPhone) {
+          log("Using stored form values from submit time:", {
+            email: storedEmail || "not stored",
+            phone: storedPhone || "not stored"
+          });
+        }
+
         handleElementorSuccess(event, form);
         // Clear tracking attribute
         if (form.hasAttribute("data-cuft-tracking")) {
