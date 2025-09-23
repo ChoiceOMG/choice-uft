@@ -5,6 +5,17 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.8] - 2025-01-23
+
+### Improved
+
+- **Admin Notice Behavior**: Enhanced admin notice visibility and dismissal
+  - Admin notice no longer shows on the plugin's settings page (redundant)
+  - Implemented persistent dismiss functionality per user
+  - Notice dismissal is remembered via user meta
+  - Added AJAX handler for smooth dismiss experience
+  - Each admin user can independently dismiss the notice
+
 ## [3.8.7] - 2025-01-23
 
 ### Fixed

@@ -19,6 +19,7 @@ class CUFT_Admin {
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
         add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
         add_action( 'wp_ajax_cuft_test_form_submit', array( $this, 'ajax_test_form_submit' ) );
+        add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
@@ -1626,10 +1627,39 @@ class CUFT_Admin {
     }
     
     /**
+     * AJAX handler for dismissing the admin notice
+     */
+    public function ajax_dismiss_notice() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_dismiss_notice' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        // Save user meta to remember dismissal
+        $user_id = get_current_user_id();
+        update_user_meta( $user_id, 'cuft_notice_dismissed', true );
+
+        wp_send_json_success( array( 'message' => 'Notice dismissed' ) );
+    }
+
+    /**
      * Display admin notices
      */
     public function admin_notices() {
         if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        // Don't show on the plugin's own settings page
+        $current_screen = get_current_screen();
+        if ( $current_screen && $current_screen->id === 'settings_page_choice-universal-form-tracker' ) {
+            return;
+        }
+
+        // Check if notice has been dismissed by this user
+        $user_id = get_current_user_id();
+        $dismissed = get_user_meta( $user_id, 'cuft_notice_dismissed', true );
+        if ( $dismissed ) {
             return;
         }
 
@@ -1641,9 +1671,23 @@ class CUFT_Admin {
 
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
 
-        echo '<div class="notice notice-success is-dismissible">';
+        echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
         echo '<p><strong>Choice Universal Form Tracker</strong> active with ' . $detected_count . ' form framework(s) detected. ';
         echo $gtm_status . ' <a href="' . $settings_url . '">Settings</a></p>';
         echo '</div>';
+
+        // Add inline script to handle dismiss
+        ?>
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $(document).on('click', '.notice[data-dismiss-action="cuft-dismiss-notice"] .notice-dismiss', function() {
+                $.post(ajaxurl, {
+                    action: 'cuft_dismiss_notice',
+                    nonce: '<?php echo wp_create_nonce( 'cuft_dismiss_notice' ); ?>'
+                });
+            });
+        });
+        </script>
+        <?php
     }
 }
