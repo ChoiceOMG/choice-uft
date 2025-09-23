@@ -322,6 +322,125 @@ jQuery(document).ready(function ($) {
     });
   });
 
+  // Handle Re-install Current Version button
+  $("#cuft-reinstall-current").on("click", function (e) {
+    e.preventDefault();
+
+    var $button = $(this);
+    var $result = $("#cuft-update-result");
+    var $progress = $("#cuft-install-progress");
+    var $status = $("#cuft-install-status");
+
+    // Get current version from PHP constant
+    var currentVersion = cuftAdmin.current_version || "unknown";
+
+    // Confirm the action
+    if (!confirm("Are you sure you want to re-install the current version (" + currentVersion + ")?\n\nThis will download and re-install the plugin to test the updater mechanism.")) {
+      return;
+    }
+
+    // Disable buttons and show progress
+    $button.prop("disabled", true);
+    $("#cuft-ajax-update-check").prop("disabled", true);
+    $("#cuft-download-install").prop("disabled", true);
+    $progress.show();
+    $result.empty();
+
+    // Update status messages
+    var statusMessages = [
+      "Downloading current version from GitHub...",
+      "Extracting files...",
+      "Re-installing plugin...",
+      "Cleaning up..."
+    ];
+    var messageIndex = 0;
+    $status.text(statusMessages[messageIndex]);
+
+    var statusInterval = setInterval(function () {
+      if (messageIndex < statusMessages.length - 1) {
+        messageIndex++;
+        $status.text(statusMessages[messageIndex]);
+      }
+    }, 2000);
+
+    // Make AJAX request to re-install current version
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: "POST",
+      data: {
+        action: "cuft_install_update",
+        nonce: cuftAdmin.nonce,
+        version: currentVersion,
+        reinstall_current: true,
+      },
+      dataType: "json",
+      timeout: 60000, // 60 second timeout for installation
+      success: function (response) {
+        clearInterval(statusInterval);
+
+        if (response.success && response.data) {
+          $progress.hide();
+          $result.html(
+            '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">' +
+              '<strong>✅ ' + response.data.message + '</strong>' +
+              '<br><small>Re-installation completed successfully! Page will reload in 3 seconds...</small>' +
+              '</div>'
+          );
+
+          // Reload the page after 3 seconds
+          setTimeout(function () {
+            window.location.reload();
+          }, 3000);
+        } else {
+          $progress.hide();
+          var errorMessage = (response.data && response.data.message) ? response.data.message :
+                            (response.message ? response.message : "Re-installation failed");
+          var details = (response.data && response.data.details) ? response.data.details :
+                       (response.details ? response.details : null);
+          $result.html(
+            '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
+              '<strong>❌ ' + errorMessage + '</strong>' +
+              (details && details.length ?
+                '<br><small>' + details.join('<br>') + '</small>' : '') +
+              '</div>'
+          );
+
+          // Re-enable buttons
+          $button.prop("disabled", false);
+          $("#cuft-ajax-update-check").prop("disabled", false);
+          $("#cuft-download-install").prop("disabled", false);
+        }
+      },
+      error: function (xhr, status, error) {
+        clearInterval(statusInterval);
+        $progress.hide();
+
+        var errorMsg = "Re-installation failed";
+        if (status === "timeout") {
+          errorMsg = "Re-installation timed out - please try again";
+        } else if (xhr.responseText) {
+          try {
+            var response = JSON.parse(xhr.responseText);
+            errorMsg = response.message || errorMsg;
+          } catch (e) {
+            errorMsg = "Re-installation failed: " + error;
+          }
+        }
+
+        $result.html(
+          '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
+            '<strong>❌ ' + errorMsg + '</strong>' +
+            '</div>'
+        );
+
+        // Re-enable buttons
+        $button.prop("disabled", false);
+        $("#cuft-ajax-update-check").prop("disabled", false);
+        $("#cuft-download-install").prop("disabled", false);
+      },
+    });
+  });
+
   // Handle test form submissions
   $(document).on("click", ".cuft-test-form-submit", function (e) {
     e.preventDefault();

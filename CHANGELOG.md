@@ -5,6 +5,24 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.14] - 2025-09-23
+
+### Fixed
+
+- **Critical Auto-Update Fix**: Resolved fatal PHP error preventing plugin updates
+  - Removed dangerous `eval()` usage from admin update handler
+  - Fixed `WP_Upgrader_Skin` class loading issue that caused "Class not found" errors
+  - Created separate upgrader skin class file for proper initialization
+  - Added proper safety checks before attempting updates
+  - Plugin auto-updates now work correctly without fatal errors
+
+### Security
+
+- **Eliminated eval() Usage**: Replaced `eval()` with safer class loading mechanism
+  - Removed security vulnerability from dynamic class creation
+  - Implemented proper class file inclusion pattern
+  - Added comprehensive error handling for update process
+
 ## [3.8.13] - 2025-09-23
 
 ### Fixed
