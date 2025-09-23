@@ -20,6 +20,9 @@ class CUFT_Elementor_Forms {
         
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         add_action( 'elementor_pro/forms/new_record', array( $this, 'track_submission' ), 10, 2 );
+
+        // Add response filter to inject tracking data into Elementor's response
+        add_filter( 'elementor_pro/forms/ajax_response_data', array( $this, 'add_tracking_to_response' ), 10, 2 );
     }
     
     /**
@@ -77,28 +80,62 @@ class CUFT_Elementor_Forms {
     }
     
     /**
-     * Extract form data from record
+     * Extract form data from record using native Elementor methods
      */
     private function extract_form_data( $record ) {
+        // Get form settings using Elementor's native methods
+        $form_settings = $record->get_form_settings();
         $fields = $record->get( 'fields' );
-        $form_id = $record->get( 'form_settings' )['id'] ?? '';
-        
+
+        // Extract comprehensive form metadata
         $data = array(
-            'form_id' => $form_id,
-            'form_name' => $record->get( 'form_settings' )['form_name'] ?? '',
+            'form_id' => $form_settings['id'] ?? '',
+            'form_name' => $form_settings['form_name'] ?? '',
+            'custom_id' => $form_settings['custom_id'] ?? '',
+            'widget_id' => $record->get( 'meta' )['widget_id'] ?? '',
             'user_email' => '',
-            'user_phone' => ''
+            'user_phone' => '',
+            'field_data' => array() // Store all field data for frontend use
         );
-        
-        // Extract email and phone from fields
-        foreach ( $fields as $field ) {
-            if ( 'email' === $field['type'] ) {
-                $data['user_email'] = sanitize_email( $field['value'] );
-            } elseif ( 'tel' === $field['type'] ) {
-                $data['user_phone'] = preg_replace( '/[^0-9+]/', '', $field['value'] );
+
+        // Enhanced field extraction with better type detection
+        foreach ( $fields as $field_id => $field ) {
+            $field_type = $field['type'] ?? '';
+            $field_value = $field['value'] ?? '';
+
+            // Store field data for potential frontend access
+            $data['field_data'][$field_id] = array(
+                'type' => $field_type,
+                'value' => $field_value,
+                'raw_value' => $field['raw_value'] ?? $field_value
+            );
+
+            // Extract email fields
+            if ( 'email' === $field_type ) {
+                $data['user_email'] = sanitize_email( $field_value );
+            }
+            // Extract phone fields - multiple types
+            elseif ( in_array( $field_type, array( 'tel', 'phone', 'number' ), true ) ) {
+                $data['user_phone'] = preg_replace( '/[^0-9+\-\(\)\s]/', '', $field_value );
+            }
+            // Also check for email-like values in text fields
+            elseif ( 'text' === $field_type && is_email( $field_value ) ) {
+                $data['user_email'] = sanitize_email( $field_value );
+            }
+            // Check for phone-like values in text fields
+            elseif ( 'text' === $field_type && preg_match( '/[\d\+\-\(\)\s]{7,}/', $field_value ) ) {
+                // Only set if we don't already have a phone number
+                if ( empty( $data['user_phone'] ) ) {
+                    $data['user_phone'] = preg_replace( '/[^0-9+\-\(\)\s]/', '', $field_value );
+                }
             }
         }
-        
+
+        // Clean up phone number
+        if ( ! empty( $data['user_phone'] ) ) {
+            $data['user_phone'] = trim( $data['user_phone'] );
+        }
+
         return $data;
     }
     
@@ -185,7 +222,37 @@ class CUFT_Elementor_Forms {
             'console_logging' => CUFT_Console_Logger::get_console_logging_setting(),
             'generate_lead_enabled' => get_option( 'cuft_generate_lead_enabled', false ),
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'cuft_elementor_tracking' )
+            'nonce' => wp_create_nonce( 'cuft_elementor_tracking' ),
+            'use_native_methods' => true, // Flag to indicate improved methods
+            'field_selectors' => array(
+                'email' => 'input[type="email"], input[name*="email"], input[id*="email"]',
+                'phone' => 'input[type="tel"], input[name*="phone"], input[name*="tel"], input[id*="phone"], input[id*="tel"]'
+            )
         ) );
+    }
+
+    /**
+     * Add tracking data to Elementor's AJAX response
+     */
+    public function add_tracking_to_response( $response_data, $record ) {
+        // Only add tracking data if GTM is configured
+        if ( ! get_option( 'cuft_gtm_id' ) ) {
+            return $response_data;
+        }
+
+        $form_data = $this->extract_form_data( $record );
+
+        // Add tracking data to response for frontend JavaScript access
+        $response_data['cuft_tracking'] = array(
+            'form_id' => $form_data['form_id'],
+            'form_name' => $form_data['form_name'],
+            'widget_id' => $form_data['widget_id'],
+            'user_email' => $form_data['user_email'],
+            'user_phone' => $form_data['user_phone'],
+            'timestamp' => gmdate( 'c' ),
+            'source' => 'elementor_pro_native'
+        );
+
+        return $response_data;
     }
 }

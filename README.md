@@ -108,6 +108,8 @@ The plugin automatically detects and supports:
 1. Navigate to **Settings > Universal Form Tracker**
 2. Enable "Server-Side GTM" checkbox
 3. Enter your server GTM URL (e.g., `https://gtm.yourdomain.com`)
+   - For local development: `.localnet` domains are supported (e.g., `https://tagging-server.localnet`)
+   - SSL verification is automatically disabled for `.localnet` domains to support self-signed certificates
 4. Click "Test Connection" to validate endpoints
 5. Save settings once validation succeeds
 

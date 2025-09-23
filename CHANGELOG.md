@@ -5,6 +5,16 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.15] - 2025-09-23
+
+### Fixed
+
+- **Plugin Reinstall Fix**: Fixed "Re-install Current Version" functionality that was incorrectly showing "up-to-date" error
+  - Implemented proper reinstall logic using WordPress `install()` method with overwrite for same-version reinstalls
+  - Added automatic plugin reactivation after successful reinstalls
+  - Regular version updates continue using the standard `upgrade()` method
+  - Reinstall feature now works correctly for testing updater mechanisms
+
 ## [3.8.14] - 2025-09-23
 
 ### Fixed

@@ -154,7 +154,8 @@ class CUFT_Admin {
                             </div>
                             <p class="description">
                                 Enter your server-side GTM URL (without trailing slash). This will replace googletagmanager.com in script sources.<br>
-                                Example: <code>https://gtm.yourdomain.com</code> or <code>https://yourdomain.com/gtm</code>
+                                Example: <code>https://gtm.yourdomain.com</code> or <code>https://yourdomain.com/gtm</code><br>
+                                <strong>Local Development:</strong> <code>.localnet</code> domains are supported with automatic SSL verification bypass (e.g., <code>https://tagging-server.localnet</code>)
                             </p>
                         </td>
                     </tr>
@@ -400,7 +401,27 @@ class CUFT_Admin {
             return false;
         }
 
+        // Additional validation for localnet domains
+        if ( $this->is_localnet_url( $sgtm_url ) ) {
+            // For localnet URLs, ensure they follow the expected pattern
+            if ( ! preg_match( '/^https:\/\/[a-zA-Z0-9\-\.]+\.localnet(\/.*)?$/', $sgtm_url ) ) {
+                return false;
+            }
+        }
+
         return true;
+    }
+
+    /**
+     * Check if URL is a localnet domain
+     */
+    private function is_localnet_url( $url ) {
+        $parsed = parse_url( $url );
+        if ( ! $parsed || ! isset( $parsed['host'] ) ) {
+            return false;
+        }
+
+        return strpos( $parsed['host'], '.localnet' ) !== false;
     }
     
     /**
@@ -814,18 +835,35 @@ class CUFT_Admin {
             $skin = new CUFT_Ajax_Upgrader_Skin();
             $upgrader = new Plugin_Upgrader( $skin );
 
-            // Perform the upgrade
-            $result = $upgrader->upgrade( CUFT_BASENAME, array(
-                'package' => $download_url,
-                'destination' => WP_PLUGIN_DIR,
-                'clear_destination' => true,
-                'clear_working' => true,
-                'hook_extra' => array(
-                    'plugin' => CUFT_BASENAME,
-                    'type' => 'plugin',
-                    'action' => 'update'
-                )
-            ) );
+            // Perform the upgrade or reinstall
+            if ( $is_reinstall ) {
+                // For reinstalls, use install() method with overwrite to bypass WordPress version checks
+                $result = $upgrader->install( $download_url, array(
+                    'overwrite_package' => true,
+                    'clear_update_cache' => true,
+                    'destination' => WP_PLUGIN_DIR,
+                    'clear_destination' => true,
+                    'clear_working' => true,
+                    'hook_extra' => array(
+                        'plugin' => CUFT_BASENAME,
+                        'type' => 'plugin',
+                        'action' => 'install'
+                    )
+                ) );
+            } else {
+                // For actual updates, keep using upgrade()
+                $result = $upgrader->upgrade( CUFT_BASENAME, array(
+                    'package' => $download_url,
+                    'destination' => WP_PLUGIN_DIR,
+                    'clear_destination' => true,
+                    'clear_working' => true,
+                    'hook_extra' => array(
+                        'plugin' => CUFT_BASENAME,
+                        'type' => 'plugin',
+                        'action' => 'update'
+                    )
+                ) );
+            }
 
             if ( is_wp_error( $result ) ) {
                 wp_send_json_error( array(
@@ -841,6 +879,18 @@ class CUFT_Admin {
                 // Clear update transients
                 delete_site_transient( 'update_plugins' );
                 delete_transient( 'cuft_github_version' );
+
+                // For reinstalls using install() method, ensure plugin is reactivated
+                if ( $is_reinstall && ! is_plugin_active( CUFT_BASENAME ) ) {
+                    $activation_result = activate_plugin( CUFT_BASENAME );
+                    if ( is_wp_error( $activation_result ) ) {
+                        wp_send_json_error( array(
+                            'message' => 'Reinstall completed but plugin reactivation failed: ' . $activation_result->get_error_message(),
+                            'details' => $skin->messages
+                        ) );
+                        return;
+                    }
+                }
 
                 $success_message = $is_reinstall
                     ? "Successfully re-installed version {$latest_version} - updater mechanism is working correctly!"
@@ -917,11 +967,19 @@ class CUFT_Admin {
             'details' => array()
         );
 
+        // Determine SSL verification setting based on whether this is a localnet URL
+        $is_localnet = $this->is_localnet_url( $sgtm_url );
+        $ssl_verify = ! $is_localnet; // Disable SSL verification for localnet URLs
+
+        if ( $is_localnet ) {
+            $results['details']['ssl_note'] = 'ℹ️ SSL verification disabled for .localnet domain';
+        }
+
         // Test gtm.js endpoint
         $gtm_js_url = $sgtm_url . '/gtm.js?id=' . $gtm_id;
         $gtm_js_response = wp_remote_get( $gtm_js_url, array(
             'timeout' => 10,
-            'sslverify' => true
+            'sslverify' => $ssl_verify
         ) );
 
         if ( is_wp_error( $gtm_js_response ) ) {
@@ -952,7 +1010,7 @@ class CUFT_Admin {
         $ns_html_url = $sgtm_url . '/ns.html?id=' . $gtm_id;
         $ns_html_response = wp_remote_get( $ns_html_url, array(
             'timeout' => 10,
-            'sslverify' => true
+            'sslverify' => $ssl_verify
         ) );
 
         if ( is_wp_error( $ns_html_response ) ) {

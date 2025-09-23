@@ -33,11 +33,95 @@
     }
   }
 
+  function fixInvalidPatterns() {
+    try {
+      var inputs = document.querySelectorAll("input[pattern]");
+      var fixedCount = 0;
+
+      for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var pattern = input.getAttribute("pattern");
+
+        if (!pattern) continue;
+
+        // Check for the specific problematic pattern or similar issues
+        // The pattern [0-9()#&+*-=.] has a hyphen in the middle which creates an invalid range
+        // We need to either escape it or move it to the beginning/end of the character class
+
+        // Fix patterns with hyphen in problematic positions
+        var needsFix = false;
+        var fixedPattern = pattern;
+
+        // Look for character classes with hyphens that aren't at the beginning or end
+        // and aren't properly escaped
+        if (pattern.indexOf("[") !== -1) {
+          // Handle the specific known problematic pattern first
+          if (pattern === "[0-9()#&+*-=.]+") {
+            fixedPattern = "[0-9()#&+*=.-]+";  // Move hyphen to end
+            needsFix = true;
+          }
+          // Check for other patterns that have hyphens creating invalid ranges
+          else if (pattern.indexOf("-") > -1 && pattern.indexOf("[") > -1) {
+            // Simple approach: if we have a pattern with [characters-characters] where
+            // the hyphen creates an invalid range, move it to the end
+            var charClassMatch = pattern.match(/\[([^\]]+)\]/);
+            if (charClassMatch) {
+              var charClass = charClassMatch[1];
+              var hyphenIndex = charClass.indexOf("-");
+
+              // If hyphen is not at beginning or end, and creates an invalid range
+              if (hyphenIndex > 0 && hyphenIndex < charClass.length - 1) {
+                var beforeHyphen = charClass.charAt(hyphenIndex - 1);
+                var afterHyphen = charClass.charAt(hyphenIndex + 1);
+
+                // Check if this would be an invalid range (e.g., *-=)
+                if (beforeHyphen && afterHyphen &&
+                    !(beforeHyphen === "0" && afterHyphen === "9") &&
+                    !(beforeHyphen === "a" && afterHyphen === "z") &&
+                    !(beforeHyphen === "A" && afterHyphen === "Z") &&
+                    beforeHyphen.charCodeAt(0) >= afterHyphen.charCodeAt(0)) {
+                  // Move hyphen to end
+                  var newCharClass = charClass.replace("-", "") + "-";
+                  fixedPattern = pattern.replace(charClassMatch[0], "[" + newCharClass + "]");
+                  needsFix = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (needsFix) {
+          input.setAttribute("pattern", fixedPattern);
+          fixedCount++;
+          log("Fixed invalid pattern on input:", {
+            name: input.name,
+            oldPattern: pattern,
+            newPattern: fixedPattern
+          });
+        }
+      }
+
+      if (fixedCount > 0) {
+        log("Fixed " + fixedCount + " invalid pattern(s) in form inputs");
+      }
+    } catch (e) {
+      log("Error fixing patterns:", e);
+    }
+  }
+
   function getFieldValue(form, type) {
-    var inputs = form.querySelectorAll("input");
+    var inputs = form.querySelectorAll("input, textarea");
     var field = null;
 
     log("Searching for " + type + " field in form with " + inputs.length + " inputs");
+
+    // Also check textareas for email patterns
+    if (type === "email") {
+      var textareas = form.querySelectorAll("textarea");
+      if (textareas.length > 0) {
+        log("Also checking " + textareas.length + " textarea elements");
+      }
+    }
 
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
@@ -57,6 +141,11 @@
       // Check for Elementor-specific field attributes
       var fieldType = (input.getAttribute("data-field-type") || "").toLowerCase();
       var originalName = (input.getAttribute("data-original-name") || "").toLowerCase();
+      var elementorFieldType = (input.getAttribute("data-field") || "").toLowerCase();
+
+      // Also check for Elementor's standard naming pattern: form_fields[fieldname]
+      var fieldNameMatch = name.match(/form_fields\[([^\]]+)\]/);
+      var extractedFieldName = fieldNameMatch ? fieldNameMatch[1].toLowerCase() : "";
 
       // Get the label text if available
       var labelElement = form.querySelector('label[for="' + input.id + '"]');
@@ -73,8 +162,12 @@
         id: id,
         fieldType: fieldType,
         originalName: originalName,
+        elementorFieldType: elementorFieldType,
+        extractedFieldName: extractedFieldName,
         placeholder: placeholder,
-        labelText: labelText || parentLabelText
+        labelText: labelText || parentLabelText,
+        value: input.value,
+        tagName: input.tagName
       });
 
       if (type === "email") {
@@ -83,6 +176,8 @@
           inputMode === "email" ||
           dataValidation === "email" ||
           fieldType === "email" ||
+          elementorFieldType === "email" ||
+          extractedFieldName === "email" ||
           name.indexOf("email") > -1 ||
           name.indexOf("e-mail") > -1 ||
           name === "form_fields[email]" ||
@@ -124,6 +219,10 @@
           dataValidation === "number" ||
           fieldType === "tel" ||
           fieldType === "phone" ||
+          elementorFieldType === "tel" ||
+          elementorFieldType === "phone" ||
+          extractedFieldName === "phone" ||
+          extractedFieldName === "tel" ||
           name.indexOf("phone") > -1 ||
           name.indexOf("tel") > -1 ||
           name.indexOf("mobile") > -1 ||
@@ -274,9 +373,37 @@
   }
 
   function pushToDataLayer(form, email, phone) {
+    // Try multiple methods to get form ID and name
+    var formIdInput = form.querySelector("input[name='form_id']");
+    var formNameInput = form.querySelector("input[name='form_name']");
+    var elementorWidget = form.closest(".elementor-widget");
+
     var formId =
-      form.getAttribute("data-form-id") || form.getAttribute("id") || null;
-    var formName = form.getAttribute("data-form-name") || null;
+      form.getAttribute("data-form-id") ||
+      form.getAttribute("id") ||
+      form.getAttribute("data-elementor-form-id") ||
+      (formIdInput ? formIdInput.value : null) ||
+      (formNameInput ? formNameInput.value : null) ||
+      null;
+
+    var formName =
+      form.getAttribute("data-form-name") ||
+      form.getAttribute("name") ||
+      form.getAttribute("aria-label") ||
+      (formNameInput ? formNameInput.value : null) ||
+      (elementorWidget ? elementorWidget.getAttribute("data-widget_type") : null) ||
+      null;
+
+    // Log debugging info about form identification
+    log("Form identification debug:", {
+      formElement: form,
+      formId: formId,
+      formName: formName,
+      dataFormId: form.getAttribute("data-form-id"),
+      id: form.getAttribute("id"),
+      name: form.getAttribute("name"),
+      ariaLabel: form.getAttribute("aria-label")
+    });
 
     var payload = {
       event: "form_submit",
@@ -322,6 +449,22 @@
         return;
       }
 
+      // Check if this form has already been tracked to prevent duplicates
+      var trackingId = targetForm.getAttribute("data-cuft-tracking-id");
+      if (trackingId) {
+        var now = Date.now();
+        var trackingTime = parseInt(trackingId, 10);
+
+        // If tracked within the last 5 seconds, skip to prevent duplicate
+        if (now - trackingTime < 5000) {
+          log("Form already tracked recently, skipping duplicate");
+          return;
+        }
+      }
+
+      // Mark form as tracked with timestamp
+      targetForm.setAttribute("data-cuft-tracking-id", Date.now().toString());
+
       // Try to get stored values first (captured at submit time)
       var email = targetForm.getAttribute("data-cuft-email") || "";
       var phone = targetForm.getAttribute("data-cuft-phone") || "";
@@ -337,7 +480,7 @@
 
       pushToDataLayer(targetForm, email, phone);
 
-      // Clean up stored attributes
+      // Clean up stored attributes but keep tracking ID
       targetForm.removeAttribute("data-cuft-email");
       targetForm.removeAttribute("data-cuft-phone");
     } catch (e) {
@@ -376,73 +519,262 @@
   }
 
   /**
-   * Setup event listeners with multiple fallback methods
+   * Setup simplified event listeners focusing on native Elementor methods
    */
   function setupEventListeners() {
     var listenersSetup = [];
 
-    // Always listen for form submissions to mark forms for tracking
-    document.addEventListener("submit", handleFormSubmit, true);
-    listenersSetup.push("form submit listener (native)");
-
-    // Method 1: Native JavaScript CustomEvent listener (Elementor 3.5+)
+    // Primary: Native JavaScript CustomEvent listener (Elementor 3.5+)
     try {
       document.addEventListener("submit_success", function (event) {
-        log("Native JS submit_success event detected", event.detail);
-        handleSuccessEvent(event, event.detail);
+        log("Native submit_success event detected", event.detail);
+        handleNativeSuccessEvent(event, event.detail);
       });
       listenersSetup.push("submit_success listener (native)");
     } catch (e) {
       log("Could not add native submit_success listener:", e);
     }
 
-    // Method 2: jQuery event listeners (for older Elementor versions)
+    // Fallback: jQuery event listeners (for older Elementor versions)
     if (window.jQuery) {
       try {
-        // Standard submit_success event
-        window.jQuery(document).on(
-          "submit_success",
-          function (event, response) {
-            log("jQuery submit_success event detected", response);
-            handleSuccessEvent(event, response);
-          }
-        );
+        window.jQuery(document).on("submit_success", function (event, response) {
+          log("jQuery submit_success event detected", response);
+          handleJQuerySuccessEvent(event, response);
+        });
         listenersSetup.push("submit_success listener (jQuery)");
-
-        // Popup hide events
-        window
-          .jQuery(document)
-          .on("elementor/popup/hide", function (event) {
-            log("Elementor popup hide event detected");
-            handleElementorSuccess(event);
-          });
-        listenersSetup.push("popup hide listener (jQuery)");
       } catch (e) {
         log("jQuery listener setup error:", e);
       }
     }
 
-    // Method 3: MutationObserver for success messages (ultimate fallback)
-    try {
-      setupMutationObserver();
-      listenersSetup.push("MutationObserver for success messages");
-    } catch (e) {
-      log("Could not setup MutationObserver:", e);
+    // Minimal fallback for edge cases only
+    if (window.cuftElementor && !window.cuftElementor.use_native_methods) {
+      try {
+        setupLegacyFallbacks();
+        listenersSetup.push("legacy fallback methods");
+      } catch (e) {
+        log("Could not setup legacy fallbacks:", e);
+      }
     }
 
-    // Method 4: Ajax interceptor for form submissions
-    try {
-      setupAjaxInterceptor();
-      listenersSetup.push("Ajax interceptor");
-    } catch (e) {
-      log("Could not setup Ajax interceptor:", e);
-    }
-
-    log("Event listeners setup complete:", listenersSetup);
+    log("Simplified event listeners setup complete:", listenersSetup);
   }
 
   /**
-   * Handle success event from any source
+   * Handle native submit_success event (Elementor 3.5+)
+   */
+  function handleNativeSuccessEvent(event, detail) {
+    try {
+      var form = findFormFromEvent(event);
+      if (!form) {
+        log("Could not find form for native success event");
+        return;
+      }
+
+      // Check for tracking data in response
+      var trackingData = detail && detail.cuft_tracking ? detail.cuft_tracking : null;
+
+      if (trackingData) {
+        log("Using server-provided tracking data:", trackingData);
+        pushToDataLayerWithData(form, trackingData);
+      } else {
+        log("No server tracking data, using client-side detection");
+        handleClientSideTracking(form);
+      }
+    } catch (e) {
+      log("Native success handler error:", e);
+    }
+  }
+
+  /**
+   * Handle jQuery submit_success event (legacy support)
+   */
+  function handleJQuerySuccessEvent(event, response) {
+    try {
+      var form = findFormFromEvent(event);
+      if (!form) {
+        log("Could not find form for jQuery success event");
+        return;
+      }
+
+      // Check for tracking data in response
+      var trackingData = response && response.cuft_tracking ? response.cuft_tracking : null;
+
+      if (trackingData) {
+        log("Using server-provided tracking data:", trackingData);
+        pushToDataLayerWithData(form, trackingData);
+      } else {
+        log("No server tracking data, using client-side detection");
+        handleClientSideTracking(form);
+      }
+    } catch (e) {
+      log("jQuery success handler error:", e);
+    }
+  }
+
+  /**
+   * Find form element from event
+   */
+  function findFormFromEvent(event) {
+    var form = null;
+
+    // Try to get form from event target
+    if (event && event.target) {
+      form = event.target.closest(".elementor-form") ||
+             event.target.querySelector(".elementor-form");
+    }
+
+    // Try to find most recently submitted form
+    if (!form) {
+      var recentForms = document.querySelectorAll('.elementor-form[data-cuft-tracking-id]');
+      if (recentForms.length > 0) {
+        // Get the most recently marked form
+        var mostRecent = null;
+        var latestTime = 0;
+
+        for (var i = 0; i < recentForms.length; i++) {
+          var time = parseInt(recentForms[i].getAttribute('data-cuft-tracking-id'), 10);
+          if (time > latestTime) {
+            latestTime = time;
+            mostRecent = recentForms[i];
+          }
+        }
+        form = mostRecent;
+      }
+    }
+
+    return form;
+  }
+
+  /**
+   * Push to dataLayer using server-provided tracking data
+   */
+  function pushToDataLayerWithData(form, trackingData) {
+    // Prevent duplicate tracking
+    if (isDuplicateTracking(form)) {
+      log("Skipping duplicate tracking for form");
+      return;
+    }
+
+    // Mark form as tracked
+    markFormAsTracked(form);
+
+    var payload = {
+      event: "form_submit",
+      formType: "elementor",
+      formId: trackingData.form_id || null,
+      formName: trackingData.form_name || null,
+      submittedAt: trackingData.timestamp || new Date().toISOString(),
+      cuft_tracked: true,
+      cuft_source: trackingData.source || "elementor_pro_native"
+    };
+
+    // Add GA4 standard parameters
+    var ga4Params = getGA4StandardParams();
+    for (var key in ga4Params) {
+      if (ga4Params[key]) payload[key] = ga4Params[key];
+    }
+
+    // Add user data if available
+    if (trackingData.user_email) payload.user_email = trackingData.user_email;
+    if (trackingData.user_phone) payload.user_phone = trackingData.user_phone;
+
+    // Add UTM data if available
+    if (window.cuftUtmUtils) {
+      payload = window.cuftUtmUtils.addUtmToPayload(payload);
+    }
+
+    try {
+      getDL().push(payload);
+      log("Form submission tracked with server data:", payload);
+
+      // Fire generate_lead event if conditions are met
+      fireGenerateLeadEvent(payload, trackingData.user_email, trackingData.user_phone);
+    } catch (e) {
+      log("DataLayer push error:", e);
+    }
+  }
+
+  /**
+   * Handle client-side tracking when no server data available
+   */
+  function handleClientSideTracking(form) {
+    // Prevent duplicate tracking
+    if (isDuplicateTracking(form)) {
+      log("Skipping duplicate client-side tracking for form");
+      return;
+    }
+
+    // Mark form as tracked
+    markFormAsTracked(form);
+
+    // Get field values using improved detection
+    var email = getFieldValueImproved(form, "email");
+    var phone = getFieldValueImproved(form, "phone");
+
+    log("Client-side tracking with values:", {
+      email: email || "not found",
+      phone: phone || "not found"
+    });
+
+    pushToDataLayer(form, email, phone);
+  }
+
+  /**
+   * Check if form was recently tracked to prevent duplicates
+   */
+  function isDuplicateTracking(form) {
+    var trackingId = form.getAttribute("data-cuft-tracking-id");
+    if (trackingId) {
+      var now = Date.now();
+      var trackingTime = parseInt(trackingId, 10);
+
+      // If tracked within the last 5 seconds, skip to prevent duplicate
+      if (now - trackingTime < 5000) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Mark form as tracked with timestamp
+   */
+  function markFormAsTracked(form) {
+    form.setAttribute("data-cuft-tracking-id", Date.now().toString());
+  }
+
+  /**
+   * Improved field value detection using native selectors
+   */
+  function getFieldValueImproved(form, type) {
+    var selectors = window.cuftElementor && window.cuftElementor.field_selectors ?
+                   window.cuftElementor.field_selectors[type] : null;
+
+    if (selectors) {
+      var field = form.querySelector(selectors);
+      if (field && field.value) {
+        log("Found " + type + " field using native selector:", field);
+        return field.value.trim();
+      }
+    }
+
+    // Fallback to original method
+    return getFieldValue(form, type);
+  }
+
+  /**
+   * Setup legacy fallback methods (only when needed)
+   */
+  function setupLegacyFallbacks() {
+    // Keep minimal fallbacks for edge cases
+    setupMutationObserver();
+    log("Legacy fallback methods enabled");
+  }
+
+  /**
+   * Handle success event from any source (legacy)
    */
   function handleSuccessEvent(event, response) {
     try {
@@ -520,6 +852,16 @@
           mutation.addedNodes.forEach(function (node) {
             if (node.nodeType === 1) {
               // Element node
+
+              // Check if new forms were added - fix patterns if so
+              if (node.classList && node.classList.contains("elementor-form")) {
+                log("New Elementor form detected, fixing patterns");
+                fixInvalidPatterns();
+              } else if (node.querySelector && node.querySelector(".elementor-form")) {
+                log("Container with Elementor form detected, fixing patterns");
+                fixInvalidPatterns();
+              }
+
               // Check for Elementor success message classes
               if (
                 node.classList &&
@@ -656,19 +998,52 @@
   }
 
   ready(function () {
+    // Fix any invalid regex patterns before setting up event listeners
+    fixInvalidPatterns();
+
+    // Setup the new simplified event listeners
     setupEventListeners();
-    // Additional jQuery Ajax monitoring if jQuery is available
+
+    // Legacy jQuery Ajax monitoring (only if native methods disabled)
+    if (!window.cuftElementor || !window.cuftElementor.use_native_methods) {
+      setupLegacyAjaxMonitoring();
+    }
+
+    log("Elementor forms tracking initialized with native methods");
+  });
+
+  /**
+   * Setup legacy Ajax monitoring for backward compatibility
+   */
+  function setupLegacyAjaxMonitoring() {
     if (window.jQuery && window.jQuery.ajaxSetup) {
       try {
         window.jQuery(document).ajaxComplete(function (event, xhr, settings) {
           try {
             // Check if this is an Elementor form submission
+            var dataStr = "";
+            if (settings && settings.data) {
+              if (typeof settings.data === "string") {
+                dataStr = settings.data;
+              } else if (settings.data instanceof FormData) {
+                // Can't easily convert FormData to string, so skip this check
+                return;
+              } else if (typeof settings.data === "object") {
+                // Try to serialize object to string for checking
+                try {
+                  dataStr = JSON.stringify(settings.data) || "";
+                } catch (e) {
+                  dataStr = "";
+                }
+              }
+            }
+
             if (
               settings &&
               settings.url &&
               settings.url.indexOf("admin-ajax.php") > -1 &&
-              settings.data &&
-              settings.data.indexOf("action=elementor_pro_forms_send_form") > -1
+              dataStr &&
+              dataStr.indexOf("action=elementor_pro_forms_send_form") > -1
             ) {
               // Parse response
               var response = xhr.responseJSON || {};
@@ -686,7 +1061,5 @@
         log("Could not setup jQuery.ajaxComplete:", e);
       }
     }
-
-    log("Elementor forms tracking initialized");
-  });
+  }
 })();
