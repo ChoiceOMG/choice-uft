@@ -5,6 +5,23 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.5] - 2025-01-23
+
+### Fixed
+
+- **Critical Download Issue**: Fixed plugin update download failures
+  - Simplified download process to use WordPress's built-in download_url function
+  - Added proper redirect handling for GitHub release assets
+  - Improved error handling and logging during download
+  - Fixed issue where downloads would fail silently
+
+### Improved
+
+- **Update Process Reliability**: Enhanced download mechanism
+  - Better fallback handling for network issues
+  - More detailed error messages for troubleshooting
+  - Proper temporary file management
+
 ## [3.8.4] - 2025-01-23
 
 ### Fixed

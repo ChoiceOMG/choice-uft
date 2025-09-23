@@ -130,45 +130,58 @@ class CUFT_GitHub_Updater {
      * Download the plugin package
      */
     public function download_package( $reply, $package, $upgrader ) {
-        if ( strpos( $package, 'github.com/' . $this->github_username . '/' . $this->github_repo ) !== false ) {
+        // Check if this is our package
+        if ( strpos( $package, 'github.com/' . $this->github_username . '/' . $this->github_repo ) === false ) {
+            return $reply;
+        }
+
+        // Use WordPress's built-in download_url function which handles redirects properly
+        $temp_file = download_url( $package, 300 );
+
+        if ( is_wp_error( $temp_file ) ) {
+            // Log the error for debugging
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'Download failed: ' . $temp_file->get_error_message(), 'error' );
+            }
+
+            // Try alternative download method with proper redirect handling
             $args = array(
-                'timeout' => 300
+                'timeout' => 300,
+                'redirection' => 5,
+                'sslverify' => true
             );
-            
-            $download = wp_remote_get( $package, $args );
-            
-            if ( is_wp_error( $download ) ) {
-                return $download;
+
+            $response = wp_remote_get( $package, $args );
+
+            if ( is_wp_error( $response ) ) {
+                return new WP_Error( 'download_failed', 'Failed to download package: ' . $response->get_error_message() );
             }
-            
-            // Check if wp_remote_response_code exists (WordPress 2.7+)
-            if ( ! function_exists( 'wp_remote_response_code' ) ) {
-                // Fallback for older WordPress versions
-                $code = isset( $download['response']['code'] ) ? $download['response']['code'] : 200;
-            } else {
-                $code = wp_remote_response_code( $download );
-            }
+
+            $code = wp_remote_retrieve_response_code( $response );
             if ( $code !== 200 ) {
                 return new WP_Error( 'download_failed', 'Download failed with HTTP code: ' . $code );
             }
-            
-            $body = wp_remote_retrieve_body( $download );
-            $temp_file = download_url( $package );
-            
-            if ( is_wp_error( $temp_file ) ) {
-                // Try manual download
-                $temp_file = wp_tempnam( $package );
-                if ( ! $temp_file ) {
-                    return new WP_Error( 'temp_file_failed', 'Could not create temporary file.' );
-                }
-                
-                file_put_contents( $temp_file, $body );
+
+            $body = wp_remote_retrieve_body( $response );
+            if ( empty( $body ) ) {
+                return new WP_Error( 'download_failed', 'Downloaded file is empty' );
             }
-            
-            return $temp_file;
+
+            // Create temporary file
+            $temp_file = wp_tempnam( 'cuft_update' );
+            if ( ! $temp_file ) {
+                return new WP_Error( 'temp_file_failed', 'Could not create temporary file' );
+            }
+
+            // Write downloaded content to temp file
+            $result = file_put_contents( $temp_file, $body );
+            if ( false === $result ) {
+                @unlink( $temp_file );
+                return new WP_Error( 'write_failed', 'Failed to write temporary file' );
+            }
         }
-        
-        return $reply;
+
+        return $temp_file;
     }
     
     /**
