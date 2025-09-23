@@ -41,7 +41,7 @@ class CUFT_GitHub_Updater {
         if ( did_action( 'init' ) || doing_action( 'init' ) || did_action( 'plugins_loaded' ) ) {
             add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
             add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
-            add_filter( 'upgrader_pre_download', array( $this, 'download_package' ), 10, 3 );
+            // Removed upgrader_pre_download filter - let WordPress handle the download
             add_action( 'upgrader_process_complete', array( $this, 'purge_cache' ), 10, 2 );
         }
     }
@@ -271,14 +271,18 @@ class CUFT_GitHub_Updater {
      * Get download URL for a specific version
      */
     private function get_download_url( $version ) {
-        // Try to get the release asset URL first
+        // Always use release asset URL, never use archive URL
         $asset_url = $this->get_release_asset_url( $version );
-        if ( $asset_url ) {
-            return $asset_url;
+
+        // If no asset found, return the expected asset URL anyway
+        // This will fail gracefully rather than installing wrong structure
+        if ( ! $asset_url ) {
+            // Return expected asset URL format even if not found
+            // This prevents archive URL from being used which breaks the installation
+            return "https://github.com/{$this->github_username}/{$this->github_repo}/releases/download/v{$version}/choice-uft-v{$version}.zip";
         }
 
-        // Fallback to archive URL if no release asset found
-        return "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/v{$version}.zip";
+        return $asset_url;
     }
 
     /**
