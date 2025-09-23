@@ -5,6 +5,23 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.6] - 2025-01-23
+
+### Fixed
+
+- **Enhanced Update Mechanism**: Improved force update check functionality
+  - Force check now clears all plugin and WordPress update transients
+  - Clears cached asset URLs for all versions
+  - Triggers WordPress update check automatically
+  - Better handles redirect chains for GitHub release assets
+
+### Improved
+
+- **Admin Panel Updates**: Better update management interface
+  - Clearer update status messages
+  - Improved force update button functionality
+  - Better error handling and user feedback
+
 ## [3.8.5] - 2025-01-23
 
 ### Fixed

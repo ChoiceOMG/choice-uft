@@ -198,8 +198,21 @@ class CUFT_GitHub_Updater {
      * Force check for updates (manual trigger)
      */
     public function force_check() {
+        // Clear plugin-specific transients
         delete_transient( 'cuft_github_version' );
         delete_transient( 'cuft_github_changelog' );
+
+        // Clear all asset URL caches (they start with cuft_asset_url_)
+        global $wpdb;
+        $wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE '_transient_cuft_asset_url_%' OR option_name LIKE '_transient_timeout_cuft_asset_url_%'" );
+
+        // Clear WordPress update transients to force fresh check
+        delete_site_transient( 'update_plugins' );
+        wp_clean_plugins_cache();
+
+        // Force WordPress to check for updates
+        wp_update_plugins();
+
         return $this->get_remote_version();
     }
     
