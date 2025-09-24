@@ -5,6 +5,21 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.6] - 2025-09-24
+
+### Fixed
+
+- **Avada Forms**: Fixed duplicate `form_submit` events by standardizing tracking attributes to `data-cuft-tracking`
+- **Parameter Naming**: Standardized all form tracking parameter names from camelCase (`formId`, `formName`) to snake_case (`form_id`, `form_name`)
+- **Documentation**: Updated README.md and ELEMENTOR_TRACKING.md examples to use consistent snake_case naming
+- **Test Files**: Updated all test form files to maintain consistency across frameworks
+
+### Technical
+
+- Replaced mixed `data-cuft-observing` and `data-cuft-ajax-watching` attributes with unified `data-cuft-tracking`
+- Applied snake_case naming convention across all form frameworks: Avada, Elementor, CF7, Ninja Forms, Gravity Forms
+- Ensures consistent parameter naming in dataLayer events for better integration
+
 ## [3.9.5] - 2025-09-24
 
 ### Fixed
