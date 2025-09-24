@@ -171,7 +171,7 @@
             const elementorFormEvent = new CustomEvent('elementor/frontend/form_success', {
                 detail: {
                     form: formElement,
-                    formId: trackingData.form_id,
+                    form_id: trackingData.form_id,
                     success: true
                 },
                 bubbles: true

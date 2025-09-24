@@ -165,7 +165,7 @@
             const ninjaSuccessEvent = new CustomEvent('nf_form_success', {
                 detail: {
                     form: formElement,
-                    formId: parseInt(formId),
+                    form_id: parseInt(formId),
                     response: {
                         success: true,
                         data: {
