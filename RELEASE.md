@@ -63,16 +63,18 @@ This document outlines the complete release process to ensure reliable automatic
 
 2. **Create plugin zip:**
    ```bash
-   cd /home/r11/dev
-   zip -r choice-uft-v3.8.5.zip choice-uft/ \
-     -x "choice-uft/.git/*" \
-     -x "choice-uft/.github/*" \
-     -x "choice-uft/.gitignore" \
-     -x "choice-uft/node_modules/*" \
-     -x "choice-uft/.env" \
-     -x "choice-uft/*.zip" \
-     -x "choice-uft/tests/*" \
-     -x "choice-uft/*.log"
+   # CRITICAL: Always name zip 'choice-uft.zip' (no version number)
+   # This ensures WordPress extracts to /wp-content/plugins/choice-uft/
+   cd choice-uft
+   zip -r ../choice-uft.zip . \
+     -x ".git/*" \
+     -x ".github/*" \
+     -x ".gitignore" \
+     -x "node_modules/*" \
+     -x ".env" \
+     -x "*.zip" \
+     -x "tests/*" \
+     -x "*.log"
    ```
 
 3. **Create GitHub release:**
@@ -84,7 +86,7 @@ This document outlines the complete release process to ensure reliable automatic
 
 4. **Upload plugin zip:**
    ```bash
-   gh release upload v3.8.5 choice-uft-v3.8.5.zip --clobber
+   gh release upload v3.8.5 choice-uft.zip --clobber
    ```
 
 ## Post-Release Verification

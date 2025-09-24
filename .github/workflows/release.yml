@@ -48,9 +48,9 @@ jobs:
 
       - name: Create zip file
         run: |
-          zip -r choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip choice-universal-form-tracker/
-          echo "Created plugin zip: choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip"
-          ls -lh choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip
+          zip -r choice-uft.zip choice-universal-form-tracker/
+          echo "Created plugin zip: choice-uft.zip"
+          ls -lh choice-uft.zip
 
       - name: Generate release notes
         id: release_notes
@@ -76,7 +76,7 @@ jobs:
 If you already have the plugin installed, it should automatically detect this update. Go to **Plugins** in your WordPress admin and click **Update Now**.
 
 ### Manual Installation
-1. Download the `choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip` file from the assets below
+1. Download the `choice-uft.zip` file from the assets below
 2. In WordPress admin, go to **Plugins → Add New → Upload Plugin**
 3. Choose the downloaded zip file and click **Install Now**
 4. Activate the plugin after installation
@@ -109,8 +109,8 @@ EOF
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip
-          asset_name: choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip
+          asset_path: ./choice-uft.zip
+          asset_name: choice-uft.zip
           asset_content_type: application/zip
 
       - name: Summary
@@ -118,6 +118,6 @@ EOF
           echo "✅ Release created successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Asset:** choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip" >> $GITHUB_STEP_SUMMARY
+          echo "**Asset:** choice-uft.zip" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The plugin will be available for automatic updates within a few minutes." >> $GITHUB_STEP_SUMMARY

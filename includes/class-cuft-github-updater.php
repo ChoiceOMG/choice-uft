@@ -278,7 +278,7 @@ class CUFT_GitHub_Updater {
         if ( ! $asset_url ) {
             // Return expected asset URL format even if not found
             // This prevents archive URL from being used which breaks the installation
-            return "https://github.com/{$this->github_username}/{$this->github_repo}/releases/download/v{$version}/choice-uft-v{$version}.zip";
+            return "https://github.com/{$this->github_username}/{$this->github_repo}/releases/download/v{$version}/choice-uft.zip";
         }
 
         return $asset_url;
@@ -333,8 +333,8 @@ class CUFT_GitHub_Updater {
             foreach ( $data['assets'] as $asset ) {
                 // Look for the plugin zip file
                 if ( isset( $asset['name'] ) && isset( $asset['browser_download_url'] ) ) {
-                    // Match files like choice-uft-v3.8.3.zip or choice-uft.zip
-                    if ( preg_match( '/choice-uft.*\.zip$/i', $asset['name'] ) ) {
+                    // Look specifically for choice-uft.zip to ensure correct plugin directory
+                    if ( $asset['name'] === 'choice-uft.zip' ) {
                         $download_url = $asset['browser_download_url'];
                         // Cache for 1 hour
                         set_transient( $cache_key, $download_url, HOUR_IN_SECONDS );
