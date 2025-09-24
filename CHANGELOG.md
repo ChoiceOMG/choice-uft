@@ -5,6 +5,20 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.3] - 2025-09-23
+
+### Fixed
+
+- **Elementor Test Forms**: Fixed "Could not find email or phone inputs" error in Submit Test Form functionality
+- **Field Detection**: Updated legacy test forms field selectors to match framework-specific naming conventions
+- **Test Form Compatibility**: Elementor forms now properly detect `form_fields[email]` and `form_fields[phone]` inputs
+
+### Technical
+
+- Enhanced `cuft-test-forms.js` field detection to use comprehensive selectors
+- Aligned legacy test code with modern framework-specific test implementations
+- Maintained backward compatibility with all form types
+
 ## [3.9.2] - 2025-09-23
 
 ### Fixed

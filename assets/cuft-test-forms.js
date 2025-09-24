@@ -125,8 +125,8 @@
 
       const framework = form.dataset.framework;
       const formId = form.dataset.formId;
-      const emailInput = form.querySelector('[name="email"]');
-      const phoneInput = form.querySelector('[name="phone"]');
+      const emailInput = form.querySelector('input[type="email"], input[name*="email"], input[data-field="email"]');
+      const phoneInput = form.querySelector('input[type="tel"], input[name*="phone"], input[data-field="phone"]');
       const resultDiv = form.querySelector(".test-result");
       const submitButton = form.querySelector(".cuft-submit-btn");
 
