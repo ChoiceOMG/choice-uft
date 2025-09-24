@@ -314,8 +314,8 @@
     var payload = {
       event: "form_submit",
       formType: "avada",
-      formId: form.getAttribute("id") || null,
-      formName:
+      form_id: form.getAttribute("id") || null,
+      form_name:
         form.getAttribute("name") ||
         form.getAttribute("data-form-name") ||
         null,
@@ -448,8 +448,8 @@
 
       log("Avada form submit detected! Starting tracking process...");
 
-      if (form.hasAttribute("data-cuft-observing")) return;
-      form.setAttribute("data-cuft-observing", "true");
+      if (form.hasAttribute("data-cuft-tracking")) return;
+      form.setAttribute("data-cuft-tracking", "true");
 
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
@@ -473,7 +473,7 @@
 
     for (var i = 0; i < fusionForms.length; i++) {
       var form = fusionForms[i];
-      if (form.hasAttribute("data-cuft-ajax-watching")) continue;
+      if (form.hasAttribute("data-cuft-tracking")) continue;
 
       // Check if form has email field (indicates it's a contact/lead form)
       var hasEmailField = findField(form, "email") !== null;
@@ -489,7 +489,7 @@
         continue;
       }
 
-      form.setAttribute("data-cuft-ajax-watching", "true");
+      form.setAttribute("data-cuft-tracking", "true");
       log("Setting up AJAX watcher for form with email field:", form.className);
 
       // Watch for form submissions via click events on submit buttons

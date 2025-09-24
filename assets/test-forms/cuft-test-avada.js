@@ -149,7 +149,7 @@
             const fusionSuccessEvent = new CustomEvent('fusion_form_success', {
                 detail: {
                     form: formElement,
-                    formId: trackingData.form_id,
+                    form_id: trackingData.form_id,
                     success: true,
                     data: {
                         email: trackingData.user_email,
@@ -166,7 +166,7 @@
             if (window.jQuery) {
                 window.jQuery(document).trigger('fusion_form_success', [{
                     form: formElement,
-                    formId: trackingData.form_id,
+                    form_id: trackingData.form_id,
                     success: true
                 }]);
                 common.log('✅ jQuery fusion_form_success event fired');
@@ -176,7 +176,7 @@
             setTimeout(() => {
                 const fusionSubmitEvent = new CustomEvent('fusion_form_submitted', {
                     detail: {
-                        formId: trackingData.form_id,
+                        form_id: trackingData.form_id,
                         response: 'success'
                     },
                     bubbles: true

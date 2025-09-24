@@ -156,7 +156,7 @@
             // Fire page submit event
             const gformSubmitEvent = new CustomEvent('gform_page_loaded', {
                 detail: {
-                    formId: parseInt(formId),
+                    form_id: parseInt(formId),
                     currentPage: 1
                 },
                 bubbles: true

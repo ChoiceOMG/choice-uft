@@ -139,8 +139,8 @@
     var payload = {
       event: "form_submit",
       formType: "contact_form_7",
-      formId: formId,
-      formName: null, // CF7 doesn't typically expose form names in frontend
+      form_id: formId,
+      form_name: null, // CF7 doesn't typically expose form names in frontend
       submittedAt: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "contact_form_7",

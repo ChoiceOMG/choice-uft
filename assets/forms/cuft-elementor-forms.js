@@ -397,8 +397,8 @@
     // Log debugging info about form identification
     log("Form identification debug:", {
       formElement: form,
-      formId: formId,
-      formName: formName,
+      form_id: formId,
+      form_name: formName,
       dataFormId: form.getAttribute("data-form-id"),
       id: form.getAttribute("id"),
       name: form.getAttribute("name"),
@@ -408,8 +408,8 @@
     var payload = {
       event: "form_submit",
       formType: "elementor",
-      formId: formId,
-      formName: formName,
+      form_id: formId,
+      form_name: formName,
       submittedAt: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "elementor_pro",
@@ -663,8 +663,8 @@
     var payload = {
       event: "form_submit",
       formType: "elementor",
-      formId: trackingData.form_id || null,
-      formName: trackingData.form_name || null,
+      form_id: trackingData.form_id || null,
+      form_name: trackingData.form_name || null,
       submittedAt: trackingData.timestamp || new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: trackingData.source || "elementor_pro_native"

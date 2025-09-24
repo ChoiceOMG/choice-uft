@@ -209,8 +209,8 @@ add_filter( 'cuft_debug', '__return_true' );
 {
   event: 'form_submit',
   formType: 'contact_form_7',        // Framework identifier
-  formId: 'contact-form-1',
-  formName: 'Contact Form',
+  form_id: 'contact-form-1',
+  form_name: 'Contact Form',
   user_email: 'user@example.com',
   user_phone: '1234567890',
 
@@ -314,8 +314,8 @@ add_filter( 'cuft_debug', '__return_true' );
 
   // Form Context
   formType: 'contact_form_7',
-  formId: 'contact-form-1',
-  formName: 'Contact Form',
+  form_id: 'contact-form-1',
+  form_name: 'Contact Form',
 
   // UTM Campaign Attribution (required for lead generation)
   utm_source: 'google',

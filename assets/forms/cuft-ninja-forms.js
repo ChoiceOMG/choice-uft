@@ -218,8 +218,8 @@
     var payload = {
       event: "form_submit",
       formType: "ninja_forms",
-      formId: formId,
-      formName: null, // Ninja Forms doesn't typically expose form names in frontend
+      form_id: formId,
+      form_name: null, // Ninja Forms doesn't typically expose form names in frontend
       submittedAt: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "ninja_forms",

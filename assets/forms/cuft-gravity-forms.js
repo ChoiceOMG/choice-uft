@@ -134,8 +134,8 @@
     var payload = {
       event: "form_submit",
       formType: "gravity_forms",
-      formId: formId,
-      formName: null, // GF doesn't typically expose form names in frontend
+      form_id: formId,
+      form_name: null, // GF doesn't typically expose form names in frontend
       submittedAt: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "gravity_forms",

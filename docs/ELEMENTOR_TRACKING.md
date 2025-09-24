@@ -58,8 +58,8 @@ Fired on every successful form submission.
 {
   event: "form_submit",
   formType: "elementor",
-  formId: "contact-form-1",
-  formName: "Contact Form",
+  form_id: "contact-form-1",
+  form_name: "Contact Form",
   submittedAt: "2025-01-22T10:30:00.000Z",
 
   // User Data (if available)
