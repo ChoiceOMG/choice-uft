@@ -290,6 +290,9 @@
                     });
                 }
             });
+
+            // Initialize form data based on current control states
+            this.updateFormBasedOnControls(formElement, framework, controls);
         },
 
         /**

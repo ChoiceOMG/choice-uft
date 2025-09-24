@@ -5,6 +5,22 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.5] - 2025-09-24
+
+### Fixed
+
+- **Generate Lead Event**: Fixed Elementor test forms not firing `generate_lead` event
+- **Testing Controls**: Fixed initialization bug where control states weren't set on form load
+- **Event Logic**: Testing controls now properly initialize with default checked states for required fields
+- **Form Tracking**: Generate lead events now fire correctly when all requirements are met
+
+### Technical
+
+- Fixed `setupTestingControlListeners` to initialize form dataset properties on load
+- Added call to `updateFormBasedOnControls` during control initialization
+- Ensures testing controls reflect proper checked/unchecked state from the start
+- Resolves issue where required fields were incorrectly disabled by undefined dataset values
+
 ## [3.9.4] - 2025-09-23
 
 ### Fixed
