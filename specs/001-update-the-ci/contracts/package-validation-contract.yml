@@ -1,0 +1,177 @@
+# Package Validation Contract
+# Defines the validation interface for WordPress plugin packages
+
+validation_contract:
+  name: "WordPress Plugin Package Validation"
+
+  interface:
+    validate_package:
+      description: "Validates a WordPress plugin package for compliance"
+
+      inputs:
+        package_path:
+          type: "string"
+          required: true
+          description: "Path to the zip file to validate"
+          constraints:
+            - "Must be a valid file path"
+            - "File must exist and be readable"
+            - "Must have .zip extension"
+
+        expected_version:
+          type: "string"
+          required: true
+          description: "Expected version number for validation"
+          pattern: "^\\d+\\.\\d+\\.\\d+$"
+
+      outputs:
+        validation_result:
+          type: "object"
+          structure:
+            is_valid:
+              type: "boolean"
+              description: "Overall validation result"
+
+            structure_check:
+              type: "object"
+              structure:
+                passed: boolean
+                errors: "string[]"
+                root_directory: "string"
+
+            file_check:
+              type: "object"
+              structure:
+                passed: boolean
+                missing_files: "string[]"
+                forbidden_files: "string[]"
+                critical_files_present: boolean
+
+            version_check:
+              type: "object"
+              structure:
+                passed: boolean
+                plugin_header_version: "string"
+                constant_version: "string"
+                versions_match: boolean
+
+            size_check:
+              type: "object"
+              structure:
+                passed: boolean
+                size_bytes: number
+                within_limits: boolean
+
+            integrity_check:
+              type: "object"
+              structure:
+                passed: boolean
+                zip_valid: boolean
+                checksum: "string"
+
+  validation_rules:
+    structure_validation:
+      - name: "root_directory_name"
+        rule: "Root directory must be named 'choice-uft'"
+        error_message: "Package must extract to 'choice-uft' directory"
+
+      - name: "no_nested_zip"
+        rule: "No .zip files inside the package"
+        error_message: "Package contains nested zip files"
+
+      - name: "relative_paths_only"
+        rule: "All paths must be relative to root directory"
+        error_message: "Package contains absolute paths"
+
+    file_validation:
+      critical_files:
+        - "choice-universal-form-tracker.php"
+        - "README.md"
+        - "CHANGELOG.md"
+        - "assets/"
+        - "includes/"
+
+      forbidden_patterns:
+        - ".git/"
+        - ".github/"
+        - "node_modules/"
+        - ".env*"
+        - "*.zip"
+        - ".specify/"
+        - "*.tmp"
+        - "*.log"
+
+      optional_files:
+        - "docs/"
+        - "tests/" # Should be excluded in production
+        - "package.json" # May be present for npm scripts
+
+    version_validation:
+      - name: "plugin_header_version"
+        location: "choice-universal-form-tracker.php"
+        pattern: "Version:\\s*([\\d\\.]+)"
+
+      - name: "constant_version"
+        location: "choice-universal-form-tracker.php"
+        pattern: "define\\s*\\(\\s*['\"]CUFT_VERSION['\"]\\s*,\\s*['\"]([\\d\\.]+)['\"]"
+
+    size_validation:
+      min_size: 1048576  # 1MB
+      max_size: 52428800 # 50MB
+      warning_size: 10485760 # 10MB
+
+  error_categories:
+    CRITICAL:
+      - "Missing critical files"
+      - "Invalid root directory structure"
+      - "Version inconsistencies"
+
+    WARNING:
+      - "Large package size"
+      - "Optional files missing"
+      - "Unusual file permissions"
+
+    INFO:
+      - "Package size within normal range"
+      - "All validations passed"
+      - "Structure is correct"
+
+  test_scenarios:
+    valid_package:
+      description: "Package that passes all validations"
+      expected_result:
+        is_valid: true
+        all_checks_passed: true
+
+    missing_critical_file:
+      description: "Package missing main plugin file"
+      expected_result:
+        is_valid: false
+        file_check.missing_files: ["choice-universal-form-tracker.php"]
+
+    version_mismatch:
+      description: "Header and constant versions differ"
+      expected_result:
+        is_valid: false
+        version_check.versions_match: false
+
+    forbidden_files:
+      description: "Package includes development files"
+      expected_result:
+        is_valid: false
+        file_check.forbidden_files: [".git/", "node_modules/"]
+
+    oversized_package:
+      description: "Package exceeds size limits"
+      expected_result:
+        is_valid: false
+        size_check.within_limits: false
+
+  performance_requirements:
+    validation_time:
+      max_duration: 30 # seconds
+      typical_duration: 10 # seconds
+
+    memory_usage:
+      max_memory: 512 # MB
+      typical_memory: 100 # MB

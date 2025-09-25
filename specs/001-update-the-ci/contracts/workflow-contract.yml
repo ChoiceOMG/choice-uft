@@ -1,0 +1,105 @@
+# GitHub Actions Workflow Contract
+# Defines the expected structure and behavior of the release preparation workflow
+
+workflow_contract:
+  name: "WordPress Release Preparation"
+
+  triggers:
+    - event: "push"
+      condition: "tags matching 'v*'"
+      description: "Triggered when version tags are pushed"
+
+  jobs:
+    prepare-release:
+      runner: "ubuntu-latest"
+      timeout: "10 minutes"
+
+      steps:
+        - name: "checkout"
+          action: "actions/checkout@v4"
+          required: true
+
+        - name: "validate-version"
+          description: "Check version consistency across plugin files"
+          inputs:
+            - tag_version: "${{ github.ref_name }}"
+          outputs:
+            - version_valid: boolean
+            - version_number: string
+          failure_conditions:
+            - "Version mismatch between files"
+            - "Invalid semantic version format"
+
+        - name: "create-package"
+          description: "Create WordPress-compatible zip package"
+          depends_on: "validate-version"
+          inputs:
+            - version_number: "${{ steps.validate-version.outputs.version_number }}"
+          outputs:
+            - package_path: string
+            - package_size: number
+            - package_checksum: string
+          failure_conditions:
+            - "Critical files missing"
+            - "Development files included"
+            - "Package exceeds size limits"
+
+        - name: "validate-package"
+          description: "Verify package structure and contents"
+          depends_on: "create-package"
+          inputs:
+            - package_path: "${{ steps.create-package.outputs.package_path }}"
+          outputs:
+            - validation_passed: boolean
+            - structure_valid: boolean
+          failure_conditions:
+            - "Invalid directory structure"
+            - "Missing critical files"
+            - "Corrupt zip file"
+
+        - name: "upload-release"
+          description: "Attach package to GitHub release"
+          depends_on: "validate-package"
+          inputs:
+            - package_path: "${{ steps.create-package.outputs.package_path }}"
+            - tag_name: "${{ github.ref_name }}"
+          outputs:
+            - release_url: string
+            - asset_url: string
+          failure_conditions:
+            - "Release creation failed"
+            - "Asset upload failed"
+            - "Asset attachment failed"
+
+  environment_variables:
+    required:
+      - GITHUB_TOKEN: "GitHub API access token"
+    optional: []
+
+  artifacts:
+    - name: "choice-uft.zip"
+      description: "WordPress-ready plugin package"
+      location: "GitHub Release Assets"
+      retention: "permanent"
+
+  success_criteria:
+    - "All steps complete without errors"
+    - "Package uploaded as release asset"
+    - "Package structure validates successfully"
+    - "Version numbers are consistent"
+
+  failure_handling:
+    - "Log detailed error messages"
+    - "Do not create partial releases"
+    - "Clean up temporary files"
+    - "Report specific failure reasons"
+
+  performance_requirements:
+    - max_duration: "5 minutes"
+    - max_package_size: "50MB"
+    - min_package_size: "1MB"
+
+  security_requirements:
+    - "No secrets in package"
+    - "No development files in package"
+    - "Validate file contents before packaging"

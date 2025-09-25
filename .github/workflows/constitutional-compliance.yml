@@ -25,11 +25,11 @@ jobs:
         echo "🔍 Validating specification files exist..."
 
         required_specs=(
-          "specs/CONSTITUTION.md"
+          ".specify/memory/constitution.md"
           "specs/core/dataLayer.spec.md"
           "specs/core/tracking-params.spec.md"
-          "specs/agents/AGENTS.md"
-          "specs/agents/review-checklist.md"
+          ".specify/memory/agents.md"
+          ".specify/memory/review-checklist.md"
         )
 
         for spec in "${required_specs[@]}"; do
@@ -237,9 +237,9 @@ jobs:
         echo "🎉 All constitutional compliance checks passed!"
         echo ""
         echo "📖 For detailed requirements, see:"
-        echo "   - specs/CONSTITUTION.md"
-        echo "   - specs/agents/AGENTS.md"
-        echo "   - specs/agents/review-checklist.md"
+        echo "   - .specify/memory/constitution.md"
+        echo "   - .specify/memory/agents.md"
+        echo "   - .specify/memory/review-checklist.md"
 
   test-integration:
     name: Integration Tests
