@@ -18,6 +18,8 @@
   function log() {
     if (!DEBUG) return;
 
+    var args = arguments;
+
     var safeLog = hasErrorBoundary ?
       window.cuftErrorBoundary.safeExecute :
       function(fn) { try { return fn(); } catch (e) { return null; } };
@@ -26,7 +28,7 @@
       if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
-          ["[CUFT Avada]"].concat(Array.prototype.slice.call(arguments))
+          ["[CUFT Avada]"].concat(Array.prototype.slice.call(args))
         );
       }
     }, 'Avada Forms Logging');
@@ -582,7 +584,21 @@
    */
   function watchAvadaAjaxForms() {
     var fusionForms = document.querySelectorAll(".fusion-form");
-    log("Found " + fusionForms.length + " Avada/Fusion forms, checking for email fields");
+
+    // Filter out test forms to avoid processing them with production code
+    var productionForms = [];
+    for (var i = 0; i < fusionForms.length; i++) {
+      if (!fusionForms[i].hasAttribute('data-cuft-test-form')) {
+        productionForms.push(fusionForms[i]);
+      }
+    }
+
+    // Only log if there are production forms to process
+    if (productionForms.length > 0) {
+      log("Found " + productionForms.length + " Avada/Fusion forms, checking for email fields");
+    }
+
+    fusionForms = productionForms; // Process only production forms
 
     for (var i = 0; i < fusionForms.length; i++) {
       var form = fusionForms[i];

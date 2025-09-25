@@ -18,6 +18,8 @@
   function log() {
     if (!DEBUG) return;
 
+    var args = arguments;
+
     var safeLog = hasErrorBoundary ?
       window.cuftErrorBoundary.safeExecute :
       function(fn) { try { return fn(); } catch (e) { return null; } };
@@ -26,7 +28,7 @@
       if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
-          ["[CUFT Ninja]"].concat(Array.prototype.slice.call(arguments))
+          ["[CUFT Ninja]"].concat(Array.prototype.slice.call(args))
         );
       }
     }, 'Ninja Forms Logging');
