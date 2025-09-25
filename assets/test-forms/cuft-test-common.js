@@ -25,6 +25,8 @@
                 test_submission: true,
                 timestamp: new Date().toISOString(),
                 submittedAt: new Date().toISOString(),
+                cuft_tracked: true,
+                cuft_source: `${framework}_test`,
 
                 // Click IDs (all test forms will have these)
                 click_id: `test_click_${framework}_${timestamp}`,
@@ -130,7 +132,9 @@
                 click_id: formData.click_id || formData.gclid || formData.fbclid || '',
                 utm_campaign: formData.utm_campaign || '',
                 test_submission: true,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                cuft_tracked: true,
+                cuft_source: `${framework}_test_lead`
             };
 
             if (window.dataLayer) {
