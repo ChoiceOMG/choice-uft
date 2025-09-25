@@ -456,13 +456,14 @@
     var processEvent = function () {
       var form = event.target && event.target.closest(".elementor-form");
       if (!form) {
-        // Try to find form with pending tracking attribute
-        var pendingForms = document.querySelectorAll(
-          '.elementor-form[data-cuft-tracking="pending"]'
-        );
-        if (pendingForms.length > 0) {
-          form = pendingForms[0];
-          form.removeAttribute("data-cuft-tracking");
+        // Try to find the most recently submitted Elementor form
+        var elementorForms = document.querySelectorAll('.elementor-form');
+        for (var i = 0; i < elementorForms.length; i++) {
+          var candidateForm = elementorForms[i];
+          if (isElementorForm(candidateForm)) {
+            form = candidateForm;
+            break;
+          }
         }
       }
 
@@ -504,13 +505,14 @@
       }
 
       if (!form) {
-        // Try to find form with pending tracking attribute
-        var pendingForms = document.querySelectorAll(
-          '.elementor-form[data-cuft-tracking="pending"]'
-        );
-        if (pendingForms.length > 0) {
-          form = pendingForms[0];
-          form.removeAttribute("data-cuft-tracking");
+        // Try to find the most recently submitted Elementor form
+        var elementorForms = document.querySelectorAll('.elementor-form');
+        for (var i = 0; i < elementorForms.length; i++) {
+          var candidateForm = elementorForms[i];
+          if (isElementorForm(candidateForm)) {
+            form = candidateForm;
+            break;
+          }
         }
       }
 
@@ -540,27 +542,8 @@
     }
   }
 
-  /**
-   * Handle form submit to capture field values
-   */
-  function handleFormSubmit(event) {
-    try {
-      var form = event.target;
-      if (!form || form.tagName !== "FORM") return;
-
-      // Check if this is an Elementor form - exit silently if not
-      if (!isElementorForm(form)) {
-        return;
-      }
-
-      // Mark form as pending for later processing
-      form.setAttribute("data-cuft-tracking", "pending");
-
-      log("Elementor form submit detected, marked for tracking");
-    } catch (e) {
-      log("Submit handler error:", e);
-    }
-  }
+  // REMOVED: handleFormSubmit function was interfering with Elementor's form validation
+  // We now rely solely on submit_success events which fire after successful validation
 
   /**
    * Setup MutationObserver to detect success messages
@@ -650,11 +633,11 @@
             '.elementor-popup-modal[data-elementor-id="' + id + '"]'
           );
           if (popup) {
-            var forms = popup.querySelectorAll(
-              '.elementor-form[data-cuft-tracking="pending"]'
-            );
+            var forms = popup.querySelectorAll('.elementor-form');
             for (var i = 0; i < forms.length; i++) {
-              handleElementorSuccess(forms[i]);
+              if (isElementorForm(forms[i])) {
+                handleElementorSuccess(forms[i]);
+              }
             }
           }
         });
@@ -669,17 +652,63 @@
           '.elementor-popup-modal[data-elementor-id="' + event.detail.id + '"]'
         );
         if (popup) {
-          var forms = popup.querySelectorAll(
-            '.elementor-form[data-cuft-tracking="pending"]'
-          );
+          var forms = popup.querySelectorAll('.elementor-form');
           for (var i = 0; i < forms.length; i++) {
-            handleElementorSuccess(forms[i]);
+            if (isElementorForm(forms[i])) {
+              handleElementorSuccess(forms[i]);
+            }
           }
         }
       }
     });
 
     log("Popup event handling setup");
+  }
+
+  /**
+   * Fix invalid pattern attributes on Elementor forms
+   */
+  function fixElementorPatterns() {
+    try {
+      var inputs = document.querySelectorAll('.elementor-form input[pattern]');
+
+      if (inputs.length === 0) {
+        log("No Elementor forms with patterns found");
+        return;
+      }
+
+      var fixCount = 0;
+      for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var pattern = input.getAttribute('pattern');
+
+        if (!pattern) continue;
+
+        // Fix the common invalid phone pattern
+        if (pattern === '[0-9()#&+*-=.]+') {
+          // Move hyphen to end to make it literal, not a range
+          input.setAttribute('pattern', '[0-9()#&+*=.-]+');
+          fixCount++;
+          log('Fixed invalid phone pattern on field:', input.name || input.id || 'unnamed');
+        }
+
+        // Add more pattern fixes as discovered
+        // Test if pattern is valid by trying to create RegExp
+        try {
+          new RegExp(pattern);
+        } catch (e) {
+          log('Found another invalid pattern:', pattern, 'on field:', input.name || input.id);
+          // Could add more specific fixes here
+        }
+      }
+
+      if (fixCount > 0) {
+        log('Fixed ' + fixCount + ' invalid pattern(s) on Elementor forms');
+      }
+
+    } catch (e) {
+      log('Error fixing Elementor patterns:', e);
+    }
   }
 
   /**
@@ -706,13 +735,8 @@
       }
     }
 
-    // Form submit handler to capture field values
-    try {
-      document.addEventListener("submit", handleFormSubmit);
-      listenersSetup.push("form submit handler");
-    } catch (e) {
-      log("Submit listener setup error:", e);
-    }
+    // REMOVED: Form submit handler was interfering with Elementor's validation
+    // Now relying only on success events which fire after validation passes
 
     // Setup mutation observer for success message detection
     try {
@@ -765,7 +789,8 @@
         dataLayerUtils: !!window.cuftDataLayerUtils,
       });
 
-      // Using native browser validation instead of custom pattern fixing
+      // Fix invalid pattern attributes before any form interactions
+      fixElementorPatterns();
 
       // Setup all event listeners
       setupEventListeners();

@@ -1,8 +1,11 @@
 # Elementor Forms Tracking Specification
 
 ## Version: 1.0
+
 ## Date: 2025-09-25
+
 ## Status: Active
+
 ## Constitutional Compliance: Validated
 
 ---
@@ -18,17 +21,20 @@ This specification defines the standardized tracking implementation for Elemento
 ### Framework Detection
 
 **Primary Detection**: Forms MUST be identified using Elementor-specific CSS classes and attributes:
+
 ```javascript
 function isElementorForm(form) {
-  return form && (
-    form.classList.contains('elementor-form') ||
-    form.closest('.elementor-widget-form') !== null ||
-    form.getAttribute('data-settings') !== null
+  return (
+    form &&
+    (form.classList.contains("elementor-form") ||
+      form.closest(".elementor-widget-form") !== null ||
+      form.getAttribute("data-settings") !== null)
   );
 }
 ```
 
 **Required Early Exit**: If form is not Elementor, script MUST exit silently without logging:
+
 ```javascript
 if (!isElementorForm(form)) {
   return; // Silent exit - no console output
@@ -38,6 +44,7 @@ if (!isElementorForm(form)) {
 ### Framework Identifiers
 
 **DataLayer Event Values**:
+
 - `form_type`: `"elementor"`
 - `cuft_source`: `"elementor_pro"` (form_submit events)
 - `cuft_source`: `"elementor_pro_lead"` (generate_lead events)
@@ -51,16 +58,18 @@ if (!isElementorForm(form)) {
 **Event Priority Order** (MUST be implemented in this sequence):
 
 1. **Native JavaScript Events** (Elementor 3.5+)
+
    ```javascript
-   document.addEventListener('submit_success', function(event) {
+   document.addEventListener("submit_success", function (event) {
      handleNativeSuccessEvent(event, event.detail);
    });
    ```
 
 2. **jQuery Events** (Legacy Elementor < 3.5)
+
    ```javascript
    if (window.jQuery) {
-     jQuery(document).on('submit_success', function(event, response) {
+     jQuery(document).on("submit_success", function (event, response) {
        handleJQuerySuccessEvent(event, response);
      });
    }
@@ -76,28 +85,34 @@ if (!isElementorForm(form)) {
 **Multiple Detection Layers** (implement all for maximum compatibility):
 
 1. **Event Target Traversal**
+
    ```javascript
    function findFormFromEvent(event) {
-     var form = event.target && event.target.closest
-       ? event.target.closest('.elementor-form')
-       : null;
+     var form =
+       event.target && event.target.closest
+         ? event.target.closest(".elementor-form")
+         : null;
      return form;
    }
    ```
 
 2. **Pending Tracking Attribute**
+
    ```javascript
    function findPendingForm() {
-     return document.querySelector('.elementor-form[data-cuft-tracking="pending"]');
+     return document.querySelector(
+       '.elementor-form[data-cuft-tracking="pending"]'
+     );
    }
    ```
 
 3. **Visible Form Detection**
+
    ```javascript
    function findVisibleElementorForm() {
-     var forms = document.querySelectorAll('.elementor-form');
-     return Array.from(forms).find(form =>
-       form.offsetHeight > 0 && form.offsetWidth > 0
+     var forms = document.querySelectorAll(".elementor-form");
+     return Array.from(forms).find(
+       (form) => form.offsetHeight > 0 && form.offsetWidth > 0
      );
    }
    ```
@@ -131,7 +146,7 @@ function getEmailField(form) {
     'input[placeholder*="email" i]',
     'input[aria-label*="email" i]',
     'input[pattern*="@"]',
-    'textarea[placeholder*="email" i]'
+    'textarea[placeholder*="email" i]',
   ];
 
   for (var i = 0; i < selectors.length; i++) {
@@ -144,15 +159,16 @@ function getEmailField(form) {
 ```
 
 **Label-Based Detection**:
+
 ```javascript
 function getEmailFieldByLabel(form) {
-  var labels = form.querySelectorAll('label');
+  var labels = form.querySelectorAll("label");
   for (var i = 0; i < labels.length; i++) {
     var labelText = labels[i].textContent.toLowerCase();
-    if (labelText.includes('email') || labelText.includes('e-mail')) {
-      var forId = labels[i].getAttribute('for');
+    if (labelText.includes("email") || labelText.includes("e-mail")) {
+      var forId = labels[i].getAttribute("for");
       if (forId) {
-        var field = form.querySelector('#' + forId);
+        var field = form.querySelector("#" + forId);
         if (field && field.value) return field;
       }
     }
@@ -180,7 +196,7 @@ function getPhoneField(form) {
     'input[id*="tel" i]',
     'input[placeholder*="phone" i]',
     'input[aria-label*="phone" i]',
-    'input[pattern*="[0-9]"]' // Common phone patterns
+    'input[pattern*="[0-9]"]', // Common phone patterns
   ];
 
   for (var i = 0; i < selectors.length; i++) {
@@ -195,6 +211,7 @@ function getPhoneField(form) {
 ### Field Value Validation
 
 **Email Validation**:
+
 ```javascript
 function validateEmail(email) {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -203,6 +220,7 @@ function validateEmail(email) {
 ```
 
 **Phone Validation** (accepts any non-empty value):
+
 ```javascript
 function validatePhone(phone) {
   return phone && phone.trim().length > 0;
@@ -220,26 +238,26 @@ function validatePhone(phone) {
 ```javascript
 function getFormId(form) {
   return (
-    form.getAttribute('data-form-id') ||
-    form.getAttribute('id') ||
-    form.getAttribute('data-elementor-form-id') ||
-    getHiddenInputValue(form, 'form_id') ||
+    form.getAttribute("data-form-id") ||
+    form.getAttribute("id") ||
+    form.getAttribute("data-elementor-form-id") ||
+    getHiddenInputValue(form, "form_id") ||
     generateFallbackId(form)
   );
 }
 
 function generateFallbackId(form) {
   // Generate consistent ID based on form characteristics
-  var widget = form.closest('.elementor-widget');
+  var widget = form.closest(".elementor-widget");
   if (widget) {
-    var widgetId = widget.getAttribute('data-id');
-    if (widgetId) return 'elementor-widget-' + widgetId;
+    var widgetId = widget.getAttribute("data-id");
+    if (widgetId) return "elementor-widget-" + widgetId;
   }
 
   // Last resort: use form position in DOM
-  var forms = document.querySelectorAll('.elementor-form');
+  var forms = document.querySelectorAll(".elementor-form");
   var index = Array.prototype.indexOf.call(forms, form);
-  return 'elementor-form-' + (index + 1);
+  return "elementor-form-" + (index + 1);
 }
 ```
 
@@ -250,21 +268,23 @@ function generateFallbackId(form) {
 ```javascript
 function getFormName(form) {
   return (
-    form.getAttribute('data-form-name') ||
-    form.getAttribute('name') ||
-    form.getAttribute('aria-label') ||
-    getHiddenInputValue(form, 'form_name') ||
+    form.getAttribute("data-form-name") ||
+    form.getAttribute("name") ||
+    form.getAttribute("aria-label") ||
+    getHiddenInputValue(form, "form_name") ||
     getWidgetTypeLabel(form) ||
-    'Elementor Form'
+    "Elementor Form"
   );
 }
 
 function getWidgetTypeLabel(form) {
-  var widget = form.closest('.elementor-widget');
+  var widget = form.closest(".elementor-widget");
   if (widget) {
-    var widgetType = widget.getAttribute('data-widget_type');
+    var widgetType = widget.getAttribute("data-widget_type");
     if (widgetType) {
-      return widgetType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      return widgetType
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase());
     }
   }
   return null;
@@ -281,12 +301,14 @@ function getWidgetTypeLabel(form) {
 
 ```javascript
 function isMultiStepForm(form) {
-  return form.querySelector('.elementor-field-type-step') !== null;
+  return form.querySelector(".elementor-field-type-step") !== null;
 }
 
 function isFinalStep(form) {
-  var steps = form.querySelectorAll('.elementor-field-type-step');
-  var currentStep = form.querySelector('.elementor-field-type-step.e-field-active');
+  var steps = form.querySelectorAll(".elementor-field-type-step");
+  var currentStep = form.querySelector(
+    ".elementor-field-type-step.e-field-active"
+  );
 
   if (!steps.length || !currentStep) return true; // Not multi-step or no active step
 
@@ -300,17 +322,18 @@ function isFinalStep(form) {
 ### Step Progress Tracking
 
 **Optional Step Tracking** (if required for advanced analytics):
+
 ```javascript
 function trackStepProgress(form, stepNumber, totalSteps) {
   if (window.cuftElementor && window.cuftElementor.track_steps) {
     getDL().push({
-      event: 'form_step_completed',
-      form_type: 'elementor',
+      event: "form_step_completed",
+      form_type: "elementor",
       form_id: getFormId(form),
       step_number: stepNumber,
       total_steps: totalSteps,
       cuft_tracked: true,
-      cuft_source: 'elementor_pro_step'
+      cuft_source: "elementor_pro_step",
     });
   }
 }
@@ -326,7 +349,7 @@ function trackStepProgress(form, stepNumber, totalSteps) {
 
 ```javascript
 function isInPopup(form) {
-  return form.closest('.elementor-popup-modal') !== null;
+  return form.closest(".elementor-popup-modal") !== null;
 }
 ```
 
@@ -338,7 +361,7 @@ function isInPopup(form) {
 function setupPopupEventListeners() {
   if (window.jQuery) {
     // Listen for popup hide events
-    jQuery(document).on('elementor/popup/hide', function(event, id, instance) {
+    jQuery(document).on("elementor/popup/hide", function (event, id, instance) {
       handlePopupHide(id, instance);
     });
   }
@@ -348,7 +371,9 @@ function handlePopupHide(popupId, instance) {
   // Check if popup contains recently submitted form
   var popup = document.querySelector('[data-elementor-id="' + popupId + '"]');
   if (popup) {
-    var form = popup.querySelector('.elementor-form[data-cuft-tracking="pending"]');
+    var form = popup.querySelector(
+      '.elementor-form[data-cuft-tracking="pending"]'
+    );
     if (form) {
       handleClientSideTracking(form);
     }
@@ -367,18 +392,18 @@ function handlePopupHide(popupId, instance) {
 ```javascript
 function handleServerTrackingData(form, trackingData) {
   if (trackingData && trackingData.cuft_tracking) {
-    log('Using server-provided tracking data:', trackingData);
+    log("Using server-provided tracking data:", trackingData);
 
     var payload = {
-      event: 'form_submit',
-      form_type: 'elementor',
+      event: "form_submit",
+      form_type: "elementor",
       form_id: trackingData.form_id || getFormId(form),
       form_name: trackingData.form_name || getFormName(form),
-      user_email: trackingData.email || '',
-      user_phone: trackingData.phone || '',
+      user_email: trackingData.email || "",
+      user_phone: trackingData.phone || "",
       submitted_at: new Date().toISOString(),
       cuft_tracked: true,
-      cuft_source: 'elementor_pro'
+      cuft_source: "elementor_pro",
     };
 
     // Add UTM and click ID data
@@ -397,15 +422,15 @@ function handleServerTrackingData(form, trackingData) {
 
 ```javascript
 function handleClientSideTracking(form) {
-  var email = getStoredFormData(form, 'email') || getFieldValue(form, 'email');
-  var phone = getStoredFormData(form, 'phone') || getFieldValue(form, 'phone');
+  var email = getStoredFormData(form, "email") || getFieldValue(form, "email");
+  var phone = getStoredFormData(form, "phone") || getFieldValue(form, "phone");
 
   pushToDataLayer(form, email, phone);
 
   // Clear tracking attributes
-  form.removeAttribute('data-cuft-tracking');
-  form.removeAttribute('data-cuft-email');
-  form.removeAttribute('data-cuft-phone');
+  form.removeAttribute("data-cuft-tracking");
+  form.removeAttribute("data-cuft-email");
+  form.removeAttribute("data-cuft-phone");
 }
 ```
 
@@ -413,64 +438,52 @@ function handleClientSideTracking(form) {
 
 ## Pattern Validation Fix
 
-### Invalid Pattern Handling
+### Native Validation Approach
 
-**Elementor forms may contain invalid regex patterns that cause browser errors**:
+**Forms rely on browser's native HTML5 validation instead of custom pattern fixing**:
 
 ```javascript
-function fixInvalidPatterns() {
-  try {
-    var inputs = document.querySelectorAll('.elementor-form input[pattern]');
-    var fixedCount = 0;
+// Email field detection prioritizes type="email" and semantic indicators
+function getEmailField(form) {
+  var selectors = [
+    'input[type="email"]', // Native HTML5 email validation
+    'input[inputmode="email"]', // Mobile keyboard hint
+    'input[data-field-type="email"]', // Elementor field type
+    'input[name*="email" i]', // Semantic naming
+    'input[placeholder*="email" i]', // Placeholder hints
+  ];
 
-    for (var i = 0; i < inputs.length; i++) {
-      var input = inputs[i];
-      var pattern = input.getAttribute('pattern');
-
-      if (pattern && needsPatternFix(pattern)) {
-        var fixedPattern = fixPattern(pattern);
-        input.setAttribute('pattern', fixedPattern);
-        fixedCount++;
-      }
-    }
-
-    if (fixedCount > 0) {
-      log('Fixed ' + fixedCount + ' invalid pattern(s)');
-    }
-  } catch (e) {
-    log('Error fixing patterns:', e);
+  for (var i = 0; i < selectors.length; i++) {
+    var field = form.querySelector(selectors[i]);
+    if (field && field.value) return field;
   }
+  return null;
 }
 
-function needsPatternFix(pattern) {
-  // Check for common problematic patterns
-  return pattern === '[0-9()#&+*-=.]+' || // Hyphen in wrong position
-         (pattern.includes('[') && pattern.includes('-') && !isValidCharacterClass(pattern));
-}
+// Phone field detection uses semantic indicators without pattern validation
+function getPhoneField(form) {
+  var selectors = [
+    'input[type="tel"]', // Native HTML5 tel input
+    'input[inputmode="tel"]', // Mobile keyboard hint
+    'input[data-field-type="tel"]', // Elementor field type
+    'input[name*="phone" i]', // Semantic naming
+    'input[placeholder*="phone" i]', // Placeholder hints
+  ];
 
-function fixPattern(pattern) {
-  // Move hyphen to end of character class
-  if (pattern === '[0-9()#&+*-=.]+') {
-    return '[0-9()#&+*=.-]+';
+  for (var i = 0; i < selectors.length; i++) {
+    var field = form.querySelector(selectors[i]);
+    if (field && field.value) return field;
   }
-
-  // Generic fix for character classes with misplaced hyphens
-  return pattern.replace(/\[([^\]]*)-([^\]]*)\]/g, function(match, before, after) {
-    if (before && after && !isValidRange(before.slice(-1), after.charAt(0))) {
-      return '[' + before + after + '-]';
-    }
-    return match;
-  });
+  return null;
 }
 ```
 
-**MUST be called during initialization**:
-```javascript
-ready(function() {
-  fixInvalidPatterns();
-  setupEventListeners();
-});
-```
+**Benefits of native validation**:
+
+- Browser handles validation automatically
+- No need to fix invalid regex patterns
+- Better accessibility and user experience
+- Consistent validation across all browsers
 
 ---
 
@@ -479,39 +492,44 @@ ready(function() {
 ### Required Error Handling
 
 **Form Detection Errors**:
+
 ```javascript
 function safeFormDetection() {
   try {
-    return findFormFromEvent(event) ||
-           findPendingForm() ||
-           findVisibleElementorForm();
+    return (
+      findFormFromEvent(event) ||
+      findPendingForm() ||
+      findVisibleElementorForm()
+    );
   } catch (e) {
-    log('Form detection error:', e);
+    log("Form detection error:", e);
     return null;
   }
 }
 ```
 
 **Field Value Extraction Errors**:
+
 ```javascript
 function safeGetFieldValue(form, type) {
   try {
     return getFieldValue(form, type);
   } catch (e) {
-    log('Field value extraction error for ' + type + ':', e);
+    log("Field value extraction error for " + type + ":", e);
     return null;
   }
 }
 ```
 
 **DataLayer Push Errors**:
+
 ```javascript
 function safePushToDataLayer(payload) {
   try {
     getDL().push(payload);
-    log('Form submission tracked:', payload);
+    log("Form submission tracked:", payload);
   } catch (e) {
-    log('DataLayer push error:', e);
+    log("DataLayer push error:", e);
   }
 }
 ```
@@ -552,12 +570,12 @@ function safePushToDataLayer(payload) {
 
 ```javascript
 window.cuftElementor = {
-  console_logging: false,           // Enable debug logging
-  generate_lead_enabled: true,      // Enable generate_lead events
-  track_steps: false,               // Track multi-step progress
-  use_native_methods: true,         // Prefer native over jQuery
-  pattern_fix_enabled: true,        // Enable pattern fixing
-  popup_tracking_enabled: true      // Enable popup form tracking
+  console_logging: false, // Enable debug logging
+  generate_lead_enabled: true, // Enable generate_lead events
+  track_steps: false, // Track multi-step progress
+  use_native_methods: true, // Prefer native over jQuery
+  pattern_fix_enabled: true, // Enable pattern fixing
+  popup_tracking_enabled: true, // Enable popup form tracking
 };
 ```
 
@@ -565,12 +583,16 @@ window.cuftElementor = {
 
 ```javascript
 window.cuftElementor.field_config = {
-  email_selectors: [/* custom selectors */],
-  phone_selectors: [/* custom selectors */],
+  email_selectors: [
+    /* custom selectors */
+  ],
+  phone_selectors: [
+    /* custom selectors */
+  ],
   custom_field_mappings: {
-    'custom_email_field': 'email',
-    'custom_phone_field': 'phone'
-  }
+    custom_email_field: "email",
+    custom_phone_field: "phone",
+  },
 };
 ```
 
@@ -581,24 +603,29 @@ window.cuftElementor.field_config = {
 ### Required Test Scenarios
 
 1. **Standard Form Submission**
+
    - Single-step form with email and phone
    - Verify form_submit event fires
    - Verify generate_lead fires when click_id present
 
 2. **Multi-Step Form Submission**
+
    - Complete multi-step form
    - Verify events fire only on final step
 
 3. **Popup Form Submission**
+
    - Form within Elementor popup
    - Verify tracking works on popup close
 
 4. **Field Detection Accuracy**
+
    - Various email field configurations
    - Various phone field configurations
    - Edge cases (textareas, custom fields)
 
 5. **Error Handling**
+
    - Invalid form patterns
    - Missing required elements
    - Network failures
@@ -610,6 +637,7 @@ window.cuftElementor.field_config = {
 ### Test Data Requirements
 
 **Test Form Configurations**:
+
 - Simple contact form
 - Multi-step lead generation form
 - Popup subscription form
@@ -617,6 +645,7 @@ window.cuftElementor.field_config = {
 - Form with invalid patterns
 
 **Expected DataLayer Events**:
+
 ```javascript
 // Standard form_submit event
 {
