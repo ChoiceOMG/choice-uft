@@ -23,15 +23,16 @@ class CUFT_Avada_Forms {
         if ( ! CUFT_Form_Detector::is_framework_detected( 'avada' ) ) {
             return;
         }
-        
+
+        // Enqueue dataLayer utilities first (required by all framework scripts)
         wp_enqueue_script(
-            'cuft-avada-forms',
-            CUFT_URL . '/assets/forms/cuft-avada-forms.js',
-            array( 'cuft-utm-utils' ),
+            'cuft-dataLayer-utils',
+            CUFT_URL . '/assets/cuft-dataLayer-utils.js',
+            array(),
             CUFT_VERSION,
-            true
+            false // Load in header for availability
         );
-        
+
         // Enqueue UTM utilities
         wp_enqueue_script(
             'cuft-utm-utils',
@@ -40,7 +41,16 @@ class CUFT_Avada_Forms {
             CUFT_VERSION,
             true
         );
-        
+
+        // Enqueue Avada forms script with dependencies
+        wp_enqueue_script(
+            'cuft-avada-forms',
+            CUFT_URL . '/assets/forms/cuft-avada-forms.js',
+            array( 'cuft-dataLayer-utils', 'cuft-utm-utils' ),
+            CUFT_VERSION,
+            true
+        );
+
         $this->localize_script();
     }
     
