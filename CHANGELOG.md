@@ -5,6 +5,18 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.7] - 2025-09-24
+
+### Fixed
+
+- **Plugin Updates**: Fixed plugin auto-deactivation issue during updates by removing unnecessary `clear_destination` parameter
+- **Test Forms**: Added missing `cuft_tracked` and `cuft_source` parameters to test form events for consistency with production tracking
+
+### Technical
+
+- Removed `clear_destination => true` from plugin upgrade process to prevent WordPress from deactivating the plugin
+- Enhanced test form event structure to match production tracking implementation
+
 ## [3.9.6] - 2025-09-24
 
 ### Fixed
