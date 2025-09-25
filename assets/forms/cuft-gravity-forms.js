@@ -48,6 +48,11 @@
    * Handles complex multi-part fields (name, address, etc.)
    */
   function getFieldValue(form, type) {
+    // Framework detection - exit silently if not Gravity Forms
+    if (!isGravityForm(form)) {
+      return "";
+    }
+
     var fields = form.querySelectorAll(".gfield");
     var field = null;
 

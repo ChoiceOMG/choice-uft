@@ -48,6 +48,11 @@
    * Get field value from Ninja Forms using .nf-field container structure
    */
   function getFieldValue(form, type) {
+    // Framework detection - exit silently if not Ninja Forms
+    if (!isNinjaForm(form)) {
+      return "";
+    }
+
     var fields = form.querySelectorAll(".nf-field");
     var field = null;
 

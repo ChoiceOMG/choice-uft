@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Handling Test: Ninja Forms</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .pending { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .error-scenario { margin: 10px 0; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; background: #fff8f8; }
+    </style>
+</head>
+<body>
+    <h1>Error Handling Test: Ninja Forms</h1>
+    <p><strong>Purpose:</strong> Verify that Ninja Forms tracking continues to work correctly even when errors occur in AJAX processing or form state management</p>
+
+    <div class="test-section">
+        <h2>Test Status</h2>
+        <div id="testResults"></div>
+        <button onclick="runAllErrorTests()">Run All Error Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="showErrorBoundaryStatus()">Show Error Boundary Status</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Ninja Forms Error Test Scenarios</h2>
+
+        <div class="error-scenario">
+            <h4>🥷 Ninja Form Structure Errors</h4>
+            <button onclick="testMissingFormContainer()">Missing NF Form Container</button>
+            <button onclick="testInvalidFormID()">Invalid Form ID Attribute</button>
+            <button onclick="testCorruptedFormFields()">Corrupted Form Field Elements</button>
+            <button onclick="testMissingNinjaFormsObject()">Missing NinjaForms Global Object</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>⚡ AJAX & State Management Errors</h4>
+            <button onclick="testAjaxSubmissionError()">AJAX Submission Processing Error</button>
+            <button onclick="testFormHidingDetectionError()">Form Hiding Detection Error</button>
+            <button onclick="testSuccessMessageError()">Success Message Detection Error</button>
+            <button onclick="testFormStateError()">Form State Management Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>🔍 Field Processing Errors</h4>
+            <button onclick="testEmailFieldExtractionError()">Email Field Extraction Error</button>
+            <button onclick="testPhoneFieldExtractionError()">Phone Field Extraction Error</button>
+            <button onclick="testFieldMappingError()">Field Mapping Error</button>
+            <button onclick="testMultiStepFormError()">Multi-Step Form Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>🔄 Retry Logic & Observer Errors</h4>
+            <button onclick="testRetryLogicError()">Retry Logic Processing Error</button>
+            <button onclick="testMutationObserverError()">MutationObserver Setup Error</button>
+            <button onclick="testFormDetectionRetryError()">Form Detection Retry Error</button>
+            <button onclick="testTimeoutHandlingError()">Timeout Handling Error</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Ninja Forms Behavior</h2>
+        <h3>✅ Ninja Forms Error Handling Requirements:</h3>
+        <ul>
+            <li><strong>AJAX Resilience:</strong> Handle AJAX errors gracefully with fallback detection</li>
+            <li><strong>Form State Tracking:</strong> Monitor form hiding/showing despite DOM manipulation errors</li>
+            <li><strong>Success Message Detection:</strong> Multiple methods to detect successful submission</li>
+            <li><strong>Field ID Handling:</strong> Flexible field ID detection (email_123, phone_456, etc.)</li>
+            <li><strong>Multi-Step Support:</strong> Only track final step completion with error tolerance</li>
+            <li><strong>Retry Logic Integration:</strong> Use retry utility for failed operations</li>
+        </ul>
+    </div>
+
+    <!-- Mock Ninja Forms Elements -->
+    <div style="display: none;">
+        <!-- Valid Ninja Form -->
+        <div class="nf-form-cont" id="nf-form-1-cont" data-form-id="1">
+            <form class="ninja-forms-form" data-form-id="1">
+                <div class="nf-field-container email-field">
+                    <input type="email" name="email_123" id="nf-field-123" value="valid@ninja.com" class="nf-element">
+                </div>
+                <div class="nf-field-container phone-field">
+                    <input type="text" name="phone_456" id="nf-field-456" value="123-456-7890" class="nf-element">
+                </div>
+                <div class="nf-field-container submit-field">
+                    <input type="submit" value="Submit" class="nf-element ninja-forms-field">
+                </div>
+            </form>
+            <div class="nf-response-msg" style="display: none;">Thank you for your submission!</div>
+        </div>
+
+        <!-- Ninja Form with Missing ID -->
+        <div class="nf-form-cont" id="nf-form-missing">
+            <form class="ninja-forms-form">
+                <input type="email" name="email" value="missing-id@ninja.com">
+            </form>
+        </div>
+
+        <!-- Ninja Form with Corrupted Fields -->
+        <div class="nf-form-cont" id="nf-form-corrupted" data-form-id="corrupted">
+            <form class="ninja-forms-form">
+                <!-- No field elements -->
+            </form>
+        </div>
+
+        <!-- Multi-Step Ninja Form -->
+        <div class="nf-form-cont" id="nf-form-multistep" data-form-id="multistep">
+            <form class="ninja-forms-form">
+                <div class="nf-step" data-step="1" style="display: block;">
+                    <input type="text" name="first_name" value="John">
+                </div>
+                <div class="nf-step" data-step="2" style="display: none;">
+                    <input type="email" name="email_789" value="multistep@ninja.com">
+                    <input type="text" name="phone_101112" value="555-123-4567">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize error tracking for Ninja Forms
+        var ninjaErrorTracker = {
+            capturedErrors: [],
+            capturedEvents: [],
+            originalConsoleError: console.error,
+            formStates: new Map()
+        };
+
+        // Track all dataLayer events
+        window.dataLayer = window.dataLayer || [];
+        var originalPush = window.dataLayer.push.bind(window.dataLayer);
+
+        window.dataLayer.push = function(event) {
+            if (event && typeof event === 'object') {
+                ninjaErrorTracker.capturedEvents.push({
+                    event: event,
+                    timestamp: new Date().toISOString(),
+                    testContext: window.currentTestContext || 'unknown'
+                });
+            }
+            return originalPush(event);
+        };
+
+        // Monitor console errors specifically for Ninja Forms
+        console.error = function() {
+            var message = Array.prototype.slice.call(arguments).join(' ');
+            if (message.indexOf('ninja') > -1 || message.indexOf('nf-') > -1 || window.currentTestContext) {
+                ninjaErrorTracker.capturedErrors.push({
+                    type: 'console.error',
+                    args: Array.prototype.slice.call(arguments),
+                    timestamp: new Date().toISOString(),
+                    testContext: window.currentTestContext || 'unknown'
+                });
+            }
+            return ninjaErrorTracker.originalConsoleError.apply(console, arguments);
+        };
+
+        // Ninja Forms-specific test execution framework
+        function runNinjaErrorTest(testName, errorSetup, formTrigger, expectedBehavior) {
+            window.currentTestContext = testName;
+            var startErrorCount = ninjaErrorTracker.capturedErrors.length;
+            var startEventCount = ninjaErrorTracker.capturedEvents.length;
+
+            try {
+                // Set up the error condition
+                if (errorSetup) {
+                    errorSetup();
+                }
+
+                // Trigger the Ninja form event/action
+                formTrigger();
+
+                // Give time for async processing and retries
+                setTimeout(function() {
+                    var newErrors = ninjaErrorTracker.capturedErrors.slice(startErrorCount);
+                    var newEvents = ninjaErrorTracker.capturedEvents.slice(startEventCount);
+                    var formSubmitEvents = newEvents.filter(function(item) {
+                        return item.event.event === 'form_submit' && item.event.form_type === 'ninja_forms';
+                    });
+
+                    // Evaluate results based on expected behavior
+                    var result = evaluateNinjaErrorTestResult(testName, newErrors, formSubmitEvents, expectedBehavior);
+                    addTestResult(testName, result.status, result.message, result.details);
+
+                    window.currentTestContext = null;
+                }, 2000); // Longer timeout for retry logic
+
+            } catch (error) {
+                addTestResult(testName, 'ERROR', 'Ninja test setup failed: ' + error.message, { error: error });
+                window.currentTestContext = null;
+            }
+        }
+
+        function evaluateNinjaErrorTestResult(testName, errors, formSubmitEvents, expectedBehavior) {
+            var result = { status: 'PENDING', message: '', details: {} };
+
+            var trackingWorked = formSubmitEvents.length > 0;
+            var errorsOccurred = errors.length > 0;
+
+            if (expectedBehavior.shouldTrackForm) {
+                if (trackingWorked) {
+                    // Verify Ninja Forms-specific fields
+                    var event = formSubmitEvents[0].event;
+                    var hasNinjaFields = event.form_type === 'ninja_forms' &&
+                                       event.cuft_source &&
+                                       event.cuft_source.indexOf('ninja') > -1;
+
+                    if (hasNinjaFields) {
+                        var retryInfo = expectedBehavior.shouldUseRetry && errors.length > 0 ? ' (with retry recovery)' : '';
+                        result = {
+                            status: 'PASS',
+                            message: 'Ninja Forms tracking worked correctly despite errors' + retryInfo,
+                            details: { errors: errors, events: formSubmitEvents, ninja_validated: true }
+                        };
+                    } else {
+                        result = {
+                            status: 'FAIL',
+                            message: 'Ninja Forms tracking succeeded but missing framework-specific fields',
+                            details: { errors: errors, events: formSubmitEvents, missing_fields: true }
+                        };
+                    }
+                } else {
+                    result = {
+                        status: 'FAIL',
+                        message: 'Ninja Forms tracking failed - no form_submit event captured',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                }
+            } else {
+                if (!trackingWorked) {
+                    result = {
+                        status: 'PASS',
+                        message: 'Correctly did not track invalid Ninja form (' + errors.length + ' errors as expected)',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                } else {
+                    result = {
+                        status: 'FAIL',
+                        message: 'Unexpectedly tracked invalid Ninja form',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                }
+            }
+
+            return result;
+        }
+
+        // Ninja Forms-specific error test scenarios
+        function testMissingFormContainer() {
+            runNinjaErrorTest('Missing NF Form Container', null, function() {
+                // Try to submit form without proper container
+                var form = document.createElement('form');
+                form.className = 'ninja-forms-form';
+                var event = new CustomEvent('submit', { bubbles: true });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testInvalidFormID() {
+            runNinjaErrorTest('Invalid Form ID Attribute', function() {
+                var container = document.getElementById('nf-form-missing');
+                container.setAttribute('data-form-id', ''); // Empty form ID
+            }, function() {
+                var form = document.querySelector('#nf-form-missing .ninja-forms-form');
+                simulateNinjaFormSubmission(form, null);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testCorruptedFormFields() {
+            runNinjaErrorTest('Corrupted Form Field Elements', function() {
+                // Mock field query to fail
+                var originalQuerySelectorAll = HTMLElement.prototype.querySelectorAll;
+                HTMLElement.prototype.querySelectorAll = function(selector) {
+                    if (selector && selector.indexOf('nf-element') > -1) {
+                        throw new Error('Simulated field query error');
+                    }
+                    return originalQuerySelectorAll.call(this, selector);
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-corrupted .ninja-forms-form');
+                simulateNinjaFormSubmission(form, 'corrupted');
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testMissingNinjaFormsObject() {
+            runNinjaErrorTest('Missing NinjaForms Global Object', function() {
+                // Hide Ninja Forms global objects
+                window.originalNinjaForms = window.NinjaForms;
+                window.originalNF = window.nf;
+                window.NinjaForms = undefined;
+                window.nf = undefined;
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+
+                // Restore objects
+                window.NinjaForms = window.originalNinjaForms;
+                window.nf = window.originalNF;
+            }, { shouldTrackForm: true, shouldHaveErrors: false }); // Should work without globals
+        }
+
+        function testAjaxSubmissionError() {
+            runNinjaErrorTest('AJAX Submission Processing Error', function() {
+                // Mock XMLHttpRequest to fail
+                var OriginalXHR = window.XMLHttpRequest;
+                window.XMLHttpRequest = function() {
+                    var xhr = new OriginalXHR();
+                    var originalSend = xhr.send;
+                    xhr.send = function() {
+                        throw new Error('Simulated AJAX submission error');
+                    };
+                    return xhr;
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: true, shouldHaveErrors: true, shouldUseRetry: true });
+        }
+
+        function testFormHidingDetectionError() {
+            runNinjaErrorTest('Form Hiding Detection Error', function() {
+                // Mock style property access to fail
+                var originalStyle = HTMLElement.prototype.style;
+                Object.defineProperty(HTMLElement.prototype, 'style', {
+                    get: function() {
+                        if (this.classList && this.classList.contains('nf-form-cont')) {
+                            throw new Error('Simulated style access error');
+                        }
+                        return originalStyle;
+                    }
+                });
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                // Simulate form hiding after submission (common Ninja Forms behavior)
+                simulateNinjaFormSubmission(form, '1');
+                setTimeout(function() {
+                    try {
+                        form.parentElement.style.display = 'none';
+                    } catch (e) {
+                        // Expected to fail due to mocked style
+                    }
+                }, 500);
+            }, { shouldTrackForm: true, shouldHaveErrors: true, shouldUseRetry: true });
+        }
+
+        function testSuccessMessageError() {
+            runNinjaErrorTest('Success Message Detection Error', function() {
+                // Mock success message detection to fail
+                var originalQuerySelector = Document.prototype.querySelector;
+                Document.prototype.querySelector = function(selector) {
+                    if (selector && selector.indexOf('nf-response') > -1) {
+                        throw new Error('Simulated success message query error');
+                    }
+                    return originalQuerySelector.call(this, selector);
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: true, shouldHaveErrors: true, shouldUseRetry: true });
+        }
+
+        function testFormStateError() {
+            runNinjaErrorTest('Form State Management Error', function() {
+                // Mock Map operations to fail
+                var OriginalMap = window.Map;
+                window.Map = function() {
+                    var map = new OriginalMap();
+                    map.set = function() {
+                        throw new Error('Simulated form state error');
+                    };
+                    return map;
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testEmailFieldExtractionError() {
+            runNinjaErrorTest('Email Field Extraction Error', function() {
+                // Mock email field access to fail
+                var emailInput = document.querySelector('#nf-form-1-cont input[name^="email"]');
+                Object.defineProperty(emailInput, 'value', {
+                    get: function() {
+                        throw new Error('Simulated email field access error');
+                    }
+                });
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testPhoneFieldExtractionError() {
+            runNinjaErrorTest('Phone Field Extraction Error', function() {
+                // Mock phone field access to fail
+                var phoneInput = document.querySelector('#nf-form-1-cont input[name^="phone"]');
+                Object.defineProperty(phoneInput, 'value', {
+                    get: function() {
+                        throw new Error('Simulated phone field access error');
+                    }
+                });
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testFieldMappingError() {
+            runNinjaErrorTest('Field Mapping Error', function() {
+                // Mock field name detection to fail
+                var inputs = document.querySelectorAll('#nf-form-1-cont input');
+                inputs.forEach(function(input) {
+                    Object.defineProperty(input, 'name', {
+                        get: function() {
+                            throw new Error('Simulated field name access error');
+                        }
+                    });
+                });
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testMultiStepFormError() {
+            runNinjaErrorTest('Multi-Step Form Error', function() {
+                // Mock step detection to fail
+                var originalQuerySelectorAll = HTMLElement.prototype.querySelectorAll;
+                HTMLElement.prototype.querySelectorAll = function(selector) {
+                    if (selector && selector.indexOf('nf-step') > -1) {
+                        throw new Error('Simulated step detection error');
+                    }
+                    return originalQuerySelectorAll.call(this, selector);
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-multistep .ninja-forms-form');
+                // Simulate multi-step completion
+                simulateNinjaMultiStepSubmission(form);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testRetryLogicError() {
+            runNinjaErrorTest('Retry Logic Processing Error', function() {
+                // Mock retry utility to fail
+                if (window.cuftRetryLogic) {
+                    window.originalRetryExecute = window.cuftRetryLogic.executeWithRetry;
+                    window.cuftRetryLogic.executeWithRetry = function() {
+                        throw new Error('Simulated retry logic error');
+                    };
+                }
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+
+                // Restore retry logic
+                if (window.cuftRetryLogic && window.originalRetryExecute) {
+                    window.cuftRetryLogic.executeWithRetry = window.originalRetryExecute;
+                }
+            }, { shouldTrackForm: true, shouldHaveErrors: true }); // Should fallback to direct execution
+        }
+
+        function testMutationObserverError() {
+            runNinjaErrorTest('MutationObserver Setup Error', function() {
+                // Mock MutationObserver to fail
+                window.OriginalMutationObserver = window.MutationObserver;
+                window.MutationObserver = function() {
+                    throw new Error('Simulated MutationObserver error');
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+
+                // Restore MutationObserver
+                window.MutationObserver = window.OriginalMutationObserver;
+            }, { shouldTrackForm: true, shouldHaveErrors: true }); // Should use fallback methods
+        }
+
+        function testFormDetectionRetryError() {
+            runNinjaErrorTest('Form Detection Retry Error', function() {
+                // Mock form detection to fail on first attempts
+                var attemptCount = 0;
+                var originalGetElementsByClassName = document.getElementsByClassName;
+                document.getElementsByClassName = function(className) {
+                    if (className === 'nf-form-cont') {
+                        attemptCount++;
+                        if (attemptCount <= 2) {
+                            throw new Error('Simulated form detection error (attempt ' + attemptCount + ')');
+                        }
+                    }
+                    return originalGetElementsByClassName.call(document, className);
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: true, shouldHaveErrors: true, shouldUseRetry: true });
+        }
+
+        function testTimeoutHandlingError() {
+            runNinjaErrorTest('Timeout Handling Error', function() {
+                // Mock setTimeout to fail
+                var originalSetTimeout = window.setTimeout;
+                window.setTimeout = function(callback, delay) {
+                    if (delay && delay > 1000) {
+                        throw new Error('Simulated timeout setup error');
+                    }
+                    return originalSetTimeout.call(window, callback, delay);
+                };
+            }, function() {
+                var form = document.querySelector('#nf-form-1-cont .ninja-forms-form');
+                simulateNinjaFormSubmission(form, '1');
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        // Helper functions
+        function simulateNinjaFormSubmission(form, formId) {
+            // Ninja Forms uses submit event with form hiding detection
+            var event = new CustomEvent('submit', { bubbles: true });
+            form.dispatchEvent(event);
+
+            // Simulate typical Ninja Forms post-submission behavior
+            setTimeout(function() {
+                if (form.parentElement) {
+                    try {
+                        form.parentElement.style.display = 'none';
+                        var responseMsg = form.parentElement.querySelector('.nf-response-msg');
+                        if (responseMsg) {
+                            responseMsg.style.display = 'block';
+                        }
+                    } catch (e) {
+                        // May fail in error scenarios
+                    }
+                }
+            }, 800);
+        }
+
+        function simulateNinjaMultiStepSubmission(form) {
+            // Simulate multi-step progression
+            var step1 = form.querySelector('[data-step="1"]');
+            var step2 = form.querySelector('[data-step="2"]');
+
+            if (step1) step1.style.display = 'none';
+            if (step2) step2.style.display = 'block';
+
+            // Submit final step
+            setTimeout(function() {
+                var event = new CustomEvent('submit', { bubbles: true });
+                form.dispatchEvent(event);
+            }, 500);
+        }
+
+        function runAllErrorTests() {
+            clearResults();
+            var tests = [
+                testMissingFormContainer,
+                testInvalidFormID,
+                testCorruptedFormFields,
+                testMissingNinjaFormsObject,
+                testAjaxSubmissionError,
+                testFormHidingDetectionError,
+                testSuccessMessageError,
+                testFormStateError,
+                testEmailFieldExtractionError,
+                testPhoneFieldExtractionError,
+                testFieldMappingError,
+                testMultiStepFormError,
+                testRetryLogicError,
+                testMutationObserverError,
+                testFormDetectionRetryError,
+                testTimeoutHandlingError
+            ];
+
+            tests.forEach(function(test, index) {
+                setTimeout(test, index * 3500); // Longer intervals for retry testing
+            });
+        }
+
+        function addTestResult(testName, status, message, details) {
+            var resultsDiv = document.getElementById('testResults');
+            var resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' + (status === 'PASS' ? 'pass' : status === 'FAIL' ? 'fail' : 'pending');
+
+            var html = '<strong>' + testName + ':</strong> ' + status + ' - ' + message;
+
+            if (details) {
+                if (details.errors && details.errors.length > 0) {
+                    html += '<br><strong>Ninja Errors (' + details.errors.length + '):</strong>';
+                    details.errors.forEach(function(error, index) {
+                        html += '<br>' + (index + 1) + '. ' + (error.message || error.type);
+                    });
+                }
+
+                if (details.events && details.events.length > 0) {
+                    html += '<br><strong>Ninja Events:</strong> ' + details.events.length + ' form_submit events';
+                    if (details.ninja_validated) {
+                        html += ' 🥷 Ninja-validated';
+                    }
+                }
+            }
+
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            ninjaErrorTracker.capturedErrors = [];
+            ninjaErrorTracker.capturedEvents = [];
+            ninjaErrorTracker.formStates.clear();
+        }
+
+        function showErrorBoundaryStatus() {
+            if (window.cuftErrorBoundary) {
+                var status = window.cuftErrorBoundary.getErrorStatus();
+                console.log('Error Boundary Status:', status);
+                alert('Error Boundary Status: ' + status.totalErrors + ' total errors');
+            } else {
+                alert('Error Boundary system not loaded');
+            }
+        }
+
+        // Initial setup
+        addTestResult('Ninja Forms Error Test System', 'READY', 'Ready to run Ninja Forms error handling tests', null);
+    </script>
+</body>
+</html>

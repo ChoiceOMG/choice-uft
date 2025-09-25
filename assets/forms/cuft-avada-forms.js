@@ -49,6 +49,11 @@
    * Get field value from Avada/Fusion forms with dynamic form loading support
    */
   function getFieldValue(form, type) {
+    // Framework detection - exit silently if not Avada
+    if (!isAvadaForm(form)) {
+      return "";
+    }
+
     var inputs = form.querySelectorAll("input, textarea, select");
     var field = null;
 
@@ -519,6 +524,10 @@
         button.addEventListener("click", function (event) {
           var clickedForm = event.target.closest(".fusion-form");
           if (clickedForm && !clickedForm.hasAttribute("data-cuft-avada-observing")) {
+            // Framework detection - exit silently if not Avada
+            if (!isAvadaForm(clickedForm)) {
+              return;
+            }
             log("Avada submit button clicked, starting observation");
             clickedForm.setAttribute("data-cuft-avada-observing", "true");
 

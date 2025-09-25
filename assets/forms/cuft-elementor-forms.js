@@ -118,6 +118,11 @@
    * Get field value from form using comprehensive detection
    */
   function getFieldValue(form, type) {
+    // Framework detection - exit silently if not Elementor
+    if (!isElementorForm(form)) {
+      return "";
+    }
+
     var inputs = form.querySelectorAll("input, textarea");
     var field = null;
 

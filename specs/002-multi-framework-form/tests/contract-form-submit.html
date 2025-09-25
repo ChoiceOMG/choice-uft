@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Test: Form Submit Events</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .pending { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        #dataLayerEvents { max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Contract Test: Form Submit Events</h1>
+    <p><strong>Purpose:</strong> Validate that all form_submit events meet the required contract specifications</p>
+
+    <div class="test-section">
+        <h2>Test Status</h2>
+        <div id="testResults"></div>
+        <button onclick="runAllTests()">Run All Contract Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="showDataLayerEvents()">Show DataLayer Events</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Framework Events</h2>
+        <button onclick="testElementorSubmit()">Test Elementor Form Submit</button>
+        <button onclick="testCF7Submit()">Test CF7 Form Submit</button>
+        <button onclick="testNinjaSubmit()">Test Ninja Form Submit</button>
+        <button onclick="testGravitySubmit()">Test Gravity Form Submit</button>
+        <button onclick="testAvadaSubmit()">Test Avada Form Submit</button>
+    </div>
+
+    <div class="test-section">
+        <h2>DataLayer Events Monitor</h2>
+        <div id="dataLayerEvents"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Contract Requirements</h2>
+        <h3>form_submit Event Must Include:</h3>
+        <ul>
+            <li><strong>event:</strong> "form_submit" (exact string)</li>
+            <li><strong>form_type:</strong> framework identifier (snake_case)</li>
+            <li><strong>form_id:</strong> non-empty string</li>
+            <li><strong>form_name:</strong> non-empty string</li>
+            <li><strong>cuft_tracked:</strong> true (boolean)</li>
+            <li><strong>cuft_source:</strong> framework_name (snake_case)</li>
+            <li><strong>submitted_at:</strong> ISO 8601 timestamp</li>
+            <li><strong>user_email:</strong> email address (if provided)</li>
+            <li><strong>user_phone:</strong> phone number (if provided)</li>
+        </ul>
+        <h3>Optional Fields (if present):</h3>
+        <ul>
+            <li>UTM parameters: utm_source, utm_medium, utm_campaign, utm_term, utm_content</li>
+            <li>Click IDs: click_id, gclid, fbclid, msclkid, etc.</li>
+        </ul>
+    </div>
+
+    <!-- Mock Framework Elements -->
+    <div style="display: none;">
+        <!-- Elementor Mock Form -->
+        <form class="elementor-form" id="mock-elementor-form" data-settings='{"form_id":"test-form-1"}'>
+            <input type="text" name="form_fields[email]" value="test@example.com">
+            <input type="text" name="form_fields[phone]" value="123-456-7890">
+        </form>
+
+        <!-- CF7 Mock Form -->
+        <form class="wpcf7-form" id="mock-cf7-form" data-contact-form-id="456">
+            <input type="email" name="your-email" value="test@cf7.com">
+            <input type="text" name="your-phone" value="987-654-3210">
+        </form>
+
+        <!-- Ninja Mock Form -->
+        <form class="ninja-forms-form" id="mock-ninja-form" data-form-id="789">
+            <input type="email" name="email_123" value="test@ninja.com">
+            <input type="text" name="phone_456" value="555-123-4567">
+        </form>
+
+        <!-- Gravity Mock Form -->
+        <form class="gform_wrapper" id="mock-gravity-form" data-form-id="101">
+            <input type="email" name="input_1" value="test@gravity.com">
+            <input type="text" name="input_2" value="444-555-6666">
+        </form>
+
+        <!-- Avada Mock Form -->
+        <form class="fusion-form" id="mock-avada-form" data-form-id="202">
+            <input type="email" name="email" value="test@avada.com">
+            <input type="text" name="phone" value="777-888-9999">
+        </form>
+    </div>
+
+    <script>
+        // Initialize DataLayer if not exists
+        window.dataLayer = window.dataLayer || [];
+
+        // Track all dataLayer events
+        var capturedEvents = [];
+        var originalPush = window.dataLayer.push.bind(window.dataLayer);
+
+        window.dataLayer.push = function(event) {
+            if (event && typeof event === 'object') {
+                capturedEvents.push({
+                    event: event,
+                    timestamp: new Date().toISOString(),
+                    testContext: window.currentTestContext || 'unknown'
+                });
+                updateDataLayerDisplay();
+            }
+            return originalPush(event);
+        };
+
+        // Contract validation functions
+        function validateFormSubmitContract(event) {
+            var errors = [];
+            var warnings = [];
+
+            // Required fields
+            if (event.event !== 'form_submit') {
+                errors.push('event must be "form_submit", got: ' + event.event);
+            }
+
+            if (!event.form_type || typeof event.form_type !== 'string' || event.form_type.trim() === '') {
+                errors.push('form_type must be a non-empty string');
+            }
+
+            if (!event.form_id || typeof event.form_id !== 'string' || event.form_id.trim() === '') {
+                errors.push('form_id must be a non-empty string');
+            }
+
+            if (!event.form_name || typeof event.form_name !== 'string' || event.form_name.trim() === '') {
+                errors.push('form_name must be a non-empty string');
+            }
+
+            if (event.cuft_tracked !== true) {
+                errors.push('cuft_tracked must be true (boolean), got: ' + event.cuft_tracked);
+            }
+
+            if (!event.cuft_source || typeof event.cuft_source !== 'string' || event.cuft_source.trim() === '') {
+                errors.push('cuft_source must be a non-empty string');
+            }
+
+            if (!event.submitted_at || typeof event.submitted_at !== 'string') {
+                errors.push('submitted_at must be a string');
+            } else {
+                // Validate ISO 8601 format
+                var isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+                if (!isoRegex.test(event.submitted_at)) {
+                    errors.push('submitted_at must be valid ISO 8601 format');
+                }
+            }
+
+            // Validate snake_case naming
+            Object.keys(event).forEach(function(key) {
+                if (key.indexOf('-') > -1 || (key.match(/[A-Z]/g) && key !== key.toLowerCase())) {
+                    warnings.push('Field "' + key + '" should use snake_case naming');
+                }
+            });
+
+            // Validate email format if present
+            if (event.user_email && typeof event.user_email === 'string') {
+                var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(event.user_email)) {
+                    warnings.push('user_email has invalid format: ' + event.user_email);
+                }
+            }
+
+            return { errors: errors, warnings: warnings };
+        }
+
+        function runContractTest(eventName, testFunction) {
+            window.currentTestContext = eventName;
+            var startEventCount = capturedEvents.length;
+
+            try {
+                testFunction();
+
+                // Wait for events to be captured
+                setTimeout(function() {
+                    var newEvents = capturedEvents.slice(startEventCount);
+                    var formSubmitEvents = newEvents.filter(function(item) {
+                        return item.event.event === 'form_submit';
+                    });
+
+                    if (formSubmitEvents.length === 0) {
+                        addTestResult(eventName, 'FAIL', 'No form_submit event was captured', null);
+                        return;
+                    }
+
+                    if (formSubmitEvents.length > 1) {
+                        addTestResult(eventName, 'FAIL', 'Multiple form_submit events captured (' + formSubmitEvents.length + ')', null);
+                        return;
+                    }
+
+                    var validation = validateFormSubmitContract(formSubmitEvents[0].event);
+
+                    if (validation.errors.length > 0) {
+                        addTestResult(eventName, 'FAIL', 'Contract validation failed', {
+                            errors: validation.errors,
+                            warnings: validation.warnings,
+                            event: formSubmitEvents[0].event
+                        });
+                    } else {
+                        var status = validation.warnings.length > 0 ? 'PASS (with warnings)' : 'PASS';
+                        addTestResult(eventName, status, 'Contract validation passed', {
+                            warnings: validation.warnings,
+                            event: formSubmitEvents[0].event
+                        });
+                    }
+                }, 1000);
+
+            } catch (error) {
+                addTestResult(eventName, 'ERROR', 'Test execution failed: ' + error.message, { error: error });
+            }
+
+            window.currentTestContext = null;
+        }
+
+        // Test functions for each framework
+        function testElementorSubmit() {
+            runContractTest('Elementor Form Submit', function() {
+                var form = document.getElementById('mock-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: {
+                        form: form,
+                        settings: { form_id: 'test-form-1' }
+                    }
+                });
+                form.dispatchEvent(event);
+            });
+        }
+
+        function testCF7Submit() {
+            runContractTest('CF7 Form Submit', function() {
+                var form = document.getElementById('mock-cf7-form');
+                var event = new CustomEvent('wpcf7mailsent', {
+                    bubbles: true,
+                    detail: {
+                        contactFormId: 456,
+                        inputs: form.querySelectorAll('input')
+                    }
+                });
+                form.dispatchEvent(event);
+            });
+        }
+
+        function testNinjaSubmit() {
+            runContractTest('Ninja Form Submit', function() {
+                var form = document.getElementById('mock-ninja-form');
+                form.style.display = 'none'; // Simulate form hiding after submit
+                var event = new CustomEvent('submit', {
+                    bubbles: true,
+                    target: form
+                });
+                form.dispatchEvent(event);
+            });
+        }
+
+        function testGravitySubmit() {
+            runContractTest('Gravity Form Submit', function() {
+                var form = document.getElementById('mock-gravity-form');
+                var event = new CustomEvent('submit', {
+                    bubbles: true,
+                    target: form
+                });
+                form.dispatchEvent(event);
+            });
+        }
+
+        function testAvadaSubmit() {
+            runContractTest('Avada Form Submit', function() {
+                var form = document.getElementById('mock-avada-form');
+                var event = new CustomEvent('submit', {
+                    bubbles: true,
+                    target: form
+                });
+                form.dispatchEvent(event);
+            });
+        }
+
+        function runAllTests() {
+            clearResults();
+            setTimeout(function() { testElementorSubmit(); }, 100);
+            setTimeout(function() { testCF7Submit(); }, 2000);
+            setTimeout(function() { testNinjaSubmit(); }, 4000);
+            setTimeout(function() { testGravitySubmit(); }, 6000);
+            setTimeout(function() { testAvadaSubmit(); }, 8000);
+        }
+
+        function addTestResult(testName, status, message, details) {
+            var resultsDiv = document.getElementById('testResults');
+            var resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' + (status.indexOf('PASS') === 0 ? 'pass' : status === 'FAIL' ? 'fail' : 'pending');
+
+            var html = '<strong>' + testName + ':</strong> ' + status + ' - ' + message;
+
+            if (details) {
+                if (details.errors && details.errors.length > 0) {
+                    html += '<br><strong>Errors:</strong><ul>';
+                    details.errors.forEach(function(error) {
+                        html += '<li>' + error + '</li>';
+                    });
+                    html += '</ul>';
+                }
+
+                if (details.warnings && details.warnings.length > 0) {
+                    html += '<br><strong>Warnings:</strong><ul>';
+                    details.warnings.forEach(function(warning) {
+                        html += '<li>' + warning + '</li>';
+                    });
+                    html += '</ul>';
+                }
+
+                if (details.event) {
+                    html += '<br><strong>Event Data:</strong><pre>' + JSON.stringify(details.event, null, 2) + '</pre>';
+                }
+            }
+
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            capturedEvents = [];
+            updateDataLayerDisplay();
+        }
+
+        function updateDataLayerDisplay() {
+            var display = document.getElementById('dataLayerEvents');
+            if (capturedEvents.length === 0) {
+                display.innerHTML = '<em>No events captured yet</em>';
+            } else {
+                var html = '<h4>Captured Events (' + capturedEvents.length + '):</h4>';
+                capturedEvents.forEach(function(item, index) {
+                    html += '<div><strong>Event ' + (index + 1) + '</strong> (' + item.testContext + '):';
+                    html += '<pre>' + JSON.stringify(item.event, null, 2) + '</pre></div>';
+                });
+                display.innerHTML = html;
+            }
+        }
+
+        function showDataLayerEvents() {
+            console.log('All captured dataLayer events:', capturedEvents);
+            updateDataLayerDisplay();
+        }
+
+        // Initial setup
+        addTestResult('Contract Test System', 'READY', 'Ready to run form_submit contract tests', null);
+    </script>
+</body>
+</html>

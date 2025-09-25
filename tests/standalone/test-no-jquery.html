@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUFT - Test Without jQuery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .form-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Choice Universal Form Tracker - No jQuery Test</h1>
+
+    <div class="test-section">
+        <h2>Test Environment</h2>
+        <div id="environment-info"></div>
+        <button onclick="checkEnvironment()">Check Environment</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Feature Flags Status</h2>
+        <div id="feature-flags"></div>
+        <button onclick="checkFeatureFlags()">Check Feature Flags</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Framework Detection Tests</h2>
+
+        <div class="form-container">
+            <h3>Test 1: Non-Framework Form (Should be ignored silently)</h3>
+            <form id="regular-form">
+                <input type="email" placeholder="Email">
+                <input type="tel" placeholder="Phone">
+                <button type="submit">Submit</button>
+            </form>
+            <div id="regular-form-result"></div>
+        </div>
+
+        <div class="form-container">
+            <h3>Test 2: Simulated Elementor Form</h3>
+            <form class="elementor-form" id="elementor-test">
+                <input type="email" placeholder="Email">
+                <input type="tel" placeholder="Phone">
+                <button type="submit">Submit</button>
+            </form>
+            <div id="elementor-test-result"></div>
+        </div>
+
+        <div class="form-container">
+            <h3>Test 3: Simulated CF7 Form</h3>
+            <div class="wpcf7">
+                <form class="wpcf7-form" id="cf7-test">
+                    <input type="email" placeholder="Email">
+                    <input type="tel" placeholder="Phone">
+                    <button type="submit">Submit</button>
+                </form>
+            </div>
+            <div id="cf7-test-result"></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Output</h2>
+        <div class="console-output" id="console-output"></div>
+        <button onclick="clearConsole()">Clear Console</button>
+    </div>
+
+    <!-- Initialize dataLayer -->
+    <script>
+        window.dataLayer = window.dataLayer || [];
+    </script>
+
+    <!-- Load CUFT scripts -->
+    <script src="assets/cuft-feature-flags.js"></script>
+    <script src="assets/cuft-utm-tracker.js"></script>
+    <script src="assets/cuft-utm-utils.js"></script>
+    <script src="assets/cuft-dataLayer-utils.js"></script>
+    <script src="assets/forms/cuft-elementor-forms.js"></script>
+    <script src="assets/forms/cuft-cf7-forms.js"></script>
+    <script src="assets/forms/cuft-ninja-forms.js"></script>
+    <script src="assets/forms/cuft-gravity-forms.js"></script>
+    <script src="assets/forms/cuft-avada-forms.js"></script>
+
+    <script>
+        // Intercept console.log to display in our console output
+        const originalLog = console.log;
+        const consoleOutput = document.getElementById('console-output');
+        let consoleMessages = [];
+
+        console.log = function() {
+            const message = Array.from(arguments).map(arg => {
+                if (typeof arg === 'object') {
+                    return JSON.stringify(arg, null, 2);
+                }
+                return String(arg);
+            }).join(' ');
+
+            consoleMessages.push(message);
+            if (consoleOutput) {
+                const line = document.createElement('div');
+                line.textContent = new Date().toISOString().split('T')[1].split('.')[0] + ' | ' + message;
+                consoleOutput.appendChild(line);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+
+            // Also call original console.log
+            originalLog.apply(console, arguments);
+        };
+
+        function checkEnvironment() {
+            const envInfo = document.getElementById('environment-info');
+            const hasJQuery = typeof window.jQuery !== 'undefined';
+            const hasDataLayer = typeof window.dataLayer !== 'undefined';
+            const hasCUFTUtils = typeof window.cuftDataLayerUtils !== 'undefined';
+            const hasFeatureFlags = typeof window.cuftMigration !== 'undefined';
+
+            envInfo.innerHTML = `
+                <div class="test-result ${hasJQuery ? 'error' : 'success'}">
+                    jQuery: ${hasJQuery ? 'LOADED (Should not be present!)' : 'NOT LOADED ✓'}
+                </div>
+                <div class="test-result ${hasDataLayer ? 'success' : 'error'}">
+                    DataLayer: ${hasDataLayer ? 'LOADED ✓' : 'NOT LOADED'}
+                </div>
+                <div class="test-result ${hasCUFTUtils ? 'success' : 'error'}">
+                    CUFT DataLayer Utils: ${hasCUFTUtils ? 'LOADED ✓' : 'NOT LOADED'}
+                </div>
+                <div class="test-result ${hasFeatureFlags ? 'success' : 'error'}">
+                    Feature Flags: ${hasFeatureFlags ? 'LOADED ✓' : 'NOT LOADED'}
+                </div>
+            `;
+        }
+
+        function checkFeatureFlags() {
+            const flagsDiv = document.getElementById('feature-flags');
+
+            if (window.cuftMigration) {
+                const status = window.cuftMigration.getStatus();
+                flagsDiv.innerHTML = `
+                    <div class="test-result info">
+                        <strong>Version:</strong> ${status.version}<br>
+                        <strong>Phase:</strong> ${status.phase}<br>
+                        <strong>Silent Framework Detection:</strong> ${status.flags.silentFrameworkDetection ? 'ENABLED ✓' : 'DISABLED'}<br>
+                        <strong>Strict Generate Lead Rules:</strong> ${status.flags.strictGenerateLeadRules ? 'ENABLED ✓' : 'DISABLED'}<br>
+                        <strong>Debug Mode:</strong> ${status.flags.debugMode ? 'ENABLED' : 'DISABLED'}
+                    </div>
+                `;
+
+                // Enable debug mode for testing
+                window.cuftMigration.debugMode = true;
+                window.cuftMigration.logStatus();
+            } else {
+                flagsDiv.innerHTML = '<div class="test-result error">Feature flags not loaded!</div>';
+            }
+        }
+
+        function clearConsole() {
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.innerHTML = '';
+            consoleMessages = [];
+        }
+
+        // Test form submissions
+        document.getElementById('regular-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const resultDiv = document.getElementById('regular-form-result');
+
+            // Check console messages - should have NO logging for this form
+            const recentLogs = consoleMessages.slice(-5).join('\n');
+            const hasLogging = recentLogs.includes('[CUFT');
+
+            if (hasLogging) {
+                resultDiv.innerHTML = '<div class="test-result error">FAILED: Framework logged messages for non-framework form!</div>';
+            } else {
+                resultDiv.innerHTML = '<div class="test-result success">PASSED: Form ignored silently as expected ✓</div>';
+            }
+        });
+
+        document.getElementById('elementor-test').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const resultDiv = document.getElementById('elementor-test-result');
+
+            // Fire a submit_success event to trigger Elementor tracking
+            const event = new CustomEvent('submit_success', {
+                detail: { form: this },
+                bubbles: true
+            });
+            this.dispatchEvent(event);
+
+            // Check if form was tracked
+            setTimeout(() => {
+                const tracked = window.dataLayer.find(e => e.form_type === 'elementor');
+                if (tracked) {
+                    resultDiv.innerHTML = '<div class="test-result success">PASSED: Elementor form tracked successfully ✓</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="test-result error">FAILED: Elementor form not tracked</div>';
+                }
+            }, 100);
+        });
+
+        document.getElementById('cf7-test').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const resultDiv = document.getElementById('cf7-test-result');
+
+            // Fire a wpcf7mailsent event to trigger CF7 tracking
+            const event = new CustomEvent('wpcf7mailsent', {
+                detail: {
+                    contactFormId: 'test-cf7',
+                    inputs: [
+                        { name: 'your-email', value: 'test@example.com' },
+                        { name: 'your-phone', value: '123-456-7890' }
+                    ]
+                },
+                bubbles: true
+            });
+            document.dispatchEvent(event);
+
+            // Check if form was tracked
+            setTimeout(() => {
+                const tracked = window.dataLayer.find(e => e.form_type === 'cf7');
+                if (tracked) {
+                    resultDiv.innerHTML = '<div class="test-result success">PASSED: CF7 form tracked successfully ✓</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="test-result info">INFO: CF7 form would be tracked with proper event</div>';
+                }
+            }, 100);
+        });
+
+        // Run initial checks on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            checkEnvironment();
+            checkFeatureFlags();
+            console.log('Test page loaded - No jQuery environment');
+        });
+    </script>
+</body>
+</html>

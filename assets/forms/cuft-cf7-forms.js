@@ -47,6 +47,11 @@
    * Get field value from CF7 form using CF7-specific naming patterns
    */
   function getFieldValue(form, type) {
+    // Framework detection - exit silently if not CF7
+    if (!isCF7Form(form)) {
+      return "";
+    }
+
     var inputs = form.querySelectorAll("input, textarea, select");
     var field = null;
 

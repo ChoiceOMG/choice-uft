@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Handling Test: Elementor Forms</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .pending { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .error-scenario { margin: 10px 0; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; background: #fff8f8; }
+    </style>
+</head>
+<body>
+    <h1>Error Handling Test: Elementor Forms</h1>
+    <p><strong>Purpose:</strong> Verify that Elementor form tracking continues to work correctly even when errors occur in other scripts or DOM issues arise</p>
+
+    <div class="test-section">
+        <h2>Test Status</h2>
+        <div id="testResults"></div>
+        <button onclick="runAllErrorTests()">Run All Error Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="showErrorBoundaryStatus()">Show Error Boundary Status</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Error Test Scenarios</h2>
+
+        <div class="error-scenario">
+            <h4>🔥 DOM Manipulation Errors</h4>
+            <button onclick="testMissingFormElement()">Missing Form Element</button>
+            <button onclick="testNullFormSettings()">Null Form Settings</button>
+            <button onclick="testInvalidFieldSelectors()">Invalid Field Selectors</button>
+            <button onclick="testCorruptedFormData()">Corrupted Form Data</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>⚡ JavaScript Runtime Errors</h4>
+            <button onclick="testGlobalError()">Global JavaScript Error</button>
+            <button onclick="testPromiseRejection()">Unhandled Promise Rejection</button>
+            <button onclick="testTypeError()">Type Error in Processing</button>
+            <button onclick="testReferenceError()">Reference Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>🌐 Network and Storage Errors</h4>
+            <button onclick="testSessionStorageError()">SessionStorage Access Error</button>
+            <button onclick="testDataLayerError()">DataLayer Push Error</button>
+            <button onclick="testPerformanceApiError()">Performance API Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>🎯 Framework-Specific Errors</h4>
+            <button onclick="testElementorEventError()">Elementor Event Handler Error</button>
+            <button onclick="testFormDetectionError()">Form Detection Failure</button>
+            <button onclick="testFieldExtractionError()">Field Extraction Error</button>
+            <button onclick="testObserverError()">MutationObserver Error</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Error Recovery Validation</h2>
+        <div id="errorStats"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <h3>✅ Error Handling Requirements:</h3>
+        <ul>
+            <li><strong>Graceful Degradation:</strong> Errors should not prevent form tracking</li>
+            <li><strong>Error Isolation:</strong> Errors in one form should not affect other forms</li>
+            <li><strong>Fallback Mechanisms:</strong> Alternative methods should be attempted</li>
+            <li><strong>No Console Spam:</strong> Errors should be logged appropriately, not spammed</li>
+            <li><strong>Event Continuity:</strong> Form submit events should still fire despite errors</li>
+            <li><strong>Error Boundary Integration:</strong> Errors should be caught by the error boundary system</li>
+        </ul>
+    </div>
+
+    <!-- Mock Framework Elements -->
+    <div style="display: none;">
+        <!-- Valid Elementor Form -->
+        <form class="elementor-form" id="valid-elementor-form" data-settings='{"form_id":"valid-form-123"}'>
+            <input type="text" name="form_fields[email]" value="valid@example.com">
+            <input type="text" name="form_fields[phone]" value="123-456-7890">
+        </form>
+
+        <!-- Forms for error testing -->
+        <form class="elementor-form" id="missing-settings-form">
+            <input type="text" name="form_fields[email]" value="nosettings@example.com">
+        </form>
+
+        <form class="elementor-form" id="corrupted-form" data-settings='invalid-json'>
+            <input type="text" name="form_fields[email]" value="corrupted@example.com">
+        </form>
+
+        <!-- Form with missing fields -->
+        <form class="elementor-form" id="missing-fields-form" data-settings='{"form_id":"missing-fields"}'>
+            <!-- No input fields -->
+        </form>
+    </div>
+
+    <script>
+        // Initialize error tracking
+        var errorTracker = {
+            capturedErrors: [],
+            capturedEvents: [],
+            originalConsoleError: console.error,
+            originalWindowError: window.onerror
+        };
+
+        // Track all dataLayer events
+        window.dataLayer = window.dataLayer || [];
+        var originalPush = window.dataLayer.push.bind(window.dataLayer);
+
+        window.dataLayer.push = function(event) {
+            if (event && typeof event === 'object') {
+                errorTracker.capturedEvents.push({
+                    event: event,
+                    timestamp: new Date().toISOString(),
+                    testContext: window.currentTestContext || 'unknown'
+                });
+            }
+            return originalPush(event);
+        };
+
+        // Monitor console errors
+        console.error = function() {
+            errorTracker.capturedErrors.push({
+                type: 'console.error',
+                args: Array.prototype.slice.call(arguments),
+                timestamp: new Date().toISOString(),
+                testContext: window.currentTestContext || 'unknown'
+            });
+            return errorTracker.originalConsoleError.apply(console, arguments);
+        };
+
+        // Monitor window errors
+        window.onerror = function(message, source, lineno, colno, error) {
+            errorTracker.capturedErrors.push({
+                type: 'window.error',
+                message: message,
+                source: source,
+                lineno: lineno,
+                colno: colno,
+                error: error,
+                timestamp: new Date().toISOString(),
+                testContext: window.currentTestContext || 'unknown'
+            });
+            if (errorTracker.originalWindowError) {
+                return errorTracker.originalWindowError(message, source, lineno, colno, error);
+            }
+        };
+
+        // Test execution framework
+        function runErrorTest(testName, errorSetup, formTrigger, expectedBehavior) {
+            window.currentTestContext = testName;
+            var startErrorCount = errorTracker.capturedErrors.length;
+            var startEventCount = errorTracker.capturedEvents.length;
+
+            try {
+                // Set up the error condition
+                if (errorSetup) {
+                    errorSetup();
+                }
+
+                // Trigger the form event
+                formTrigger();
+
+                // Give time for async processing
+                setTimeout(function() {
+                    var newErrors = errorTracker.capturedErrors.slice(startErrorCount);
+                    var newEvents = errorTracker.capturedEvents.slice(startEventCount);
+                    var formSubmitEvents = newEvents.filter(function(item) {
+                        return item.event.event === 'form_submit';
+                    });
+
+                    // Evaluate results based on expected behavior
+                    var result = evaluateErrorTestResult(testName, newErrors, formSubmitEvents, expectedBehavior);
+                    addTestResult(testName, result.status, result.message, result.details);
+
+                    window.currentTestContext = null;
+                }, 1500);
+
+            } catch (error) {
+                addTestResult(testName, 'ERROR', 'Test setup failed: ' + error.message, { error: error });
+                window.currentTestContext = null;
+            }
+        }
+
+        function evaluateErrorTestResult(testName, errors, formSubmitEvents, expectedBehavior) {
+            var result = { status: 'PENDING', message: '', details: {} };
+
+            // Check if form tracking still worked despite errors
+            var trackingWorked = formSubmitEvents.length > 0;
+            var errorsOccurred = errors.length > 0;
+
+            if (expectedBehavior.shouldTrackForm) {
+                if (trackingWorked) {
+                    if (expectedBehavior.shouldHaveErrors && !errorsOccurred) {
+                        result = {
+                            status: 'FAIL',
+                            message: 'Expected errors to occur but none were captured',
+                            details: { errors: errors, events: formSubmitEvents }
+                        };
+                    } else {
+                        result = {
+                            status: 'PASS',
+                            message: 'Form tracking worked correctly despite errors (' + errors.length + ' errors handled)',
+                            details: { errors: errors, events: formSubmitEvents }
+                        };
+                    }
+                } else {
+                    result = {
+                        status: 'FAIL',
+                        message: 'Form tracking failed - no form_submit event captured',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                }
+            } else {
+                // Form should not track (e.g., invalid form)
+                if (!trackingWorked) {
+                    result = {
+                        status: 'PASS',
+                        message: 'Correctly did not track invalid form (' + errors.length + ' errors as expected)',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                } else {
+                    result = {
+                        status: 'FAIL',
+                        message: 'Unexpectedly tracked invalid form',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                }
+            }
+
+            return result;
+        }
+
+        // Error test scenarios
+        function testMissingFormElement() {
+            runErrorTest('Missing Form Element', null, function() {
+                // Try to trigger event on non-existent form
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: null, settings: { form_id: 'missing-form' } }
+                });
+                document.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testNullFormSettings() {
+            runErrorTest('Null Form Settings', null, function() {
+                var form = document.getElementById('missing-settings-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: null }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testInvalidFieldSelectors() {
+            runErrorTest('Invalid Field Selectors', function() {
+                // Mock invalid selectors that would cause querySelector to fail
+                var originalQuerySelector = document.querySelector;
+                document.querySelector = function(selector) {
+                    if (selector && selector.indexOf('form_fields') > -1) {
+                        throw new Error('Invalid selector: ' + selector);
+                    }
+                    return originalQuerySelector.call(document, selector);
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'invalid-selectors' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testCorruptedFormData() {
+            runErrorTest('Corrupted Form Data', null, function() {
+                var form = document.getElementById('corrupted-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'corrupted-data' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testGlobalError() {
+            runErrorTest('Global JavaScript Error', function() {
+                // Simulate global error
+                setTimeout(function() {
+                    throw new Error('Simulated global error for testing');
+                }, 100);
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'global-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testPromiseRejection() {
+            runErrorTest('Unhandled Promise Rejection', function() {
+                // Create unhandled promise rejection
+                Promise.reject(new Error('Simulated promise rejection for testing'));
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'promise-rejection-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testTypeError() {
+            runErrorTest('Type Error in Processing', function() {
+                // Mock a scenario that would cause TypeError
+                var originalGetAttribute = Element.prototype.getAttribute;
+                Element.prototype.getAttribute = function(name) {
+                    if (name === 'data-settings') {
+                        return null; // This might cause issues if not handled
+                    }
+                    return originalGetAttribute.call(this, name);
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'type-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: false }); // Should be handled gracefully
+        }
+
+        function testReferenceError() {
+            runErrorTest('Reference Error', function() {
+                // Try to access undefined variable in tracking context
+                window.undefinedVariable.someMethod();
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'reference-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testSessionStorageError() {
+            runErrorTest('SessionStorage Access Error', function() {
+                // Mock sessionStorage error
+                var originalSetItem = Storage.prototype.setItem;
+                Storage.prototype.setItem = function() {
+                    throw new Error('Simulated storage quota exceeded');
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'storage-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testDataLayerError() {
+            runErrorTest('DataLayer Push Error', function() {
+                // Mock dataLayer.push error
+                window.dataLayer.push = function() {
+                    throw new Error('Simulated dataLayer push error');
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'datalayer-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testPerformanceApiError() {
+            runErrorTest('Performance API Error', function() {
+                // Mock performance API error
+                if (window.performance) {
+                    window.performance.mark = function() {
+                        throw new Error('Simulated performance API error');
+                    };
+                }
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'performance-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testElementorEventError() {
+            runErrorTest('Elementor Event Handler Error', function() {
+                // Simulate error in event handling
+                var originalAddEventListener = EventTarget.prototype.addEventListener;
+                EventTarget.prototype.addEventListener = function(type, listener, options) {
+                    if (type === 'submit_success') {
+                        var wrappedListener = function() {
+                            throw new Error('Simulated event handler error');
+                        };
+                        return originalAddEventListener.call(this, type, wrappedListener, options);
+                    }
+                    return originalAddEventListener.call(this, type, listener, options);
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'event-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testFormDetectionError() {
+            runErrorTest('Form Detection Failure', function() {
+                // Mock form detection failure
+                var originalGetElementsByClassName = document.getElementsByClassName;
+                document.getElementsByClassName = function(className) {
+                    if (className === 'elementor-form') {
+                        throw new Error('Simulated form detection error');
+                    }
+                    return originalGetElementsByClassName.call(document, className);
+                };
+            }, function() {
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: null, settings: { form_id: 'detection-error-test' } }
+                });
+                document.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testFieldExtractionError() {
+            runErrorTest('Field Extraction Error', function() {
+                // Mock field extraction error
+                var originalQuerySelectorAll = Document.prototype.querySelectorAll;
+                Document.prototype.querySelectorAll = function(selector) {
+                    if (selector && selector.indexOf('form_fields') > -1) {
+                        throw new Error('Simulated field extraction error');
+                    }
+                    return originalQuerySelectorAll.call(this, selector);
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'extraction-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testObserverError() {
+            runErrorTest('MutationObserver Error', function() {
+                // Mock MutationObserver error
+                var OriginalMutationObserver = window.MutationObserver;
+                window.MutationObserver = function() {
+                    throw new Error('Simulated MutationObserver error');
+                };
+            }, function() {
+                var form = document.getElementById('valid-elementor-form');
+                var event = new CustomEvent('submit_success', {
+                    bubbles: true,
+                    detail: { form: form, settings: { form_id: 'observer-error-test' } }
+                });
+                form.dispatchEvent(event);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function runAllErrorTests() {
+            clearResults();
+            var tests = [
+                testMissingFormElement,
+                testNullFormSettings,
+                testInvalidFieldSelectors,
+                testCorruptedFormData,
+                testGlobalError,
+                testPromiseRejection,
+                testTypeError,
+                testReferenceError,
+                testSessionStorageError,
+                testDataLayerError,
+                testPerformanceApiError,
+                testElementorEventError,
+                testFormDetectionError,
+                testFieldExtractionError,
+                testObserverError
+            ];
+
+            tests.forEach(function(test, index) {
+                setTimeout(test, index * 3000); // 3 second intervals for error tests
+            });
+        }
+
+        function addTestResult(testName, status, message, details) {
+            var resultsDiv = document.getElementById('testResults');
+            var resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' + (status === 'PASS' ? 'pass' : status === 'FAIL' ? 'fail' : 'pending');
+
+            var html = '<strong>' + testName + ':</strong> ' + status + ' - ' + message;
+
+            if (details) {
+                if (details.errors && details.errors.length > 0) {
+                    html += '<br><strong>Captured Errors (' + details.errors.length + '):</strong>';
+                    details.errors.forEach(function(error, index) {
+                        html += '<br>' + (index + 1) + '. ' + (error.message || error.type) + (error.args ? ' - ' + JSON.stringify(error.args) : '');
+                    });
+                }
+
+                if (details.events && details.events.length > 0) {
+                    html += '<br><strong>Events Captured:</strong> ' + details.events.length + ' form_submit events';
+                }
+            }
+
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            errorTracker.capturedErrors = [];
+            errorTracker.capturedEvents = [];
+        }
+
+        function showErrorBoundaryStatus() {
+            if (window.cuftErrorBoundary) {
+                var status = window.cuftErrorBoundary.getErrorStatus();
+                console.log('Error Boundary Status:', status);
+                alert('Error Boundary Status: ' + status.totalErrors + ' total errors, ' + status.uniqueErrors + ' unique errors');
+            } else {
+                alert('Error Boundary system not loaded');
+            }
+        }
+
+        // Initial setup
+        addTestResult('Elementor Error Test System', 'READY', 'Ready to run error handling tests', null);
+    </script>
+</body>
+</html>

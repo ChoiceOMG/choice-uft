@@ -53,6 +53,7 @@ class Choice_Universal_Form_Tracker {
     private function load_dependencies() {
         // Core includes with error handling
         $includes = array(
+            'includes/class-cuft-feature-flags.php',  // Load feature flags first
             'includes/class-cuft-admin.php',
             'includes/class-cuft-gtm.php',
             'includes/class-cuft-form-detector.php',
@@ -130,10 +131,15 @@ class Choice_Universal_Form_Tracker {
         
         // Initialize core components with error handling
         try {
+            // Initialize feature flags first (Phase 1 migration)
+            if ( class_exists( 'CUFT_Feature_Flags' ) ) {
+                new CUFT_Feature_Flags();
+            }
+
             if ( is_admin() && class_exists( 'CUFT_Admin' ) ) {
                 new CUFT_Admin();
             }
-            
+
             if ( class_exists( 'CUFT_GTM' ) ) {
                 new CUFT_GTM();
             }
