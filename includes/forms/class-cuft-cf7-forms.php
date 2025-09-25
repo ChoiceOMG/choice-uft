@@ -24,15 +24,16 @@ class CUFT_CF7_Forms {
         if ( ! CUFT_Form_Detector::is_framework_detected( 'contact_form_7' ) ) {
             return;
         }
-        
+
+        // Enqueue dataLayer utilities first (required by all framework scripts)
         wp_enqueue_script(
-            'cuft-cf7-forms',
-            CUFT_URL . '/assets/forms/cuft-cf7-forms.js',
-            array( 'cuft-utm-utils' ),
+            'cuft-dataLayer-utils',
+            CUFT_URL . '/assets/cuft-dataLayer-utils.js',
+            array(),
             CUFT_VERSION,
-            true
+            false // Load in header for availability
         );
-        
+
         // Enqueue UTM utilities
         wp_enqueue_script(
             'cuft-utm-utils',
@@ -41,7 +42,16 @@ class CUFT_CF7_Forms {
             CUFT_VERSION,
             true
         );
-        
+
+        // Enqueue CF7 forms script with dependencies
+        wp_enqueue_script(
+            'cuft-cf7-forms',
+            CUFT_URL . '/assets/forms/cuft-cf7-forms.js',
+            array( 'cuft-dataLayer-utils', 'cuft-utm-utils' ),
+            CUFT_VERSION,
+            true
+        );
+
         $this->localize_script();
     }
     

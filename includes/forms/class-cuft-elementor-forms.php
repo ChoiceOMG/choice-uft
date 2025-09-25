@@ -33,19 +33,20 @@ class CUFT_Elementor_Forms {
         if ( ! function_exists( 'wp_enqueue_script' ) || ! class_exists( 'CUFT_Form_Detector' ) ) {
             return;
         }
-        
+
         if ( ! CUFT_Form_Detector::is_framework_detected( 'elementor' ) ) {
             return;
         }
-        
+
+        // Enqueue dataLayer utilities first (required by all framework scripts)
         wp_enqueue_script(
-            'cuft-elementor-forms',
-            CUFT_URL . '/assets/forms/cuft-elementor-forms.js',
-            array( 'cuft-utm-utils' ),
+            'cuft-dataLayer-utils',
+            CUFT_URL . '/assets/cuft-dataLayer-utils.js',
+            array(),
             CUFT_VERSION,
-            true
+            false // Load in header for availability
         );
-        
+
         // Enqueue UTM utilities with proper dependency
         wp_enqueue_script(
             'cuft-utm-utils',
@@ -54,7 +55,16 @@ class CUFT_Elementor_Forms {
             CUFT_VERSION,
             true
         );
-        
+
+        // Enqueue Elementor forms script with dependencies
+        wp_enqueue_script(
+            'cuft-elementor-forms',
+            CUFT_URL . '/assets/forms/cuft-elementor-forms.js',
+            array( 'cuft-dataLayer-utils', 'cuft-utm-utils' ),
+            CUFT_VERSION,
+            true
+        );
+
         $this->localize_script();
     }
     
