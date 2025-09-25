@@ -76,7 +76,26 @@ class CUFT_Test_Forms {
                 <?php endif; ?>
             </div>
 
-
+            <!-- Navigation Bar -->
+            <div style="background: #f0f3f7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="<?php echo admin_url('options-general.php?page=choice-universal-form-tracker'); ?>"
+                           class="button">
+                            ⚙️ Back to Plugin Settings
+                        </a>
+                        <a href="<?php echo admin_url('admin.php?page=google-tag-assistant'); ?>"
+                           class="button button-secondary"
+                           target="_blank">
+                            🔍 Tag Assistant
+                        </a>
+                    </div>
+                    <div style="font-size: 12px; color: #666; text-align: right;">
+                        <strong>Test forms trigger real tracking events</strong><br>
+                        Check Tag Assistant for validation • Events include cuft_tracked & cuft_source
+                    </div>
+                </div>
+            </div>
 
             <!-- Test Forms Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">

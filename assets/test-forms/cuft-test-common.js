@@ -115,50 +115,93 @@
         },
 
         /**
-         * Fire generate_lead event if requirements are met
+         * Check if generate_lead should fire based on stored data
+         * NOTE: We no longer fire generate_lead directly - production code handles this
          */
-        fireGenerateLeadEvent: function(framework, formData) {
-            if (!this.shouldFireGenerateLead(framework, formData)) {
+        checkGenerateLeadRequirements: function(framework, formElement) {
+            const requirements = this.getGenerateLeadRequirements(framework);
+
+            // Get stored tracking data
+            let trackingData = {};
+            try {
+                const stored = JSON.parse(sessionStorage.getItem('cuft_tracking_data'));
+                if (stored && stored.tracking) {
+                    trackingData = stored.tracking;
+                }
+            } catch (e) {
+                console.log('[CUFT Test] Could not retrieve tracking data');
+            }
+
+            // Get form field values
+            const email = formElement.getAttribute('data-cuft-email') || '';
+            const phone = formElement.getAttribute('data-cuft-phone') || '';
+
+            // Check email requirement
+            if (requirements.email && !email) {
+                console.log(`[CUFT Test] Generate lead should be blocked: Email required for ${framework}`);
                 return false;
             }
 
-            const generateLeadData = {
-                event: 'generate_lead',
-                currency: 'USD',
-                value: 0,
-                form_framework: framework,
-                user_email: formData.user_email,
-                user_phone: formData.user_phone || '',
-                click_id: formData.click_id || formData.gclid || formData.fbclid || '',
-                utm_campaign: formData.utm_campaign || '',
-                test_submission: true,
-                timestamp: new Date().toISOString(),
-                cuft_tracked: true,
-                cuft_source: `${framework}_test_lead`
-            };
-
-            if (window.dataLayer) {
-                window.dataLayer.push(generateLeadData);
-                console.log(`[CUFT Test] ✅ generate_lead event fired for ${framework}:`, generateLeadData);
-                return true;
-            } else {
-                console.error('[CUFT Test] ❌ dataLayer not found for generate_lead event');
+            // Check phone requirement
+            if (requirements.phone && !phone) {
+                console.log(`[CUFT Test] Generate lead should be blocked: Phone required for ${framework}`);
                 return false;
             }
+
+            // Check click_id requirement
+            if (requirements.click_id && !trackingData.click_id && !trackingData.gclid && !trackingData.fbclid) {
+                console.log(`[CUFT Test] Generate lead should be blocked: Click ID required for ${framework}`);
+                return false;
+            }
+
+            // Check UTM campaign requirement
+            if (requirements.utm_campaign && !trackingData.utm_campaign) {
+                console.log(`[CUFT Test] Generate lead should be blocked: UTM campaign required for ${framework}`);
+                return false;
+            }
+
+            console.log(`[CUFT Test] Generate lead should fire for ${framework}`);
+            return true;
         },
 
         /**
-         * Push form_submit event to dataLayer
+         * Check if dataLayer events were fired by production code
+         * NOTE: We no longer fire events directly - production code should handle this
          */
-        fireFormSubmitEvent: function(formData) {
-            if (window.dataLayer) {
-                window.dataLayer.push(formData);
-                console.log(`[CUFT Test] ✅ form_submit event fired:`, formData);
-                return true;
-            } else {
-                console.error('[CUFT Test] ❌ dataLayer not found for form_submit event');
-                return false;
+        checkDataLayerEvents: function(framework, expectedFormId) {
+            if (!window.dataLayer) {
+                console.error('[CUFT Test] ❌ dataLayer not found');
+                return { formSubmit: false, generateLead: false };
             }
+
+            // Check recent events (last 10 events)
+            const recentEvents = window.dataLayer.slice(-10);
+
+            const formSubmitEvent = recentEvents.find(e =>
+                e.event === 'form_submit' &&
+                e.cuft_tracked &&
+                e.cuft_source &&
+                (e.form_id === expectedFormId || !expectedFormId)
+            );
+
+            const generateLeadEvent = recentEvents.find(e =>
+                e.event === 'generate_lead' &&
+                (e.form_id === expectedFormId || !expectedFormId)
+            );
+
+            console.log(`[CUFT Test] Event check for ${framework}:`, {
+                formSubmit: !!formSubmitEvent,
+                generateLead: !!generateLeadEvent,
+                formSubmitData: formSubmitEvent || null,
+                generateLeadData: generateLeadEvent || null
+            });
+
+            return {
+                formSubmit: !!formSubmitEvent,
+                generateLead: !!generateLeadEvent,
+                formSubmitEvent: formSubmitEvent,
+                generateLeadEvent: generateLeadEvent
+            };
         },
 
         /**
@@ -472,24 +515,55 @@
         },
 
         /**
-         * Update sessionStorage with test tracking data before form submission
+         * Prepare tracking data for production code consumption
+         * This method is now used by framework-specific test files
          */
-        updateTrackingDataForTest: function(framework, formId) {
+        prepareTrackingDataForProduction: function(framework, formId, formElement) {
             const testTrackingData = this.getTestTrackingData(framework, formId);
 
-            try {
-                const data = {
-                    tracking: testTrackingData,
-                    timestamp: Date.now()
-                };
-                sessionStorage.setItem('cuft_tracking_data', JSON.stringify(data));
-                this.log(`Updated sessionStorage with test data for ${framework}:`, 'info');
-                this.log(testTrackingData, 'data');
-            } catch (e) {
-                this.log(`Error updating sessionStorage: ${e.message}`, 'error');
-            }
+            // Apply testing controls to modify the data
+            const modifiedData = this.applyTestingControls(formElement, testTrackingData);
 
-            return testTrackingData;
+            // Structure data in the format production code expects
+            const storageData = {
+                tracking: {
+                    click_id: modifiedData.click_id || null,
+                    gclid: modifiedData.gclid || null,
+                    fbclid: modifiedData.fbclid || null,
+                    wbraid: modifiedData.wbraid || null,
+                    gbraid: modifiedData.gbraid || null,
+                    msclkid: modifiedData.msclkid || null,
+                    ttclid: modifiedData.ttclid || null,
+                    li_fat_id: modifiedData.li_fat_id || null,
+                    twclid: modifiedData.twclid || null,
+                    snap_click_id: modifiedData.snap_click_id || null,
+                    pclid: modifiedData.pclid || null,
+                    utm_source: modifiedData.utm_source || null,
+                    utm_medium: modifiedData.utm_medium || null,
+                    utm_campaign: modifiedData.utm_campaign || null,
+                    utm_term: modifiedData.utm_term || null,
+                    utm_content: modifiedData.utm_content || null
+                },
+                timestamp: Date.now()
+            };
+
+            try {
+                sessionStorage.setItem('cuft_tracking_data', JSON.stringify(storageData));
+                this.log(`Prepared tracking data for ${framework} production code:`, 'info');
+                this.log(storageData, 'data');
+                return storageData;
+            } catch (e) {
+                this.log(`Error preparing tracking data: ${e.message}`, 'error');
+                return null;
+            }
+        },
+
+        /**
+         * DEPRECATED: Use prepareTrackingDataForProduction instead
+         */
+        updateTrackingDataForTest: function(framework, formId) {
+            console.warn('[CUFT Test] updateTrackingDataForTest is deprecated, use prepareTrackingDataForProduction');
+            return this.getTestTrackingData(framework, formId);
         }
     };
 

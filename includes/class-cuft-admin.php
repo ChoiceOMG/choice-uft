@@ -257,19 +257,25 @@ class CUFT_Admin {
                             </span>
                         </div>
                         <?php if ( $framework['detected'] ): ?>
-                            <div class="cuft-test-form-wrapper" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                                <div style="margin-bottom: 8px; font-size: 12px; color: #666;">
-                                    Test submissions will be sent to: <strong><?php echo esc_html( $admin_email ); ?></strong>
+                            <?php
+                            // Get test page URL for navigation
+                            $test_page_id = get_option( 'cuft_test_page_id' );
+                            $test_page_url = $test_page_id ? get_permalink( $test_page_id ) : '#';
+                            ?>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="font-size: 12px; color: #666;">
+                                        Form tracking enabled and active
+                                    </div>
+                                    <?php if ( $test_page_url !== '#' ): ?>
+                                        <a href="<?php echo esc_url( $test_page_url ); ?>"
+                                           target="_blank"
+                                           class="button button-secondary"
+                                           style="font-size: 11px; padding: 4px 8px; height: auto;">
+                                            🧪 Test Form
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <button type="button"
-                                            class="button button-secondary cuft-test-form-submit"
-                                            data-framework="<?php echo esc_attr( $framework['key'] ); ?>"
-                                            data-email="<?php echo esc_attr( $admin_email ); ?>">
-                                        📧 Submit Test Form
-                                    </button>
-                                </div>
-                                <div class="cuft-test-result" id="test-result-<?php echo esc_attr( $framework['key'] ); ?>" style="margin-top: 10px; display: none;"></div>
                             </div>
                         <?php endif; ?>
                     </div>

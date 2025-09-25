@@ -81,21 +81,18 @@
             // Set loading state
             this.setLoadingState(formElement, submitButton);
 
-            // Prepare tracking data
+            // Prepare tracking data for storage (production code will retrieve this)
             const formId = formElement.dataset.formId || 'elementor-form-widget-test';
+            this.prepareTrackingDataForProduction(formElement, formId);
 
-            // Update sessionStorage with test tracking data BEFORE getting tracking data
-            common.updateTrackingDataForTest('elementor', formId);
+            // Store form values in the form element for production code to find
+            formElement.setAttribute('data-cuft-email', fieldValues.email || '');
+            formElement.setAttribute('data-cuft-phone', fieldValues.phone || '');
+            formElement.setAttribute('data-cuft-tracking', 'pending');
 
-            const trackingData = common.getTestTrackingData('elementor', formId);
-
-            // Add form field values
-            trackingData.user_email = fieldValues.email;
-            trackingData.user_phone = fieldValues.phone;
-
-            // Simulate Elementor processing time
+            // Simulate Elementor processing time then fire events for production code
             setTimeout(() => {
-                this.processSubmission(formElement, trackingData, submitButton, resultDiv);
+                this.fireElementorEventsForProduction(formElement, formId, submitButton, resultDiv);
             }, 800);
         },
 
@@ -115,93 +112,130 @@
         },
 
         /**
-         * Process form submission
+         * Prepare tracking data for production code to retrieve
          */
-        processSubmission: function(formElement, trackingData, submitButton, resultDiv) {
-            // Apply testing controls to modify tracking data
-            trackingData = common.applyTestingControls(formElement, trackingData);
+        prepareTrackingDataForProduction: function(formElement, formId) {
+            // Get test tracking data to store
+            const testData = common.getTestTrackingData('elementor', formId);
 
-            // Fire form_submit event
-            const formSubmitSuccess = common.fireFormSubmitEvent(trackingData);
+            // Apply testing controls to modify the data we're storing
+            const modifiedData = common.applyTestingControls(formElement, testData);
 
-            // Fire Elementor-specific events
-            this.fireElementorEvents(formElement, trackingData);
+            // Store in sessionStorage in the format production code expects
+            const storageData = {
+                tracking: {
+                    click_id: modifiedData.click_id || null,
+                    gclid: modifiedData.gclid || null,
+                    fbclid: modifiedData.fbclid || null,
+                    utm_source: modifiedData.utm_source || null,
+                    utm_medium: modifiedData.utm_medium || null,
+                    utm_campaign: modifiedData.utm_campaign || null,
+                    utm_term: modifiedData.utm_term || null,
+                    utm_content: modifiedData.utm_content || null
+                },
+                timestamp: Date.now()
+            };
 
-            // Fire generate_lead if requirements are met
-            const generateLeadFired = common.fireGenerateLeadEvent('elementor', trackingData);
-
-            // Send email notification
-            this.sendEmailNotification(trackingData, (emailSent, trackingId) => {
-                // Show success state
-                this.showSuccessState(formElement, submitButton, resultDiv, emailSent, trackingId, generateLeadFired);
-            });
+            try {
+                sessionStorage.setItem('cuft_tracking_data', JSON.stringify(storageData));
+                common.log('Tracking data prepared for production code:', storageData);
+            } catch (e) {
+                common.log('Error storing tracking data: ' + e.message, 'error');
+            }
         },
 
         /**
-         * Fire Elementor-specific events
+         * Fire Elementor events for production code to handle
          */
-        fireElementorEvents: function(formElement, trackingData) {
-            // Fire native submit_success event
+        fireElementorEventsForProduction: function(formElement, formId, submitButton, resultDiv) {
+            // Fire native submit_success event that production code listens for
             const submitSuccessEvent = new CustomEvent('submit_success', {
                 detail: {
                     success: true,
                     data: {
-                        form_id: trackingData.form_id,
+                        form_id: formId,
                         response: 'success'
                     }
                 },
                 bubbles: true
             });
 
+            // Target the form element specifically
+            formElement.dispatchEvent(submitSuccessEvent);
             document.dispatchEvent(submitSuccessEvent);
-            common.log('✅ Native submit_success event fired');
+            common.log('✅ Native submit_success event fired for production code');
 
             // Also fire jQuery event if jQuery is available
             if (window.jQuery) {
+                window.jQuery(formElement).trigger('submit_success', [{
+                    success: true,
+                    data: {
+                        form_id: formId
+                    }
+                }]);
                 window.jQuery(document).trigger('submit_success', [{
                     success: true,
                     data: {
-                        form_id: trackingData.form_id
+                        form_id: formId
                     }
                 }]);
-                common.log('✅ jQuery submit_success event fired');
+                common.log('✅ jQuery submit_success event fired for production code');
             }
 
             // Fire Elementor 3.5+ specific event
             const elementorFormEvent = new CustomEvent('elementor/frontend/form_success', {
                 detail: {
                     form: formElement,
-                    form_id: trackingData.form_id,
+                    form_id: formId,
                     success: true
                 },
                 bubbles: true
             });
 
+            formElement.dispatchEvent(elementorFormEvent);
             document.dispatchEvent(elementorFormEvent);
-            common.log('✅ Elementor frontend form_success event fired');
+            common.log('✅ Elementor frontend form_success event fired for production code');
+
+            // Send email notification after a short delay (let production code fire first)
+            setTimeout(() => {
+                this.sendTestEmailNotification(formId, submitButton, resultDiv);
+            }, 1500);
         },
 
         /**
-         * Send email notification
+         * Send test email notification
          */
-        sendEmailNotification: function(trackingData, callback) {
+        sendTestEmailNotification: function(formId, submitButton, resultDiv) {
             if (!window.cuftTestConfig || !window.cuftTestConfig.ajax_url) {
                 common.log('AJAX URL not configured, skipping email', 'warn');
-                callback(false, 'no-ajax');
+                this.showSuccessState(resultDiv, false, 'no-ajax');
+                common.resetSubmitButton(submitButton);
                 return;
             }
+
+            // Get form element to retrieve stored values
+            const formElement = submitButton.closest('.cuft-test-form');
+            const email = formElement.getAttribute('data-cuft-email') || '';
+            const phone = formElement.getAttribute('data-cuft-phone') || '';
 
             const formData = new FormData();
             formData.append('action', 'cuft_frontend_test_submit');
             formData.append('framework', 'elementor');
-            formData.append('email', trackingData.user_email);
-            formData.append('phone', trackingData.user_phone);
-            formData.append('form_id', trackingData.form_id);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('form_id', formId);
 
-            // Add UTM parameters
-            formData.append('utm_source', trackingData.utm_source);
-            formData.append('utm_medium', trackingData.utm_medium);
-            formData.append('utm_campaign', trackingData.utm_campaign);
+            // Add UTM parameters from stored tracking data
+            try {
+                const storedData = JSON.parse(sessionStorage.getItem('cuft_tracking_data'));
+                if (storedData && storedData.tracking) {
+                    if (storedData.tracking.utm_source) formData.append('utm_source', storedData.tracking.utm_source);
+                    if (storedData.tracking.utm_medium) formData.append('utm_medium', storedData.tracking.utm_medium);
+                    if (storedData.tracking.utm_campaign) formData.append('utm_campaign', storedData.tracking.utm_campaign);
+                }
+            } catch (e) {
+                common.log('Could not retrieve UTM data for email', 'warn');
+            }
 
             fetch(window.cuftTestConfig.ajax_url, {
                 method: 'POST',
@@ -211,44 +245,70 @@
             .then(data => {
                 if (data.success) {
                     common.log(`Email sent successfully (ID: ${data.data.tracking_id})`);
-                    callback(data.data.email_sent, data.data.tracking_id);
+                    this.showSuccessState(formElement, submitButton, resultDiv, data.data.email_sent, data.data.tracking_id);
                 } else {
                     common.log(`Email failed: ${data.data.message}`, 'error');
-                    callback(false, 'error');
+                    this.showSuccessState(formElement, submitButton, resultDiv, false, 'error');
                 }
             })
             .catch(error => {
                 common.log(`Email request failed: ${error.message}`, 'error');
-                callback(false, 'error');
+                this.showSuccessState(formElement, submitButton, resultDiv, false, 'error');
             });
         },
 
         /**
          * Show success state (Elementor-specific styling)
          */
-        showSuccessState: function(formElement, submitButton, resultDiv, emailSent, trackingId, generateLeadFired) {
+        showSuccessState: function(formElement, submitButton, resultDiv, emailSent, trackingId) {
             // Reset form state
             formElement.style.opacity = '1';
             formElement.style.pointerEvents = 'auto';
 
-            // Generate success message
+            // Check dataLayer for events that production code should have fired
+            let eventsTracked = [];
+            if (window.dataLayer) {
+                const recentEvents = window.dataLayer.slice(-10); // Check last 10 events
+                const formSubmitEvent = recentEvents.find(e => e.event === 'form_submit' && e.cuft_source);
+                const generateLeadEvent = recentEvents.find(e => e.event === 'generate_lead');
+
+                if (formSubmitEvent) {
+                    eventsTracked.push('form_submit');
+                    if (formSubmitEvent.cuft_tracked) eventsTracked.push('cuft_tracked: true');
+                    if (formSubmitEvent.cuft_source) eventsTracked.push(`cuft_source: ${formSubmitEvent.cuft_source}`);
+                }
+                if (generateLeadEvent) {
+                    eventsTracked.push('generate_lead');
+                }
+            }
+
+            // Generate success message with tracking status
             let successMessage = common.getSuccessMessageHTML('elementor', emailSent, trackingId);
 
-            // Add generate_lead status
-            if (generateLeadFired) {
+            if (eventsTracked.length > 0) {
                 successMessage = successMessage.replace(
                     '✓ Event tracked in dataLayer',
-                    '✓ form_submit & generate_lead events tracked'
+                    `✓ Events tracked: ${eventsTracked.join(', ')}`
+                );
+            } else {
+                successMessage = successMessage.replace(
+                    '✓ Event tracked in dataLayer',
+                    '⚠️ No tracking events detected - check production code'
                 );
             }
 
             // Show success message
-            common.showSuccessMessage(resultDiv, successMessage, 6000);
+            common.showSuccessMessage(resultDiv, successMessage, 8000);
 
             // Reset submit button
             common.resetSubmitButton(submitButton);
 
-            common.log('Elementor success state displayed');
+            // Clean up stored attributes
+            formElement.removeAttribute('data-cuft-email');
+            formElement.removeAttribute('data-cuft-phone');
+            formElement.removeAttribute('data-cuft-tracking');
+
+            common.log('Elementor success state displayed with tracking status');
         },
 
         /**
