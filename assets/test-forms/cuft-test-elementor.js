@@ -308,6 +308,7 @@
                                data-field-type="tel"
                                data-field="phone"
                                inputmode="tel"
+                               pattern="[0-9()#&+*-=.]+"
                                value="1-555-555-5555"
                                readonly>
                     </div>

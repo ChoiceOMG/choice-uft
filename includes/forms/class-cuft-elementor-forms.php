@@ -94,7 +94,8 @@ class CUFT_Elementor_Forms {
      */
     private function extract_form_data( $record ) {
         // Get form settings using Elementor's native methods
-        $form_settings = $record->get_form_settings();
+        $meta = $record->get( 'meta' );
+        $form_settings = $meta['form_settings'] ?? array();
         $fields = $record->get( 'fields' );
 
         // Extract comprehensive form metadata
