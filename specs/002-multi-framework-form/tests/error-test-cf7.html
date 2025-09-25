@@ -79,8 +79,8 @@
     <!-- Mock CF7 Framework Elements -->
     <div style="display: none;">
         <!-- Valid CF7 Form -->
-        <div class="wpcf7" id="wpcf7-f123-o1">
-            <form action="/wp-json/contact-form-7/v1/contact-forms/123/feedback" method="post" class="wpcf7-form" data-status="init" novalidate="novalidate" data-contact-form-id="123">
+        <div class="wpcf7" id="wpcf7-f123-o1" data-wpcf7-id="123">
+            <form action="#" method="post" class="wpcf7-form" data-status="init" novalidate="novalidate" data-contact-form-id="123" data-wpcf7-id="123">
                 <input type="email" name="your-email" value="valid@cf7.com" class="wpcf7-text wpcf7-email">
                 <input type="text" name="your-phone" value="123-456-7890" class="wpcf7-text">
                 <input type="text" name="your-name" value="Test User" class="wpcf7-text">
@@ -103,8 +103,8 @@
         </div>
 
         <!-- CF7 Form with Corrupted Fields -->
-        <div class="wpcf7" id="wpcf7-corrupted">
-            <form class="wpcf7-form" data-contact-form-id="corrupted">
+        <div class="wpcf7" id="wpcf7-corrupted" data-wpcf7-id="456">
+            <form class="wpcf7-form" data-contact-form-id="456" data-wpcf7-id="456">
                 <!-- No input elements -->
             </form>
         </div>
