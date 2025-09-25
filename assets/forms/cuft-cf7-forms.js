@@ -18,6 +18,8 @@
   function log() {
     if (!DEBUG) return;
 
+    var args = arguments;
+
     var safeLog = hasErrorBoundary ?
       window.cuftErrorBoundary.safeExecute :
       function(fn) { try { return fn(); } catch (e) { return null; } };
@@ -26,7 +28,7 @@
       if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
-          ["[CUFT CF7]"].concat(Array.prototype.slice.call(arguments))
+          ["[CUFT CF7]"].concat(Array.prototype.slice.call(args))
         );
       }
     }, 'CF7 Logging');
@@ -262,6 +264,13 @@
 
       // Get form details
       var formDetails = getCF7FormDetails(formElement);
+
+      // Skip forms without valid identification to prevent API errors
+      if (!formDetails.form_id || formDetails.form_id === "unknown") {
+        log("CF7 form lacks valid ID, skipping to prevent NaN errors:", formDetails);
+        if (measurement) measurement.end();
+        return false;
+      }
 
       // Get field values
       var email = getFieldValue(formElement, "email");

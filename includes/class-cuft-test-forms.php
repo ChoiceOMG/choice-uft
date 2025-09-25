@@ -230,11 +230,8 @@ class CUFT_Test_Forms {
 
             // Initialize after a short delay
             setTimeout(function() {
-                if (window.cuftTestForms && typeof window.cuftTestForms.init === 'function') {
-                    if (!window.cuftTestForms.initialized) {
-                        console.log('[CUFT] Initializing test forms from shortcode...');
-                        window.cuftTestForms.init();
-                    }
+                if (window.CUFTTestForms && window.CUFTTestForms.common) {
+                    console.log('[CUFT] Test forms system loaded successfully');
                 } else {
                     console.error('[CUFT] Test forms script not loaded');
                 }
@@ -300,6 +297,7 @@ class CUFT_Test_Forms {
         <form class="cuft-test-form elementor-form"
               data-framework="elementor"
               data-form-id="<?php echo esc_attr( $form_id ); ?>"
+              data-cuft-test-form="true"
               onsubmit="return false;">
             <div class="elementor-form-fields-wrapper">
                 <div class="elementor-field-group elementor-column elementor-col-100">
@@ -353,12 +351,20 @@ class CUFT_Test_Forms {
      * Render Contact Form 7 HTML
      */
     private function render_cf7_form( $form_id, $admin_email ) {
+        // Extract numeric ID from form identifier (e.g., wpcf7-f123-p456-o1 → 123)
+        $numeric_id = preg_replace( '/\D/', '', $form_id );
+        if ( empty( $numeric_id ) ) {
+            $numeric_id = '123'; // Default fallback
+        }
+
         ob_start();
         ?>
-        <div class="wpcf7" id="<?php echo esc_attr( $form_id ); ?>">
+        <div class="wpcf7" id="<?php echo esc_attr( $form_id ); ?>" data-wpcf7-id="<?php echo esc_attr( $numeric_id ); ?>" data-cuft-test-form="true">
             <form class="wpcf7-form init cuft-test-form"
                   data-framework="contact_form_7"
                   data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                  data-wpcf7-id="<?php echo esc_attr( $numeric_id ); ?>"
+                  data-cuft-test-form="true"
                   novalidate="novalidate"
                   data-status="init">
                 <p>
@@ -419,7 +425,8 @@ class CUFT_Test_Forms {
                   class="cuft-test-form"
                   data-framework="gravity_forms"
                   data-form-id="<?php echo esc_attr( $form_id ); ?>"
-                  data-formid="<?php echo esc_attr( $numeric_id ); ?>">
+                  data-formid="<?php echo esc_attr( $numeric_id ); ?>"
+                  data-cuft-test-form="true">
                 <div class="gform_body">
                     <ul class="gform_fields">
                         <li class="gfield gfield_email gfield_required">
@@ -477,6 +484,7 @@ class CUFT_Test_Forms {
             <form class="fusion-form-form cuft-test-form"
                   data-framework="avada"
                   data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                  data-cuft-test-form="true"
                   method="post"
                   enctype="multipart/form-data">
                 <div class="fusion-form-field fusion-form-field-email">
@@ -534,6 +542,7 @@ class CUFT_Test_Forms {
                 <form class="nf-form cuft-test-form"
                       data-framework="ninja_forms"
                       data-form-id="<?php echo esc_attr( $form_id ); ?>"
+                      data-cuft-test-form="true"
                       method="post">
                     <div class="nf-field-container email-container">
                         <div class="nf-field" data-field-type="email">
@@ -588,6 +597,7 @@ class CUFT_Test_Forms {
         <form class="cuft-test-form"
               data-framework="<?php echo esc_attr( $framework_key ); ?>"
               data-form-id="<?php echo esc_attr( $form_id ); ?>"
+              data-cuft-test-form="true"
               onsubmit="return false;"
               style="display: flex; flex-direction: column; gap: 10px;">
 

@@ -120,7 +120,16 @@
         fireCF7EventsForProduction: function(formElement, formId, submitButton, resultDiv, wpcf7Wrapper) {
             const email = formElement.getAttribute('data-cuft-email') || '';
             const phone = formElement.getAttribute('data-cuft-phone') || '';
-            const numericId = formId.replace(/\D/g, '') || '123'; // Extract numeric ID
+
+            // Get numeric ID from data attribute (preferred) or extract from form ID as fallback
+            let numericId = formElement.getAttribute('data-wpcf7-id') ||
+                           formElement.closest('.wpcf7')?.getAttribute('data-wpcf7-id') ||
+                           (formId.replace(/\D/g, '') || '123');
+
+            // Ensure numericId is never empty or NaN
+            if (!numericId || numericId === '' || numericId === 'NaN') {
+                numericId = '123';
+            }
 
             // Fire CF7's wpcf7mailsent event that production code listens for
             const cf7Event = new CustomEvent('wpcf7mailsent', {
