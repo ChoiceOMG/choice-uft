@@ -780,7 +780,6 @@ class CUFT_Admin {
                 $result = $upgrader->upgrade( CUFT_BASENAME, array(
                     'package' => $download_url,
                     'destination' => WP_PLUGIN_DIR,
-                    'clear_destination' => true,
                     'clear_working' => true,
                     'hook_extra' => array(
                         'plugin' => CUFT_BASENAME,
