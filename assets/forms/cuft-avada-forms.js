@@ -7,17 +7,29 @@
     return;
   }
 
+  // Check for available utility systems
+  var hasErrorBoundary = !!(window.cuftErrorBoundary);
+  var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
+  var hasObserverCleanup = !!(window.cuftObserverCleanup);
+  var hasRetryLogic = !!(window.cuftRetryLogic);
+
   var DEBUG = !!(window.cuftAvada && window.cuftAvada.console_logging);
 
   function log() {
-    try {
-      if (DEBUG && window.console && window.console.log) {
+    if (!DEBUG) return;
+
+    var safeLog = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeExecute :
+      function(fn) { try { return fn(); } catch (e) { return null; } };
+
+    safeLog(function() {
+      if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
           ["[CUFT Avada]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    } catch (e) {}
+    }, 'Avada Forms Logging');
   }
 
   function ready(fn) {
@@ -36,28 +48,50 @@
    */
   function isAvadaForm(form) {
     if (!form) return false;
-    return form && (
-      form.classList.contains("fusion-form") ||
-      form.classList.contains("avada-form") ||
-      form.className.indexOf("fusion-form") > -1 ||
-      form.id.indexOf("avada") > -1 ||
-      form.closest('.fusion-form-wrapper') !== null
-    );
+
+    var checkForm = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeDOMOperation :
+      function(fn) { try { return fn(); } catch (e) { return false; } };
+
+    return checkForm(function() {
+      return form && (
+        form.classList.contains("fusion-form") ||
+        form.classList.contains("avada-form") ||
+        form.className.indexOf("fusion-form") > -1 ||
+        form.id.indexOf("avada") > -1 ||
+        form.closest('.fusion-form-wrapper') !== null
+      );
+    }, form, 'Avada Form Detection') || false;
   }
 
   /**
    * Get field value from Avada/Fusion forms with dynamic form loading support
    */
   function getFieldValue(form, type) {
-    // Framework detection - exit silently if not Avada
-    if (!isAvadaForm(form)) {
-      return "";
-    }
+    var measurement = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('avada-field-extraction', {
+        fieldType: type,
+        context: 'Avada Field Detection'
+      }) : null;
 
-    var inputs = form.querySelectorAll("input, textarea, select");
-    var field = null;
+    try {
+      // Framework detection - exit silently if not Avada
+      if (!isAvadaForm(form)) {
+        if (measurement) measurement.end();
+        return "";
+      }
 
-    log("Searching for " + type + " field in Avada form with " + inputs.length + " inputs");
+      var safeDOMQuery = hasErrorBoundary ?
+        window.cuftErrorBoundary.safeDOMOperation :
+        function(fn) { try { return fn(); } catch (e) { return []; } };
+
+      var inputs = safeDOMQuery(function() {
+        return form.querySelectorAll("input, textarea, select");
+      }, form, 'Avada Field Input Query') || [];
+
+      var field = null;
+
+      log("Searching for " + type + " field in Avada form with " + inputs.length + " inputs");
 
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
@@ -173,13 +207,24 @@
 
     if (!field) {
       log("No " + type + " field found in Avada form");
+      if (measurement) measurement.end();
       return "";
     }
 
-    var value = (field.value || "").trim();
+    var value = safeDOMQuery(function() {
+      return (field.value || "").trim();
+    }, field, 'Avada Field Value Extraction') || "";
+
     log("Avada field value for " + type + ":", value);
 
+    if (measurement) measurement.end();
     return value;
+
+    } catch (e) {
+      log("Error in Avada field extraction:", e);
+      if (measurement) measurement.end();
+      return "";
+    }
   }
 
   /**
@@ -286,16 +331,27 @@
    * Main Avada Forms success handler using standardized utilities
    */
   function handleAvadaSuccess(form, email, phone) {
-    try {
+    var measurement = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('avada-form-processing', {
+        context: 'Avada Form Success Handler'
+      }) : null;
+
+    var safeProcess = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeFormOperation :
+      function(formEl, fn, context) { try { return fn(formEl); } catch (e) { log("Avada form processing error:", e); return false; } };
+
+    return safeProcess(form, function(formElement) {
       // Framework detection - exit silently if not Avada
-      if (!isAvadaForm(form)) {
-        return;
+      if (!isAvadaForm(formElement)) {
+        if (measurement) measurement.end();
+        return false;
       }
 
       // Prevent duplicate processing
-      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
+      if (window.cuftDataLayerUtils.isFormProcessed(formElement)) {
         log("Avada form already processed, skipping");
-        return;
+        if (measurement) measurement.end();
+        return false;
       }
 
       // Get form details
@@ -328,15 +384,17 @@
         debug: DEBUG
       });
 
+      if (measurement) measurement.end();
+
       if (success) {
         log("Avada form successfully tracked");
+        return true;
       } else {
         log("Avada form tracking failed");
+        return false;
       }
 
-    } catch (e) {
-      log("Avada success handler error:", e);
-    }
+    }, 'Avada Success Handler');
   }
 
   /**
@@ -345,8 +403,19 @@
   function observeAvadaSuccess(form, email, phone) {
     log("Starting Avada success observation for form:", form.id || "unnamed");
 
+    var observerConfig = {
+      id: 'avada-success-observer',
+      element: form,
+      timeout: 25000, // 25 second timeout for dynamic loading
+      context: 'Avada Success Detection',
+      description: 'Observing form for dynamic success state changes'
+    };
+
+    var cleanup = hasObserverCleanup ?
+      window.cuftObserverCleanup.registerObserver(observerConfig) :
+      function() {};
+
     var pushed = false;
-    var cleanup = function () {};
     var attempts = 0;
     var maxAttempts = 10; // More attempts for dynamic loading
 
@@ -438,7 +507,8 @@
       log("MutationObserver setup for Avada dynamic success detection");
     }
 
-    // Safety timeout to prevent memory leaks (longer for dynamic content)
+    // Observer cleanup handles safety timeout automatically
+    // Initial cleanup timeout as fallback
     setTimeout(function () {
       if (!pushed) {
         log("Avada success observation timed out, cleaning up");
@@ -451,13 +521,13 @@
    * Handle form submit to capture field values and start observation
    */
   function handleAvadaFormSubmit(event) {
-    try {
+    var processEvent = function() {
       var form = event.target;
-      if (!form || form.tagName !== "FORM") return;
+      if (!form || form.tagName !== "FORM") return false;
 
       // Check if this is an Avada form - exit silently if not
       if (!isAvadaForm(form)) {
-        return;
+        return false;
       }
 
       // Check if form has email field (contact forms only, not search forms)
@@ -487,9 +557,23 @@
 
       // Start observing for success state
       observeAvadaSuccess(form, email, phone);
+      return true;
+    };
 
-    } catch (e) {
-      log("Avada submit handler error:", e);
+    if (hasRetryLogic) {
+      window.cuftRetryLogic.executeWithRetry('avada-form-submit', processEvent, {
+        maxAttempts: 2,
+        baseDelay: 500,
+        context: 'Avada Form Submit Handler'
+      }).catch(function(error) {
+        log("Avada submit handler error after retry:", error);
+      });
+    } else {
+      try {
+        processEvent();
+      } catch (e) {
+        log("Avada submit handler error:", e);
+      }
     }
   }
 

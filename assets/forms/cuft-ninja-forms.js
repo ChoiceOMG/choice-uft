@@ -7,17 +7,29 @@
     return;
   }
 
+  // Check for available utility systems
+  var hasErrorBoundary = !!(window.cuftErrorBoundary);
+  var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
+  var hasObserverCleanup = !!(window.cuftObserverCleanup);
+  var hasRetryLogic = !!(window.cuftRetryLogic);
+
   var DEBUG = !!(window.cuftNinja && window.cuftNinja.console_logging);
 
   function log() {
-    try {
-      if (DEBUG && window.console && window.console.log) {
+    if (!DEBUG) return;
+
+    var safeLog = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeExecute :
+      function(fn) { try { return fn(); } catch (e) { return null; } };
+
+    safeLog(function() {
+      if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
           ["[CUFT Ninja]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    } catch (e) {}
+    }, 'Ninja Forms Logging');
   }
 
   function ready(fn) {
@@ -36,27 +48,49 @@
    */
   function isNinjaForm(form) {
     if (!form) return false;
-    return form && (
-      form.closest('.nf-form-cont') !== null ||
-      form.classList.contains('nf-form') ||
-      form.querySelector('.nf-field') !== null ||
-      form.closest('.nf-form-wrap') !== null
-    );
+
+    var checkForm = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeDOMOperation :
+      function(fn) { try { return fn(); } catch (e) { return false; } };
+
+    return checkForm(function() {
+      return form && (
+        form.closest('.nf-form-cont') !== null ||
+        form.classList.contains('nf-form') ||
+        form.querySelector('.nf-field') !== null ||
+        form.closest('.nf-form-wrap') !== null
+      );
+    }, form, 'Ninja Forms Detection') || false;
   }
 
   /**
    * Get field value from Ninja Forms using .nf-field container structure
    */
   function getFieldValue(form, type) {
-    // Framework detection - exit silently if not Ninja Forms
-    if (!isNinjaForm(form)) {
-      return "";
-    }
+    var measurement = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('ninja-field-extraction', {
+        fieldType: type,
+        context: 'Ninja Field Detection'
+      }) : null;
 
-    var fields = form.querySelectorAll(".nf-field");
-    var field = null;
+    try {
+      // Framework detection - exit silently if not Ninja Forms
+      if (!isNinjaForm(form)) {
+        if (measurement) measurement.end();
+        return "";
+      }
 
-    log("Searching for " + type + " field in Ninja form with " + fields.length + " fields");
+      var safeDOMQuery = hasErrorBoundary ?
+        window.cuftErrorBoundary.safeDOMOperation :
+        function(fn) { try { return fn(); } catch (e) { return []; } };
+
+      var fields = safeDOMQuery(function() {
+        return form.querySelectorAll(".nf-field");
+      }, form, 'Ninja Field Container Query') || [];
+
+      var field = null;
+
+      log("Searching for " + type + " field in Ninja form with " + fields.length + " fields");
 
     for (var i = 0; i < fields.length; i++) {
       var fieldContainer = fields[i];
@@ -166,13 +200,24 @@
 
     if (!field) {
       log("No " + type + " field found in Ninja form");
+      if (measurement) measurement.end();
       return "";
     }
 
-    var value = (field.value || "").trim();
+    var value = safeDOMQuery(function() {
+      return (field.value || "").trim();
+    }, field, 'Ninja Field Value Extraction') || "";
+
     log("Ninja field value for " + type + ":", value);
 
+    if (measurement) measurement.end();
     return value;
+
+    } catch (e) {
+      log("Error in Ninja field extraction:", e);
+      if (measurement) measurement.end();
+      return "";
+    }
   }
 
   /**
@@ -259,16 +304,27 @@
    * Main Ninja Forms success handler using standardized utilities
    */
   function handleNinjaSuccess(form, email, phone) {
-    try {
+    var measurement = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('ninja-form-processing', {
+        context: 'Ninja Form Success Handler'
+      }) : null;
+
+    var safeProcess = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeFormOperation :
+      function(formEl, fn, context) { try { return fn(formEl); } catch (e) { log("Ninja form processing error:", e); return false; } };
+
+    return safeProcess(form, function(formElement) {
       // Framework detection - exit silently if not Ninja Forms
-      if (!isNinjaForm(form)) {
-        return;
+      if (!isNinjaForm(formElement)) {
+        if (measurement) measurement.end();
+        return false;
       }
 
       // Prevent duplicate processing
-      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
+      if (window.cuftDataLayerUtils.isFormProcessed(formElement)) {
         log("Ninja form already processed, skipping");
-        return;
+        if (measurement) measurement.end();
+        return false;
       }
 
       // Get form details
@@ -301,23 +357,36 @@
         debug: DEBUG
       });
 
+      if (measurement) measurement.end();
+
       if (success) {
         log("Ninja form successfully tracked");
+        return true;
       } else {
         log("Ninja form tracking failed");
+        return false;
       }
 
-    } catch (e) {
-      log("Ninja success handler error:", e);
-    }
+    }, 'Ninja Success Handler');
   }
 
   /**
    * Setup MutationObserver for success detection with exponential backoff
    */
   function observeNinjaSuccess(form, email, phone) {
+    var observerConfig = {
+      id: 'ninja-success-observer',
+      element: form,
+      timeout: 15000,
+      context: 'Ninja Success Detection',
+      description: 'Observing form for success state changes'
+    };
+
+    var cleanup = hasObserverCleanup ?
+      window.cuftObserverCleanup.registerObserver(observerConfig) :
+      function() {};
+
     var pushed = false;
-    var cleanup = function () {};
     var attempts = 0;
     var maxAttempts = 6;
 
@@ -400,13 +469,13 @@
    * Handle form submit to capture field values and start observation
    */
   function handleNinjaFormSubmit(event) {
-    try {
+    var processEvent = function() {
       var form = event.target;
-      if (!form || form.tagName !== "FORM") return;
+      if (!form || form.tagName !== "FORM") return false;
 
       // Check if this is a Ninja Forms form - exit silently if not
       if (!isNinjaForm(form)) {
-        return;
+        return false;
       }
 
       // Prevent multiple observations on the same form
@@ -429,9 +498,23 @@
 
       // Start observing for success state
       observeNinjaSuccess(form, email, phone);
+      return true;
+    };
 
-    } catch (e) {
-      log("Ninja submit handler error:", e);
+    if (hasRetryLogic) {
+      window.cuftRetryLogic.executeWithRetry('ninja-form-submit', processEvent, {
+        maxAttempts: 2,
+        baseDelay: 500,
+        context: 'Ninja Form Submit Handler'
+      }).catch(function(error) {
+        log("Ninja submit handler error after retry:", error);
+      });
+    } else {
+      try {
+        processEvent();
+      } catch (e) {
+        log("Ninja submit handler error:", e);
+      }
     }
   }
 

@@ -88,6 +88,8 @@ class CUFT_Admin {
                 <?php $this->render_debug_section(); ?>
             <?php elseif ( $current_tab === 'click-tracking' ): ?>
                 <?php $this->render_click_tracking_tab(); ?>
+            <?php elseif ( $current_tab === 'utility-systems' ): ?>
+                <?php $this->render_utility_systems_tab(); ?>
             <?php endif; ?>
         </div>
         <?php
@@ -1185,7 +1187,8 @@ class CUFT_Admin {
     private function render_admin_tabs( $current_tab ) {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
+            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' ),
+            'utility-systems' => __( 'Utility Systems', 'choice-universal-form-tracker' )
         );
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
@@ -1692,5 +1695,142 @@ class CUFT_Admin {
         });
         </script>
         <?php
+    }
+
+    /**
+     * Render utility systems tab
+     */
+    private function render_utility_systems_tab() {
+        // Get utility system status from loader
+        $utility_status = array();
+        if ( function_exists( 'cuft_get_utility_loader' ) ) {
+            $loader = cuft_get_utility_loader();
+            $utility_status = $loader->get_utility_status();
+        }
+
+        // Get feature flags
+        $feature_flags = get_option( 'cuft_feature_flags', array() );
+        $utility_systems_enabled = isset( $feature_flags['utility_systems'] ) ? $feature_flags['utility_systems'] : true;
+
+        ?>
+        <div class="card">
+            <h2 style="margin-top: 0;">📊 Utility Systems Status</h2>
+
+            <div style="background: #f1f1f1; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h4>Overview</h4>
+                <p>Utility systems provide enhanced error handling, performance monitoring, memory management, and operational resilience for form tracking.</p>
+                <p><strong>Status:</strong>
+                    <?php if ( $utility_systems_enabled ): ?>
+                        <span style="color: #28a745; font-weight: bold;">✅ Enabled</span>
+                    <?php else: ?>
+                        <span style="color: #dc3545; font-weight: bold;">❌ Disabled</span>
+                    <?php endif; ?>
+                </p>
+            </div>
+
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th>System</th>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Size</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $this->get_utility_systems_info() as $system => $info ): ?>
+                        <?php $status = isset( $utility_status[$system] ) ? $utility_status[$system] : array( 'exists' => false ); ?>
+                        <tr>
+                            <td><strong><?php echo esc_html( $info['name'] ); ?></strong></td>
+                            <td><code><?php echo esc_html( $info['file'] ); ?></code></td>
+                            <td>
+                                <?php if ( $status['exists'] ): ?>
+                                    <span style="color: #28a745;">✅ Available</span>
+                                <?php else: ?>
+                                    <span style="color: #dc3545;">❌ Missing</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ( $status['exists'] && isset( $status['size'] ) ): ?>
+                                    <?php echo esc_html( number_format( $status['size'] / 1024, 1 ) ); ?>KB
+                                <?php else: ?>
+                                    -
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo esc_html( $info['description'] ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
+                <h4 style="margin-top: 0; color: #856404;">🛠️ System Information</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #856404;">
+                    <li><strong>Error Boundary:</strong> Prevents JavaScript errors from breaking form tracking</li>
+                    <li><strong>Performance Monitor:</strong> Ensures operations complete within 50ms constitutional requirement</li>
+                    <li><strong>Observer Cleanup:</strong> Prevents memory leaks by managing MutationObserver lifecycles</li>
+                    <li><strong>Retry Logic:</strong> Provides resilient operation patterns with exponential backoff</li>
+                </ul>
+            </div>
+
+            <?php if ( ! empty( $utility_status ) ): ?>
+                <div style="margin-top: 20px;">
+                    <h4>Performance Metrics</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="padding: 10px; background: #e8f5e8; border-radius: 5px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #28a745;"><?php echo count( array_filter( array_column( $utility_status, 'exists' ) ) ); ?></div>
+                            <div style="font-size: 12px; color: #666;">Systems Available</div>
+                        </div>
+                        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #6c757d;"><?php echo number_format( array_sum( array_column( $utility_status, 'size' ) ) / 1024, 1 ); ?>KB</div>
+                            <div style="font-size: 12px; color: #666;">Total Size</div>
+                        </div>
+                        <div style="padding: 10px; background: #e3f2fd; border-radius: 5px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #1976d2;">ES5</div>
+                            <div style="font-size: 12px; color: #666;">Compatibility</div>
+                        </div>
+                        <div style="padding: 10px; background: #fff3e0; border-radius: 5px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #f57c00;">Phase 3</div>
+                            <div style="font-size: 12px; color: #666;">Implementation</div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="<?php echo esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=utility-systems&action=refresh' ) ); ?>" class="button button-secondary">🔄 Refresh Status</a>
+                <a href="https://github.com/ChoiceOMG/choice-uft/blob/main/docs/UTILITY_SYSTEMS.md" target="_blank" class="button button-secondary" style="margin-left: 10px;">📖 Documentation</a>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Get utility systems information
+     */
+    private function get_utility_systems_info() {
+        return array(
+            'error-boundary' => array(
+                'name' => 'Error Boundary System',
+                'file' => 'cuft-error-boundary.js',
+                'description' => 'Comprehensive error handling with cascade failure prevention'
+            ),
+            'performance-monitor' => array(
+                'name' => 'Performance Monitor System',
+                'file' => 'cuft-performance-monitor.js',
+                'description' => 'Tracks performance metrics to ensure <50ms processing time'
+            ),
+            'observer-cleanup' => array(
+                'name' => 'Observer Cleanup System',
+                'file' => 'cuft-observer-cleanup.js',
+                'description' => 'Manages MutationObserver lifecycles to prevent memory leaks'
+            ),
+            'retry-logic' => array(
+                'name' => 'Retry Logic System',
+                'file' => 'cuft-retry-logic.js',
+                'description' => 'Resilient operation patterns with exponential backoff and circuit breaker'
+            )
+        );
     }
 }

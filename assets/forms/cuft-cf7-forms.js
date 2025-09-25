@@ -7,17 +7,29 @@
     return;
   }
 
+  // Check for available utility systems
+  var hasErrorBoundary = !!(window.cuftErrorBoundary);
+  var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
+  var hasObserverCleanup = !!(window.cuftObserverCleanup);
+  var hasRetryLogic = !!(window.cuftRetryLogic);
+
   var DEBUG = !!(window.cuftCF7 && window.cuftCF7.console_logging);
 
   function log() {
-    try {
-      if (DEBUG && window.console && window.console.log) {
+    if (!DEBUG) return;
+
+    var safeLog = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeExecute :
+      function(fn) { try { return fn(); } catch (e) { return null; } };
+
+    safeLog(function() {
+      if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
           ["[CUFT CF7]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    } catch (e) {}
+    }, 'CF7 Logging');
   }
 
   function ready(fn) {
@@ -36,26 +48,48 @@
    */
   function isCF7Form(form) {
     if (!form) return false;
-    return form && (
-      form.closest('.wpcf7') !== null ||
-      form.classList.contains('wpcf7-form') ||
-      form.hasAttribute('data-wpcf7-id')
-    );
+
+    var checkForm = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeDOMOperation :
+      function(fn) { try { return fn(); } catch (e) { return false; } };
+
+    return checkForm(function() {
+      return form && (
+        form.closest('.wpcf7') !== null ||
+        form.classList.contains('wpcf7-form') ||
+        form.hasAttribute('data-wpcf7-id')
+      );
+    }, form, 'CF7 Form Detection') || false;
   }
 
   /**
    * Get field value from CF7 form using CF7-specific naming patterns
    */
   function getFieldValue(form, type) {
-    // Framework detection - exit silently if not CF7
-    if (!isCF7Form(form)) {
-      return "";
-    }
+    var measurement = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('cf7-field-extraction', {
+        fieldType: type,
+        context: 'CF7 Field Detection'
+      }) : null;
 
-    var inputs = form.querySelectorAll("input, textarea, select");
-    var field = null;
+    try {
+      // Framework detection - exit silently if not CF7
+      if (!isCF7Form(form)) {
+        if (measurement) measurement.end();
+        return "";
+      }
 
-    log("Searching for " + type + " field in CF7 form with " + inputs.length + " inputs");
+      var safeDOMQuery = hasErrorBoundary ?
+        window.cuftErrorBoundary.safeDOMOperation :
+        function(fn) { try { return fn(); } catch (e) { return []; } };
+
+      var inputs = safeDOMQuery(function() {
+        return form.querySelectorAll("input, textarea, select");
+      }, form, 'CF7 Field Input Query') || [];
+
+      var field = null;
+
+      log("Searching for " + type + " field in CF7 form with " + inputs.length + " inputs");
 
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
@@ -143,13 +177,24 @@
 
     if (!field) {
       log("No " + type + " field found in CF7 form");
+      if (measurement) measurement.end();
       return "";
     }
 
-    var value = (field.value || "").trim();
+    var value = safeDOMQuery(function() {
+      return (field.value || "").trim();
+    }, field, 'CF7 Field Value Extraction') || "";
+
     log("CF7 field value for " + type + ":", value);
 
+    if (measurement) measurement.end();
     return value;
+
+    } catch (e) {
+      log("Error in CF7 field extraction:", e);
+      if (measurement) measurement.end();
+      return "";
+    }
   }
 
   /**
@@ -192,24 +237,35 @@
    * Main CF7 success handler using standardized utilities
    */
   function handleCF7Success(form) {
-    try {
+    var measurement = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('cf7-form-processing', {
+        context: 'CF7 Form Success Handler'
+      }) : null;
+
+    var safeProcess = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeFormOperation :
+      function(formEl, fn, context) { try { return fn(formEl); } catch (e) { log("CF7 form processing error:", e); return false; } };
+
+    return safeProcess(form, function(formElement) {
       // Framework detection - exit silently if not CF7
-      if (!isCF7Form(form)) {
-        return;
+      if (!isCF7Form(formElement)) {
+        if (measurement) measurement.end();
+        return false;
       }
 
       // Prevent duplicate processing
-      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
+      if (window.cuftDataLayerUtils.isFormProcessed(formElement)) {
         log("CF7 form already processed, skipping");
-        return;
+        if (measurement) measurement.end();
+        return false;
       }
 
       // Get form details
-      var formDetails = getCF7FormDetails(form);
+      var formDetails = getCF7FormDetails(formElement);
 
       // Get field values
-      var email = getFieldValue(form, "email");
-      var phone = getFieldValue(form, "phone");
+      var email = getFieldValue(formElement, "email");
+      var phone = getFieldValue(formElement, "phone");
 
       // Validate email if present
       if (email && !window.cuftDataLayerUtils.validateEmail(email)) {
@@ -230,7 +286,7 @@
       });
 
       // Use standardized tracking function
-      var success = window.cuftDataLayerUtils.trackFormSubmission('cf7', form, {
+      var success = window.cuftDataLayerUtils.trackFormSubmission('cf7', formElement, {
         form_id: formDetails.form_id,
         form_name: formDetails.form_name,
         user_email: email,
@@ -238,32 +294,49 @@
         debug: DEBUG
       });
 
+      if (measurement) measurement.end();
+
       if (success) {
         log("CF7 form successfully tracked");
+        return true;
       } else {
         log("CF7 form tracking failed");
+        return false;
       }
 
-    } catch (e) {
-      log("CF7 success handler error:", e);
-    }
+    }, 'CF7 Success Handler');
   }
 
   /**
    * Handle CF7 wpcf7mailsent event
    */
   function handleCF7MailSent(event) {
-    try {
+    var processEvent = function() {
       var form = event.target;
 
       if (form) {
         log("CF7 wpcf7mailsent event detected");
-        handleCF7Success(form);
+        return handleCF7Success(form);
       } else {
         log("CF7 mailsent event without form target");
+        return false;
       }
-    } catch (e) {
-      log("CF7 mailsent handler error:", e);
+    };
+
+    if (hasRetryLogic) {
+      window.cuftRetryLogic.executeWithRetry('cf7-mailsent-event', processEvent, {
+        maxAttempts: 2,
+        baseDelay: 500,
+        context: 'CF7 MailSent Handler'
+      }).catch(function(error) {
+        log("CF7 mailsent handler error after retry:", error);
+      });
+    } else {
+      try {
+        processEvent();
+      } catch (e) {
+        log("CF7 mailsent handler error:", e);
+      }
     }
   }
 
@@ -329,8 +402,39 @@
 
   // Initialize when DOM is ready
   ready(function () {
-    setupCF7EventListeners();
-    log("Contact Form 7 tracking initialized using standardized dataLayer utilities");
+    var initialization = hasPerformanceMonitor ?
+      window.cuftPerformanceMonitor.startMeasurement('cf7-initialization', {
+        context: 'CF7 Forms System Initialization'
+      }) : null;
+
+    var safeInit = hasErrorBoundary ?
+      window.cuftErrorBoundary.safeExecute :
+      function(fn, context) { try { return fn(); } catch (e) { log("CF7 initialization error:", e); return false; } };
+
+    safeInit(function() {
+      // Log utility system status
+      log("CF7 Utility Systems Status:", {
+        errorBoundary: hasErrorBoundary,
+        performanceMonitor: hasPerformanceMonitor,
+        observerCleanup: hasObserverCleanup,
+        retryLogic: hasRetryLogic,
+        dataLayerUtils: !!(window.cuftDataLayerUtils)
+      });
+
+      // Setup event listeners
+      setupCF7EventListeners();
+
+      if (initialization) initialization.end();
+
+      log("Contact Form 7 tracking initialized with " +
+          [hasErrorBoundary && "error boundary",
+           hasPerformanceMonitor && "performance monitoring",
+           hasObserverCleanup && "observer cleanup",
+           hasRetryLogic && "retry logic"]
+          .filter(Boolean).join(", ") + " systems");
+
+      return true;
+    }, 'CF7 Forms Initialization');
   });
 
 })();
