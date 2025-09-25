@@ -13,24 +13,18 @@
 
         /**
          * Get current tracking data for test submission
+         * This data will be stored in sessionStorage for production code to retrieve
          */
         getTestTrackingData: function(framework, formId) {
             const timestamp = Date.now();
 
+            // Only return tracking data that should be stored in sessionStorage
+            // Production code will add cuft_tracked, cuft_source, form_type, etc.
             return {
-                event: 'form_submit',
-                form_framework: framework,
-                form_id: formId,
-                form_name: `Test ${framework} Form`,
-                test_submission: true,
-                timestamp: new Date().toISOString(),
-                submittedAt: new Date().toISOString(),
-                cuft_tracked: true,
-                cuft_source: `${framework}_test`,
-
-                // Click IDs (all test forms will have these)
+                // Click IDs (all test forms will have these to ensure generate_lead fires)
                 click_id: `test_click_${framework}_${timestamp}`,
                 gclid: `test_gclid_${framework}_${timestamp}`,
+                fbclid: `test_fbclid_${framework}_${timestamp}`, // Add more click IDs for better testing
 
                 // UTM parameters
                 utm_source: 'cuft_test',

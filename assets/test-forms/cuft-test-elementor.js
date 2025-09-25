@@ -82,8 +82,8 @@
             this.setLoadingState(formElement, submitButton);
 
             // Prepare tracking data for storage (production code will retrieve this)
-            const formId = formElement.dataset.formId || 'elementor-form-widget-test';
-            this.prepareTrackingDataForProduction(formElement, formId);
+            const form_id = formElement.dataset.formId || 'elementor-form-widget-test';
+            common.prepareTrackingDataForProduction('elementor', form_id, formElement);
 
             // Store form values in the form element for production code to find
             formElement.setAttribute('data-cuft-email', fieldValues.email || '');
@@ -92,7 +92,7 @@
 
             // Simulate Elementor processing time then fire events for production code
             setTimeout(() => {
-                this.fireElementorEventsForProduction(formElement, formId, submitButton, resultDiv);
+                this.fireElementorEventsForProduction(formElement, form_id, submitButton, resultDiv);
             }, 800);
         },
 
@@ -111,49 +111,17 @@
             common.log('Elementor loading state activated');
         },
 
-        /**
-         * Prepare tracking data for production code to retrieve
-         */
-        prepareTrackingDataForProduction: function(formElement, formId) {
-            // Get test tracking data to store
-            const testData = common.getTestTrackingData('elementor', formId);
-
-            // Apply testing controls to modify the data we're storing
-            const modifiedData = common.applyTestingControls(formElement, testData);
-
-            // Store in sessionStorage in the format production code expects
-            const storageData = {
-                tracking: {
-                    click_id: modifiedData.click_id || null,
-                    gclid: modifiedData.gclid || null,
-                    fbclid: modifiedData.fbclid || null,
-                    utm_source: modifiedData.utm_source || null,
-                    utm_medium: modifiedData.utm_medium || null,
-                    utm_campaign: modifiedData.utm_campaign || null,
-                    utm_term: modifiedData.utm_term || null,
-                    utm_content: modifiedData.utm_content || null
-                },
-                timestamp: Date.now()
-            };
-
-            try {
-                sessionStorage.setItem('cuft_tracking_data', JSON.stringify(storageData));
-                common.log('Tracking data prepared for production code:', storageData);
-            } catch (e) {
-                common.log('Error storing tracking data: ' + e.message, 'error');
-            }
-        },
 
         /**
          * Fire Elementor events for production code to handle
          */
-        fireElementorEventsForProduction: function(formElement, formId, submitButton, resultDiv) {
+        fireElementorEventsForProduction: function(formElement, form_id, submitButton, resultDiv) {
             // Fire native submit_success event that production code listens for
             const submitSuccessEvent = new CustomEvent('submit_success', {
                 detail: {
                     success: true,
                     data: {
-                        form_id: formId,
+                        form_id: form_id,
                         response: 'success'
                     }
                 },
@@ -170,13 +138,13 @@
                 window.jQuery(formElement).trigger('submit_success', [{
                     success: true,
                     data: {
-                        form_id: formId
+                        form_id: form_id
                     }
                 }]);
                 window.jQuery(document).trigger('submit_success', [{
                     success: true,
                     data: {
-                        form_id: formId
+                        form_id: form_id
                     }
                 }]);
                 common.log('✅ jQuery submit_success event fired for production code');
@@ -186,7 +154,7 @@
             const elementorFormEvent = new CustomEvent('elementor/frontend/form_success', {
                 detail: {
                     form: formElement,
-                    form_id: formId,
+                    form_id: form_id,
                     success: true
                 },
                 bubbles: true
@@ -198,14 +166,14 @@
 
             // Send email notification after a short delay (let production code fire first)
             setTimeout(() => {
-                this.sendTestEmailNotification(formId, submitButton, resultDiv);
+                this.sendTestEmailNotification(form_id, submitButton, resultDiv);
             }, 1500);
         },
 
         /**
          * Send test email notification
          */
-        sendTestEmailNotification: function(formId, submitButton, resultDiv) {
+        sendTestEmailNotification: function(form_id, submitButton, resultDiv) {
             if (!window.cuftTestConfig || !window.cuftTestConfig.ajax_url) {
                 common.log('AJAX URL not configured, skipping email', 'warn');
                 this.showSuccessState(resultDiv, false, 'no-ajax');
@@ -223,7 +191,7 @@
             formData.append('framework', 'elementor');
             formData.append('email', email);
             formData.append('phone', phone);
-            formData.append('form_id', formId);
+            formData.append('form_id', form_id);
 
             // Add UTM parameters from stored tracking data
             try {
@@ -314,7 +282,7 @@
         /**
          * Get Elementor form HTML structure
          */
-        getFormHTML: function(formId, adminEmail) {
+        getFormHTML: function(form_id, adminEmail) {
             return `
                 <div class="elementor-form-fields-wrapper">
                     <div class="elementor-field-group elementor-column elementor-col-100">
@@ -354,7 +322,7 @@
                 <div class="test-result" style="display: none; margin-top: 10px;"></div>
 
                 <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
-                    <div><strong>Form ID:</strong> ${formId}</div>
+                    <div><strong>Form ID:</strong> ${form_id}</div>
                     <div><strong>Click ID:</strong> test_click_elementor_${Date.now()}</div>
                     <div><strong>Campaign:</strong> test_campaign_elementor</div>
                     <div><strong>Generate Lead:</strong> Email + Phone + Click ID (all required)</div>

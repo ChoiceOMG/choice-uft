@@ -271,9 +271,9 @@
       "utm_campaign",
       "utm_term",
       "utm_content",
-      "formType",
-      "formId",
-      "formName",
+      "form_type",
+      "form_id",
+      "form_name",
       "click_id",
       "gclid",
       "gbraid",
@@ -300,7 +300,7 @@
     if (email) leadPayload.user_email = email;
     if (phone) leadPayload.user_phone = phone;
 
-    leadPayload.submittedAt = new Date().toISOString();
+    leadPayload.submitted_at = new Date().toISOString();
 
     try {
       getDL().push(leadPayload);
@@ -313,13 +313,13 @@
   function pushToDataLayer(form, email, phone) {
     var payload = {
       event: "form_submit",
-      formType: "avada",
+      form_type: "avada",
       form_id: form.getAttribute("id") || null,
       form_name:
         form.getAttribute("name") ||
         form.getAttribute("data-form-name") ||
         null,
-      submittedAt: new Date().toISOString(),
+      submitted_at: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "avada_fusion",
     };
@@ -411,11 +411,9 @@
   function handleFormSubmit(event) {
     try {
       var form = event.target;
-      log("Form submit event triggered:", event.type, form);
 
       if (!form || form.tagName !== "FORM") {
-        log("Event target is not a form, skipping");
-        return;
+        return; // Exit silently for non-form elements
       }
 
       // Check if this is an Avada/Fusion form
@@ -425,17 +423,18 @@
         form.className.indexOf("fusion-form") > -1 ||
         form.id.indexOf("avada") > -1;
 
+      if (!isAvadaForm) {
+        return; // Exit silently for non-Avada forms
+      }
+
+      // Only log if this is actually an Avada form
+      log("Form submit event triggered:", event.type, form);
       log("Form detection check:", {
         form: form,
         classList: form.className,
         id: form.id,
         isAvadaForm: isAvadaForm,
       });
-
-      if (!isAvadaForm) {
-        log("Form not detected as Avada form, skipping");
-        return;
-      }
 
       // Check if form has email field (indicates it's a contact/lead form)
       var hasEmailField = findField(form, "email") !== null;

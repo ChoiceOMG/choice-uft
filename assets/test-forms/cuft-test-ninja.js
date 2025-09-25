@@ -83,21 +83,18 @@
             // Set loading state
             this.setLoadingState(formElement, submitButton, nfFormCont);
 
-            // Prepare tracking data
-            const formId = formElement.dataset.formId || 'nf-form-3';
+            // Prepare tracking data for production code
+            const form_id = formElement.dataset.formId || 'nf-form-3';
+            common.prepareTrackingDataForProduction('ninja_forms', form_id, formElement);
 
-            // Update sessionStorage with test tracking data BEFORE getting tracking data
-            common.updateTrackingDataForTest('ninja_forms', formId);
+            // Store form values for production code to find
+            formElement.setAttribute('data-cuft-email', fieldValues.email || '');
+            formElement.setAttribute('data-cuft-phone', fieldValues.phone || '');
+            formElement.setAttribute('data-cuft-tracking', 'pending');
 
-            const trackingData = common.getTestTrackingData('ninja_forms', formId);
-
-            // Add form field values
-            trackingData.user_email = fieldValues.email;
-            trackingData.user_phone = fieldValues.phone;
-
-            // Simulate Ninja Forms processing time
+            // Simulate Ninja Forms processing time then fire events for production code
             setTimeout(() => {
-                this.processSubmission(formElement, trackingData, submitButton, resultDiv, nfFormCont);
+                this.fireNinjaEventsForProduction(formElement, form_id, submitButton, resultDiv, nfFormCont);
             }, 1000);
         },
 
@@ -120,107 +117,102 @@
         /**
          * Process form submission
          */
-        processSubmission: function(formElement, trackingData, submitButton, resultDiv, nfFormCont) {
-            // Apply testing controls to modify tracking data
-            trackingData = common.applyTestingControls(formElement, trackingData);
+        fireNinjaEventsForProduction: function(formElement, form_id, submitButton, resultDiv, nfFormCont) {
+            const numericId = form_id.replace(/\D/g, '') || '3'; // Extract numeric ID
+            const email = formElement.getAttribute('data-cuft-email') || '';
+            const phone = formElement.getAttribute('data-cuft-phone') || '';
 
-            // Fire form_submit event
-            const formSubmitSuccess = common.fireFormSubmitEvent(trackingData);
-
-            // Fire Ninja Forms-specific events
-            this.fireNinjaEvents(formElement, trackingData);
-
-            // Fire generate_lead if requirements are met (Ninja needs email + phone + click_id)
-            const generateLeadFired = common.fireGenerateLeadEvent('ninja_forms', trackingData);
-
-            // Send email notification
-            this.sendEmailNotification(trackingData, (emailSent, trackingId) => {
-                // Show success state
-                this.showSuccessState(formElement, submitButton, resultDiv, nfFormCont, emailSent, trackingId, generateLeadFired);
-            });
-        },
-
-        /**
-         * Fire Ninja Forms-specific events
-         */
-        fireNinjaEvents: function(formElement, trackingData) {
-            const formId = trackingData.form_id.replace(/\D/g, '') || '3'; // Extract numeric ID
-
-            // Fire Ninja Forms Radio event if available
-            if (window.nfRadio) {
-                window.nfRadio.channel('forms').trigger('submit:response', {
-                    response: {
-                        success: true,
-                        data: {
-                            form_id: parseInt(formId),
-                            success: 'Form submitted successfully!'
-                        }
-                    },
-                    form_id: parseInt(formId)
-                });
-                common.log('✅ Ninja Forms nfRadio submit:response event fired');
-            }
-
-            // Fire generic Ninja Forms success event
-            const ninjaSuccessEvent = new CustomEvent('nf_form_success', {
+            // Fire nfFormSubmitResponse event that production code listens for
+            const nfEvent = new CustomEvent('nfFormSubmitResponse', {
                 detail: {
-                    form: formElement,
-                    form_id: parseInt(formId),
+                    form_id: parseInt(numericId),
                     response: {
                         success: true,
                         data: {
-                            email: trackingData.user_email,
-                            phone: trackingData.user_phone
+                            form_id: parseInt(numericId),
+                            success: 'Form submitted successfully!',
+                            email: email,
+                            phone: phone
                         }
                     }
                 },
                 bubbles: true
             });
 
-            document.dispatchEvent(ninjaSuccessEvent);
-            common.log('✅ Ninja Forms nf_form_success event fired');
+            formElement.dispatchEvent(nfEvent);
+            document.dispatchEvent(nfEvent);
+            common.log('✅ Ninja Forms nfFormSubmitResponse event fired for production code');
 
             // Also fire jQuery event if jQuery is available
             if (window.jQuery) {
-                window.jQuery(document).trigger('nf_form_success', [{
-                    form_id: parseInt(formId),
-                    response: { success: true }
+                window.jQuery(document).trigger('nfFormSubmitResponse', [{
+                    form_id: parseInt(numericId),
+                    response: {
+                        success: true,
+                        data: {
+                            email: email,
+                            phone: phone
+                        }
+                    }
                 }]);
-                common.log('✅ jQuery nf_form_success event fired');
+                common.log('✅ jQuery nfFormSubmitResponse event fired for production code');
             }
 
-            // Fire submission complete event
+            // Fire legacy Ninja Forms Radio event if available
+            if (window.nfRadio) {
+                window.nfRadio.channel('forms').trigger('submit:response', {
+                    response: {
+                        success: true,
+                        data: {
+                            form_id: parseInt(numericId),
+                            success: 'Form submitted successfully!'
+                        }
+                    },
+                    form_id: parseInt(numericId)
+                });
+                common.log('✅ Ninja Forms nfRadio event fired for production code');
+            }
+
+            // Send email notification after a short delay (let production code fire first)
             setTimeout(() => {
-                if (window.nfRadio) {
-                    window.nfRadio.channel('forms').trigger('submit:complete', {
-                        form_id: parseInt(formId)
-                    });
-                    common.log('✅ Ninja Forms submit:complete event fired');
-                }
-            }, 200);
+                this.sendTestEmailNotification(form_id, submitButton, resultDiv, nfFormCont);
+            }, 1500);
         },
 
+
         /**
-         * Send email notification
+         * Send test email notification
          */
-        sendEmailNotification: function(trackingData, callback) {
+        sendTestEmailNotification: function(form_id, submitButton, resultDiv, nfFormCont) {
             if (!window.cuftTestConfig || !window.cuftTestConfig.ajax_url) {
                 common.log('AJAX URL not configured, skipping email', 'warn');
-                callback(false, 'no-ajax');
+                this.showSuccessState(resultDiv, false, 'no-ajax', submitButton, nfFormCont);
                 return;
             }
+
+            // Get form element to retrieve stored values
+            const formElement = submitButton.closest('.cuft-test-form');
+            const email = formElement.getAttribute('data-cuft-email') || '';
+            const phone = formElement.getAttribute('data-cuft-phone') || '';
 
             const formData = new FormData();
             formData.append('action', 'cuft_frontend_test_submit');
             formData.append('framework', 'ninja_forms');
-            formData.append('email', trackingData.user_email);
-            formData.append('phone', trackingData.user_phone);
-            formData.append('form_id', trackingData.form_id);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('form_id', form_id);
 
-            // Add UTM parameters
-            formData.append('utm_source', trackingData.utm_source);
-            formData.append('utm_medium', trackingData.utm_medium);
-            formData.append('utm_campaign', trackingData.utm_campaign);
+            // Add UTM parameters from stored tracking data
+            try {
+                const storedData = JSON.parse(sessionStorage.getItem('cuft_tracking_data'));
+                if (storedData && storedData.tracking) {
+                    formData.append('utm_source', storedData.tracking.utm_source || '');
+                    formData.append('utm_medium', storedData.tracking.utm_medium || '');
+                    formData.append('utm_campaign', storedData.tracking.utm_campaign || '');
+                }
+            } catch (e) {
+                common.log('Could not retrieve UTM data for email', 'warn');
+            }
 
             fetch(window.cuftTestConfig.ajax_url, {
                 method: 'POST',
@@ -230,22 +222,22 @@
             .then(data => {
                 if (data.success) {
                     common.log(`Email sent successfully (ID: ${data.data.tracking_id})`);
-                    callback(data.data.email_sent, data.data.tracking_id);
+                    this.showSuccessState(resultDiv, true, data.data.tracking_id, submitButton, nfFormCont);
                 } else {
                     common.log(`Email failed: ${data.data.message}`, 'error');
-                    callback(false, 'error');
+                    this.showSuccessState(resultDiv, false, 'error', submitButton, nfFormCont);
                 }
             })
             .catch(error => {
                 common.log(`Email request failed: ${error.message}`, 'error');
-                callback(false, 'error');
+                this.showSuccessState(resultDiv, false, 'error', submitButton, nfFormCont);
             });
         },
 
         /**
          * Show success state (Ninja Forms-specific styling)
          */
-        showSuccessState: function(formElement, submitButton, resultDiv, nfFormCont, emailSent, trackingId, generateLeadFired) {
+        showSuccessState: function(resultDiv, emailSent, trackingId, submitButton, nfFormCont) {
             // Remove loading state
             if (nfFormCont) {
                 nfFormCont.classList.remove('nf-loading');
@@ -271,15 +263,6 @@
 
             // Generate success message
             let successMessage = common.getSuccessMessageHTML('ninja_forms', emailSent, trackingId);
-
-            // Add generate_lead status
-            if (generateLeadFired) {
-                successMessage = successMessage.replace(
-                    '✓ Event tracked in dataLayer',
-                    '✓ form_submit & generate_lead events tracked'
-                );
-            }
-
             responseDiv.innerHTML = successMessage;
             responseDiv.style.display = 'block';
 
@@ -313,8 +296,8 @@
         /**
          * Get Ninja Forms form HTML structure
          */
-        getFormHTML: function(formId, adminEmail) {
-            const numericId = formId.replace(/\D/g, '') || '3';
+        getFormHTML: function(form_id, adminEmail) {
+            const numericId = form_id.replace(/\D/g, '') || '3';
 
             return `
                 <div class="nf-form-wrap">
@@ -353,7 +336,7 @@
                 <div class="test-result" style="display: none; margin-top: 10px;"></div>
 
                 <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px; color: #6c757d; margin-top: 10px;">
-                    <div><strong>Form ID:</strong> ${formId}</div>
+                    <div><strong>Form ID:</strong> ${form_id}</div>
                     <div><strong>Click ID:</strong> test_click_ninja_${Date.now()}</div>
                     <div><strong>Campaign:</strong> test_campaign_ninja_forms</div>
                     <div><strong>Generate Lead:</strong> Email + Phone + Click ID (all required)</div>

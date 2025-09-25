@@ -335,9 +335,9 @@
       "utm_campaign",
       "utm_term",
       "utm_content",
-      "formType",
-      "formId",
-      "formName",
+      "form_type",
+      "form_id",
+      "form_name",
       "click_id",
       "gclid",
       "fbclid",
@@ -362,7 +362,7 @@
     if (email) leadPayload.user_email = email;
     if (phone) leadPayload.user_phone = phone;
 
-    leadPayload.submittedAt = new Date().toISOString();
+    leadPayload.submitted_at = new Date().toISOString();
 
     try {
       getDL().push(leadPayload);
@@ -407,10 +407,10 @@
 
     var payload = {
       event: "form_submit",
-      formType: "elementor",
+      form_type: "elementor",
       form_id: formId,
       form_name: formName,
-      submittedAt: new Date().toISOString(),
+      submitted_at: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "elementor_pro",
     };
@@ -662,10 +662,10 @@
 
     var payload = {
       event: "form_submit",
-      formType: "elementor",
+      form_type: "elementor",
       form_id: trackingData.form_id || null,
       form_name: trackingData.form_name || null,
-      submittedAt: trackingData.timestamp || new Date().toISOString(),
+      submitted_at: trackingData.timestamp || new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: trackingData.source || "elementor_pro_native"
     };

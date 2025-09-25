@@ -173,9 +173,9 @@
       "utm_campaign",
       "utm_term",
       "utm_content",
-      "formType",
-      "formId",
-      "formName",
+      "form_type",
+      "form_id",
+      "form_name",
       "click_id",
       "gclid",
       "gbraid",
@@ -202,7 +202,7 @@
     if (email) leadPayload.user_email = email;
     if (phone) leadPayload.user_phone = phone;
 
-    leadPayload.submittedAt = new Date().toISOString();
+    leadPayload.submitted_at = new Date().toISOString();
 
     try {
       getDL().push(leadPayload);
@@ -217,10 +217,10 @@
 
     var payload = {
       event: "form_submit",
-      formType: "ninja_forms",
+      form_type: "ninja_forms",
       form_id: formId,
       form_name: null, // Ninja Forms doesn't typically expose form names in frontend
-      submittedAt: new Date().toISOString(),
+      submitted_at: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "ninja_forms",
     };
@@ -334,7 +334,7 @@
       var phone = getFieldValue(form, "phone");
 
       observeSuccess(form, email, phone);
-      log("Ninja form submit tracked for:", formId);
+      log("Ninja form submit tracked for:", form.getAttribute("data-form-id") || form.getAttribute("id") || "unknown");
     } catch (e) {
       log("Submit handler error:", e);
     }

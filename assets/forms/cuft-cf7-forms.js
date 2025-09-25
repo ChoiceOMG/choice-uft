@@ -110,9 +110,9 @@
       "utm_campaign",
       "utm_term",
       "utm_content",
-      "formType",
-      "formId",
-      "formName",
+      "form_type",
+      "form_id",
+      "form_name",
     ];
 
     for (var i = 0; i < copyFields.length; i++) {
@@ -122,7 +122,7 @@
       }
     }
 
-    leadPayload.submittedAt = new Date().toISOString();
+    leadPayload.submitted_at = new Date().toISOString();
 
     try {
       getDL().push(leadPayload);
@@ -138,10 +138,10 @@
 
     var payload = {
       event: "form_submit",
-      formType: "contact_form_7",
+      form_type: "contact_form_7",
       form_id: formId,
       form_name: null, // CF7 doesn't typically expose form names in frontend
-      submittedAt: new Date().toISOString(),
+      submitted_at: new Date().toISOString(),
       cuft_tracked: true,
       cuft_source: "contact_form_7",
     };
