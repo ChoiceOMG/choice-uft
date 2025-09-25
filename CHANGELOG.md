@@ -5,6 +5,23 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.8] - 2025-09-25
+
+### Fixed
+
+- **Console Logging**: Fixed JavaScript scoping bug in log() functions across all framework scripts that was causing console spam showing numbers instead of log messages
+- **Test Forms CF7**: Fixed NaN API errors in Contact Form 7 test forms by adding robust numeric ID validation and fallback handling
+- **Test/Production Separation**: Added `data-cuft-test-form="true"` attribute to all test forms to prevent real plugins from interfering with test functionality
+- **Framework Filtering**: Enhanced Avada production script to filter out test forms from processing
+- **Constitutional Compliance**: Removed logging from silent exit patterns to comply with framework compatibility standards
+
+### Technical
+
+- Enhanced error handling for CF7 form ID extraction to prevent empty string → NaN conversion
+- Improved test form isolation from production tracking scripts
+- Fixed `arguments` variable scoping in all framework logging functions
+- Added comprehensive fallback validation for form identification
+
 ## [3.9.7] - 2025-09-24
 
 ### Fixed
