@@ -5,6 +5,28 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.9] - 2025-09-25
+
+### Fixed
+
+- **Elementor Forms - CRITICAL**: Fixed PHP fatal error in `get_form_settings()` call that was causing 500 Internal Server Error on all Elementor form submissions
+- **Elementor Forms - Pattern Validation**: Fixed invalid regex pattern `[0-9()#&+*-=.]+` that was preventing form validation from completing
+- **Elementor Forms - Event Interference**: Removed conflicting form submit event listener that was interfering with Elementor's native validation flow
+- **Form Tracking**: Enhanced success event handlers to properly capture field values without relying on submit events
+
+### Added
+
+- **Pattern Validation Fix**: Added automatic pattern fixer that corrects invalid regex patterns before form interactions
+- **Testing Tools**: Added comprehensive test files for manual and automated verification of Elementor form fixes
+- **Enhanced Verification**: Added validation checks for required CUFT fields (`cuft_tracked`, `cuft_source`)
+
+### Technical
+
+- Switched from `get_form_settings()` to metadata-based form settings extraction
+- Implemented pattern validation fix that runs on DOM ready
+- Removed submit event handlers to prevent validation interference
+- Enhanced popup form handling and success event detection
+
 ## [3.9.8] - 2025-09-25
 
 ### Fixed
