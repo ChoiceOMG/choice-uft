@@ -392,7 +392,6 @@
 
         // Check for multi-step forms (only track final step)
         if (!isFinalStepForm(formElement)) {
-          log("Multi-step form not on final step, skipping");
           if (measurement) measurement.end();
           return false;
         }
