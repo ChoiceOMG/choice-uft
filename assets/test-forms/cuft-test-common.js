@@ -8,6 +8,13 @@
     // Global namespace for test forms
     window.CUFTTestForms = window.CUFTTestForms || {};
 
+    // Check utility systems availability
+    var hasErrorBoundary = !!(window.cuftErrorBoundary);
+    var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
+    var hasObserverCleanup = !!(window.cuftObserverCleanup);
+    var hasRetryLogic = !!(window.cuftRetryLogic);
+    var hasDataLayerUtils = !!(window.cuftDataLayerUtils);
+
     // Common utilities
     window.CUFTTestForms.common = {
 
@@ -16,11 +23,16 @@
          * This data will be stored in sessionStorage for production code to retrieve
          */
         getTestTrackingData: function(framework, formId) {
-            const timestamp = Date.now();
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeExecute :
+              function(fn) { try { return fn(); } catch (e) { return {}; } };
 
-            // Only return tracking data that should be stored in sessionStorage
-            // Production code will add cuft_tracked, cuft_source, form_type, etc.
-            return {
+            return safeOperation(function() {
+                const timestamp = Date.now();
+
+                // Only return tracking data that should be stored in sessionStorage
+                // Production code will add cuft_tracked, cuft_source, form_type, etc.
+                return {
                 // Click IDs (all test forms will have these to ensure generate_lead fires)
                 click_id: `test_click_${framework}_${timestamp}`,
                 gclid: `test_gclid_${framework}_${timestamp}`,
@@ -31,8 +43,9 @@
                 utm_medium: 'test_form',
                 utm_campaign: `test_campaign_${framework}`,
                 utm_term: 'test_term',
-                utm_content: 'test_content'
-            };
+                    utm_content: 'test_content'
+                };
+            }, 'Test Tracking Data Generation') || {};
         },
 
         /**
@@ -99,13 +112,13 @@
                 return false;
             }
 
-            // Check UTM campaign requirement
-            if (requirements.utm_campaign && !formData.utm_campaign) {
-                console.log(`[CUFT Test] Generate lead blocked: UTM campaign required for ${framework}`);
-                return false;
-            }
+                // Check UTM campaign requirement
+                if (requirements.utm_campaign && !formData.utm_campaign) {
+                    console.log(`[CUFT Test] Generate lead blocked: UTM campaign required for ${framework}`);
+                    return false;
+                }
 
-            return true;
+                return true;
         },
 
         /**
@@ -130,10 +143,10 @@
             const email = formElement.getAttribute('data-cuft-email') || '';
             const phone = formElement.getAttribute('data-cuft-phone') || '';
 
-            // Check email requirement
-            if (requirements.email && !email) {
-                console.log(`[CUFT Test] Generate lead should be blocked: Email required for ${framework}`);
-                return false;
+                // Check email requirement
+                if (requirements.email && !email) {
+                    console.log(`[CUFT Test] Generate lead should be blocked: Email required for ${framework}`);
+                    return false;
             }
 
             // Check phone requirement
@@ -154,8 +167,8 @@
                 return false;
             }
 
-            console.log(`[CUFT Test] Generate lead should fire for ${framework}`);
-            return true;
+                console.log(`[CUFT Test] Generate lead should fire for ${framework}`);
+                return true;
         },
 
         /**
@@ -163,10 +176,15 @@
          * NOTE: We no longer fire events directly - production code should handle this
          */
         checkDataLayerEvents: function(framework, expectedFormId) {
-            if (!window.dataLayer) {
-                console.error('[CUFT Test] ❌ dataLayer not found');
-                return { formSubmit: false, generateLead: false };
-            }
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeExecute :
+              function(fn) { try { return fn(); } catch (e) { return { formSubmit: false, generateLead: false }; } };
+
+            return safeOperation(function() {
+                if (!window.dataLayer) {
+                    console.error('[CUFT Test] ❌ dataLayer not found');
+                    return { formSubmit: false, generateLead: false };
+                }
 
             // Check recent events (last 10 events)
             const recentEvents = window.dataLayer.slice(-10);
@@ -190,25 +208,32 @@
                 generateLeadData: generateLeadEvent || null
             });
 
-            return {
-                formSubmit: !!formSubmitEvent,
-                generateLead: !!generateLeadEvent,
-                formSubmitEvent: formSubmitEvent,
-                generateLeadEvent: generateLeadEvent
-            };
+                return {
+                    formSubmit: !!formSubmitEvent,
+                    generateLead: !!generateLeadEvent,
+                    formSubmitEvent: formSubmitEvent,
+                    generateLeadEvent: generateLeadEvent
+                };
+            }, 'DataLayer Event Check') || { formSubmit: false, generateLead: false };
         },
 
         /**
          * Get form field values
          */
         getFormFieldValues: function(form) {
-            const emailInput = form.querySelector('input[type="email"], input[name*="email"], input[data-field="email"]');
-            const phoneInput = form.querySelector('input[type="tel"], input[name*="phone"], input[data-field="phone"]');
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeDOMOperation :
+              function(fn) { try { return fn(); } catch (e) { return { email: '', phone: '' }; } };
 
-            return {
-                email: emailInput ? emailInput.value : '',
-                phone: phoneInput ? phoneInput.value : ''
-            };
+            return safeOperation(function() {
+                const emailInput = form.querySelector('input[type="email"], input[name*="email"], input[data-field="email"]');
+                const phoneInput = form.querySelector('input[type="tel"], input[name*="phone"], input[data-field="phone"]');
+
+                return {
+                    email: emailInput ? emailInput.value : '',
+                    phone: phoneInput ? phoneInput.value : ''
+                };
+            }, form, 'Form Field Value Extraction') || { email: '', phone: '' };
         },
 
         /**
@@ -237,16 +262,24 @@
         /**
          * Show success message
          */
-        showSuccessMessage: function(container, message, duration = 5000) {
-            if (!container) return;
+        showSuccessMessage: function(container, message, duration) {
+            duration = duration || 5000;
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeDOMOperation :
+              function(fn) { try { return fn(); } catch (e) { return false; } };
 
-            container.style.display = 'block';
-            container.innerHTML = message;
+            return safeOperation(function() {
+                if (!container) return false;
 
-            setTimeout(() => {
-                container.style.display = 'none';
-                container.innerHTML = '';
-            }, duration);
+                container.style.display = 'block';
+                container.innerHTML = message;
+
+                setTimeout(function() {
+                    container.style.display = 'none';
+                    container.innerHTML = '';
+                }, duration);
+                return true;
+            }, container, 'Success Message Display');
         },
 
         /**
@@ -259,10 +292,28 @@
         },
 
         /**
+         * Check utility systems availability
+         */
+        getUtilityStatus: function() {
+            return {
+                errorBoundary: hasErrorBoundary,
+                performanceMonitor: hasPerformanceMonitor,
+                observerCleanup: hasObserverCleanup,
+                retryLogic: hasRetryLogic,
+                dataLayerUtils: hasDataLayerUtils
+            };
+        },
+
+        /**
          * Add testing controls to form
          */
         addTestingControls: function(formElement, framework) {
-            const controlsDiv = document.createElement('div');
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeDOMOperation :
+              function(fn) { try { return fn(); } catch (e) { return false; } };
+
+            return safeOperation(function() {
+                const controlsDiv = document.createElement('div');
             controlsDiv.className = 'cuft-testing-controls';
             controlsDiv.style.cssText = `
                 background: #fff3cd;
@@ -300,21 +351,27 @@
                 </div>
             `;
 
-            // Insert controls before the form
-            formElement.parentNode.insertBefore(controlsDiv, formElement);
+                // Insert controls before the form
+                formElement.parentNode.insertBefore(controlsDiv, formElement);
 
-            // Add event listeners to controls
-            this.setupTestingControlListeners(formElement, framework);
+                // Add event listeners to controls
+                window.CUFTTestForms.common.setupTestingControlListeners(formElement, framework);
 
-            return controlsDiv;
+                return controlsDiv;
+            }, formElement, 'Testing Controls Setup') || null;
         },
 
         /**
          * Setup testing control event listeners
          */
         setupTestingControlListeners: function(formElement, framework) {
-            const controlsDiv = formElement.parentNode.querySelector('.cuft-testing-controls');
-            if (!controlsDiv) return;
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeDOMOperation :
+              function(fn) { try { return fn(); } catch (e) { return false; } };
+
+            return safeOperation(function() {
+                const controlsDiv = formElement.parentNode.querySelector('.cuft-testing-controls');
+                if (!controlsDiv) return false;
 
             const controls = {
                 email: controlsDiv.querySelector('.test-control-email'),
@@ -326,28 +383,37 @@
             // Update form data based on controls when they change
             Object.keys(controls).forEach(key => {
                 if (controls[key]) {
-                    controls[key].addEventListener('change', () => {
-                        this.updateFormBasedOnControls(formElement, framework, controls);
+                    controls[key].addEventListener('change', function() {
+                        window.CUFTTestForms.common.updateFormBasedOnControls(formElement, framework, controls);
                     });
                 }
             });
 
-            // Initialize form data based on current control states
-            this.updateFormBasedOnControls(formElement, framework, controls);
+                // Initialize form data based on current control states
+                window.CUFTTestForms.common.updateFormBasedOnControls(formElement, framework, controls);
+                return true;
+            }, formElement, 'Testing Control Event Listeners') || false;
         },
 
         /**
          * Update form data based on testing controls
          */
         updateFormBasedOnControls: function(formElement, framework, controls) {
-            // Store control states in form element for later use during submission
-            formElement.dataset.testControlEmail = controls.email ? controls.email.checked : 'true';
-            formElement.dataset.testControlPhone = controls.phone ? controls.phone.checked : 'true';
-            formElement.dataset.testControlClickId = controls.clickId ? controls.clickId.checked : 'true';
-            formElement.dataset.testControlUtmCampaign = controls.utmCampaign ? controls.utmCampaign.checked : 'true';
+            var safeOperation = hasErrorBoundary ?
+              window.cuftErrorBoundary.safeDOMOperation :
+              function(fn) { try { return fn(); } catch (e) { return false; } };
 
-            this.log(`Testing controls updated for ${framework}:`, 'info');
-            this.log(`Email: ${formElement.dataset.testControlEmail}, Phone: ${formElement.dataset.testControlPhone}, Click ID: ${formElement.dataset.testControlClickId}, UTM: ${formElement.dataset.testControlUtmCampaign}`, 'info');
+            return safeOperation(function() {
+                // Store control states in form element for later use during submission
+                formElement.dataset.testControlEmail = controls.email ? controls.email.checked : 'true';
+                formElement.dataset.testControlPhone = controls.phone ? controls.phone.checked : 'true';
+                formElement.dataset.testControlClickId = controls.clickId ? controls.clickId.checked : 'true';
+                formElement.dataset.testControlUtmCampaign = controls.utmCampaign ? controls.utmCampaign.checked : 'true';
+
+                window.CUFTTestForms.common.log(`Testing controls updated for ${framework}:`, 'info');
+                window.CUFTTestForms.common.log(`Email: ${formElement.dataset.testControlEmail}, Phone: ${formElement.dataset.testControlPhone}, Click ID: ${formElement.dataset.testControlClickId}, UTM: ${formElement.dataset.testControlUtmCampaign}`, 'info');
+                return true;
+            }, formElement, 'Testing Controls Data Update') || false;
         },
 
         /**

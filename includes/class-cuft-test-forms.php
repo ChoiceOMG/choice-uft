@@ -203,7 +203,17 @@ class CUFT_Test_Forms {
         <!-- Load Framework-Specific Test Scripts -->
         <script src="<?php echo CUFT_URL; ?>assets/test-forms/cuft-test-common.js?ver=<?php echo CUFT_VERSION; ?>"></script>
         <?php foreach ( $detected_frameworks as $framework ): ?>
-            <script src="<?php echo CUFT_URL; ?>assets/test-forms/cuft-test-<?php echo esc_attr( $framework['key'] === 'contact_form_7' ? 'cf7' : $framework['key'] ); ?>.js?ver=<?php echo CUFT_VERSION; ?>"></script>
+            <script src="<?php echo CUFT_URL; ?>assets/test-forms/cuft-test-<?php
+                $script_name = $framework['key'];
+                if ( $script_name === 'contact_form_7' ) {
+                    $script_name = 'cf7';
+                } elseif ( $script_name === 'ninja_forms' ) {
+                    $script_name = 'ninja';
+                } elseif ( $script_name === 'gravity_forms' ) {
+                    $script_name = 'gravity';
+                }
+                echo esc_attr( $script_name );
+            ?>.js?ver=<?php echo CUFT_VERSION; ?>"></script>
         <?php endforeach; ?>
         <script>
             // Ensure config is available
@@ -345,7 +355,7 @@ class CUFT_Test_Forms {
     private function render_cf7_form( $form_id, $admin_email ) {
         ob_start();
         ?>
-        <div class="wpcf7">
+        <div class="wpcf7" id="<?php echo esc_attr( $form_id ); ?>">
             <form class="wpcf7-form init cuft-test-form"
                   data-framework="contact_form_7"
                   data-form-id="<?php echo esc_attr( $form_id ); ?>"
