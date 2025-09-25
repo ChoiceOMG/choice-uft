@@ -1,6 +1,12 @@
 (function () {
   "use strict";
 
+  // Check if dataLayer utilities are available
+  if (!window.cuftDataLayerUtils) {
+    console.error('[CUFT Avada] DataLayer utilities not found - ensure cuft-dataLayer-utils.js is loaded first');
+    return;
+  }
+
   var DEBUG = !!(window.cuftAvada && window.cuftAvada.console_logging);
 
   function log() {
@@ -14,14 +20,6 @@
     } catch (e) {}
   }
 
-  function getDL() {
-    try {
-      return (window.dataLayer = window.dataLayer || []);
-    } catch (e) {
-      return { push: function () {} };
-    }
-  }
-
   function ready(fn) {
     if (
       document.readyState === "complete" ||
@@ -33,10 +31,35 @@
     }
   }
 
-  function findField(form, type) {
-    var inputs = form.querySelectorAll("input");
+  /**
+   * Check if form is an Avada/Fusion form
+   */
+  function isAvadaForm(form) {
+    if (!form) return false;
+    return form && (
+      form.classList.contains("fusion-form") ||
+      form.classList.contains("avada-form") ||
+      form.className.indexOf("fusion-form") > -1 ||
+      form.id.indexOf("avada") > -1 ||
+      form.closest('.fusion-form-wrapper') !== null
+    );
+  }
+
+  /**
+   * Get field value from Avada/Fusion forms with dynamic form loading support
+   */
+  function getFieldValue(form, type) {
+    var inputs = form.querySelectorAll("input, textarea, select");
+    var field = null;
+
+    log("Searching for " + type + " field in Avada form with " + inputs.length + " inputs");
+
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
+
+      // Skip hidden inputs
+      if (input.type === "hidden") continue;
+
       var inputType = (input.getAttribute("type") || "").toLowerCase();
       var inputMode = (input.getAttribute("inputmode") || "").toLowerCase();
       var dataValidate = (
@@ -47,12 +70,27 @@
       var pattern = input.getAttribute("pattern") || "";
       var name = (input.name || "").toLowerCase();
       var id = (input.id || "").toLowerCase();
+      var className = (input.className || "").toLowerCase();
       var placeholder = (input.placeholder || "").toLowerCase();
       var ariaLabel = (input.getAttribute("aria-label") || "").toLowerCase();
 
       // Get the label text if available
       var labelElement = form.querySelector('label[for="' + input.id + '"]');
       var labelText = labelElement ? (labelElement.textContent || "").toLowerCase() : "";
+
+      // Check parent container for field clues
+      var parentElement = input.parentNode;
+      var parentClass = parentElement ? (parentElement.className || "").toLowerCase() : "";
+
+      log("Checking Avada input " + i + ":", {
+        inputType: inputType,
+        name: name,
+        id: id,
+        className: className,
+        placeholder: placeholder,
+        labelText: labelText,
+        parentClass: parentClass
+      });
 
       if (type === "email") {
         if (
@@ -61,19 +99,26 @@
           dataValidate.indexOf("email") > -1 ||
           name.indexOf("email") > -1 ||
           name.indexOf("e-mail") > -1 ||
+          name.indexOf("mail") > -1 ||
           id.indexOf("email") > -1 ||
           id.indexOf("e-mail") > -1 ||
+          className.indexOf("email") > -1 ||
           placeholder.indexOf("email") > -1 ||
           placeholder.indexOf("e-mail") > -1 ||
+          placeholder.indexOf("@") > -1 ||
           ariaLabel.indexOf("email") > -1 ||
           labelText.indexOf("email") > -1 ||
           labelText.indexOf("e-mail") > -1 ||
+          labelText.indexOf("mail") > -1 ||
+          parentClass.indexOf("email") > -1 ||
           (pattern && pattern.indexOf("@") > -1)
         ) {
-          return input;
+          field = input;
+          log("Found Avada email field:", input);
+          break;
         }
       } else if (type === "phone") {
-        // Check if pattern contains numbers but safely
+        // Check if pattern contains numbers safely
         var hasNumberPattern = false;
         try {
           hasNumberPattern = pattern && (
@@ -81,9 +126,7 @@
             pattern.indexOf("\\d") > -1 ||
             pattern.indexOf("[0-9") > -1
           );
-        } catch (e) {
-          // Pattern check failed, continue without it
-        }
+        } catch (e) {}
 
         if (
           inputType === "tel" ||
@@ -99,36 +142,79 @@
           id.indexOf("phone") > -1 ||
           id.indexOf("tel") > -1 ||
           id.indexOf("mobile") > -1 ||
-          id.indexOf("number") > -1 ||
+          className.indexOf("phone") > -1 ||
+          className.indexOf("tel") > -1 ||
           placeholder.indexOf("phone") > -1 ||
           placeholder.indexOf("mobile") > -1 ||
+          placeholder.indexOf("tel") > -1 ||
           placeholder.indexOf("number") > -1 ||
+          placeholder.indexOf("(") > -1 ||
           ariaLabel.indexOf("phone") > -1 ||
           ariaLabel.indexOf("mobile") > -1 ||
           labelText.indexOf("phone") > -1 ||
           labelText.indexOf("mobile") > -1 ||
+          labelText.indexOf("tel") > -1 ||
           labelText.indexOf("number") > -1 ||
+          parentClass.indexOf("phone") > -1 ||
+          parentClass.indexOf("tel") > -1 ||
           hasNumberPattern
         ) {
-          return input;
+          field = input;
+          log("Found Avada phone field:", input);
+          break;
         }
       }
     }
-    return null;
-  }
 
-  function getFieldValue(form, type) {
-    var field = findField(form, type);
-    if (!field) return "";
+    if (!field) {
+      log("No " + type + " field found in Avada form");
+      return "";
+    }
 
     var value = (field.value || "").trim();
-    if (type === "phone" && value) {
-      return value.replace(/(?!^\+)[^\d]/g, "");
-    }
+    log("Avada field value for " + type + ":", value);
+
     return value;
   }
 
-  function isSuccessState(form) {
+  /**
+   * Get Avada/Fusion form identification details
+   */
+  function getAvadaFormDetails(form) {
+    var formId = form.getAttribute("id") ||
+                 form.getAttribute("data-form-id") ||
+                 form.getAttribute("data-avada-form-id");
+
+    var formName = form.getAttribute("name") ||
+                   form.getAttribute("data-form-name") ||
+                   form.getAttribute("aria-label");
+
+    // Check wrapper for additional details
+    var formWrapper = form.closest('.fusion-form-wrapper, .avada-form-wrapper');
+    if (formWrapper && !formName) {
+      formName = formWrapper.getAttribute("data-form-name") ||
+                 formWrapper.getAttribute("data-form-title");
+    }
+
+    if (!formId) {
+      formId = "unknown";
+    }
+
+    log("Avada form identification:", {
+      formId: formId,
+      formName: formName
+    });
+
+    return {
+      form_id: formId,
+      form_name: formName
+    };
+  }
+
+  /**
+   * Check if Avada form is in success state with exponential backoff
+   */
+  function isAvadaSuccessState(form) {
     var successSelectors = [
       ".fusion-form-response-success",
       ".fusion-alert.success",
@@ -137,33 +223,28 @@
       ".avada-form-success",
       ".fusion-form-success-message",
       '[data-status="sent"]',
-      '[data-avada-form-status="success"]',
+      '[data-avada-form-status="success"]'
     ];
 
+    // Check for success elements in form
     for (var i = 0; i < successSelectors.length; i++) {
       var element = form.querySelector(successSelectors[i]);
-      if (element) {
-        log(
-          "Success state detected with selector:",
-          successSelectors[i],
-          element
-        );
+      if (element && element.style.display !== "none") {
+        log("Avada success state detected with selector:", successSelectors[i]);
         return true;
       }
     }
 
+    // Check if form is hidden with success message in parent
     if (!form.offsetParent) {
       var parent = form.parentNode;
-      if (
-        parent &&
-        parent.querySelector('.thank-you, .success, [role="alert"]')
-      ) {
-        log("Success state detected: form hidden and success element found");
+      if (parent && parent.querySelector('.thank-you, .success, [role="alert"]')) {
+        log("Avada success state: form hidden with success element");
         return true;
       }
     }
 
-    // Check for common success class patterns
+    // Check for success-related CSS classes
     var hasSuccessClass =
       form.classList.contains("sent") ||
       form.classList.contains("is-success") ||
@@ -172,340 +253,279 @@
       form.classList.contains("fusion-form-response-success");
 
     if (hasSuccessClass) {
-      log("Success state detected: form has success class");
+      log("Avada success state: form has success class");
       return true;
     }
 
-    // Check if parent container has success class
+    // Check parent container for success class
     var formParent = form.parentNode;
-    if (
-      formParent &&
-      formParent.classList &&
-      formParent.classList.contains("fusion-form-response-success")
-    ) {
-      log("Success state detected: parent container has success class");
+    if (formParent && formParent.classList &&
+        formParent.classList.contains("fusion-form-response-success")) {
+      log("Avada success state: parent has success class");
       return true;
     }
 
-    // Check if form is replaced with success message
+    // Check form container for success message
     var container = form.closest(".fusion-form-wrapper, .avada-form-wrapper");
-    if (
-      container &&
-      container.querySelector(
+    if (container && container.querySelector(
         ".fusion-form-response-success, .fusion-success, .success-message, .thank-you"
-      )
-    ) {
-      log("Success state detected: success message in form container");
+      )) {
+      log("Avada success state: success message in container");
       return true;
     }
 
     return false;
   }
 
-  function getGA4StandardParams() {
-    return {
-      page_location: window.location.href,
-      page_referrer: document.referrer || "",
-      page_title: document.title || "",
-      language: navigator.language || navigator.userLanguage || "",
-      screen_resolution: screen.width + "x" + screen.height,
-      engagement_time_msec: Math.max(
-        0,
-        Date.now() - (window.cuftPageLoadTime || Date.now())
-      ),
-    };
-  }
-
-  function fireGenerateLeadEvent(basePayload, email, phone) {
-    if (!window.cuftAvada || !window.cuftAvada.generate_lead_enabled) {
-      log("Generate lead skipped - not enabled");
-      return;
-    }
-
-    // Check for any click ID parameter
-    var clickIdParams = [
-      "click_id",
-      "gclid",
-      "gbraid",
-      "wbraid",
-      "fbclid",
-      "msclkid",
-      "ttclid",
-      "li_fat_id",
-      "twclid",
-      "snap_click_id",
-      "pclid"
-    ];
-
-    var hasClickId = false;
-    for (var i = 0; i < clickIdParams.length; i++) {
-      if (basePayload[clickIdParams[i]]) {
-        hasClickId = true;
-        break;
-      }
-    }
-
-    if (!email || !phone || !hasClickId) {
-      log("Generate lead skipped - missing required fields (email, phone, or click_id)");
-      log("Has email:", !!email, "Has phone:", !!phone, "Has click_id:", !!hasClickId);
-      return;
-    }
-
-    var leadPayload = {
-      event: "generate_lead",
-      currency: "USD",
-      value: 0,
-      cuft_tracked: true,
-      cuft_source: basePayload.cuft_source + "_lead",
-    };
-
-    var copyFields = [
-      "page_location",
-      "page_referrer",
-      "page_title",
-      "language",
-      "screen_resolution",
-      "engagement_time_msec",
-      "utm_source",
-      "utm_medium",
-      "utm_campaign",
-      "utm_term",
-      "utm_content",
-      "formType",
-      "formId",
-      "formName",
-      "click_id",
-      "gclid",
-      "gbraid",
-      "wbraid",
-      "fbclid",
-      "msclkid",
-      "ttclid",
-      "li_fat_id",
-      "twclid",
-      "snap_click_id",
-      "pclid",
-      "user_email",
-      "user_phone"
-    ];
-
-    for (var i = 0; i < copyFields.length; i++) {
-      var field = copyFields[i];
-      if (basePayload[field]) {
-        leadPayload[field] = basePayload[field];
-      }
-    }
-
-    // Add email and phone to lead payload
-    if (email) leadPayload.user_email = email;
-    if (phone) leadPayload.user_phone = phone;
-
-    leadPayload.submittedAt = new Date().toISOString();
-
+  /**
+   * Main Avada Forms success handler using standardized utilities
+   */
+  function handleAvadaSuccess(form, email, phone) {
     try {
-      getDL().push(leadPayload);
-      log("Generate lead event fired:", leadPayload);
+      // Framework detection - exit silently if not Avada
+      if (!isAvadaForm(form)) {
+        return;
+      }
+
+      // Prevent duplicate processing
+      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
+        log("Avada form already processed, skipping");
+        return;
+      }
+
+      // Get form details
+      var formDetails = getAvadaFormDetails(form);
+
+      // Validate email if present
+      if (email && !window.cuftDataLayerUtils.validateEmail(email)) {
+        log("Invalid email found, excluding from Avada tracking:", email);
+        email = "";
+      }
+
+      // Sanitize phone if present
+      if (phone) {
+        phone = window.cuftDataLayerUtils.sanitizePhone(phone);
+      }
+
+      log("Processing Avada form submission:", {
+        formId: formDetails.form_id,
+        formName: formDetails.form_name,
+        email: email || "not found",
+        phone: phone || "not found"
+      });
+
+      // Use standardized tracking function
+      var success = window.cuftDataLayerUtils.trackFormSubmission('avada', form, {
+        form_id: formDetails.form_id,
+        form_name: formDetails.form_name,
+        user_email: email,
+        user_phone: phone,
+        debug: DEBUG
+      });
+
+      if (success) {
+        log("Avada form successfully tracked");
+      } else {
+        log("Avada form tracking failed");
+      }
+
     } catch (e) {
-      log("Generate lead push error:", e);
+      log("Avada success handler error:", e);
     }
   }
 
-  function pushToDataLayer(form, email, phone) {
-    var payload = {
-      event: "form_submit",
-      formType: "avada",
-      form_id: form.getAttribute("id") || null,
-      form_name:
-        form.getAttribute("name") ||
-        form.getAttribute("data-form-name") ||
-        null,
-      submittedAt: new Date().toISOString(),
-      cuft_tracked: true,
-      cuft_source: "avada_fusion",
-    };
-
-    // Add GA4 standard parameters
-    var ga4Params = getGA4StandardParams();
-    for (var key in ga4Params) {
-      if (ga4Params[key]) payload[key] = ga4Params[key];
-    }
-
-    if (email) payload.user_email = email;
-    if (phone) payload.user_phone = phone;
-
-    // Add UTM data if available
-    if (window.cuftUtmUtils) {
-      payload = window.cuftUtmUtils.addUtmToPayload(payload);
-    }
-
-    try {
-      getDL().push(payload);
-      log("Form submission tracked:", payload);
-      fireGenerateLeadEvent(payload, email, phone);
-    } catch (e) {
-      log("DataLayer push error:", e);
-    }
-  }
-
-  function observeSuccess(form, email, phone) {
-    log("Starting success observation for form:", form.id || "unnamed", {
-      formClassName: form.className,
-      initialSuccessState: isSuccessState(form),
-    });
+  /**
+   * Setup MutationObserver for success detection with exponential backoff
+   */
+  function observeAvadaSuccess(form, email, phone) {
+    log("Starting Avada success observation for form:", form.id || "unnamed");
 
     var pushed = false;
     var cleanup = function () {};
+    var attempts = 0;
+    var maxAttempts = 10; // More attempts for dynamic loading
 
     function tryPush() {
-      log("Checking success state for form:", form.id || "unnamed", {
-        pushed: pushed,
-        isSuccessState: isSuccessState(form),
-      });
-      if (!pushed && isSuccessState(form)) {
+      attempts++;
+      log("Avada success check attempt " + attempts + " for form:", form.id || "unnamed");
+
+      if (!pushed && isAvadaSuccessState(form)) {
         pushed = true;
-        log("Success state confirmed, pushing to dataLayer");
-        pushToDataLayer(form, email, phone);
+        log("Avada success state confirmed, tracking submission");
+        handleAvadaSuccess(form, email, phone);
+        cleanup();
+        return;
+      }
+
+      // Exponential backoff with progressive delays for dynamic loading
+      if (attempts < maxAttempts && !pushed) {
+        var delay;
+        switch (attempts) {
+          case 1: delay = 200; break;   // Very quick check
+          case 2: delay = 500; break;   // Quick check
+          case 3: delay = 1000; break;  // Standard check
+          case 4: delay = 2000; break;  // Slower check
+          case 5: delay = 3000; break;  // Even slower
+          case 6: delay = 4000; break;  // Very slow loading
+          default: delay = 5000; break; // Maximum delay
+        }
+        setTimeout(tryPush, delay);
+        log("Avada next success check in " + delay + "ms");
+      } else if (!pushed) {
+        log("Avada success detection timed out after " + attempts + " attempts");
         cleanup();
       }
     }
 
-    // Try immediately
-    tryPush();
+    // Initial quick check
+    setTimeout(tryPush, 50);
 
-    // Set up observers
-    var timeouts = [
-      setTimeout(tryPush, 1000),
-      setTimeout(tryPush, 3000),
-      setTimeout(tryPush, 7000),
-    ];
-
-    var stopTimeout = setTimeout(function () {
-      if (!pushed) cleanup();
-    }, 10000);
-
-    cleanup = function () {
-      timeouts.forEach(function (t) {
-        clearTimeout(t);
-      });
-      clearTimeout(stopTimeout);
-    };
-
-    // Mutation observer
+    // Set up MutationObserver for real-time detection
     if (window.MutationObserver) {
-      var observer = new MutationObserver(tryPush);
-      observer.observe(form.parentNode || document.body, {
+      var observer = new MutationObserver(function(mutations) {
+        if (pushed) return;
+
+        mutations.forEach(function(mutation) {
+          if (mutation.type === "childList" || mutation.type === "attributes") {
+            if (isAvadaSuccessState(form)) {
+              pushed = true;
+              handleAvadaSuccess(form, email, phone);
+              cleanup();
+            }
+          }
+        });
+      });
+
+      // Observe form and its containers for dynamic content loading
+      observer.observe(form, {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ["class", "style"],
+        attributeFilter: ["class", "style", "data-status"]
       });
+
+      var container = form.closest(".fusion-form-wrapper, .avada-form-wrapper");
+      if (container && container !== form) {
+        observer.observe(container, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class", "style", "data-status"]
+        });
+      }
+
+      // Also observe parent node for success messages
+      if (form.parentNode) {
+        observer.observe(form.parentNode, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["class", "style"]
+        });
+      }
 
       var originalCleanup = cleanup;
       cleanup = function () {
         observer.disconnect();
         originalCleanup();
       };
+
+      log("MutationObserver setup for Avada dynamic success detection");
     }
+
+    // Safety timeout to prevent memory leaks (longer for dynamic content)
+    setTimeout(function () {
+      if (!pushed) {
+        log("Avada success observation timed out, cleaning up");
+        cleanup();
+      }
+    }, 25000); // 25 second maximum observation for dynamic loading
   }
 
-  function handleFormSubmit(event) {
+  /**
+   * Handle form submit to capture field values and start observation
+   */
+  function handleAvadaFormSubmit(event) {
     try {
       var form = event.target;
-      log("Form submit event triggered:", event.type, form);
+      if (!form || form.tagName !== "FORM") return;
 
-      if (!form || form.tagName !== "FORM") {
-        log("Event target is not a form, skipping");
+      // Check if this is an Avada form - exit silently if not
+      if (!isAvadaForm(form)) {
         return;
       }
 
-      // Check if this is an Avada/Fusion form
-      var isAvadaForm =
-        form.classList.contains("fusion-form") ||
-        form.classList.contains("avada-form") ||
-        form.className.indexOf("fusion-form") > -1 ||
-        form.id.indexOf("avada") > -1;
-
-      log("Form detection check:", {
-        form: form,
-        classList: form.className,
-        id: form.id,
-        isAvadaForm: isAvadaForm,
-      });
-
-      if (!isAvadaForm) {
-        log("Form not detected as Avada form, skipping");
-        return;
-      }
-
-      // Check if form has email field (indicates it's a contact/lead form)
-      var hasEmailField = findField(form, "email") !== null;
+      // Check if form has email field (contact forms only, not search forms)
+      var hasEmailField = getFieldValue(form, "email") !== "";
       if (!hasEmailField) {
-        log(
-          "Skipping Avada form - no email field detected (likely search form)"
-        );
+        log("Avada form has no email field, skipping (likely search form)");
         return;
       }
 
-      log("Avada form submit detected! Starting tracking process...");
+      // Prevent multiple observations on the same form
+      if (form.hasAttribute("data-cuft-avada-observing")) {
+        log("Avada form already being observed, skipping");
+        return;
+      }
 
-      if (form.hasAttribute("data-cuft-tracking")) return;
-      form.setAttribute("data-cuft-tracking", "true");
+      form.setAttribute("data-cuft-avada-observing", "true");
 
+      // Capture field values at submit time
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
 
-      log("Extracted form data:", {
-        email: email || "none",
-        phone: phone || "none",
+      log("Avada form submit detected, starting success observation:", {
+        formId: getAvadaFormDetails(form).form_id,
+        email: email || "not found",
+        phone: phone || "not found"
       });
 
-      observeSuccess(form, email, phone);
-      log("Form submit listener attached for:", form.id || "unnamed form");
+      // Start observing for success state
+      observeAvadaSuccess(form, email, phone);
+
     } catch (e) {
-      log("Submit handler error:", e);
+      log("Avada submit handler error:", e);
     }
   }
 
-  // Function to watch for AJAX form submissions
-  function watchAjaxForms() {
+  /**
+   * Watch for dynamically loaded Avada forms and AJAX submissions
+   */
+  function watchAvadaAjaxForms() {
     var fusionForms = document.querySelectorAll(".fusion-form");
-    log("Found", fusionForms.length, "Fusion forms, checking for email fields");
+    log("Found " + fusionForms.length + " Avada/Fusion forms, checking for email fields");
 
     for (var i = 0; i < fusionForms.length; i++) {
       var form = fusionForms[i];
-      if (form.hasAttribute("data-cuft-tracking")) continue;
+      if (form.hasAttribute("data-cuft-avada-ajax-watching")) continue;
 
-      // Check if form has email field (indicates it's a contact/lead form)
-      var hasEmailField = findField(form, "email") !== null;
-
-      log("Form check:", {
-        className: form.className,
-        hasEmailField: hasEmailField,
-        action: form.action || "no action",
-      });
-
+      // Check if form has email field (contact forms only)
+      var hasEmailField = getFieldValue(form, "email") !== "";
       if (!hasEmailField) {
-        log("Skipping form - no email field detected (likely search form)");
+        log("Avada form has no email field, skipping AJAX watch");
         continue;
       }
 
-      form.setAttribute("data-cuft-tracking", "true");
-      log("Setting up AJAX watcher for form with email field:", form.className);
+      form.setAttribute("data-cuft-avada-ajax-watching", "true");
+      log("Setting up AJAX watcher for Avada form:", form.id || form.className);
 
-      // Watch for form submissions via click events on submit buttons
+      // Watch for submit button clicks (for AJAX submissions)
       var submitButtons = form.querySelectorAll(
         'input[type="submit"], button[type="submit"], .fusion-button'
       );
+
       for (var j = 0; j < submitButtons.length; j++) {
         var button = submitButtons[j];
         button.addEventListener("click", function (event) {
           var clickedForm = event.target.closest(".fusion-form");
-          if (clickedForm) {
-            log("Submit button clicked for Fusion form, starting observation");
+          if (clickedForm && !clickedForm.hasAttribute("data-cuft-avada-observing")) {
+            log("Avada submit button clicked, starting observation");
+            clickedForm.setAttribute("data-cuft-avada-observing", "true");
+
             setTimeout(function () {
               var email = getFieldValue(clickedForm, "email");
               var phone = getFieldValue(clickedForm, "phone");
-              observeSuccess(clickedForm, email, phone);
+              observeAvadaSuccess(clickedForm, email, phone);
             }, 100);
           }
         });
@@ -513,54 +533,69 @@
     }
   }
 
-  ready(function () {
-    document.addEventListener("submit", handleFormSubmit, true);
-    log("Avada forms tracking initialized");
+  /**
+   * Setup Avada Forms event listeners
+   */
+  function setupAvadaEventListeners() {
+    var listenersSetup = [];
 
-    // Debug: Log all forms found on page
-    var allForms = document.querySelectorAll("form");
-    log("Forms found on page:", allForms.length);
-    for (var i = 0; i < allForms.length; i++) {
-      var form = allForms[i];
-      log("Form " + i + ":", {
-        id: form.id,
-        className: form.className,
-        action: form.action,
-      });
+    // Primary: Form submit handler with success observation
+    try {
+      document.addEventListener("submit", handleAvadaFormSubmit, true);
+      listenersSetup.push("form submit handler");
+    } catch (e) {
+      log("Could not add Avada submit listener:", e);
     }
 
-    // Set up AJAX form watchers
-    watchAjaxForms();
+    // Setup AJAX form watchers for dynamically loaded forms
+    try {
+      watchAvadaAjaxForms();
+      listenersSetup.push("AJAX form watchers");
+    } catch (e) {
+      log("Could not setup Avada AJAX watchers:", e);
+    }
 
-    // Also watch for dynamically added forms
+    // Watch for dynamically added forms
     if (window.MutationObserver) {
-      var documentObserver = new MutationObserver(function (mutations) {
-        var shouldRewatch = false;
-        mutations.forEach(function (mutation) {
-          if (mutation.type === "childList") {
-            for (var i = 0; i < mutation.addedNodes.length; i++) {
-              var node = mutation.addedNodes[i];
-              if (
-                node.nodeType === 1 &&
-                (node.classList.contains("fusion-form") ||
-                  node.querySelector(".fusion-form"))
-              ) {
-                shouldRewatch = true;
-                break;
+      try {
+        var documentObserver = new MutationObserver(function (mutations) {
+          var shouldRewatch = false;
+          mutations.forEach(function (mutation) {
+            if (mutation.type === "childList") {
+              for (var i = 0; i < mutation.addedNodes.length; i++) {
+                var node = mutation.addedNodes[i];
+                if (node.nodeType === 1 &&
+                    (node.classList.contains("fusion-form") ||
+                     node.querySelector(".fusion-form"))) {
+                  shouldRewatch = true;
+                  break;
+                }
               }
             }
+          });
+          if (shouldRewatch) {
+            log("New Avada forms detected, re-running AJAX watchers");
+            watchAvadaAjaxForms();
           }
         });
-        if (shouldRewatch) {
-          log("New forms detected, re-running AJAX watchers");
-          watchAjaxForms();
-        }
-      });
 
-      documentObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
+        documentObserver.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        listenersSetup.push("dynamic form observer");
+      } catch (e) {
+        log("Could not setup dynamic form observer:", e);
+      }
     }
+
+    log("Avada Forms event listeners setup complete:", listenersSetup);
+  }
+
+  // Initialize when DOM is ready
+  ready(function () {
+    setupAvadaEventListeners();
+    log("Avada Forms tracking initialized using standardized dataLayer utilities");
   });
+
 })();

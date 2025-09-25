@@ -76,7 +76,26 @@ class CUFT_Test_Forms {
                 <?php endif; ?>
             </div>
 
-
+            <!-- Navigation Bar -->
+            <div style="background: #f0f3f7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="<?php echo admin_url('options-general.php?page=choice-universal-form-tracker'); ?>"
+                           class="button">
+                            ⚙️ Back to Plugin Settings
+                        </a>
+                        <a href="<?php echo admin_url('admin.php?page=google-tag-assistant'); ?>"
+                           class="button button-secondary"
+                           target="_blank">
+                            🔍 Tag Assistant
+                        </a>
+                    </div>
+                    <div style="font-size: 12px; color: #666; text-align: right;">
+                        <strong>Test forms trigger real tracking events</strong><br>
+                        Check Tag Assistant for validation • Events include cuft_tracked & cuft_source
+                    </div>
+                </div>
+            </div>
 
             <!-- Test Forms Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
@@ -186,8 +205,6 @@ class CUFT_Test_Forms {
         <?php foreach ( $detected_frameworks as $framework ): ?>
             <script src="<?php echo CUFT_URL; ?>assets/test-forms/cuft-test-<?php echo esc_attr( $framework['key'] === 'contact_form_7' ? 'cf7' : $framework['key'] ); ?>.js?ver=<?php echo CUFT_VERSION; ?>"></script>
         <?php endforeach; ?>
-        <!-- Legacy script for fallback -->
-        <script src="<?php echo CUFT_URL; ?>assets/cuft-test-forms.js?ver=<?php echo CUFT_VERSION; ?>"></script>
         <script>
             // Ensure config is available
             window.cuftTestConfig = {
@@ -633,25 +650,7 @@ class CUFT_Test_Forms {
             return;
         }
 
-        // Load the script
-        wp_enqueue_script(
-            'cuft-test-forms',
-            CUFT_URL . 'assets/cuft-test-forms.js',
-            array(),
-            CUFT_VERSION,
-            true // Load in footer for better page load
-        );
 
-        wp_localize_script( 'cuft-test-forms', 'cuftTestConfig', array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'adminEmail' => get_option( 'admin_email' ),
-            'siteUrl' => home_url(),
-            'gtmId' => get_option( 'cuft_gtm_id', '' ),
-            'testMode' => $test_mode,
-            'framework' => isset( $_GET['framework'] ) ? sanitize_text_field( $_GET['framework'] ) : '',
-            'autoSubmit' => isset( $_GET['auto_submit'] ) && $_GET['auto_submit'] === '1',
-            'verbose' => isset( $_GET['verbose'] ) && $_GET['verbose'] === '1'
-        ));
     }
 
     /**
@@ -798,12 +797,12 @@ class CUFT_Test_Forms {
         );
         $framework_name = isset( $framework_names[ $framework ] ) ? $framework_names[ $framework ] : $framework;
 
-        // Prepare test data
+        // Prepare test data for email notification
         $test_data = array(
             'event' => 'form_submit',
             'user_email' => $email,
             'user_phone' => $phone,
-            'form_framework' => $framework,
+            'form_type' => $framework, // Use snake_case field name
             'form_id' => $form_id,
             'test_submission' => true,
             'timestamp' => current_time( 'mysql' ),

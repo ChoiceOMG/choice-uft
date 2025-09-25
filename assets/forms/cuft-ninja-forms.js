@@ -1,6 +1,12 @@
 (function () {
   "use strict";
 
+  // Check if dataLayer utilities are available
+  if (!window.cuftDataLayerUtils) {
+    console.error('[CUFT Ninja] DataLayer utilities not found - ensure cuft-dataLayer-utils.js is loaded first');
+    return;
+  }
+
   var DEBUG = !!(window.cuftNinja && window.cuftNinja.console_logging);
 
   function log() {
@@ -14,14 +20,6 @@
     } catch (e) {}
   }
 
-  function getDL() {
-    try {
-      return (window.dataLayer = window.dataLayer || []);
-    } catch (e) {
-      return { push: function () {} };
-    }
-  }
-
   function ready(fn) {
     if (
       document.readyState === "complete" ||
@@ -33,23 +31,60 @@
     }
   }
 
+  /**
+   * Check if form is a Ninja Forms form
+   */
+  function isNinjaForm(form) {
+    if (!form) return false;
+    return form && (
+      form.closest('.nf-form-cont') !== null ||
+      form.classList.contains('nf-form') ||
+      form.querySelector('.nf-field') !== null ||
+      form.closest('.nf-form-wrap') !== null
+    );
+  }
+
+  /**
+   * Get field value from Ninja Forms using .nf-field container structure
+   */
   function getFieldValue(form, type) {
     var fields = form.querySelectorAll(".nf-field");
+    var field = null;
+
+    log("Searching for " + type + " field in Ninja form with " + fields.length + " fields");
 
     for (var i = 0; i < fields.length; i++) {
-      var field = fields[i];
-      var input = field.querySelector("input");
+      var fieldContainer = fields[i];
+      var input = fieldContainer.querySelector("input, textarea, select");
+
       if (!input) continue;
 
-      var fieldType = field.getAttribute("data-field-type") || "";
+      var fieldType = fieldContainer.getAttribute("data-field-type") || "";
       var inputType = (input.getAttribute("type") || "").toLowerCase();
       var inputMode = (input.getAttribute("inputmode") || "").toLowerCase();
       var name = (input.name || "").toLowerCase();
       var id = (input.id || "").toLowerCase();
+      var className = (input.className || "").toLowerCase();
       var placeholder = (input.placeholder || "").toLowerCase();
-      var label = field.querySelector("label");
-      var labelText = label ? (label.textContent || "").toLowerCase() : "";
-      var value = (input.value || "").trim();
+      var ariaLabel = (input.getAttribute("aria-label") || "").toLowerCase();
+
+      // Get label from field container
+      var labelElement = fieldContainer.querySelector("label");
+      var labelText = labelElement ? (labelElement.textContent || "").toLowerCase() : "";
+
+      // Check for field title in container
+      var fieldTitle = fieldContainer.querySelector(".field-title");
+      var fieldTitleText = fieldTitle ? (fieldTitle.textContent || "").toLowerCase() : "";
+
+      log("Checking Ninja field " + i + ":", {
+        fieldType: fieldType,
+        inputType: inputType,
+        name: name,
+        id: id,
+        className: className,
+        placeholder: placeholder,
+        labelText: labelText || fieldTitleText
+      });
 
       if (type === "email") {
         var pattern = input.getAttribute("pattern") || "";
@@ -58,15 +93,26 @@
           inputType === "email" ||
           inputMode === "email" ||
           name.indexOf("email") > -1 ||
+          name.indexOf("e-mail") > -1 ||
+          name.indexOf("mail") > -1 ||
           id.indexOf("email") > -1 ||
+          className.indexOf("email") > -1 ||
           placeholder.indexOf("email") > -1 ||
+          placeholder.indexOf("@") > -1 ||
+          ariaLabel.indexOf("email") > -1 ||
           labelText.indexOf("email") > -1 ||
+          labelText.indexOf("e-mail") > -1 ||
+          labelText.indexOf("mail") > -1 ||
+          fieldTitleText.indexOf("email") > -1 ||
+          fieldTitleText.indexOf("e-mail") > -1 ||
           (pattern && pattern.indexOf("@") > -1)
         ) {
-          return value;
+          field = input;
+          log("Found Ninja email field:", input);
+          break;
         }
       } else if (type === "phone") {
-        // Check if pattern contains numbers but safely
+        // Check if pattern contains numbers safely
         var pattern = input.getAttribute("pattern") || "";
         var hasNumberPattern = false;
         try {
@@ -75,190 +121,128 @@
             pattern.indexOf("\\d") > -1 ||
             pattern.indexOf("[0-9") > -1
           );
-        } catch (e) {
-          // Pattern check failed, continue without it
-        }
+        } catch (e) {}
 
         if (
           fieldType === "phone" ||
+          fieldType === "tel" ||
           inputType === "tel" ||
           inputMode === "tel" ||
           inputMode === "numeric" ||
           name.indexOf("phone") > -1 ||
           name.indexOf("tel") > -1 ||
           name.indexOf("mobile") > -1 ||
+          name.indexOf("number") > -1 ||
           id.indexOf("phone") > -1 ||
           id.indexOf("tel") > -1 ||
-          id.indexOf("mobile") > -1 ||
+          className.indexOf("phone") > -1 ||
+          className.indexOf("tel") > -1 ||
           placeholder.indexOf("phone") > -1 ||
           placeholder.indexOf("mobile") > -1 ||
+          placeholder.indexOf("tel") > -1 ||
+          placeholder.indexOf("(") > -1 ||
+          ariaLabel.indexOf("phone") > -1 ||
+          ariaLabel.indexOf("mobile") > -1 ||
           labelText.indexOf("phone") > -1 ||
           labelText.indexOf("mobile") > -1 ||
+          labelText.indexOf("tel") > -1 ||
+          labelText.indexOf("number") > -1 ||
+          fieldTitleText.indexOf("phone") > -1 ||
+          fieldTitleText.indexOf("mobile") > -1 ||
+          fieldTitleText.indexOf("tel") > -1 ||
           hasNumberPattern
         ) {
-          return value ? value.replace(/(?!^\+)[^\d]/g, "") : "";
+          field = input;
+          log("Found Ninja phone field:", input);
+          break;
         }
       }
     }
 
-    return "";
+    if (!field) {
+      log("No " + type + " field found in Ninja form");
+      return "";
+    }
+
+    var value = (field.value || "").trim();
+    log("Ninja field value for " + type + ":", value);
+
+    return value;
   }
 
-  function getGA4StandardParams() {
+  /**
+   * Get Ninja Forms form identification details
+   */
+  function getNinjaFormDetails(form) {
+    var formId = form.getAttribute("data-form-id") ||
+                 form.getAttribute("id") ||
+                 form.getAttribute("data-ninja-form-id");
+
+    // Try to get form name from wrapper or attributes
+    var formName = form.getAttribute("data-form-name") ||
+                   form.getAttribute("name") ||
+                   form.getAttribute("aria-label");
+
+    // Check form wrapper for additional details
+    var formWrapper = form.closest('.nf-form-wrap, .nf-form-cont');
+    if (formWrapper && !formId) {
+      formId = formWrapper.getAttribute("data-form-id") ||
+               formWrapper.getAttribute("id");
+    }
+
+    if (formWrapper && !formName) {
+      formName = formWrapper.getAttribute("data-form-name") ||
+                 formWrapper.getAttribute("data-form-title");
+    }
+
+    if (!formId) {
+      formId = "unknown";
+    }
+
+    log("Ninja form identification:", {
+      formId: formId,
+      formName: formName
+    });
+
     return {
-      page_location: window.location.href,
-      page_referrer: document.referrer || "",
-      page_title: document.title || "",
-      language: navigator.language || navigator.userLanguage || "",
-      screen_resolution: screen.width + "x" + screen.height,
-      engagement_time_msec: Math.max(
-        0,
-        Date.now() - (window.cuftPageLoadTime || Date.now())
-      ),
-    };
-  }
-
-  function fireGenerateLeadEvent(basePayload, email, phone) {
-    if (!window.cuftNinja || !window.cuftNinja.generate_lead_enabled) {
-      log("Generate lead skipped - not enabled");
-      return;
-    }
-
-    // Check for any click ID parameter
-    var clickIdParams = [
-      "click_id",
-      "gclid",
-      "gbraid",
-      "wbraid",
-      "fbclid",
-      "msclkid",
-      "ttclid",
-      "li_fat_id",
-      "twclid",
-      "snap_click_id",
-      "pclid"
-    ];
-
-    var hasClickId = false;
-    for (var i = 0; i < clickIdParams.length; i++) {
-      if (basePayload[clickIdParams[i]]) {
-        hasClickId = true;
-        break;
-      }
-    }
-
-    if (!email || !phone || !hasClickId) {
-      log("Generate lead skipped - missing required fields (email, phone, or click_id)");
-      log("Has email:", !!email, "Has phone:", !!phone, "Has click_id:", !!hasClickId);
-      return;
-    }
-
-    var leadPayload = {
-      event: "generate_lead",
-      currency: "USD",
-      value: 0,
-      cuft_tracked: true,
-      cuft_source: basePayload.cuft_source + "_lead",
-    };
-
-    var copyFields = [
-      "page_location",
-      "page_referrer",
-      "page_title",
-      "language",
-      "screen_resolution",
-      "engagement_time_msec",
-      "utm_source",
-      "utm_medium",
-      "utm_campaign",
-      "utm_term",
-      "utm_content",
-      "formType",
-      "formId",
-      "formName",
-      "click_id",
-      "gclid",
-      "gbraid",
-      "wbraid",
-      "fbclid",
-      "msclkid",
-      "ttclid",
-      "li_fat_id",
-      "twclid",
-      "snap_click_id",
-      "pclid",
-      "user_email",
-      "user_phone"
-    ];
-
-    for (var i = 0; i < copyFields.length; i++) {
-      var field = copyFields[i];
-      if (basePayload[field]) {
-        leadPayload[field] = basePayload[field];
-      }
-    }
-
-    // Add email and phone to lead payload
-    if (email) leadPayload.user_email = email;
-    if (phone) leadPayload.user_phone = phone;
-
-    leadPayload.submittedAt = new Date().toISOString();
-
-    try {
-      getDL().push(leadPayload);
-      log("Generate lead event fired:", leadPayload);
-    } catch (e) {
-      log("Generate lead push error:", e);
-    }
-  }
-
-  function pushToDataLayer(form, email, phone) {
-    var formId = form.getAttribute("data-form-id") || form.getAttribute("id");
-
-    var payload = {
-      event: "form_submit",
-      formType: "ninja_forms",
       form_id: formId,
-      form_name: null, // Ninja Forms doesn't typically expose form names in frontend
-      submittedAt: new Date().toISOString(),
-      cuft_tracked: true,
-      cuft_source: "ninja_forms",
+      form_name: formName
     };
-
-    // Add GA4 standard parameters
-    var ga4Params = getGA4StandardParams();
-    for (var key in ga4Params) {
-      if (ga4Params[key]) payload[key] = ga4Params[key];
-    }
-
-    if (email) payload.user_email = email;
-    if (phone) payload.user_phone = phone;
-
-    // Add UTM data if available
-    if (window.cuftUtmUtils) {
-      payload = window.cuftUtmUtils.addUtmToPayload(payload);
-    }
-
-    try {
-      getDL().push(payload);
-      log("Form submission tracked:", payload);
-      fireGenerateLeadEvent(payload, email, phone);
-    } catch (e) {
-      log("DataLayer push error:", e);
-    }
   }
 
-  function isSuccessState(form) {
-    // Check for success message
+  /**
+   * Check if Ninja form is in success state
+   */
+  function isNinjaSuccessState(form) {
+    // Check for success message in form or parent
     var successMsg = form.querySelector(".nf-response-msg");
-    if (successMsg && successMsg.style.display !== "none") {
+    var parentSuccessMsg = form.parentNode ? form.parentNode.querySelector(".nf-response-msg") : null;
+
+    if (successMsg && successMsg.style.display !== "none" && successMsg.textContent.trim()) {
+      log("Success message found in form");
+      return true;
+    }
+
+    if (parentSuccessMsg && parentSuccessMsg.style.display !== "none" && parentSuccessMsg.textContent.trim()) {
+      log("Success message found in parent");
       return true;
     }
 
     // Check if form is hidden (typical after success)
     if (form.style.display === "none" || !form.offsetParent) {
-      var parent = form.parentNode;
-      if (parent && parent.querySelector(".nf-response-msg")) {
+      if (successMsg || parentSuccessMsg) {
+        log("Form hidden with success message present");
+        return true;
+      }
+    }
+
+    // Check for success-related CSS classes
+    var formWrapper = form.closest('.nf-form-wrap, .nf-form-cont');
+    if (formWrapper) {
+      if (formWrapper.classList.contains('nf-success') ||
+          formWrapper.classList.contains('nf-form-success') ||
+          formWrapper.querySelector('.nf-success')) {
+        log("Success class found on form wrapper");
         return true;
       }
     }
@@ -266,92 +250,221 @@
     return false;
   }
 
-  function observeSuccess(form, email, phone) {
+  /**
+   * Main Ninja Forms success handler using standardized utilities
+   */
+  function handleNinjaSuccess(form, email, phone) {
+    try {
+      // Framework detection - exit silently if not Ninja Forms
+      if (!isNinjaForm(form)) {
+        return;
+      }
+
+      // Prevent duplicate processing
+      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
+        log("Ninja form already processed, skipping");
+        return;
+      }
+
+      // Get form details
+      var formDetails = getNinjaFormDetails(form);
+
+      // Validate email if present
+      if (email && !window.cuftDataLayerUtils.validateEmail(email)) {
+        log("Invalid email found, excluding from Ninja tracking:", email);
+        email = "";
+      }
+
+      // Sanitize phone if present
+      if (phone) {
+        phone = window.cuftDataLayerUtils.sanitizePhone(phone);
+      }
+
+      log("Processing Ninja form submission:", {
+        formId: formDetails.form_id,
+        formName: formDetails.form_name,
+        email: email || "not found",
+        phone: phone || "not found"
+      });
+
+      // Use standardized tracking function
+      var success = window.cuftDataLayerUtils.trackFormSubmission('ninja', form, {
+        form_id: formDetails.form_id,
+        form_name: formDetails.form_name,
+        user_email: email,
+        user_phone: phone,
+        debug: DEBUG
+      });
+
+      if (success) {
+        log("Ninja form successfully tracked");
+      } else {
+        log("Ninja form tracking failed");
+      }
+
+    } catch (e) {
+      log("Ninja success handler error:", e);
+    }
+  }
+
+  /**
+   * Setup MutationObserver for success detection with exponential backoff
+   */
+  function observeNinjaSuccess(form, email, phone) {
     var pushed = false;
     var cleanup = function () {};
+    var attempts = 0;
+    var maxAttempts = 6;
 
     function tryPush() {
-      if (!pushed && isSuccessState(form)) {
+      attempts++;
+      if (!pushed && isNinjaSuccessState(form)) {
         pushed = true;
-        pushToDataLayer(form, email, phone);
+        handleNinjaSuccess(form, email, phone);
+        cleanup();
+        return;
+      }
+
+      // Exponential backoff with maximum attempts
+      if (attempts < maxAttempts && !pushed) {
+        var delay = Math.min(500 * Math.pow(2, attempts - 1), 4000); // Max 4s delay
+        setTimeout(tryPush, delay);
+        log("Ninja success check attempt " + attempts + ", next in " + delay + "ms");
+      } else if (!pushed) {
+        log("Ninja success detection timed out after " + attempts + " attempts");
         cleanup();
       }
     }
 
-    // Set up observers
-    var timeouts = [
-      setTimeout(tryPush, 500),
-      setTimeout(tryPush, 1500),
-      setTimeout(tryPush, 3000),
-    ];
+    // Initial attempt
+    setTimeout(tryPush, 100);
 
-    var stopTimeout = setTimeout(function () {
-      if (!pushed) cleanup();
-    }, 8000);
-
-    cleanup = function () {
-      timeouts.forEach(function (t) {
-        clearTimeout(t);
-      });
-      clearTimeout(stopTimeout);
-    };
-
-    // Mutation observer
+    // Set up MutationObserver for real-time detection
     if (window.MutationObserver) {
-      var observer = new MutationObserver(tryPush);
+      var observer = new MutationObserver(function(mutations) {
+        if (pushed) return;
+
+        mutations.forEach(function(mutation) {
+          if (mutation.type === "childList" || mutation.type === "attributes") {
+            if (isNinjaSuccessState(form)) {
+              pushed = true;
+              handleNinjaSuccess(form, email, phone);
+              cleanup();
+            }
+          }
+        });
+      });
+
+      // Observe form and parent container
       observer.observe(form, {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ["style", "class"],
+        attributeFilter: ["style", "class"]
       });
+
+      var formWrapper = form.closest('.nf-form-wrap, .nf-form-cont');
+      if (formWrapper && formWrapper !== form) {
+        observer.observe(formWrapper, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["style", "class"]
+        });
+      }
 
       var originalCleanup = cleanup;
       cleanup = function () {
         observer.disconnect();
         originalCleanup();
       };
+
+      log("MutationObserver setup for Ninja success detection");
     }
+
+    // Safety timeout to prevent memory leaks
+    setTimeout(function () {
+      if (!pushed) {
+        log("Ninja success observation timed out, cleaning up");
+        cleanup();
+      }
+    }, 15000); // 15 second maximum observation
   }
 
-  function handleFormSubmit(event) {
+  /**
+   * Handle form submit to capture field values and start observation
+   */
+  function handleNinjaFormSubmit(event) {
     try {
       var form = event.target;
       if (!form || form.tagName !== "FORM") return;
 
-      // Check if this is a Ninja Forms form
-      var isNinjaForm =
-        form.classList.contains("nf-form-cont") ||
-        form.querySelector(".nf-field") ||
-        form.closest(".nf-form-wrap");
+      // Check if this is a Ninja Forms form - exit silently if not
+      if (!isNinjaForm(form)) {
+        return;
+      }
 
-      if (!isNinjaForm) return;
+      // Prevent multiple observations on the same form
+      if (form.hasAttribute("data-cuft-ninja-observing")) {
+        log("Ninja form already being observed, skipping");
+        return;
+      }
 
-      if (form.hasAttribute("data-cuft-observing")) return;
-      form.setAttribute("data-cuft-observing", "true");
+      form.setAttribute("data-cuft-ninja-observing", "true");
 
+      // Capture field values at submit time
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
 
-      observeSuccess(form, email, phone);
-      log("Ninja form submit tracked for:", formId);
+      log("Ninja form submit detected, starting success observation:", {
+        formId: form.getAttribute("data-form-id") || form.getAttribute("id") || "unknown",
+        email: email || "not found",
+        phone: phone || "not found"
+      });
+
+      // Start observing for success state
+      observeNinjaSuccess(form, email, phone);
+
     } catch (e) {
-      log("Submit handler error:", e);
+      log("Ninja submit handler error:", e);
     }
   }
 
-  ready(function () {
-    document.addEventListener("submit", handleFormSubmit, true);
+  /**
+   * Setup Ninja Forms event listeners
+   */
+  function setupNinjaEventListeners() {
+    var listenersSetup = [];
 
-    // Also listen for Ninja Forms specific events if available
-    if (window.Marionette && window.nfRadio) {
-      window.nfRadio
-        .channel("forms")
-        .on("submit:response", function (response) {
-          log("Ninja Forms response received:", response);
-        });
+    // Primary: Form submit handler with success observation
+    try {
+      document.addEventListener("submit", handleNinjaFormSubmit, true);
+      listenersSetup.push("form submit handler");
+    } catch (e) {
+      log("Could not add Ninja submit listener:", e);
     }
 
-    log("Ninja Forms tracking initialized");
+    // Optional: Ninja Forms API events if available
+    if (window.Marionette && window.nfRadio) {
+      try {
+        window.nfRadio.channel("forms").on("submit:response", function (response) {
+          log("Ninja Forms API response received:", response);
+          // Could potentially use this for more direct success detection
+          // but submit observation is more reliable across versions
+        });
+        listenersSetup.push("Ninja Forms API events");
+      } catch (e) {
+        log("Could not setup Ninja Forms API listeners:", e);
+      }
+    }
+
+    log("Ninja Forms event listeners setup complete:", listenersSetup);
+  }
+
+  // Initialize when DOM is ready
+  ready(function () {
+    setupNinjaEventListeners();
+    log("Ninja Forms tracking initialized using standardized dataLayer utilities");
   });
+
 })();

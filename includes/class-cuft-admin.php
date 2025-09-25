@@ -18,7 +18,7 @@ class CUFT_Admin {
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
         add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
-        add_action( 'wp_ajax_cuft_test_form_submit', array( $this, 'ajax_test_form_submit' ) );
+// Removed admin page test forms - use dedicated test page instead
         add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
@@ -257,19 +257,25 @@ class CUFT_Admin {
                             </span>
                         </div>
                         <?php if ( $framework['detected'] ): ?>
-                            <div class="cuft-test-form-wrapper" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                                <div style="margin-bottom: 8px; font-size: 12px; color: #666;">
-                                    Test submissions will be sent to: <strong><?php echo esc_html( $admin_email ); ?></strong>
+                            <?php
+                            // Get test page URL for navigation
+                            $test_page_id = get_option( 'cuft_test_page_id' );
+                            $test_page_url = $test_page_id ? get_permalink( $test_page_id ) : '#';
+                            ?>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="font-size: 12px; color: #666;">
+                                        Form tracking enabled and active
+                                    </div>
+                                    <?php if ( $test_page_url !== '#' ): ?>
+                                        <a href="<?php echo esc_url( $test_page_url ); ?>"
+                                           target="_blank"
+                                           class="button button-secondary"
+                                           style="font-size: 11px; padding: 4px 8px; height: auto;">
+                                            🧪 Test Form
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <button type="button"
-                                            class="button button-secondary cuft-test-form-submit"
-                                            data-framework="<?php echo esc_attr( $framework['key'] ); ?>"
-                                            data-email="<?php echo esc_attr( $admin_email ); ?>">
-                                        📧 Submit Test Form
-                                    </button>
-                                </div>
-                                <div class="cuft-test-result" id="test-result-<?php echo esc_attr( $framework['key'] ); ?>" style="margin-top: 10px; display: none;"></div>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -967,7 +973,8 @@ class CUFT_Admin {
     }
 
     /**
-     * AJAX handler for test form submission
+     * AJAX handler for test form submission - DEPRECATED
+     * Use dedicated test page instead: /test-forms/
      */
     public function ajax_test_form_submit() {
         // Verify nonce and permissions
@@ -1008,68 +1015,73 @@ class CUFT_Admin {
         );
         $form_id = isset( $form_id_map[ $framework ] ) ? $form_id_map[ $framework ] : 'test_form_1';
 
-        // Prepare test data with all fields needed for generate_lead
-        $test_data = array(
-            'event' => 'form_submit',
-            'user_email' => $email,
-            'user_phone' => $phone,
-            'form_framework' => $framework,
-            'form_id' => $form_id,
-            'form_name' => 'Test ' . $framework_name . ' Form',
-            'test_submission' => true,
-            'timestamp' => current_time( 'mysql' ),
-            // Include multiple click ID types to ensure generate_lead fires
+        // Prepare tracking data for JavaScript to use
+        // This data will be stored in sessionStorage and used by production tracking code
+        $tracking_data = array(
             'click_id' => 'test_click_' . uniqid(),
             'gclid' => 'test_gclid_' . uniqid(),
-            // UTM parameters
             'utm_source' => 'cuft_test',
             'utm_medium' => 'test_form',
             'utm_campaign' => 'test_campaign_' . $framework,
             'utm_term' => 'test_term',
-            'utm_content' => 'test_content',
-            // Additional data for completeness
-            'generate_lead_test' => true
+            'utm_content' => 'test_content'
         );
 
-        // Add UTM data if available (but preserve our test values)
+        // Add real UTM data if available (but preserve our test click IDs)
         $utm_data = CUFT_UTM_Tracker::get_utm_data();
         if ( ! empty( $utm_data ) ) {
-            // Merge real UTM data but keep our test click_id and campaign
+            // Merge real UTM data but keep our test click IDs
             $preserve_fields = array(
-                'click_id' => $test_data['click_id'],
-                'gclid' => $test_data['gclid'],
-                'utm_campaign' => $test_data['utm_campaign'],
-                'test_submission' => true,
-                'generate_lead_test' => true
+                'click_id' => $tracking_data['click_id'],
+                'gclid' => $tracking_data['gclid'],
+                'utm_campaign' => $tracking_data['utm_campaign']
             );
-            $test_data = array_merge( $test_data, $utm_data, $preserve_fields );
+            $tracking_data = array_merge( $tracking_data, $utm_data, $preserve_fields );
         }
 
+        // Prepare test data for email and logging (not for dataLayer push)
+        $test_data_for_email = array(
+            'event' => 'form_submit',
+            'user_email' => $email,
+            'user_phone' => $phone,
+            'form_type' => $framework,
+            'form_id' => $form_id,
+            'form_name' => 'Test ' . $framework_name . ' Form',
+            'timestamp' => current_time( 'mysql' )
+        );
+        $test_data_for_email = array_merge( $test_data_for_email, $tracking_data );
+
         // Log the test submission
-        CUFT_Logger::log( 'info', 'Test form submission triggered', $test_data );
+        CUFT_Logger::log( 'info', 'Test form submission triggered', $test_data_for_email );
 
         // Generate a tracking ID for this test
         $tracking_id = 'test_' . wp_generate_password( 8, false );
 
         // Send email notification to admin
-        $email_sent = $this->send_test_form_email( $email, $framework_name, $tracking_id, $test_data );
+        $email_sent = $this->send_test_form_email( $email, $framework_name, $tracking_id, $test_data_for_email );
 
         // If GTM is configured, we can't directly verify if it was pushed since it happens client-side
         // But we can verify our tracking script is loaded
         $tracking_active = ! empty( $gtm_id ) && $this->is_valid_gtm_id( $gtm_id );
 
+        // Return minimal response - JavaScript will handle the actual tracking
         $response = array(
             'success' => true,
-            'message' => 'Test form submission sent',
-            'data' => $test_data,
-            'gtm_active' => $tracking_active,
+            'message' => 'Test form submission ready - JavaScript will handle tracking',
             'framework' => $framework,
+            'framework_name' => $framework_name,
+            'form_id' => $form_id,
+            'form_name' => 'Test ' . $framework_name . ' Form',
+            'tracking_data' => $tracking_data,
+            'test_email' => $email,
+            'test_phone' => $phone,
+            'gtm_active' => $tracking_active,
             'tracking_id' => $tracking_id,
             'email_sent' => $email_sent
         );
 
         // Store test submission for verification
-        set_transient( 'cuft_test_' . $tracking_id, $test_data, 300 ); // 5 minutes
+        set_transient( 'cuft_test_' . $tracking_id, $test_data_for_email, 300 ); // 5 minutes
 
         wp_send_json_success( $response );
     }

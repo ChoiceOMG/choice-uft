@@ -98,10 +98,10 @@ class CUFT_CF7_Forms {
     private function generate_datalayer_push( $data ) {
         $payload = array(
             'event' => 'form_submit',
-            'formType' => 'contact_form_7',
-            'formId' => $data['form_id'],
-            'formName' => $data['form_name'],
-            'submittedAt' => gmdate( 'c' ),
+            'form_type' => 'contact_form_7',
+            'form_id' => $data['form_id'],
+            'form_name' => $data['form_name'],
+            'submitted_at' => gmdate( 'c' ),
             'cuft_tracked' => true,
             'cuft_source' => 'contact_form_7_server',
             'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
@@ -147,13 +147,13 @@ class CUFT_CF7_Forms {
             'value' => 0,
             'cuft_tracked' => true,
             'cuft_source' => 'contact_form_7_server_lead',
-            'formType' => 'contact_form_7',
-            'formId' => $data['form_id'],
-            'formName' => $data['form_name'],
+            'form_type' => 'contact_form_7',
+            'form_id' => $data['form_id'],
+            'form_name' => $data['form_name'],
             'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
             'page_title' => get_the_title(),
             'language' => get_locale(),
-            'submittedAt' => gmdate( 'c' )
+            'submitted_at' => gmdate( 'c' )
         );
         
         // Add UTM data

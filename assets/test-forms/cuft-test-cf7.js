@@ -83,21 +83,18 @@
             // Set loading state
             this.setLoadingState(formElement, submitButton, wpcf7Wrapper);
 
-            // Prepare tracking data
+            // Prepare tracking data for production code
             const formId = formElement.dataset.formId || 'wpcf7-f123-p456-o1';
+            common.prepareTrackingDataForProduction('contact_form_7', formId, formElement);
 
-            // Update sessionStorage with test tracking data BEFORE getting tracking data
-            common.updateTrackingDataForTest('contact_form_7', formId);
+            // Store form values for production code to find
+            formElement.setAttribute('data-cuft-email', fieldValues.email || '');
+            formElement.setAttribute('data-cuft-phone', fieldValues.phone || '');
+            formElement.setAttribute('data-cuft-tracking', 'pending');
 
-            const trackingData = common.getTestTrackingData('contact_form_7', formId);
-
-            // Add form field values
-            trackingData.user_email = fieldValues.email;
-            trackingData.user_phone = fieldValues.phone;
-
-            // Simulate CF7 processing time
+            // Simulate CF7 processing time then fire events for production code
             setTimeout(() => {
-                this.processSubmission(formElement, trackingData, submitButton, resultDiv, wpcf7Wrapper);
+                this.fireCF7EventsForProduction(formElement, formId, submitButton, resultDiv, wpcf7Wrapper);
             }, 1000);
         },
 
@@ -118,44 +115,25 @@
         },
 
         /**
-         * Process form submission
+         * Fire CF7 events for production code to handle
          */
-        processSubmission: function(formElement, trackingData, submitButton, resultDiv, wpcf7Wrapper) {
-            // Apply testing controls to modify tracking data
-            trackingData = common.applyTestingControls(formElement, trackingData);
+        fireCF7EventsForProduction: function(formElement, formId, submitButton, resultDiv, wpcf7Wrapper) {
+            const email = formElement.getAttribute('data-cuft-email') || '';
+            const phone = formElement.getAttribute('data-cuft-phone') || '';
+            const numericId = formId.replace(/\D/g, '') || '123'; // Extract numeric ID
 
-            // Fire form_submit event
-            const formSubmitSuccess = common.fireFormSubmitEvent(trackingData);
-
-            // Fire CF7-specific events
-            this.fireCF7Events(formElement, trackingData);
-
-            // Fire generate_lead if requirements are met (CF7 only needs email + utm_campaign)
-            const generateLeadFired = common.fireGenerateLeadEvent('contact_form_7', trackingData);
-
-            // Send email notification
-            this.sendEmailNotification(trackingData, (emailSent, trackingId) => {
-                // Show success state
-                this.showSuccessState(formElement, submitButton, resultDiv, wpcf7Wrapper, emailSent, trackingId, generateLeadFired);
-            });
-        },
-
-        /**
-         * Fire CF7-specific events
-         */
-        fireCF7Events: function(formElement, trackingData) {
-            // Fire CF7's wpcf7mailsent event
+            // Fire CF7's wpcf7mailsent event that production code listens for
             const cf7Event = new CustomEvent('wpcf7mailsent', {
                 detail: {
-                    contactFormId: trackingData.form_id.replace(/\D/g, '') || '123', // Extract numeric ID
+                    contactFormId: numericId,
                     inputs: [
                         {
                             name: 'your-email',
-                            value: trackingData.user_email
+                            value: email
                         },
                         {
                             name: 'your-phone',
-                            value: trackingData.user_phone || ''
+                            value: phone
                         }
                     ],
                     apiResponse: {
@@ -167,55 +145,73 @@
             });
 
             document.dispatchEvent(cf7Event);
-            common.log('✅ CF7 wpcf7mailsent event fired');
+            common.log('✅ CF7 wpcf7mailsent event fired for production code');
 
             // Also fire jQuery event if jQuery is available
             if (window.jQuery) {
                 window.jQuery(document).trigger('wpcf7mailsent', {
-                    contactFormId: trackingData.form_id.replace(/\D/g, '') || '123',
+                    contactFormId: numericId,
                     inputs: [
-                        { name: 'your-email', value: trackingData.user_email },
-                        { name: 'your-phone', value: trackingData.user_phone || '' }
+                        { name: 'your-email', value: email },
+                        { name: 'your-phone', value: phone }
                     ]
                 });
-                common.log('✅ jQuery wpcf7mailsent event fired');
+                common.log('✅ jQuery wpcf7mailsent event fired for production code');
             }
 
-            // Fire CF7's invalid event (for testing purposes)
+            // Fire CF7's submit event as well
             setTimeout(() => {
                 const cf7SubmitEvent = new CustomEvent('wpcf7submit', {
                     detail: {
-                        contactFormId: trackingData.form_id.replace(/\D/g, '') || '123',
+                        contactFormId: numericId,
                         status: 'success'
                     },
                     bubbles: true
                 });
                 document.dispatchEvent(cf7SubmitEvent);
-                common.log('✅ CF7 wpcf7submit event fired');
+                common.log('✅ CF7 wpcf7submit event fired for production code');
             }, 100);
+
+            // Send email notification after a delay (let production code fire first)
+            setTimeout(() => {
+                this.sendTestEmailNotification(formId, submitButton, resultDiv, wpcf7Wrapper);
+            }, 1500);
         },
 
         /**
-         * Send email notification
+         * Send test email notification
          */
-        sendEmailNotification: function(trackingData, callback) {
+        sendTestEmailNotification: function(formId, submitButton, resultDiv, wpcf7Wrapper) {
             if (!window.cuftTestConfig || !window.cuftTestConfig.ajax_url) {
                 common.log('AJAX URL not configured, skipping email', 'warn');
-                callback(false, 'no-ajax');
+                this.showSuccessState(resultDiv, wpcf7Wrapper, false, 'no-ajax');
+                common.resetSubmitButton(submitButton);
                 return;
             }
+
+            // Get form element to retrieve stored values
+            const formElement = submitButton.closest('.cuft-test-form');
+            const email = formElement.getAttribute('data-cuft-email') || '';
+            const phone = formElement.getAttribute('data-cuft-phone') || '';
 
             const formData = new FormData();
             formData.append('action', 'cuft_frontend_test_submit');
             formData.append('framework', 'contact_form_7');
-            formData.append('email', trackingData.user_email);
-            formData.append('phone', trackingData.user_phone);
-            formData.append('form_id', trackingData.form_id);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('form_id', formId);
 
-            // Add UTM parameters
-            formData.append('utm_source', trackingData.utm_source);
-            formData.append('utm_medium', trackingData.utm_medium);
-            formData.append('utm_campaign', trackingData.utm_campaign);
+            // Add UTM parameters from stored tracking data
+            try {
+                const storedData = JSON.parse(sessionStorage.getItem('cuft_tracking_data'));
+                if (storedData && storedData.tracking) {
+                    if (storedData.tracking.utm_source) formData.append('utm_source', storedData.tracking.utm_source);
+                    if (storedData.tracking.utm_medium) formData.append('utm_medium', storedData.tracking.utm_medium);
+                    if (storedData.tracking.utm_campaign) formData.append('utm_campaign', storedData.tracking.utm_campaign);
+                }
+            } catch (e) {
+                common.log('Could not retrieve UTM data for email', 'warn');
+            }
 
             fetch(window.cuftTestConfig.ajax_url, {
                 method: 'POST',
@@ -225,22 +221,23 @@
             .then(data => {
                 if (data.success) {
                     common.log(`Email sent successfully (ID: ${data.data.tracking_id})`);
-                    callback(data.data.email_sent, data.data.tracking_id);
+                    this.showSuccessState(formElement, submitButton, resultDiv, wpcf7Wrapper, data.data.email_sent, data.data.tracking_id);
                 } else {
                     common.log(`Email failed: ${data.data.message}`, 'error');
-                    callback(false, 'error');
+                    this.showSuccessState(formElement, submitButton, resultDiv, wpcf7Wrapper, false, 'error');
                 }
             })
             .catch(error => {
                 common.log(`Email request failed: ${error.message}`, 'error');
-                callback(false, 'error');
+                this.showSuccessState(formElement, submitButton, resultDiv, wpcf7Wrapper, false, 'error');
             });
         },
+
 
         /**
          * Show success state (CF7-specific styling)
          */
-        showSuccessState: function(formElement, submitButton, resultDiv, wpcf7Wrapper, emailSent, trackingId, generateLeadFired) {
+        showSuccessState: function(formElement, submitButton, resultDiv, wpcf7Wrapper, emailSent, trackingId) {
             // Remove CF7 submitting class
             if (wpcf7Wrapper) {
                 wpcf7Wrapper.classList.remove('submitting');
@@ -255,10 +252,37 @@
                 }, 6000);
             }
 
-            // Generate success message
+            // Check dataLayer for events that production code should have fired
+            let eventsTracked = [];
+            if (window.dataLayer) {
+                const recentEvents = window.dataLayer.slice(-10); // Check last 10 events
+                const formSubmitEvent = recentEvents.find(e => e.event === 'form_submit' && e.cuft_source);
+                const generateLeadEvent = recentEvents.find(e => e.event === 'generate_lead');
+
+                if (formSubmitEvent) {
+                    eventsTracked.push('form_submit');
+                    if (formSubmitEvent.cuft_tracked) eventsTracked.push('cuft_tracked: true');
+                    if (formSubmitEvent.cuft_source) eventsTracked.push(`cuft_source: ${formSubmitEvent.cuft_source}`);
+                }
+                if (generateLeadEvent) {
+                    eventsTracked.push('generate_lead');
+                }
+            }
+
+            // Generate success message with tracking status
             let successMessage = common.getSuccessMessageHTML('contact_form_7', emailSent, trackingId);
 
-            // Add generate_lead status
+            if (eventsTracked.length > 0) {
+                successMessage = successMessage.replace(
+                    '✓ Event tracked in dataLayer',
+                    `✓ Events tracked: ${eventsTracked.join(', ')}`
+                );
+            } else {
+                successMessage = successMessage.replace(
+                    '✓ Event tracked in dataLayer',
+                    '⚠️ No tracking events detected - check production code'
+                );
+            }
             if (generateLeadFired) {
                 successMessage = successMessage.replace(
                     '✓ Event tracked in dataLayer',
@@ -272,7 +296,7 @@
             }
 
             // Show success message
-            common.showSuccessMessage(resultDiv, successMessage, 6000);
+            common.showSuccessMessage(resultDiv, successMessage, 8000);
 
             // Reset submit button
             common.resetSubmitButton(submitButton);
@@ -288,10 +312,15 @@
 
                 setTimeout(() => {
                     responseOutput.style.display = 'none';
-                }, 6000);
+                }, 8000);
             }
 
-            common.log('CF7 success state displayed');
+            // Clean up stored attributes
+            formElement.removeAttribute('data-cuft-email');
+            formElement.removeAttribute('data-cuft-phone');
+            formElement.removeAttribute('data-cuft-tracking');
+
+            common.log('CF7 success state displayed with tracking status');
         },
 
         /**

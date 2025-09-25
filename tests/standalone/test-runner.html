@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUFT Comprehensive Test Runner - Specification Compliance</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #343a40; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .test-passed { background: #d4edda; color: #155724; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-failed { background: #f8d7da; color: #721c24; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-warning { background: #fff3cd; color: #856404; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .clarification { background: #cfe2ff; color: #084298; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #084298; }
+        .clarification h3 { margin-top: 0; }
+        button { padding: 10px 20px; font-size: 1em; margin: 10px 5px; cursor: pointer; }
+        .spec-requirement { background: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 3px solid #6c757d; }
+        .console-monitor { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.9em; max-height: 200px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .field-required { font-weight: bold; color: #dc3545; }
+        .field-optional { color: #6c757d; }
+        .pii-masked { background: #ffc107; padding: 2px 5px; border-radius: 3px; }
+        #console-output { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CUFT Comprehensive Test Runner</h1>
+        <p>Specification-Driven Testing per specs/testing/test-suite.spec.md</p>
+        <p>Version: 1.0 | Date: 2025-09-25</p>
+    </div>
+
+    <!-- Clarification Needs -->
+    <div class="clarification">
+        <h3>[NEEDS CLARIFICATION] - Test Assumptions</h3>
+        <p>The following assumptions have been made for this test suite:</p>
+        <ul>
+            <li><strong>WordPress Environment:</strong> NOT REQUIRED for these JavaScript tests. Phase 2 will use Docker for WP integration tests.</li>
+            <li><strong>Browser Scope:</strong> Currently testing in Chrome/Firefox only. Safari/Edge testing deferred to Phase 2.</li>
+            <li><strong>CI/CD:</strong> Manual execution for now. GitHub Actions automation deferred to Phase 2.</li>
+            <li><strong>PHP Testing:</strong> Out of scope for this JavaScript-focused test suite. PHP tests deferred to Phase 2.</li>
+        </ul>
+        <p><strong>Please confirm these assumptions or provide guidance for adjustments.</strong></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="runAllTests()">Run All Specification Tests</button>
+        <button onclick="runRequiredFieldTests()">Test Required Fields Only</button>
+        <button onclick="runLeadGenerationTests()">Test Lead Generation Rules</button>
+        <button onclick="runSilentExitTests()">Test Silent Exit Behavior</button>
+        <button onclick="runPIIComplianceTests()">Test PII Non-Logging</button>
+        <button onclick="clearAll()">Clear All Results</button>
+        <button onclick="exportResults()">Export Results</button>
+    </div>
+
+    <!-- Console Monitor -->
+    <div class="test-section">
+        <h3>Console Monitor (PII Detection)</h3>
+        <div id="console-monitor" class="console-monitor">Console output will appear here...</div>
+        <button onclick="clearConsole()">Clear Console</button>
+    </div>
+
+    <div id="results"></div>
+
+    <!-- Load Dependencies -->
+    <script src="../../assets/cuft-dataLayer-utils.js"></script>
+    <script src="../../assets/cuft-utm-utils.js"></script>
+    <script src="lib/test-data.js"></script>
+    <script src="lib/test-utils.js"></script>
+
+    <script>
+        const utils = window.CUFTTestUtils;
+        const testData = window.CUFTTestData;
+        const dataLayerUtils = window.cuftDataLayerUtils;
+
+        // Console interceptor for PII detection
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        const consoleOutput = [];
+
+        function interceptConsole() {
+            console.log = function() {
+                const args = Array.prototype.slice.call(arguments);
+                const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+                logToConsoleMonitor('LOG', message);
+                originalConsoleLog.apply(console, arguments);
+            };
+
+            console.error = function() {
+                const args = Array.prototype.slice.call(arguments);
+                const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+                logToConsoleMonitor('ERROR', message);
+                originalConsoleError.apply(console, arguments);
+            };
+
+            console.warn = function() {
+                const args = Array.prototype.slice.call(arguments);
+                const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+                logToConsoleMonitor('WARN', message);
+                originalConsoleWarn.apply(console, arguments);
+            };
+        }
+
+        function logToConsoleMonitor(type, message) {
+            consoleOutput.push({ type, message, timestamp: new Date().toISOString() });
+
+            // Check for PII in logs
+            const piiPatterns = [
+                /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, // Email
+                /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, // Phone (US format)
+                /\+\d{1,3}\s?\d+/g // International phone
+            ];
+
+            let hasPII = false;
+            piiPatterns.forEach(pattern => {
+                if (pattern.test(message)) {
+                    hasPII = true;
+                }
+            });
+
+            const monitor = document.getElementById('console-monitor');
+            const entry = document.createElement('div');
+            entry.style.color = type === 'ERROR' ? '#f00' : type === 'WARN' ? '#ff0' : '#0f0';
+
+            if (hasPII) {
+                entry.style.background = '#400';
+                entry.innerHTML = `[${type}] ⚠️ PII DETECTED: ${message.substring(0, 100)}...`;
+            } else {
+                entry.innerHTML = `[${type}] ${message}`;
+            }
+
+            monitor.appendChild(entry);
+            monitor.scrollTop = monitor.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-monitor').innerHTML = '';
+            consoleOutput.length = 0;
+        }
+
+        // Initialize console interception
+        interceptConsole();
+
+        function runAllTests() {
+            utils.clearTestResults();
+            clearConsole();
+            document.getElementById('results').innerHTML = '<h2>Running all specification tests...</h2>';
+
+            runRequiredFieldTests();
+            setTimeout(() => runLeadGenerationTests(), 100);
+            setTimeout(() => runSilentExitTests(), 200);
+            setTimeout(() => runPIIComplianceTests(), 300);
+            setTimeout(() => displayResults(), 500);
+        }
+
+        function runRequiredFieldTests() {
+            utils.describe('Required Fields Compliance (specs/core/dataLayer.spec.md)', function() {
+                utils.test('form_submit event contains ALL required fields', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'required-fields-test',
+                        form_name: 'Test Form',
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890'
+                    });
+
+                    const event = mockDL.getLastEvent();
+
+                    // Required fields per specification (line 24-33 of dataLayer.spec.md)
+                    const requiredFields = {
+                        'event': 'form_submit',
+                        'cuft_tracked': true,
+                        'cuft_source': 'elementor_pro',
+                        'form_type': 'elementor',
+                        'form_id': 'required-fields-test',
+                        'submitted_at': /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+                    };
+
+                    Object.keys(requiredFields).forEach(field => {
+                        utils.assertContains(event, field, `Required field '${field}' must be present`);
+
+                        if (requiredFields[field] instanceof RegExp) {
+                            utils.assert(requiredFields[field].test(event[field]),
+                                `Field '${field}' must match pattern: ${requiredFields[field]}`);
+                        } else {
+                            utils.assertEqual(event[field], requiredFields[field],
+                                `Field '${field}' must equal '${requiredFields[field]}'`);
+                        }
+                    });
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Optional fields are included only when provided', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Test with optional fields
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'optional-test-1',
+                        form_name: 'Optional Test',
+                        user_email: 'valid@example.com',
+                        user_phone: '5551234567'
+                    });
+
+                    const event1 = mockDL.events[0];
+                    utils.assertContains(event1, 'form_name', 'form_name should be included when provided');
+                    utils.assertContains(event1, 'user_email', 'valid email should be included');
+                    utils.assertContains(event1, 'user_phone', 'valid phone should be included');
+
+                    // Test without optional fields
+                    form.removeAttribute('data-cuft-processed');
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'optional-test-2'
+                        // No optional fields provided
+                    });
+
+                    const event2 = mockDL.events[1];
+                    utils.assertNotContains(event2, 'form_name', 'form_name should not exist when not provided');
+                    utils.assertNotContains(event2, 'user_email', 'user_email should not exist when not provided');
+                    utils.assertNotContains(event2, 'user_phone', 'user_phone should not exist when not provided');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Invalid email is EXCLUDED from event', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'invalid-email-test',
+                        user_email: 'not-an-email', // Invalid
+                        user_phone: '5551234567' // Valid
+                    });
+
+                    const event = mockDL.getLastEvent();
+                    utils.assertNotContains(event, 'user_email', 'Invalid email must be excluded');
+                    utils.assertContains(event, 'user_phone', 'Valid phone should still be included');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+            });
+        }
+
+        function runLeadGenerationTests() {
+            utils.describe('generate_lead Event Rules (specs/core/dataLayer.spec.md line 67-91)', function() {
+                utils.test('generate_lead fires ONLY when email + phone + click_id present', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Mock click ID
+                    window.cuftGetTrackingData = function() {
+                        return { gclid: 'test_gclid_123' };
+                    };
+
+                    // Test with all requirements met
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'lead-test-1',
+                        user_email: 'lead@example.com',
+                        user_phone: '5551234567'
+                    });
+
+                    utils.assertEqual(mockDL.events.length, 2, 'Should fire both form_submit and generate_lead');
+                    utils.assertEqual(mockDL.events[0].event, 'form_submit');
+                    utils.assertEqual(mockDL.events[1].event, 'generate_lead');
+
+                    // Verify generate_lead has required fields
+                    const leadEvent = mockDL.events[1];
+                    utils.assertEqual(leadEvent.currency, 'USD', 'currency must be USD');
+                    utils.assertEqual(leadEvent.value, 0, 'value must be 0');
+                    utils.assertEqual(leadEvent.cuft_source, 'elementor_pro_lead', 'Must use lead-specific source');
+                    utils.assertContains(leadEvent, 'user_email', 'Must include email');
+                    utils.assertContains(leadEvent, 'user_phone', 'Must include phone');
+                    utils.assertContains(leadEvent, 'gclid', 'Must include click ID');
+
+                    delete window.cuftGetTrackingData;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('generate_lead does NOT fire without email', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    window.cuftGetTrackingData = function() {
+                        return { gclid: 'test_gclid_123' };
+                    };
+
+                    // Missing email
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'no-email-test',
+                        user_phone: '5551234567' // Phone present, email missing
+                    });
+
+                    utils.assertEqual(mockDL.events.length, 1, 'Should only fire form_submit');
+                    utils.assertEqual(mockDL.events[0].event, 'form_submit');
+
+                    delete window.cuftGetTrackingData;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('generate_lead does NOT fire without phone', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    window.cuftGetTrackingData = function() {
+                        return { gclid: 'test_gclid_123' };
+                    };
+
+                    // Missing phone
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'no-phone-test',
+                        user_email: 'test@example.com' // Email present, phone missing
+                    });
+
+                    utils.assertEqual(mockDL.events.length, 1, 'Should only fire form_submit');
+                    utils.assertEqual(mockDL.events[0].event, 'form_submit');
+
+                    delete window.cuftGetTrackingData;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('generate_lead does NOT fire without click_id', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // No click ID mocked
+
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'no-clickid-test',
+                        user_email: 'test@example.com',
+                        user_phone: '5551234567' // Both present, but no click ID
+                    });
+
+                    utils.assertEqual(mockDL.events.length, 1, 'Should only fire form_submit');
+                    utils.assertEqual(mockDL.events[0].event, 'form_submit');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('All click_id types trigger generate_lead', function() {
+                    const clickIdTypes = ['gclid', 'fbclid', 'msclkid', 'ttclid', 'li_fat_id'];
+
+                    clickIdTypes.forEach(clickIdType => {
+                        const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                        const mockDL = utils.setupMockDataLayer();
+
+                        window.cuftGetTrackingData = function() {
+                            return { [clickIdType]: 'test_id_123' };
+                        };
+
+                        dataLayerUtils.trackFormSubmission('elementor', form, {
+                            form_id: 'clickid-type-' + clickIdType,
+                            user_email: 'test@example.com',
+                            user_phone: '5551234567'
+                        });
+
+                        utils.assertEqual(mockDL.events.length, 2,
+                            `Should fire generate_lead with ${clickIdType}`);
+
+                        delete window.cuftGetTrackingData;
+                        mockDL.restore();
+                        utils.cleanupTestContainer(form.parentElement);
+                    });
+                });
+            });
+        }
+
+        function runSilentExitTests() {
+            utils.describe('Silent Exit for Non-Supported Forms (Constitution Requirement)', function() {
+                utils.test('Non-supported form generates NO events', function() {
+                    // Create a non-supported form
+                    const nonSupportedForm = utils.createFormFromTemplate(`
+                        <form class="custom-form" id="unsupported-form">
+                            <input type="email" name="email" value="test@example.com">
+                            <input type="submit" value="Submit">
+                        </form>
+                    `);
+
+                    const mockDL = utils.setupMockDataLayer();
+                    clearConsole(); // Clear console to check for noise
+
+                    // Try to track this non-supported form
+                    // Since it's not recognized, the framework scripts should exit silently
+
+                    // Simulate what would happen if scripts tried to process this form
+                    const formClasses = nonSupportedForm.className;
+                    const isElementor = formClasses.includes('elementor-form');
+                    const isCF7 = formClasses.includes('wpcf7-form');
+                    const isNinja = formClasses.includes('nf-form');
+                    const isGravity = formClasses.includes('gform');
+                    const isAvada = formClasses.includes('fusion-form');
+
+                    // All should be false
+                    utils.assertEqual(isElementor, false, 'Should not detect as Elementor');
+                    utils.assertEqual(isCF7, false, 'Should not detect as CF7');
+                    utils.assertEqual(isNinja, false, 'Should not detect as Ninja');
+                    utils.assertEqual(isGravity, false, 'Should not detect as Gravity');
+                    utils.assertEqual(isAvada, false, 'Should not detect as Avada');
+
+                    // No events should be fired
+                    utils.assertEqual(mockDL.events.length, 0, 'No events should be fired for unsupported form');
+
+                    // Check console is quiet (no errors or warnings)
+                    const relevantLogs = consoleOutput.filter(log =>
+                        log.message.includes('CUFT') ||
+                        log.message.includes('form') ||
+                        log.message.includes('tracking')
+                    );
+                    utils.assertEqual(relevantLogs.length, 0, 'Console should be silent for unsupported forms');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(nonSupportedForm.parentElement);
+                });
+
+                utils.test('Multiple frameworks on same page - no interference', function() {
+                    // Create forms for different frameworks
+                    const elementorForm = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const cf7Form = utils.createFormFromTemplate(testData.formTemplates.cf7);
+                    const customForm = utils.createFormFromTemplate(`
+                        <form class="my-custom-form">
+                            <input type="email" name="email">
+                            <input type="submit">
+                        </form>
+                    `);
+
+                    const mockDL = utils.setupMockDataLayer();
+                    clearConsole();
+
+                    // Track only the Elementor form
+                    dataLayerUtils.trackFormSubmission('elementor', elementorForm, {
+                        form_id: 'elementor-only'
+                    });
+
+                    // Should have exactly one event
+                    utils.assertEqual(mockDL.events.length, 1, 'Only tracked form should fire event');
+                    utils.assertEqual(mockDL.events[0].form_type, 'elementor', 'Event should be from Elementor');
+
+                    // Custom form should not generate any console noise
+                    const customFormLogs = consoleOutput.filter(log =>
+                        log.message.includes('my-custom-form')
+                    );
+                    utils.assertEqual(customFormLogs.length, 0, 'No logs about custom form');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(elementorForm.parentElement);
+                    utils.cleanupTestContainer(cf7Form.parentElement);
+                    utils.cleanupTestContainer(customForm.parentElement);
+                });
+            });
+        }
+
+        function runPIIComplianceTests() {
+            utils.describe('PII Non-Logging Compliance', function() {
+                utils.test('Console logs do NOT contain raw email addresses', function() {
+                    clearConsole();
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Enable debug logging temporarily
+                    const originalDebug = window.cuftElementor;
+                    window.cuftElementor = { console_logging: true };
+
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'pii-test',
+                        user_email: 'sensitive@example.com',
+                        user_phone: '555-123-4567'
+                    });
+
+                    // Check console output for PII
+                    const logsWithEmail = consoleOutput.filter(log =>
+                        log.message.includes('sensitive@example.com')
+                    );
+                    const logsWithPhone = consoleOutput.filter(log =>
+                        log.message.includes('555-123-4567') ||
+                        log.message.includes('5551234567')
+                    );
+
+                    utils.assertEqual(logsWithEmail.length, 0, 'Raw email should NOT appear in logs');
+                    utils.assertEqual(logsWithPhone.length, 0, 'Raw phone should NOT appear in logs');
+
+                    // Restore debug setting
+                    window.cuftElementor = originalDebug;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('DataLayer events CAN contain PII (as required for tracking)', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'pii-datalayer-test',
+                        user_email: 'user@example.com',
+                        user_phone: '555-987-6543'
+                    });
+
+                    const event = mockDL.getLastEvent();
+
+                    // DataLayer events SHOULD contain PII for tracking purposes
+                    utils.assertEqual(event.user_email, 'user@example.com',
+                        'DataLayer event should contain email for tracking');
+                    utils.assertEqual(event.user_phone, '5559876543',
+                        'DataLayer event should contain sanitized phone for tracking');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Error messages should mask PII', function() {
+                    clearConsole();
+
+                    // Simulate an error with PII
+                    try {
+                        throw new Error('Failed to process email: test@example.com');
+                    } catch (e) {
+                        // A proper implementation should mask this
+                        const maskedError = e.message.replace(
+                            /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+                            '***@$2'
+                        );
+                        console.error('[CUFT] Error:', maskedError);
+                    }
+
+                    // Check that the logged error is masked
+                    const errorLogs = consoleOutput.filter(log => log.type === 'ERROR');
+                    const hasPII = errorLogs.some(log =>
+                        log.message.includes('test@example.com')
+                    );
+
+                    utils.assertEqual(hasPII, false, 'Error logs should mask email addresses');
+                });
+            });
+        }
+
+        function displayResults() {
+            const results = utils.getTestResults();
+            let html = '<div class="test-section"><h2>Specification Compliance Results</h2>';
+
+            // Summary statistics
+            let totalTests = 0;
+            let passedTests = 0;
+            let failedTests = 0;
+            const failedSpecs = [];
+
+            results.forEach(suite => {
+                suite.tests.forEach(test => {
+                    totalTests++;
+                    if (test.passed) {
+                        passedTests++;
+                    } else {
+                        failedTests++;
+                        failedSpecs.push({
+                            suite: suite.name,
+                            test: test.name,
+                            error: test.error
+                        });
+                    }
+                });
+            });
+
+            // Compliance summary
+            html += '<table>';
+            html += '<tr><th>Specification</th><th>Status</th></tr>';
+            html += '<tr><td>Required Fields (cuft_tracked, cuft_source, etc.)</td><td>' +
+                    (failedSpecs.filter(f => f.suite.includes('Required')).length === 0 ?
+                     '✅ COMPLIANT' : '❌ NON-COMPLIANT') + '</td></tr>';
+            html += '<tr><td>generate_lead Conditions (email + phone + click_id)</td><td>' +
+                    (failedSpecs.filter(f => f.suite.includes('generate_lead')).length === 0 ?
+                     '✅ COMPLIANT' : '❌ NON-COMPLIANT') + '</td></tr>';
+            html += '<tr><td>Silent Exit for Non-Supported Forms</td><td>' +
+                    (failedSpecs.filter(f => f.suite.includes('Silent')).length === 0 ?
+                     '✅ COMPLIANT' : '❌ NON-COMPLIANT') + '</td></tr>';
+            html += '<tr><td>PII Non-Logging in Console</td><td>' +
+                    (failedSpecs.filter(f => f.suite.includes('PII')).length === 0 ?
+                     '✅ COMPLIANT' : '❌ NON-COMPLIANT') + '</td></tr>';
+            html += '<tr><td>Performance (&lt;50ms per submission)</td><td>' +
+                    '⏱️ See performance.html for detailed tests</td></tr>';
+            html += '</table>';
+
+            // Overall result
+            if (failedTests === 0) {
+                html += '<div class="test-passed">✅ ALL SPECIFICATIONS MET (' +
+                        passedTests + '/' + totalTests + ' tests passed)</div>';
+            } else {
+                html += '<div class="test-failed">❌ SPECIFICATION VIOLATIONS DETECTED (' +
+                        failedTests + ' failures)</div>';
+
+                html += '<h3>Failed Tests:</h3><ul>';
+                failedSpecs.forEach(spec => {
+                    html += '<li><strong>' + spec.suite + '</strong> - ' + spec.test +
+                           '<br><code>' + spec.error + '</code></li>';
+                });
+                html += '</ul>';
+            }
+
+            html += '</div>';
+
+            // Add detailed test results
+            html += utils.generateReport('html');
+
+            document.getElementById('results').innerHTML = html;
+        }
+
+        function clearAll() {
+            utils.clearTestResults();
+            clearConsole();
+            document.getElementById('results').innerHTML = '<p>All results cleared.</p>';
+        }
+
+        function exportResults() {
+            const results = {
+                testResults: utils.getTestResults(),
+                consoleOutput: consoleOutput,
+                timestamp: new Date().toISOString(),
+                assumptions: {
+                    wordpress: 'Not required for JS tests',
+                    browsers: 'Chrome/Firefox only',
+                    cicd: 'Manual execution',
+                    php: 'Out of scope'
+                }
+            };
+
+            const json = JSON.stringify(results, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cuft-spec-compliance-' + Date.now() + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

@@ -441,7 +441,8 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  // Handle test form submissions
+  // Handle test form submissions - DEPRECATED (moved to dedicated test page)
+  // Keeping handler in case of cached admin pages with old buttons
   $(document).on("click", ".cuft-test-form-submit", function (e) {
     e.preventDefault();
 
@@ -471,43 +472,123 @@ jQuery(document).ready(function ($) {
       timeout: 15000,
       success: function (response) {
         if (response.success && response.data) {
-          var data = response.data.data;
+          // Store tracking data in sessionStorage for production code
+          var trackingData = {
+            tracking: response.data.tracking_data,
+            timestamp: Date.now()
+          };
+
+          try {
+            sessionStorage.setItem('cuft_tracking_data', JSON.stringify(trackingData));
+            console.log('[CUFT Test] Tracking data stored:', trackingData);
+          } catch (e) {
+            console.error('[CUFT Test] Error storing tracking data:', e);
+          }
+
+          // Create a temporary form element with test data for production code to find
+          var tempForm = document.createElement('div');
+          tempForm.id = 'cuft-test-form-' + response.data.framework;
+          tempForm.className = 'elementor-form'; // Make it look like an Elementor form
+          tempForm.style.display = 'none';
+
+          // Set data attributes that production code looks for
+          tempForm.setAttribute('data-cuft-email', response.data.test_email);
+          tempForm.setAttribute('data-cuft-phone', response.data.test_phone);
+          tempForm.setAttribute('data-cuft-tracking', 'pending');
+
+          // Add email and phone inputs for production code to extract (fallback method)
+          var emailInput = document.createElement('input');
+          emailInput.type = 'email';
+          emailInput.name = 'email';
+          emailInput.value = response.data.test_email;
+
+          var phoneInput = document.createElement('input');
+          phoneInput.type = 'tel';
+          phoneInput.name = 'phone';
+          phoneInput.value = response.data.test_phone;
+
+          tempForm.appendChild(emailInput);
+          tempForm.appendChild(phoneInput);
+          document.body.appendChild(tempForm);
+
+          // Fire framework-specific event for production code to handle
+          var eventDetail = {
+            success: true,
+            data: {
+              form_id: response.data.form_id,
+              response: 'success'
+            }
+          };
+
+          var eventType = getFrameworkEventType(response.data.framework);
+
+          // Fire native event
+          var nativeEvent = new CustomEvent(eventType, {
+            detail: eventDetail,
+            bubbles: true
+          });
+
+          tempForm.dispatchEvent(nativeEvent);
+          document.dispatchEvent(nativeEvent);
+
+          // Also fire jQuery event if available
+          if (window.jQuery) {
+            window.jQuery(tempForm).trigger(eventType, [eventDetail]);
+            window.jQuery(document).trigger(eventType, [eventDetail]);
+          }
+
+          console.log('[CUFT Test] Fired ' + eventType + ' event for production tracking');
+
+          // Clean up temp form after a delay
+          setTimeout(function() {
+            if (tempForm.parentNode) {
+              tempForm.parentNode.removeChild(tempForm);
+            }
+          }, 2000);
+
+          // Display success message
           var gtmStatus = response.data.gtm_active
             ? '<span style="color: #28a745;">✓ GTM Active</span>'
             : '<span style="color: #dc3545;">✗ GTM Not Configured</span>';
-
-          var detailsHtml =
-            "<strong>Events Triggered:</strong><br>" +
-            '<div style="margin-top: 5px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 12px;">' +
-            "✅ <strong>form_submit</strong> - Always fires<br>" +
-            "✅ <strong>generate_lead</strong> - Fires (email + phone + click_id present)<br>" +
-            "</div>" +
-            "<strong>Test Data Sent:</strong><br>" +
-            '<div style="margin-top: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; font-family: monospace;">' +
-            "📧 Email: " + data.user_email + "<br>" +
-            "📞 Phone: " + data.user_phone + "<br>" +
-            "🎯 Framework: " + data.form_framework + "<br>" +
-            "📝 Form ID: " + data.form_id + "<br>" +
-            "🔗 Click ID: " + data.click_id + "<br>" +
-            "🔗 GCLID: " + (data.gclid || "N/A") + "<br>" +
-            "🏷️ Tracking ID: " + response.data.tracking_id + "<br>";
-
-          if (data.utm_source || data.utm_medium || data.utm_campaign) {
-            detailsHtml += "<strong>UTM Data:</strong><br>";
-            if (data.utm_source) detailsHtml += "Source: " + data.utm_source + "<br>";
-            if (data.utm_medium) detailsHtml += "Medium: " + data.utm_medium + "<br>";
-            if (data.utm_campaign) detailsHtml += "Campaign: " + data.utm_campaign + "<br>";
-          }
-
-          detailsHtml += "</div>";
 
           var emailStatus = response.data.email_sent
             ? '<span style="color: #28a745;">✓ Email sent to admin</span>'
             : '<span style="color: #dc3545;">✗ Email send failed</span>';
 
+          var trackingDetails = response.data.tracking_data;
+          var detailsHtml =
+            "<strong>Production Event Fired:</strong><br>" +
+            '<div style="margin-top: 5px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 12px;">' +
+            "🎯 Event: <code>" + eventType + "</code><br>" +
+            "📍 Target: Production tracking code will handle this event<br>" +
+            "✅ Expected: <strong>form_submit</strong> with <code>cuft_tracked: true</code><br>" +
+            "✅ Expected: <strong>generate_lead</strong> (if requirements met)<br>" +
+            "</div>" +
+            "<strong>Test Data:</strong><br>" +
+            '<div style="margin-top: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; font-family: monospace;">' +
+            "📧 Email: " + response.data.test_email + "<br>" +
+            "📞 Phone: " + response.data.test_phone + "<br>" +
+            "🎯 Framework: " + response.data.framework_name + "<br>" +
+            "📝 Form ID: " + response.data.form_id + "<br>" +
+            "🔗 Click ID: " + (trackingDetails.click_id || "N/A") + "<br>" +
+            "🔗 GCLID: " + (trackingDetails.gclid || "N/A") + "<br>" +
+            "🏷️ Tracking ID: " + response.data.tracking_id + "<br>";
+
+          if (trackingDetails.utm_source || trackingDetails.utm_medium || trackingDetails.utm_campaign) {
+            detailsHtml += "<strong>UTM Data:</strong><br>";
+            if (trackingDetails.utm_source) detailsHtml += "Source: " + trackingDetails.utm_source + "<br>";
+            if (trackingDetails.utm_medium) detailsHtml += "Medium: " + trackingDetails.utm_medium + "<br>";
+            if (trackingDetails.utm_campaign) detailsHtml += "Campaign: " + trackingDetails.utm_campaign + "<br>";
+          }
+
+          detailsHtml += "</div>" +
+            '<div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 12px;">' +
+            "📊 <strong>Check your browser's developer console and GTM Debug Mode to verify the events were pushed to dataLayer.</strong>" +
+            "</div>";
+
           $result.html(
             '<div style="padding: 8px; background: #d4edda; border-left: 3px solid #28a745; border-radius: 4px; color: #155724;">' +
-              '<strong>✅ Test form submitted successfully!</strong><br>' +
+              '<strong>✅ Test form submitted via production tracking!</strong><br>' +
               '<div style="margin-top: 5px; font-size: 13px;">' +
               emailStatus + " | " + gtmStatus + "<br>" +
               detailsHtml +
@@ -554,5 +635,18 @@ jQuery(document).ready(function ($) {
   function isValidEmail(email) {
     var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
+  }
+
+  // Get the correct event type for each framework
+  function getFrameworkEventType(framework) {
+    var eventMap = {
+      'elementor': 'submit_success',
+      'contact_form_7': 'wpcf7mailsent',
+      'ninja_forms': 'nfFormSubmitResponse',
+      'gravity_forms': 'gform_confirmation_loaded',
+      'avada': 'fusion_form_submit_success'
+    };
+
+    return eventMap[framework] || 'submit_success';
   }
 });

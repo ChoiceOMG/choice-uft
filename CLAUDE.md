@@ -54,6 +54,61 @@ URL Parameters → SessionStorage → Cookies → Empty Object
 
 Each source is wrapped in try-catch blocks to ensure failures don't break the tracking.
 
+### DataLayer Parameter Naming Convention
+
+**All dataLayer parameters use consistent snake_case naming:**
+
+- ✅ `form_type` (not `formType`)
+- ✅ `form_id` (not `formId`)
+- ✅ `form_name` (not `formName`)
+- ✅ `user_email` (not `userEmail`)
+- ✅ `user_phone` (not `userPhone`)
+- ✅ `submitted_at` (not `submittedAt`)
+- ✅ `cuft_tracked: true`
+- ✅ `cuft_source: "framework_name"`
+
+This ensures GTM compatibility and consistent data across all frameworks.
+
+## Multi-Framework Implementation
+
+### Supported Form Frameworks
+
+The plugin supports multiple form frameworks with specialized tracking for each:
+
+1. **Elementor Pro Forms** (primary focus)
+2. **Contact Form 7**
+3. **Ninja Forms**
+4. **Gravity Forms**
+5. **Avada/Fusion Forms**
+
+Each framework has dedicated tracking scripts that:
+- Listen for framework-specific events
+- Extract form data using framework conventions
+- Apply consistent dataLayer parameter naming
+- Handle framework-specific success states
+
+### Cross-Framework Compatibility
+
+**Multiple frameworks can coexist on the same page without interference:**
+
+- Each framework script only processes its own forms
+- Non-relevant forms are ignored silently (no console noise)
+- Framework detection happens before any logging
+- Scripts exit early for non-matching forms
+
+### Event Handling Strategy
+
+Different frameworks use different event approaches:
+
+**Event-Based Frameworks:**
+- **Elementor**: Listens for `submit_success` events
+- **Contact Form 7**: Listens for `wpcf7mailsent` events
+
+**Submit-Based Frameworks:**
+- **Avada**: Listens for `submit` events with `.fusion-form` detection
+- **Ninja Forms**: Listens for `submit` events with `.nf-form-cont` detection
+- **Gravity Forms**: Listens for `submit` events with `.gform_form` detection
+
 ## Elementor Forms Implementation
 
 ### Event Handling
@@ -102,13 +157,65 @@ The following click IDs are tracked:
 - `snap_click_id` (Snapchat)
 - `pclid` (Pinterest)
 
+## Test Forms Implementation
+
+### Two Test Form Systems
+
+The plugin provides two separate test form implementations:
+
+1. **Admin Page Quick Tests** (`/wp-admin/options-general.php?page=choice-universal-form-tracker`)
+   - Quick test buttons for each framework
+   - Uses production tracking flow
+   - Fires real framework events
+   - Production code adds `cuft_tracked: true` and `cuft_source`
+
+2. **Dedicated Test Page** (`[cuft_test_forms]` shortcode)
+   - Full form interfaces for each framework
+   - Advanced testing controls (enable/disable requirements)
+   - Real-time dataLayer event monitoring
+   - Framework-specific UI styling
+
+### Test Form Architecture
+
+**Both test systems use the same production tracking flow:**
+
+```javascript
+// 1. Store tracking data in sessionStorage
+common.prepareTrackingDataForProduction('elementor', form_id, formElement);
+
+// 2. Set form data attributes for production code
+formElement.setAttribute('data-cuft-email', email);
+formElement.setAttribute('data-cuft-phone', phone);
+formElement.setAttribute('data-cuft-tracking', 'pending');
+
+// 3. Fire framework-specific event
+const event = new CustomEvent('submit_success', { ... });
+formElement.dispatchEvent(event);
+
+// 4. Production code handles the rest
+// - Adds cuft_tracked: true
+// - Adds cuft_source: "elementor_pro"
+// - Pushes to dataLayer with correct field names
+// - Fires generate_lead if requirements met
+```
+
+### Legacy Test Forms Removal
+
+**IMPORTANT:** The old legacy test forms script (`assets/cuft-test-forms.js`) has been **completely removed** because it:
+- Bypassed production tracking code
+- Used wrong field names (`form_framework` instead of `form_type`)
+- Added unwanted fields (`test_submission: true`)
+- Missing required fields (`cuft_tracked`, `cuft_source`)
+- Caused GTM tags not to fire
+
 ## Testing Guidelines
 
 ### Quick Testing Checklist
 
 **Essential verifications before deployment:**
 
-- [ ] Form submissions trigger `form_submit` event
+- [ ] Form submissions trigger `form_submit` event with `cuft_tracked: true`
+- [ ] Events use snake_case field names (`form_type`, `user_email`, etc.)
 - [ ] UTM parameters are captured from all sources
 - [ ] Click IDs are properly tracked
 - [ ] Generate lead fires only with email + phone + click_id
@@ -117,6 +224,7 @@ The following click IDs are tracked:
 - [ ] Works with jQuery
 - [ ] Console has no errors in production mode
 - [ ] Events fire only once per submission
+- [ ] Multiple frameworks can coexist without console noise
 
 ### Testing Documentation
 
@@ -138,6 +246,42 @@ window.cuftElementor = {
 ```
 
 This will output detailed tracking information to the console.
+
+### Expected DataLayer Event Format
+
+**Standard form_submit Event:**
+```javascript
+{
+  event: "form_submit",
+  form_type: "elementor",               // Framework identifier
+  form_id: "elementor-widget-7a2c4f9",  // Form's unique ID
+  form_name: "Contact Form",            // Human-readable form name
+  user_email: "user@example.com",       // Email field value
+  user_phone: "123-456-7890",           // Phone field value
+  submitted_at: "2025-01-01T12:00:00Z", // ISO timestamp
+  cuft_tracked: true,                   // Added by production code
+  cuft_source: "elementor_pro",         // Added by production code
+  click_id: "abc123",                   // If present
+  gclid: "xyz789",                      // If present
+  utm_source: "google",                 // If present
+  utm_medium: "cpc",                    // If present
+  utm_campaign: "summer_sale",          // If present
+  utm_term: "contact_form",             // If present
+  utm_content: "sidebar"                // If present
+}
+```
+
+**generate_lead Event** (only when email + phone + click_id present):
+```javascript
+{
+  event: "generate_lead",
+  currency: "USD",
+  value: 0,
+  cuft_tracked: true,
+  cuft_source: "elementor_pro_lead",
+  // All form_submit fields also included
+}
+```
 
 ## Browser Compatibility
 
@@ -207,3 +351,71 @@ gh release upload v3.8.2 ../choice-uft.zip --clobber
 5. **Log in debug mode only** - Minimize console output in production
 6. **Always create release zip files** - Required for WordPress installations and auto-updates
 7. **CRITICAL: Always name zip files 'choice-uft.zip'** - NEVER include version numbers in the filename, as this causes WordPress to extract to wrong directory (e.g., choice-uft-v3.9.3 instead of choice-uft)
+
+## Troubleshooting
+
+### Common Issues and Fixes
+
+#### GTM Tags Not Firing
+
+**Problem**: Google Tag Manager tags don't fire when forms are submitted.
+
+**Causes & Solutions**:
+1. **Wrong field names**: Ensure events use `form_type` (not `form_framework`)
+2. **Missing cuft_tracked**: Verify events have `cuft_tracked: true`
+3. **Missing cuft_source**: Verify events have `cuft_source: "framework_name"`
+4. **Legacy test forms**: Ensure old `cuft-test-forms.js` script is removed
+
+#### Cross-Framework Console Noise
+
+**Problem**: Multiple framework scripts logging messages for non-relevant forms.
+
+**Fixed**: Framework detection now happens before logging. Scripts exit silently for non-matching forms.
+
+#### Test Forms Not Working
+
+**Problem**: Test forms show wrong field names or missing required fields.
+
+**Fixed**: Both admin and test page forms now use production tracking flow and fire real framework events.
+
+#### Multiple Frameworks Conflicting
+
+**Problem**: Different form frameworks interfere with each other on the same page.
+
+**Fixed**: Each framework script only processes its own forms and ignores others silently.
+
+### Debug Commands
+
+**Check dataLayer events in browser console:**
+```javascript
+// View all dataLayer events
+console.log(window.dataLayer);
+
+// Monitor new events
+window.dataLayer.push = function(event) {
+  console.log('dataLayer event:', event);
+  Array.prototype.push.call(window.dataLayer, event);
+};
+
+// Check for CUFT events specifically
+window.dataLayer.filter(e => e.cuft_tracked);
+```
+
+**Enable framework-specific debugging:**
+```javascript
+// Elementor debugging
+window.cuftElementor = {
+  console_logging: true,
+  generate_lead_enabled: true
+};
+
+// Avada debugging
+window.cuftAvada = {
+  console_logging: true
+};
+
+// Global UTM debugging
+window.cuftUtm = {
+  console_logging: true
+};
+```

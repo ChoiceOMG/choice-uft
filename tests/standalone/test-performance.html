@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUFT Performance Benchmark Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .test-passed { background: #d4edda; color: #155724; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-failed { background: #f8d7da; color: #721c24; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-warning { background: #fff3cd; color: #856404; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-title { font-weight: bold; font-size: 1.2em; margin-bottom: 10px; }
+        .summary { background: #e9ecef; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        button { padding: 10px 20px; font-size: 1em; margin: 10px 5px; cursor: pointer; }
+        .performance-chart { margin: 20px 0; }
+        .performance-bar { background: #007bff; height: 20px; margin: 2px 0; transition: width 0.3s; }
+        .critical-threshold { border-left: 3px solid red; position: absolute; left: 50px; height: 100%; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        .metric-pass { color: green; font-weight: bold; }
+        .metric-fail { color: red; font-weight: bold; }
+        .metric-warning { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>CUFT Performance Benchmark Tests</h1>
+    <p>Tests tracking performance against the <strong>&lt;50ms per submission</strong> requirement from specs/testing/test-suite.spec.md</p>
+
+    <div class="test-section">
+        <button onclick="runAllPerformanceTests()">Run Performance Tests</button>
+        <button onclick="runStressTest()">Run Stress Test (100 submissions)</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="exportResults()">Export Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <!-- Load Dependencies -->
+    <script src="../../assets/cuft-dataLayer-utils.js"></script>
+    <script src="../../assets/cuft-utm-utils.js"></script>
+    <script src="lib/test-data.js"></script>
+    <script src="lib/test-utils.js"></script>
+
+    <script>
+        const utils = window.CUFTTestUtils;
+        const testData = window.CUFTTestData;
+        const dataLayerUtils = window.cuftDataLayerUtils;
+
+        // Performance threshold from specification
+        const PERFORMANCE_THRESHOLD_MS = 50;
+        const WARNING_THRESHOLD_MS = 40; // 80% of limit
+
+        function runAllPerformanceTests() {
+            utils.clearTestResults();
+            document.getElementById('results').innerHTML = '<h2>Running performance tests...</h2>';
+
+            // Test Suite 1: Single Form Submission Performance
+            utils.describe('Single Form Submission Performance', function() {
+                utils.test('Form submission completes within 50ms threshold', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Warm up
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'warmup',
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890'
+                    });
+                    form.removeAttribute('data-cuft-processed'); // Reset for actual test
+
+                    // Measure single submission
+                    const startTime = performance.now();
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'perf-test-1',
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890'
+                    });
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+
+                    utils.assertLessThan(duration, PERFORMANCE_THRESHOLD_MS,
+                        'Form submission took ' + duration.toFixed(2) + 'ms (must be < 50ms)');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Form submission with all UTM parameters within threshold', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Mock UTM data
+                    window.cuftGetTrackingData = function() {
+                        return testData.utmParameterSets[0]; // Complete UTM set
+                    };
+
+                    const startTime = performance.now();
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'perf-test-utm',
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890'
+                    });
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+
+                    utils.assertLessThan(duration, PERFORMANCE_THRESHOLD_MS,
+                        'Form with UTM took ' + duration.toFixed(2) + 'ms (must be < 50ms)');
+
+                    delete window.cuftGetTrackingData;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Generate lead event (dual events) within threshold', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Mock click ID for lead generation
+                    window.cuftGetTrackingData = function() {
+                        return { gclid: 'test_gclid_123' };
+                    };
+
+                    const startTime = performance.now();
+                    dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'perf-test-lead',
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890'
+                    });
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+
+                    utils.assertEqual(mockDL.events.length, 2, 'Should fire both events');
+                    utils.assertLessThan(duration, PERFORMANCE_THRESHOLD_MS,
+                        'Dual events took ' + duration.toFixed(2) + 'ms (must be < 50ms)');
+
+                    delete window.cuftGetTrackingData;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+            });
+
+            // Test Suite 2: Framework-Specific Performance
+            utils.describe('Framework-Specific Performance', function() {
+                const frameworks = ['elementor', 'cf7', 'ninja', 'gravity', 'avada'];
+
+                frameworks.forEach(framework => {
+                    utils.test(framework + ' form submission within threshold', function() {
+                        const form = utils.createFormFromTemplate(testData.formTemplates[framework]);
+                        const mockDL = utils.setupMockDataLayer();
+
+                        const measurements = [];
+                        for (let i = 0; i < 10; i++) {
+                            form.removeAttribute('data-cuft-processed');
+                            const startTime = performance.now();
+                            dataLayerUtils.trackFormSubmission(framework, form, {
+                                form_id: framework + '-perf-' + i,
+                                user_email: 'test@example.com',
+                                user_phone: '1234567890'
+                            });
+                            const endTime = performance.now();
+                            measurements.push(endTime - startTime);
+                        }
+
+                        const avgTime = measurements.reduce((a, b) => a + b, 0) / measurements.length;
+                        const maxTime = Math.max(...measurements);
+
+                        utils.assertLessThan(avgTime, PERFORMANCE_THRESHOLD_MS,
+                            framework + ' avg: ' + avgTime.toFixed(2) + 'ms');
+                        utils.assertLessThan(maxTime, PERFORMANCE_THRESHOLD_MS,
+                            framework + ' max: ' + maxTime.toFixed(2) + 'ms');
+
+                        mockDL.restore();
+                        utils.cleanupTestContainer(form.parentElement);
+                    });
+                });
+            });
+
+            // Test Suite 3: Component Performance Breakdown
+            utils.describe('Component Performance Breakdown', function() {
+                utils.test('Email validation performance', function() {
+                    const perf = utils.measurePerformance(() => {
+                        testData.validEmails.forEach(email => {
+                            dataLayerUtils.validateEmail(email);
+                        });
+                    }, 100);
+
+                    const perEmailTime = perf.average / testData.validEmails.length;
+                    utils.assertLessThan(perEmailTime, 1,
+                        'Email validation avg: ' + perEmailTime.toFixed(3) + 'ms per email');
+                });
+
+                utils.test('Phone sanitization performance', function() {
+                    const perf = utils.measurePerformance(() => {
+                        testData.validPhones.forEach(phone => {
+                            dataLayerUtils.sanitizePhone(phone);
+                        });
+                    }, 100);
+
+                    const perPhoneTime = perf.average / testData.validPhones.length;
+                    utils.assertLessThan(perPhoneTime, 1,
+                        'Phone sanitization avg: ' + perPhoneTime.toFixed(3) + 'ms per phone');
+                });
+
+                utils.test('Payload creation performance', function() {
+                    const perf = utils.measurePerformance(() => {
+                        dataLayerUtils.createFormSubmitPayload('elementor', 'test-form', {
+                            form_name: 'Test Form',
+                            user_email: 'test@example.com',
+                            user_phone: '1234567890'
+                        });
+                    }, 100);
+
+                    utils.assertLessThan(perf.average, 5,
+                        'Payload creation avg: ' + perf.average.toFixed(2) + 'ms');
+                });
+
+                utils.test('DataLayer push performance', function() {
+                    const mockDL = utils.setupMockDataLayer();
+                    const payload = {
+                        event: 'test_event',
+                        test_data: 'performance test'
+                    };
+
+                    const perf = utils.measurePerformance(() => {
+                        dataLayerUtils.pushToDataLayer(payload);
+                    }, 100);
+
+                    utils.assertLessThan(perf.average, 1,
+                        'DataLayer push avg: ' + perf.average.toFixed(3) + 'ms');
+
+                    mockDL.restore();
+                });
+            });
+
+            // Test Suite 4: Memory Usage
+            utils.describe('Memory Usage Tests', function() {
+                utils.test('Memory usage per submission within bounds', function() {
+                    if (!performance.memory) {
+                        console.warn('Memory API not available in this browser');
+                        return;
+                    }
+
+                    const mockDL = utils.setupMockDataLayer();
+                    const initialMemory = performance.memory.usedJSHeapSize;
+
+                    // Submit 100 forms
+                    for (let i = 0; i < 100; i++) {
+                        const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                        dataLayerUtils.trackFormSubmission('elementor', form, {
+                            form_id: 'memory-test-' + i,
+                            user_email: 'test' + i + '@example.com',
+                            user_phone: '555000' + i
+                        });
+                        utils.cleanupTestContainer(form.parentElement);
+                    }
+
+                    const finalMemory = performance.memory.usedJSHeapSize;
+                    const memoryIncrease = finalMemory - initialMemory;
+                    const perSubmission = memoryIncrease / 100;
+
+                    // Should be less than 1KB per submission (1024 bytes)
+                    utils.assertLessThan(perSubmission, 1024,
+                        'Memory per submission: ' + perSubmission.toFixed(0) + ' bytes');
+
+                    mockDL.restore();
+                });
+            });
+
+            // Display results
+            setTimeout(() => {
+                displayPerformanceResults();
+            }, 100);
+        }
+
+        function runStressTest() {
+            document.getElementById('results').innerHTML = '<h2>Running stress test...</h2>';
+
+            const mockDL = utils.setupMockDataLayer();
+            const submissionCount = 100;
+            const measurements = [];
+
+            // Mock complete tracking data
+            window.cuftGetTrackingData = function() {
+                return Object.assign({},
+                    testData.utmParameterSets[0],
+                    testData.clickIdSets[0]
+                );
+            };
+
+            const overallStart = performance.now();
+
+            for (let i = 0; i < submissionCount; i++) {
+                const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+
+                const startTime = performance.now();
+                dataLayerUtils.trackFormSubmission('elementor', form, {
+                    form_id: 'stress-test-' + i,
+                    user_email: 'user' + i + '@example.com',
+                    user_phone: '555' + String(i).padStart(7, '0')
+                });
+                const endTime = performance.now();
+
+                measurements.push(endTime - startTime);
+                utils.cleanupTestContainer(form.parentElement);
+            }
+
+            const overallEnd = performance.now();
+            const totalTime = overallEnd - overallStart;
+
+            // Calculate statistics
+            const avgTime = measurements.reduce((a, b) => a + b, 0) / measurements.length;
+            const minTime = Math.min(...measurements);
+            const maxTime = Math.max(...measurements);
+            const medianTime = measurements.sort((a, b) => a - b)[Math.floor(measurements.length / 2)];
+
+            // Count how many exceeded threshold
+            const exceededCount = measurements.filter(t => t > PERFORMANCE_THRESHOLD_MS).length;
+            const warningCount = measurements.filter(t => t > WARNING_THRESHOLD_MS && t <= PERFORMANCE_THRESHOLD_MS).length;
+
+            // Create performance report
+            let html = '<div class="test-section">';
+            html += '<h2>Stress Test Results - ' + submissionCount + ' Form Submissions</h2>';
+
+            html += '<table>';
+            html += '<tr><th>Metric</th><th>Value</th><th>Status</th></tr>';
+            html += '<tr><td>Total Time</td><td>' + totalTime.toFixed(2) + 'ms</td><td>-</td></tr>';
+            html += '<tr><td>Average Time</td><td>' + avgTime.toFixed(2) + 'ms</td><td class="' +
+                    (avgTime < PERFORMANCE_THRESHOLD_MS ? 'metric-pass' : 'metric-fail') + '">' +
+                    (avgTime < PERFORMANCE_THRESHOLD_MS ? 'PASS' : 'FAIL') + '</td></tr>';
+            html += '<tr><td>Minimum Time</td><td>' + minTime.toFixed(2) + 'ms</td><td class="' +
+                    (minTime < PERFORMANCE_THRESHOLD_MS ? 'metric-pass' : 'metric-fail') + '">' +
+                    (minTime < PERFORMANCE_THRESHOLD_MS ? 'PASS' : 'FAIL') + '</td></tr>';
+            html += '<tr><td>Maximum Time</td><td>' + maxTime.toFixed(2) + 'ms</td><td class="' +
+                    (maxTime < PERFORMANCE_THRESHOLD_MS ? 'metric-pass' : 'metric-fail') + '">' +
+                    (maxTime < PERFORMANCE_THRESHOLD_MS ? 'PASS' : 'FAIL') + '</td></tr>';
+            html += '<tr><td>Median Time</td><td>' + medianTime.toFixed(2) + 'ms</td><td class="' +
+                    (medianTime < PERFORMANCE_THRESHOLD_MS ? 'metric-pass' : 'metric-fail') + '">' +
+                    (medianTime < PERFORMANCE_THRESHOLD_MS ? 'PASS' : 'FAIL') + '</td></tr>';
+            html += '<tr><td>Submissions > 50ms</td><td>' + exceededCount + '</td><td class="' +
+                    (exceededCount === 0 ? 'metric-pass' : 'metric-fail') + '">' +
+                    (exceededCount === 0 ? 'PASS' : exceededCount + ' FAILED') + '</td></tr>';
+            html += '<tr><td>Submissions > 40ms</td><td>' + warningCount + '</td><td class="' +
+                    (warningCount === 0 ? 'metric-pass' : 'metric-warning') + '">' +
+                    (warningCount === 0 ? 'OK' : warningCount + ' WARNING') + '</td></tr>';
+            html += '<tr><td>Events Generated</td><td>' + mockDL.events.length + '</td><td>' +
+                    (mockDL.events.length === submissionCount * 2 ? 'All dual events fired' : 'Check events') + '</td></tr>';
+            html += '</table>';
+
+            // Performance distribution chart
+            html += '<h3>Performance Distribution</h3>';
+            html += '<div class="performance-chart">';
+
+            const buckets = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+            buckets.forEach((bucket, index) => {
+                if (index === 0) return;
+                const count = measurements.filter(t => t >= buckets[index - 1] && t < bucket).length;
+                const percentage = (count / submissionCount) * 100;
+                html += '<div style="display: flex; align-items: center; margin: 5px 0;">';
+                html += '<span style="width: 100px;">' + buckets[index - 1] + '-' + bucket + 'ms:</span>';
+                html += '<div class="performance-bar" style="width: ' + (percentage * 3) + 'px;"></div>';
+                html += '<span style="margin-left: 10px;">' + count + ' (' + percentage.toFixed(1) + '%)</span>';
+                html += '</div>';
+            });
+
+            html += '</div>';
+
+            // Summary
+            if (exceededCount === 0) {
+                html += '<div class="test-passed">✓ All submissions completed within 50ms threshold!</div>';
+            } else {
+                html += '<div class="test-failed">✗ ' + exceededCount + ' submissions exceeded 50ms threshold</div>';
+            }
+
+            html += '</div>';
+
+            document.getElementById('results').innerHTML = html;
+
+            // Cleanup
+            delete window.cuftGetTrackingData;
+            mockDL.restore();
+        }
+
+        function displayPerformanceResults() {
+            const results = utils.getTestResults();
+            let html = utils.generateReport('html');
+
+            // Add performance summary
+            let totalTests = 0;
+            let passedTests = 0;
+            let performanceIssues = [];
+
+            results.forEach(suite => {
+                suite.tests.forEach(test => {
+                    totalTests++;
+                    if (test.passed) {
+                        passedTests++;
+                    } else if (test.error && test.error.includes('ms')) {
+                        performanceIssues.push({
+                            suite: suite.name,
+                            test: test.name,
+                            error: test.error
+                        });
+                    }
+                });
+            });
+
+            // Add performance-specific summary
+            html = '<div class="summary">' +
+                   '<h2>Performance Test Summary</h2>' +
+                   '<p><strong>Specification Requirement:</strong> All form submissions must complete in <50ms</p>' +
+                   '<p><strong>Tests Passed:</strong> ' + passedTests + ' / ' + totalTests + '</p>';
+
+            if (performanceIssues.length > 0) {
+                html += '<h3>Performance Issues Detected:</h3><ul>';
+                performanceIssues.forEach(issue => {
+                    html += '<li>' + issue.suite + ' - ' + issue.test + '</li>';
+                });
+                html += '</ul>';
+            } else if (passedTests === totalTests) {
+                html += '<p class="metric-pass">✓ All performance requirements met!</p>';
+            }
+
+            html += '</div>' + html;
+
+            document.getElementById('results').innerHTML = html;
+        }
+
+        function clearResults() {
+            utils.clearTestResults();
+            document.getElementById('results').innerHTML = '<p>Results cleared.</p>';
+        }
+
+        function exportResults() {
+            const results = utils.getTestResults();
+            const json = JSON.stringify(results, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'performance-test-results-' + Date.now() + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

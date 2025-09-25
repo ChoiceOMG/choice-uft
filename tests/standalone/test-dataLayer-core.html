@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUFT DataLayer Core Functions Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .test-passed { background: #d4edda; color: #155724; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-failed { background: #f8d7da; color: #721c24; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-title { font-weight: bold; font-size: 1.2em; margin-bottom: 10px; }
+        .summary { background: #e9ecef; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        .error-detail { font-family: monospace; font-size: 0.9em; margin-top: 5px; }
+        button { padding: 10px 20px; font-size: 1em; margin: 10px 5px; cursor: pointer; }
+        #results { margin-top: 20px; }
+        .performance-info { color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>CUFT DataLayer Core Functions Test</h1>
+    <p>This test suite validates all core dataLayer functions according to specs/core/dataLayer.spec.md</p>
+
+    <div class="test-section">
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="exportResults()">Export Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <!-- Load Dependencies -->
+    <script src="../../assets/cuft-dataLayer-utils.js"></script>
+    <script src="lib/test-data.js"></script>
+    <script src="lib/test-utils.js"></script>
+
+    <script>
+        const utils = window.CUFTTestUtils;
+        const testData = window.CUFTTestData;
+        const dataLayerUtils = window.cuftDataLayerUtils;
+
+        function runAllTests() {
+            utils.clearTestResults();
+            document.getElementById('results').innerHTML = '<h2>Running tests...</h2>';
+
+            // Test Suite 1: DataLayer Access
+            utils.describe('DataLayer Access Functions', function() {
+                utils.test('getDataLayer() returns valid dataLayer object', function() {
+                    const dl = dataLayerUtils.getDataLayer();
+                    utils.assert(dl !== null && dl !== undefined, 'DataLayer should exist');
+                    utils.assert(typeof dl.push === 'function', 'DataLayer should have push function');
+                });
+
+                utils.test('getDataLayer() handles missing dataLayer gracefully', function() {
+                    // Temporarily remove dataLayer
+                    const originalDL = window.dataLayer;
+                    delete window.dataLayer;
+
+                    const dl = dataLayerUtils.getDataLayer();
+                    utils.assert(dl !== null && dl !== undefined, 'Should return fallback object');
+                    utils.assert(typeof dl.push === 'function', 'Fallback should have push function');
+
+                    // Restore
+                    window.dataLayer = originalDL;
+                });
+            });
+
+            // Test Suite 2: Timestamp Generation
+            utils.describe('Timestamp Generation', function() {
+                utils.test('generateTimestamp() returns ISO 8601 format', function() {
+                    const timestamp = dataLayerUtils.generateTimestamp();
+                    const isoPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+                    utils.assert(isoPattern.test(timestamp), 'Timestamp should match ISO 8601 format');
+                });
+            });
+
+            // Test Suite 3: Email Validation
+            utils.describe('Email Validation', function() {
+                utils.test('validateEmail() accepts all valid emails from spec', function() {
+                    testData.validEmails.forEach(email => {
+                        const result = dataLayerUtils.validateEmail(email);
+                        utils.assert(result === true, 'Should accept valid email: ' + email);
+                    });
+                });
+
+                utils.test('validateEmail() rejects all invalid emails from spec', function() {
+                    testData.invalidEmails.forEach(email => {
+                        const result = dataLayerUtils.validateEmail(email);
+                        utils.assert(result === false, 'Should reject invalid email: ' + email);
+                    });
+                });
+
+                utils.test('validateEmail() handles null and undefined', function() {
+                    utils.assertEqual(dataLayerUtils.validateEmail(null), false, 'null should be invalid');
+                    utils.assertEqual(dataLayerUtils.validateEmail(undefined), false, 'undefined should be invalid');
+                    utils.assertEqual(dataLayerUtils.validateEmail(''), false, 'empty string should be invalid');
+                });
+            });
+
+            // Test Suite 4: Phone Sanitization
+            utils.describe('Phone Sanitization', function() {
+                utils.test('sanitizePhone() removes formatting characters', function() {
+                    utils.assertEqual(dataLayerUtils.sanitizePhone('(123) 456-7890'), '1234567890');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone('123-456-7890'), '1234567890');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone('123.456.7890'), '1234567890');
+                });
+
+                utils.test('sanitizePhone() preserves international format indicator', function() {
+                    utils.assertEqual(dataLayerUtils.sanitizePhone('+1 (123) 456-7890'), '+11234567890');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone('+44 20 7123 4567'), '+442071234567');
+                });
+
+                utils.test('sanitizePhone() handles invalid input', function() {
+                    utils.assertEqual(dataLayerUtils.sanitizePhone(null), '');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone(undefined), '');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone(''), '');
+                });
+            });
+
+            // Test Suite 5: Form Processing State
+            utils.describe('Form Processing State Management', function() {
+                utils.test('isFormProcessed() and markFormProcessed() work correctly', function() {
+                    const form = utils.createFormFromTemplate('<form id="test-form"></form>');
+
+                    utils.assertEqual(dataLayerUtils.isFormProcessed(form), false, 'Form should not be processed initially');
+
+                    dataLayerUtils.markFormProcessed(form);
+                    utils.assertEqual(dataLayerUtils.isFormProcessed(form), true, 'Form should be marked as processed');
+
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Duplicate processing prevention', function() {
+                    const form = utils.createFormFromTemplate('<form id="test-form"></form>');
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // First submission
+                    const result1 = dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'test-1',
+                        user_email: 'test@example.com'
+                    });
+                    utils.assertEqual(result1, true, 'First submission should succeed');
+                    utils.assertEqual(mockDL.events.length, 1, 'Should have one event');
+
+                    // Second submission (should be prevented)
+                    const result2 = dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'test-1',
+                        user_email: 'test@example.com'
+                    });
+                    utils.assertEqual(result2, false, 'Second submission should be prevented');
+                    utils.assertEqual(mockDL.events.length, 1, 'Should still have only one event');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+            });
+
+            // Test Suite 6: Lead Qualification
+            utils.describe('Lead Qualification Logic', function() {
+                utils.test('meetsLeadConditions() requires email, phone, and click ID', function() {
+                    // All conditions met
+                    const validPayload = {
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890',
+                        gclid: 'test_click_id'
+                    };
+                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(validPayload), true);
+
+                    // Missing email
+                    const noEmail = {
+                        user_phone: '1234567890',
+                        gclid: 'test_click_id'
+                    };
+                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(noEmail), false);
+
+                    // Missing phone
+                    const noPhone = {
+                        user_email: 'test@example.com',
+                        gclid: 'test_click_id'
+                    };
+                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(noPhone), false);
+
+                    // Missing click ID
+                    const noClickId = {
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890'
+                    };
+                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(noClickId), false);
+                });
+
+                utils.test('meetsLeadConditions() accepts any valid click ID type', function() {
+                    const clickIdTypes = ['click_id', 'gclid', 'gbraid', 'wbraid', 'fbclid',
+                                         'msclkid', 'ttclid', 'li_fat_id', 'twclid',
+                                         'snap_click_id', 'pclid'];
+
+                    clickIdTypes.forEach(clickIdType => {
+                        const payload = {
+                            user_email: 'test@example.com',
+                            user_phone: '1234567890',
+                            [clickIdType]: 'test_id_123'
+                        };
+                        utils.assertEqual(
+                            dataLayerUtils.meetsLeadConditions(payload),
+                            true,
+                            'Should accept ' + clickIdType
+                        );
+                    });
+                });
+            });
+
+            // Test Suite 7: Event Payload Creation
+            utils.describe('Event Payload Creation', function() {
+                utils.test('createFormSubmitPayload() includes all required fields', function() {
+                    const payload = dataLayerUtils.createFormSubmitPayload('elementor', 'test-form-1', {
+                        form_name: 'Test Form',
+                        user_email: 'test@example.com',
+                        user_phone: '(123) 456-7890'
+                    });
+
+                    // Check required fields per spec
+                    utils.assertEqual(payload.event, 'form_submit', 'Event type must be form_submit');
+                    utils.assertEqual(payload.cuft_tracked, true, 'cuft_tracked must be true');
+                    utils.assertEqual(payload.cuft_source, 'elementor_pro', 'cuft_source must match framework');
+                    utils.assertEqual(payload.form_type, 'elementor', 'form_type must match framework');
+                    utils.assertEqual(payload.form_id, 'test-form-1', 'form_id must be present');
+                    utils.assert(payload.submitted_at, 'submitted_at timestamp must be present');
+
+                    // Check optional fields
+                    utils.assertEqual(payload.form_name, 'Test Form', 'form_name should be included');
+                    utils.assertEqual(payload.user_email, 'test@example.com', 'Valid email should be included');
+                    utils.assertEqual(payload.user_phone, '1234567890', 'Sanitized phone should be included');
+                });
+
+                utils.test('createFormSubmitPayload() excludes invalid email', function() {
+                    const payload = dataLayerUtils.createFormSubmitPayload('elementor', 'test-form-1', {
+                        user_email: 'invalid-email',
+                        user_phone: '1234567890'
+                    });
+
+                    utils.assertNotContains(payload, 'user_email', 'Invalid email should not be included');
+                    utils.assertContains(payload, 'user_phone', 'Valid phone should still be included');
+                });
+
+                utils.test('createFormSubmitPayload() uses correct framework identifiers', function() {
+                    const frameworks = ['elementor', 'cf7', 'ninja', 'gravity', 'avada'];
+                    const expectedSources = {
+                        'elementor': 'elementor_pro',
+                        'cf7': 'contact_form_7',
+                        'ninja': 'ninja_forms',
+                        'gravity': 'gravity_forms',
+                        'avada': 'avada_forms'
+                    };
+
+                    frameworks.forEach(framework => {
+                        const payload = dataLayerUtils.createFormSubmitPayload(framework, 'test-id');
+                        utils.assertEqual(payload.form_type, framework, 'form_type should be ' + framework);
+                        utils.assertEqual(payload.cuft_source, expectedSources[framework],
+                                        'cuft_source should be ' + expectedSources[framework]);
+                    });
+                });
+            });
+
+            // Test Suite 8: Generate Lead Event Creation
+            utils.describe('Generate Lead Event Creation', function() {
+                utils.test('createGenerateLeadPayload() includes all required fields', function() {
+                    const formSubmitPayload = {
+                        event: 'form_submit',
+                        form_type: 'elementor',
+                        form_id: 'test-form',
+                        user_email: 'test@example.com',
+                        user_phone: '1234567890',
+                        submitted_at: '2025-01-01T12:00:00.000Z',
+                        cuft_tracked: true,
+                        cuft_source: 'elementor_pro',
+                        gclid: 'test_click_id'
+                    };
+
+                    const leadPayload = dataLayerUtils.createGenerateLeadPayload(formSubmitPayload, 'elementor');
+
+                    utils.assertEqual(leadPayload.event, 'generate_lead', 'Event must be generate_lead');
+                    utils.assertEqual(leadPayload.cuft_source, 'elementor_pro_lead', 'Should use lead-specific source');
+                    utils.assertEqual(leadPayload.currency, 'USD', 'Currency must be USD');
+                    utils.assertEqual(leadPayload.value, 0, 'Value must be 0');
+
+                    // All form fields should be included
+                    utils.assertEqual(leadPayload.form_type, 'elementor');
+                    utils.assertEqual(leadPayload.form_id, 'test-form');
+                    utils.assertEqual(leadPayload.user_email, 'test@example.com');
+                    utils.assertEqual(leadPayload.user_phone, '1234567890');
+                    utils.assertEqual(leadPayload.gclid, 'test_click_id');
+                });
+
+                utils.test('Lead source naming follows specification pattern', function() {
+                    const frameworks = ['elementor', 'cf7', 'ninja', 'gravity', 'avada'];
+                    const expectedLeadSources = {
+                        'elementor': 'elementor_pro_lead',
+                        'cf7': 'contact_form_7_lead',
+                        'ninja': 'ninja_forms_lead',
+                        'gravity': 'gravity_forms_lead',
+                        'avada': 'avada_forms_lead'
+                    };
+
+                    frameworks.forEach(framework => {
+                        const payload = dataLayerUtils.createGenerateLeadPayload({}, framework);
+                        utils.assertEqual(payload.cuft_source, expectedLeadSources[framework],
+                                        'Lead source for ' + framework + ' should be ' + expectedLeadSources[framework]);
+                    });
+                });
+            });
+
+            // Test Suite 9: Full Tracking Flow
+            utils.describe('Complete Form Tracking Flow', function() {
+                utils.test('trackFormSubmission() fires form_submit event with correct data', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    const result = dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'contact-form-1',
+                        form_name: 'Contact Form',
+                        user_email: 'test@example.com',
+                        user_phone: '(555) 123-4567'
+                    });
+
+                    utils.assertEqual(result, true, 'Tracking should succeed');
+                    utils.assertEqual(mockDL.events.length, 1, 'Should fire exactly one event');
+
+                    const event = mockDL.getLastEvent();
+                    utils.assertEqual(event.event, 'form_submit');
+                    utils.assertEqual(event.cuft_tracked, true);
+                    utils.assertEqual(event.form_id, 'contact-form-1');
+                    utils.assertEqual(event.user_phone, '5551234567', 'Phone should be sanitized');
+
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('trackFormSubmission() fires generate_lead when conditions are met', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const mockDL = utils.setupMockDataLayer();
+
+                    // Mock tracking parameters to include click ID
+                    window.cuftGetTrackingData = function() {
+                        return { gclid: 'test_gclid_123' };
+                    };
+
+                    const result = dataLayerUtils.trackFormSubmission('elementor', form, {
+                        form_id: 'lead-form-1',
+                        user_email: 'lead@example.com',
+                        user_phone: '9876543210'
+                    });
+
+                    utils.assertEqual(result, true, 'Tracking should succeed');
+                    utils.assertEqual(mockDL.events.length, 2, 'Should fire two events (form_submit and generate_lead)');
+
+                    const formEvent = mockDL.events[0];
+                    const leadEvent = mockDL.events[1];
+
+                    utils.assertEqual(formEvent.event, 'form_submit');
+                    utils.assertEqual(leadEvent.event, 'generate_lead');
+                    utils.assertEqual(leadEvent.currency, 'USD');
+                    utils.assertEqual(leadEvent.value, 0);
+                    utils.assertEqual(leadEvent.cuft_source, 'elementor_pro_lead');
+
+                    // Cleanup
+                    delete window.cuftGetTrackingData;
+                    mockDL.restore();
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+            });
+
+            // Display results
+            setTimeout(() => {
+                document.getElementById('results').innerHTML = utils.generateReport('html');
+            }, 100);
+        }
+
+        function clearResults() {
+            utils.clearTestResults();
+            document.getElementById('results').innerHTML = '<p>Results cleared.</p>';
+        }
+
+        function exportResults() {
+            const results = utils.getTestResults();
+            const json = JSON.stringify(results, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dataLayer-test-results-' + Date.now() + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

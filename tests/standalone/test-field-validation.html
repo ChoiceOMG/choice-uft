@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUFT Field Validation Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .test-passed { background: #d4edda; color: #155724; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-failed { background: #f8d7da; color: #721c24; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-title { font-weight: bold; font-size: 1.2em; margin-bottom: 10px; }
+        .summary { background: #e9ecef; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        .error-detail { font-family: monospace; font-size: 0.9em; margin-top: 5px; }
+        button { padding: 10px 20px; font-size: 1em; margin: 10px 5px; cursor: pointer; }
+        #results { margin-top: 20px; }
+        .validation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .validation-item { padding: 5px; border: 1px solid #dee2e6; border-radius: 3px; }
+        .valid { background-color: #d1f2eb; }
+        .invalid { background-color: #fde2e2; }
+    </style>
+</head>
+<body>
+    <h1>CUFT Field Validation Tests</h1>
+    <p>This test suite validates email and phone field detection and validation using test data from specs/testing/test-data.spec.md</p>
+
+    <div class="test-section">
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="exportResults()">Export Results</button>
+        <button onclick="runInteractiveTest()">Interactive Validation Test</button>
+    </div>
+
+    <div id="interactive-test" style="display: none;" class="test-section">
+        <h3>Interactive Field Validation</h3>
+        <div class="validation-grid">
+            <div>
+                <label>Email:</label>
+                <input type="email" id="test-email" placeholder="Enter email to validate">
+                <button onclick="validateTestEmail()">Validate</button>
+                <div id="email-result"></div>
+            </div>
+            <div>
+                <label>Phone:</label>
+                <input type="tel" id="test-phone" placeholder="Enter phone to sanitize">
+                <button onclick="sanitizeTestPhone()">Sanitize</button>
+                <div id="phone-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <!-- Load Dependencies -->
+    <script src="../../assets/cuft-dataLayer-utils.js"></script>
+    <script src="lib/test-data.js"></script>
+    <script src="lib/test-utils.js"></script>
+
+    <script>
+        const utils = window.CUFTTestUtils;
+        const testData = window.CUFTTestData;
+        const dataLayerUtils = window.cuftDataLayerUtils;
+
+        function runAllTests() {
+            utils.clearTestResults();
+            document.getElementById('results').innerHTML = '<h2>Running tests...</h2>';
+
+            // Test Suite 1: Email Validation Compliance
+            utils.describe('Email Validation - Specification Compliance', function() {
+                utils.test('Validates all spec-defined valid emails correctly', function() {
+                    let passCount = 0;
+                    let failCount = 0;
+                    const failures = [];
+
+                    testData.validEmails.forEach(email => {
+                        const result = dataLayerUtils.validateEmail(email);
+                        if (result === true) {
+                            passCount++;
+                        } else {
+                            failCount++;
+                            failures.push(email);
+                        }
+                    });
+
+                    utils.assertEqual(failCount, 0, 
+                        'All valid emails should pass. Failed: ' + failures.join(', '));
+                    utils.assert(passCount === testData.validEmails.length, 
+                        'Should validate all ' + testData.validEmails.length + ' valid emails');
+                });
+
+                utils.test('Rejects all spec-defined invalid emails correctly', function() {
+                    let passCount = 0;
+                    let failCount = 0;
+                    const failures = [];
+
+                    testData.invalidEmails.forEach(email => {
+                        const result = dataLayerUtils.validateEmail(email);
+                        if (result === false) {
+                            passCount++;
+                        } else {
+                            failCount++;
+                            failures.push(email);
+                        }
+                    });
+
+                    utils.assertEqual(failCount, 0, 
+                        'All invalid emails should fail. Passed incorrectly: ' + failures.join(', '));
+                    utils.assert(passCount === testData.invalidEmails.length, 
+                        'Should reject all ' + testData.invalidEmails.length + ' invalid emails');
+                });
+
+                utils.test('Email validation pattern matches specification', function() {
+                    // Test the pattern from spec line 130: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                    const testCases = [
+                        { email: 'simple@example.com', expected: true },
+                        { email: 'with.dots@example.com', expected: true },
+                        { email: 'with+plus@example.com', expected: true },
+                        { email: 'spaces @example.com', expected: false },
+                        { email: '@example.com', expected: false },
+                        { email: 'user@', expected: false },
+                        { email: 'user@@example.com', expected: false },
+                        { email: 'user@domain..com', expected: false }
+                    ];
+
+                    testCases.forEach(testCase => {
+                        const result = dataLayerUtils.validateEmail(testCase.email);
+                        utils.assertEqual(result, testCase.expected, 
+                            'Email "' + testCase.email + '" should be ' + 
+                            (testCase.expected ? 'valid' : 'invalid'));
+                    });
+                });
+            });
+
+            // Test Suite 2: Phone Sanitization
+            utils.describe('Phone Sanitization - Specification Compliance', function() {
+                utils.test('Sanitizes all valid phone formats correctly', function() {
+                    const testCases = [
+                        { input: '123-456-7890', expected: '1234567890' },
+                        { input: '(123) 456-7890', expected: '1234567890' },
+                        { input: '+1 (123) 456-7890', expected: '+11234567890' },
+                        { input: '123.456.7890', expected: '1234567890' },
+                        { input: '123 456 7890', expected: '1234567890' },
+                        { input: '+44 20 7123 4567', expected: '+442071234567' },
+                        { input: '555-0123', expected: '5550123' },
+                        { input: '1234567890', expected: '1234567890' }
+                    ];
+
+                    testCases.forEach(testCase => {
+                        const result = dataLayerUtils.sanitizePhone(testCase.input);
+                        utils.assertEqual(result, testCase.expected, 
+                            'Phone "' + testCase.input + '" should sanitize to "' + testCase.expected + '"');
+                    });
+                });
+
+                utils.test('Preserves international format indicator (+)', function() {
+                    const internationalNumbers = [
+                        { input: '+1 234 567 8900', expected: '+12345678900' },
+                        { input: '+33 1 42 86 83 26', expected: '+33142868326' },
+                        { input: '+81-3-1234-5678', expected: '+81312345678' },
+                        { input: '+44 (0) 20 7123 4567', expected: '+4402071234567' }
+                    ];
+
+                    internationalNumbers.forEach(testCase => {
+                        const result = dataLayerUtils.sanitizePhone(testCase.input);
+                        utils.assert(result.startsWith('+'), 
+                            'Should preserve + for international number: ' + testCase.input);
+                    });
+                });
+
+                utils.test('Handles invalid phone inputs gracefully', function() {
+                    testData.invalidPhones.forEach(phone => {
+                        const result = dataLayerUtils.sanitizePhone(phone);
+                        // Invalid phones should either return empty or sanitized version
+                        utils.assert(typeof result === 'string', 
+                            'Should return string for invalid phone: ' + phone);
+                    });
+                });
+
+                utils.test('Handles null, undefined, and empty inputs', function() {
+                    utils.assertEqual(dataLayerUtils.sanitizePhone(null), '', 
+                        'null should return empty string');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone(undefined), '', 
+                        'undefined should return empty string');
+                    utils.assertEqual(dataLayerUtils.sanitizePhone(''), '', 
+                        'empty string should return empty string');
+                });
+            });
+
+            // Test Suite 3: Field Detection in Form Context
+            utils.describe('Field Detection in Forms', function() {
+                utils.test('Detects and validates email fields in Elementor form', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
+                    const emailInput = form.querySelector('input[type="email"]');
+                    emailInput.value = 'test@example.com';
+
+                    const payload = dataLayerUtils.createFormSubmitPayload('elementor', 'test-form', {
+                        user_email: emailInput.value
+                    });
+
+                    utils.assertContains(payload, 'user_email', 'Should include email field');
+                    utils.assertEqual(payload.user_email, 'test@example.com', 
+                        'Should preserve valid email');
+
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Detects and sanitizes phone fields in forms', function() {
+                    const form = utils.createFormFromTemplate(testData.formTemplates.cf7);
+                    const phoneInput = form.querySelector('input[type="tel"]');
+                    phoneInput.value = '(555) 123-4567';
+
+                    const payload = dataLayerUtils.createFormSubmitPayload('cf7', 'test-form', {
+                        user_phone: phoneInput.value
+                    });
+
+                    utils.assertContains(payload, 'user_phone', 'Should include phone field');
+                    utils.assertEqual(payload.user_phone, '5551234567', 
+                        'Should sanitize phone number');
+
+                    utils.cleanupTestContainer(form.parentElement);
+                });
+
+                utils.test('Excludes invalid email from payload', function() {
+                    const payload = dataLayerUtils.createFormSubmitPayload('elementor', 'test-form', {
+                        user_email: 'not-an-email',
+                        user_phone: '1234567890'
+                    });
+
+                    utils.assertNotContains(payload, 'user_email', 
+                        'Should exclude invalid email from payload');
+                    utils.assertContains(payload, 'user_phone', 
+                        'Should still include valid phone');
+                });
+            });
+
+            // Test Suite 4: XSS Prevention and Security
+            utils.describe('Security - XSS Prevention', function() {
+                utils.test('Sanitizes XSS attempts in email field', function() {
+                    const xssEmails = [
+                        '<script>alert("xss")</script>@example.com',
+                        'test@example.com<script>alert(1)</script>',
+                        'javascript:alert("xss")@example.com'
+                    ];
+
+                    xssEmails.forEach(xssEmail => {
+                        const result = dataLayerUtils.validateEmail(xssEmail);
+                        utils.assertEqual(result, false, 
+                            'Should reject XSS attempt in email: ' + xssEmail);
+                    });
+                });
+
+                utils.test('Sanitizes special characters in phone field', function() {
+                    const xssPhones = [
+                        '<script>123456789</script>',
+                        '123-456-7890<img src=x onerror=alert(1)>',
+                        'javascript:alert(1234567890)'
+                    ];
+
+                    xssPhones.forEach(xssPhone => {
+                        const result = dataLayerUtils.sanitizePhone(xssPhone);
+                        // Should strip all non-numeric characters except +
+                        utils.assert(!result.includes('<'), 'Should remove < character');
+                        utils.assert(!result.includes('>'), 'Should remove > character');
+                        utils.assert(!result.includes('script'), 'Should remove script text');
+                    });
+                });
+            });
+
+            // Test Suite 5: Edge Cases and Boundary Conditions
+            utils.describe('Edge Cases and Boundaries', function() {
+                utils.test('Handles very long email addresses', function() {
+                    const longEmail = 'a'.repeat(100) + '@' + 'b'.repeat(100) + '.com';
+                    const result = dataLayerUtils.validateEmail(longEmail);
+                    // Should handle long emails gracefully
+                    utils.assert(typeof result === 'boolean', 
+                        'Should return boolean for long email');
+                });
+
+                utils.test('Handles very long phone numbers', function() {
+                    const longPhone = '1'.repeat(100);
+                    const result = dataLayerUtils.sanitizePhone(longPhone);
+                    utils.assert(typeof result === 'string', 
+                        'Should return string for long phone');
+                    utils.assert(result.length > 0, 
+                        'Should return non-empty result for long phone');
+                });
+
+                utils.test('Handles unicode and special characters', function() {
+                    const unicodeEmail = 'tëst@éxample.com';
+                    const unicodePhone = '+1 (555) 123-4567 📞';
+
+                    const emailResult = dataLayerUtils.validateEmail(unicodeEmail);
+                    const phoneResult = dataLayerUtils.sanitizePhone(unicodePhone);
+
+                    utils.assert(typeof emailResult === 'boolean', 
+                        'Should handle unicode email');
+                    utils.assert(typeof phoneResult === 'string', 
+                        'Should handle unicode in phone');
+                });
+            });
+
+            // Test Suite 6: Performance - Field Validation Speed
+            utils.describe('Performance - Validation Speed', function() {
+                utils.test('Email validation completes within 1ms per email', function() {
+                    const startTime = performance.now();
+                    
+                    // Validate 100 emails
+                    for (let i = 0; i < 100; i++) {
+                        testData.validEmails.forEach(email => {
+                            dataLayerUtils.validateEmail(email);
+                        });
+                    }
+
+                    const endTime = performance.now();
+                    const totalTime = endTime - startTime;
+                    const perEmailTime = totalTime / (100 * testData.validEmails.length);
+
+                    utils.assertLessThan(perEmailTime, 1, 
+                        'Email validation should be < 1ms per email (was ' + perEmailTime.toFixed(3) + 'ms)');
+                });
+
+                utils.test('Phone sanitization completes within 1ms per phone', function() {
+                    const startTime = performance.now();
+                    
+                    // Sanitize 100 phones
+                    for (let i = 0; i < 100; i++) {
+                        testData.validPhones.forEach(phone => {
+                            dataLayerUtils.sanitizePhone(phone);
+                        });
+                    }
+
+                    const endTime = performance.now();
+                    const totalTime = endTime - startTime;
+                    const perPhoneTime = totalTime / (100 * testData.validPhones.length);
+
+                    utils.assertLessThan(perPhoneTime, 1, 
+                        'Phone sanitization should be < 1ms per phone (was ' + perPhoneTime.toFixed(3) + 'ms)');
+                });
+            });
+
+            // Display results
+            setTimeout(() => {
+                document.getElementById('results').innerHTML = utils.generateReport('html');
+            }, 100);
+        }
+
+        function clearResults() {
+            utils.clearTestResults();
+            document.getElementById('results').innerHTML = '<p>Results cleared.</p>';
+        }
+
+        function exportResults() {
+            const results = utils.getTestResults();
+            const json = JSON.stringify(results, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'field-validation-results-' + Date.now() + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function runInteractiveTest() {
+            const interactive = document.getElementById('interactive-test');
+            interactive.style.display = interactive.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function validateTestEmail() {
+            const email = document.getElementById('test-email').value;
+            const result = dataLayerUtils.validateEmail(email);
+            const resultDiv = document.getElementById('email-result');
+            
+            if (result) {
+                resultDiv.innerHTML = '<div class="valid">✓ Valid email</div>';
+            } else {
+                resultDiv.innerHTML = '<div class="invalid">✗ Invalid email</div>';
+            }
+        }
+
+        function sanitizeTestPhone() {
+            const phone = document.getElementById('test-phone').value;
+            const result = dataLayerUtils.sanitizePhone(phone);
+            const resultDiv = document.getElementById('phone-result');
+            
+            resultDiv.innerHTML = '<div class="valid">Sanitized: ' + result + '</div>';
+        }
+    </script>
+</body>
+</html>
