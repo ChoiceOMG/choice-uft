@@ -1,0 +1,263 @@
+name: Constitutional Compliance Validation
+
+on:
+  push:
+    branches: [ master, main, develop, phase-5-ai-workflow ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  constitutional-compliance:
+    name: CUFT Constitutional Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Validate Specifications Exist
+      run: |
+        echo "🔍 Validating specification files exist..."
+
+        required_specs=(
+          "specs/CONSTITUTION.md"
+          "specs/core/dataLayer.spec.md"
+          "specs/core/tracking-params.spec.md"
+          "specs/agents/AGENTS.md"
+          "specs/agents/review-checklist.md"
+        )
+
+        for spec in "${required_specs[@]}"; do
+          if [ ! -f "$spec" ]; then
+            echo "❌ Missing required specification: $spec"
+            exit 1
+          else
+            echo "✅ Found: $spec"
+          fi
+        done
+
+    - name: DataLayer Event Compliance Check
+      run: |
+        echo "🔍 Validating DataLayer event compliance..."
+
+        js_files=$(find assets -name "*.js" -not -path "*/vendor/*" -not -path "*/node_modules/*")
+        errors=0
+
+        for file in $js_files; do
+          echo "Checking $file..."
+
+          # Check for dataLayer events
+          if grep -q "dataLayer\.push" "$file" 2>/dev/null; then
+            echo "  📊 Found dataLayer events in $file"
+
+            # Check for camelCase violations (should be snake_case)
+            if grep -q "formType\|userEmail\|userPhone\|submittedAt" "$file" 2>/dev/null; then
+              echo "  ❌ VIOLATION: Found camelCase in dataLayer events (must be snake_case) in $file"
+              grep -n "formType\|userEmail\|userPhone\|submittedAt" "$file" | head -5
+              errors=$((errors + 1))
+            fi
+
+            # Check for required fields
+            if ! grep -q "cuft_tracked.*true" "$file" 2>/dev/null; then
+              echo "  ❌ VIOLATION: Missing required field cuft_tracked: true in $file"
+              errors=$((errors + 1))
+            fi
+
+            if ! grep -q "cuft_source" "$file" 2>/dev/null; then
+              echo "  ❌ VIOLATION: Missing required field cuft_source in $file"
+              errors=$((errors + 1))
+            fi
+          fi
+        done
+
+        if [ $errors -gt 0 ]; then
+          echo "❌ $errors DataLayer compliance violations found!"
+          exit 1
+        else
+          echo "✅ DataLayer compliance check passed"
+        fi
+
+    - name: Framework Compatibility Check
+      run: |
+        echo "🔍 Validating framework compatibility patterns..."
+
+        framework_files=$(find assets/forms -name "cuft-*-forms.js" 2>/dev/null || true)
+        errors=0
+
+        for file in $framework_files; do
+          echo "Checking framework file: $file"
+
+          # Check for framework detection function
+          if ! grep -q "function is.*Form(" "$file" 2>/dev/null; then
+            echo "  ❌ VIOLATION: Missing framework detection function in $file"
+            errors=$((errors + 1))
+          fi
+
+          # Check for silent exit pattern
+          if ! grep -q "if (!is.*Form.*)" "$file" 2>/dev/null; then
+            echo "  ❌ VIOLATION: Missing silent exit pattern in $file"
+            errors=$((errors + 1))
+          fi
+
+          # Check that silent exits don't have console.log
+          if grep -A 2 "if (!is.*Form.*)" "$file" 2>/dev/null | grep -q "console\.log\|log("; then
+            echo "  ❌ VIOLATION: Silent exit should not log messages in $file"
+            errors=$((errors + 1))
+          fi
+
+          echo "  ✅ Framework compatibility patterns validated for $file"
+        done
+
+        if [ $errors -gt 0 ]; then
+          echo "❌ $errors framework compatibility violations found!"
+          exit 1
+        else
+          echo "✅ Framework compatibility check passed"
+        fi
+
+    - name: JavaScript-First Implementation Check
+      run: |
+        echo "🔍 Validating JavaScript-First implementation..."
+
+        js_files=$(find assets -name "*.js" -not -path "*/vendor/*")
+        violations=0
+
+        for file in $js_files; do
+          # Check for jQuery-first patterns (should be vanilla JS first)
+          if grep -q "jQuery(document)\.ready\|^\s*if\s*(window\.jQuery)" "$file" 2>/dev/null; then
+            # This is acceptable as fallback, check if vanilla JS is primary
+            if ! grep -B 5 -A 5 "if\s*(window\.jQuery)" "$file" 2>/dev/null | grep -q "addEventListener\|document\.ready"; then
+              echo "  ⚠️ WARNING: Ensure vanilla JavaScript is implemented before jQuery fallback in $file"
+            fi
+          fi
+
+          # Check for event listeners that should have jQuery fallback
+          if grep -q "addEventListener" "$file" 2>/dev/null; then
+            if ! grep -q "if (window\.jQuery)" "$file" 2>/dev/null; then
+              echo "  ℹ️ INFO: Consider adding jQuery fallback for maximum compatibility in $file"
+            fi
+          fi
+        done
+
+        echo "✅ JavaScript-First implementation check completed"
+
+    - name: Error Handling Validation
+      run: |
+        echo "🔍 Validating error handling patterns..."
+
+        js_files=$(find assets -name "*.js" -not -path "*/vendor/*")
+        warnings=0
+
+        for file in $js_files; do
+          # Check for DOM operations that should have error handling
+          if grep -q "querySelector\|getElementById\|dataLayer\.push" "$file" 2>/dev/null; then
+            if ! grep -q "try\|catch" "$file" 2>/dev/null; then
+              echo "  ⚠️ WARNING: Consider adding error handling for DOM operations in $file"
+              warnings=$((warnings + 1))
+            fi
+          fi
+        done
+
+        if [ $warnings -gt 0 ]; then
+          echo "ℹ️ $warnings error handling recommendations found"
+        fi
+
+        echo "✅ Error handling validation completed"
+
+    - name: Performance Pattern Check
+      run: |
+        echo "🔍 Validating performance patterns..."
+
+        js_files=$(find assets -name "*.js" -not -path "*/vendor/*")
+
+        for file in $js_files; do
+          # Check for inefficient DOM queries
+          if grep -q "querySelectorAll.*forEach" "$file" 2>/dev/null; then
+            echo "  ℹ️ INFO: Consider using event delegation instead of forEach in $file"
+          fi
+
+          # Check for potential memory leaks
+          if grep -q "addEventListener" "$file" 2>/dev/null && ! grep -q "removeEventListener" "$file" 2>/dev/null; then
+            echo "  ℹ️ INFO: Ensure event listeners are cleaned up when needed in $file"
+          fi
+        done
+
+        echo "✅ Performance pattern check completed"
+
+    - name: Security Validation
+      run: |
+        echo "🔍 Validating security patterns..."
+
+        js_files=$(find assets -name "*.js" -not -path "*/vendor/*")
+        violations=0
+
+        for file in $js_files; do
+          # Check for innerHTML usage (potential XSS)
+          if grep -q "\.innerHTML\s*=" "$file" 2>/dev/null; then
+            echo "  ⚠️ WARNING: Found innerHTML usage - ensure content is sanitized in $file"
+          fi
+
+          # Check for eval usage
+          if grep -q "\beval\s*(" "$file" 2>/dev/null; then
+            echo "  ❌ VIOLATION: eval() usage detected - security risk in $file"
+            violations=$((violations + 1))
+          fi
+
+          # Check for potential PII logging in production
+          if grep -q "console\.log.*email\|console\.log.*phone" "$file" 2>/dev/null; then
+            echo "  ❌ VIOLATION: Potential PII logging detected in $file"
+            violations=$((violations + 1))
+          fi
+        done
+
+        if [ $violations -gt 0 ]; then
+          echo "❌ $violations security violations found!"
+          exit 1
+        else
+          echo "✅ Security validation passed"
+        fi
+
+    - name: Generate Compliance Report
+      run: |
+        echo "📋 Constitutional Compliance Summary"
+        echo "=================================="
+        echo "✅ Specifications validated"
+        echo "✅ DataLayer event compliance checked"
+        echo "✅ Framework compatibility validated"
+        echo "✅ JavaScript-First implementation reviewed"
+        echo "✅ Error handling patterns validated"
+        echo "✅ Performance patterns checked"
+        echo "✅ Security patterns validated"
+        echo ""
+        echo "🎉 All constitutional compliance checks passed!"
+        echo ""
+        echo "📖 For detailed requirements, see:"
+        echo "   - specs/CONSTITUTION.md"
+        echo "   - specs/agents/AGENTS.md"
+        echo "   - specs/agents/review-checklist.md"
+
+  test-integration:
+    name: Integration Tests
+    needs: constitutional-compliance
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Run Integration Tests
+      run: |
+        echo "🧪 Running integration tests..."
+        # Add actual test commands here when test suite is available
+        echo "✅ Integration tests would run here"
+
+    - name: Performance Baseline Check
+      run: |
+        echo "⚡ Checking performance baselines..."
+        # Add performance testing when available
+        echo "✅ Performance baseline checks would run here"
