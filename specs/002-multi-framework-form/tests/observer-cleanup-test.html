@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observer Cleanup Validation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .observer-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0; }
+        .observer-card { padding: 10px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; }
+        .cleanup-scenario { margin: 10px 0; padding: 10px; border: 1px solid #ccffcc; border-radius: 4px; background: #f8fff8; }
+        .timeline { width: 100%; height: 150px; border: 1px solid #ddd; margin: 10px 0; background: #f8f9fa; position: relative; }
+        .progress-bar { width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin: 5px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #28a745, #20c997); transition: width 0.3s ease; }
+    </style>
+</head>
+<body>
+    <h1>Observer Cleanup Validation Test</h1>
+    <p><strong>Purpose:</strong> Validate that MutationObserver cleanup mechanisms work correctly and prevent observer accumulation</p>
+
+    <div class="test-section">
+        <h2>Test Control</h2>
+        <button onclick="startObserverCleanupTest()">Start Observer Cleanup Test</button>
+        <button onclick="runAllCleanupScenarios()">Run All Cleanup Scenarios</button>
+        <button onclick="forceObserverCleanup()">Force Observer Cleanup</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="exportCleanupReport()">Export Cleanup Report</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Observer Statistics</h2>
+        <div class="observer-stats" id="observerStats"></div>
+        <div class="timeline" id="observerTimeline"></div>
+        <div id="cleanupProgress">
+            <div>Cleanup Progress: <span id="progressText">0%</span></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Observer Cleanup Test Scenarios</h2>
+
+        <div class="cleanup-scenario">
+            <h4>⏰ Timeout-Based Cleanup Tests</h4>
+            <button onclick="testTimeoutCleanup()">Timeout Cleanup Test</button>
+            <button onclick="testCustomTimeoutCleanup()">Custom Timeout Test</button>
+            <button onclick="testShortTimeoutCleanup()">Short Timeout Test</button>
+            <button onclick="testLongTimeoutCleanup()">Long Timeout Test</button>
+        </div>
+
+        <div class="cleanup-scenario">
+            <h4>🎯 Scoped Observer Cleanup Tests</h4>
+            <button onclick="testScopedObserverCleanup()">Scoped Observer Cleanup</button>
+            <button onclick="testMultipleScopedObservers()">Multiple Scoped Observers</button>
+            <button onclick="testNestedScopedObservers()">Nested Scoped Observers</button>
+            <button onclick="testScopedObserverManualDisconnect()">Manual Disconnect Test</button>
+        </div>
+
+        <div class="cleanup-scenario">
+            <h4>🔄 Periodic Cleanup Tests</h4>
+            <button onclick="testPeriodicCleanup()">Periodic Cleanup System</button>
+            <button onclick="testGarbageCollectionCleanup()">Garbage Collection Cleanup</button>
+            <button onclick="testStuckObserverDetection()">Stuck Observer Detection</button>
+            <button onclick="testCleanupIntervalManagement()">Cleanup Interval Management</button>
+        </div>
+
+        <div class="cleanup-scenario">
+            <h4>🚨 Stress Test Scenarios</h4>
+            <button onclick="testObserverLimitEnforcement()">Observer Limit Enforcement</button>
+            <button onclick="testRapidObserverCreation()">Rapid Observer Creation</button>
+            <button onclick="testObserverCreationUnderLoad()">Observer Creation Under Load</button>
+            <button onclick="testCleanupUnderStress()">Cleanup Under Stress</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Observer Cleanup Validation Criteria</h2>
+        <h3>✅ Expected Cleanup Behavior:</h3>
+        <ul>
+            <li><strong>Timeout Compliance:</strong> Observers cleaned up within specified timeout periods</li>
+            <li><strong>Automatic Cleanup:</strong> Observers automatically disconnected when no longer needed</li>
+            <li><strong>Manual Cleanup:</strong> Manual disconnect() calls work correctly</li>
+            <li><strong>Garbage Collection:</strong> Cleaned observer references are removed from memory</li>
+            <li><strong>Limit Enforcement:</strong> Observer count stays within configured limits</li>
+            <li><strong>Performance Impact:</strong> Cleanup operations don't significantly impact performance</li>
+        </ul>
+        <h3>❌ Cleanup Failure Indicators:</h3>
+        <ul>
+            <li>Observers persist beyond timeout periods</li>
+            <li>Observer count continues growing without cleanup</li>
+            <li>Manual disconnect() calls fail</li>
+            <li>Cleanup system stops responding</li>
+            <li>Memory usage grows with accumulated observers</li>
+        </ul>
+    </div>
+
+    <!-- Mock Target Elements for Observer Testing -->
+    <div style="display: none;" id="observer-test-targets">
+        <!-- Target elements will be dynamically created for observer testing -->
+    </div>
+
+    <script>
+        // Observer cleanup validation system
+        var observerCleanupValidator = {
+            testRunning: false,
+            createdObservers: new Map(),
+            cleanedObservers: new Map(),
+            timeouts: new Map(),
+            stats: {
+                totalCreated: 0,
+                totalCleaned: 0,
+                timeoutCleanups: 0,
+                manualCleanups: 0,
+                forceCleanups: 0,
+                failedCleanups: 0
+            },
+            testResults: [],
+            monitoringInterval: null,
+            cleanupSystemAvailable: false
+        };
+
+        // Check if observer cleanup system is available
+        function checkCleanupSystemAvailability() {
+            observerCleanupValidator.cleanupSystemAvailable = !!(window.cuftObserverCleanup);
+
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('System Check', 'WARNING', 'cuftObserverCleanup system not detected - testing fallback behavior');
+            } else {
+                addTestResult('System Check', 'PASS', 'cuftObserverCleanup system detected and ready');
+            }
+
+            return observerCleanupValidator.cleanupSystemAvailable;
+        }
+
+        // Enhanced observer statistics
+        function getObserverStatistics() {
+            var stats = {
+                system: {
+                    available: observerCleanupValidator.cleanupSystemAvailable,
+                    active: 0,
+                    created: 0,
+                    cleaned: 0
+                },
+                validator: {
+                    created: observerCleanupValidator.stats.totalCreated,
+                    cleaned: observerCleanupValidator.stats.totalCleaned,
+                    pending: observerCleanupValidator.createdObservers.size,
+                    cleanupTypes: {
+                        timeout: observerCleanupValidator.stats.timeoutCleanups,
+                        manual: observerCleanupValidator.stats.manualCleanups,
+                        force: observerCleanupValidator.stats.forceCleanups,
+                        failed: observerCleanupValidator.stats.failedCleanups
+                    }
+                },
+                performance: {
+                    averageCleanupTime: calculateAverageCleanupTime(),
+                    longestLivedObserver: getLongestLivedObserver(),
+                    cleanupSuccessRate: calculateCleanupSuccessRate()
+                }
+            };
+
+            // Get system stats if available
+            if (window.cuftObserverCleanup && window.cuftObserverCleanup.getObserverStats) {
+                try {
+                    var systemStats = window.cuftObserverCleanup.getObserverStats();
+                    stats.system.active = systemStats.active || 0;
+                    stats.system.created = systemStats.created || 0;
+                    stats.system.cleaned = systemStats.cleaned || 0;
+                } catch (e) {
+                    // System stats unavailable
+                }
+            }
+
+            return stats;
+        }
+
+        function calculateAverageCleanupTime() {
+            var cleanupTimes = [];
+            observerCleanupValidator.cleanedObservers.forEach(function(observer) {
+                if (observer.cleanupTime && observer.createdAt) {
+                    cleanupTimes.push(observer.cleanupTime - observer.createdAt);
+                }
+            });
+
+            if (cleanupTimes.length === 0) return 0;
+            var total = cleanupTimes.reduce(function(sum, time) { return sum + time; }, 0);
+            return Math.round(total / cleanupTimes.length);
+        }
+
+        function getLongestLivedObserver() {
+            var longestTime = 0;
+            observerCleanupValidator.createdObservers.forEach(function(observer) {
+                var lifetime = Date.now() - observer.createdAt;
+                if (lifetime > longestTime) {
+                    longestTime = lifetime;
+                }
+            });
+            return longestTime;
+        }
+
+        function calculateCleanupSuccessRate() {
+            var total = observerCleanupValidator.stats.totalCreated;
+            var successful = observerCleanupValidator.stats.totalCleaned;
+            return total > 0 ? Math.round((successful / total) * 100) : 100;
+        }
+
+        function updateObserverDisplay() {
+            var stats = getObserverStatistics();
+            var statsDiv = document.getElementById('observerStats');
+
+            var html = '';
+
+            // System Statistics
+            html += '<div class="observer-card"><h4>Observer Cleanup System</h4>';
+            html += '<div>Available: ' + (stats.system.available ? '✅ Yes' : '❌ No') + '</div>';
+            if (stats.system.available) {
+                html += '<div>Active: ' + stats.system.active + '</div>';
+                html += '<div>Created: ' + stats.system.created + '</div>';
+                html += '<div>Cleaned: ' + stats.system.cleaned + '</div>';
+            }
+            html += '</div>';
+
+            // Validator Statistics
+            html += '<div class="observer-card"><h4>Validator Statistics</h4>';
+            html += '<div>Total Created: ' + stats.validator.created + '</div>';
+            html += '<div>Total Cleaned: ' + stats.validator.cleaned + '</div>';
+            html += '<div>Pending Cleanup: ' + stats.validator.pending + '</div>';
+            html += '</div>';
+
+            // Cleanup Types
+            html += '<div class="observer-card"><h4>Cleanup Methods</h4>';
+            html += '<div>Timeout: ' + stats.validator.cleanupTypes.timeout + '</div>';
+            html += '<div>Manual: ' + stats.validator.cleanupTypes.manual + '</div>';
+            html += '<div>Force: ' + stats.validator.cleanupTypes.force + '</div>';
+            html += '<div>Failed: ' + stats.validator.cleanupTypes.failed + '</div>';
+            html += '</div>';
+
+            // Performance Metrics
+            html += '<div class="observer-card"><h4>Performance</h4>';
+            html += '<div>Avg Cleanup: ' + stats.performance.averageCleanupTime + 'ms</div>';
+            html += '<div>Longest Lived: ' + stats.performance.longestLivedObserver + 'ms</div>';
+            html += '<div>Success Rate: ' + stats.performance.cleanupSuccessRate + '%</div>';
+            html += '</div>';
+
+            statsDiv.innerHTML = html;
+
+            // Update progress bar
+            var progressPercent = Math.min(100, stats.performance.cleanupSuccessRate);
+            document.getElementById('progressFill').style.width = progressPercent + '%';
+            document.getElementById('progressText').textContent = progressPercent + '%';
+        }
+
+        // Observer creation and tracking
+        function createTrackedObserver(target, callback, options) {
+            var observerId = 'validator-obs-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            var createdAt = Date.now();
+
+            options = options || {};
+            options.context = options.context || 'Cleanup Validator Test';
+            options.timeout = options.timeout || 5000; // 5 second default for testing
+
+            var observerInfo = {
+                id: observerId,
+                createdAt: createdAt,
+                target: target,
+                options: options,
+                cleaned: false,
+                cleanupTime: null,
+                cleanupReason: null
+            };
+
+            var observer;
+            var scopedObserver;
+
+            if (observerCleanupValidator.cleanupSystemAvailable) {
+                // Use scoped observer system if available
+                scopedObserver = window.cuftObserverCleanup.createScopedObserver(target, callback, options);
+                if (scopedObserver) {
+                    observer = scopedObserver.observer;
+                    observerInfo.scopedObserver = scopedObserver;
+                }
+            }
+
+            if (!observer) {
+                // Fallback to manual observer
+                observer = new MutationObserver(callback);
+                try {
+                    observer.observe(target, options.config || { childList: true, subtree: true });
+                } catch (e) {
+                    addTestResult('Observer Creation', 'FAIL', 'Failed to create observer: ' + e.message);
+                    return null;
+                }
+
+                // Set up manual cleanup timeout
+                var timeoutId = setTimeout(function() {
+                    cleanupTrackedObserver(observerId, 'timeout');
+                }, options.timeout);
+                observerCleanupValidator.timeouts.set(observerId, timeoutId);
+            }
+
+            observerInfo.observer = observer;
+            observerCleanupValidator.createdObservers.set(observerId, observerInfo);
+            observerCleanupValidator.stats.totalCreated++;
+
+            return {
+                id: observerId,
+                observer: observer,
+                scopedObserver: scopedObserver,
+                disconnect: function() {
+                    cleanupTrackedObserver(observerId, 'manual');
+                }
+            };
+        }
+
+        function cleanupTrackedObserver(observerId, reason) {
+            var observerInfo = observerCleanupValidator.createdObservers.get(observerId);
+            if (!observerInfo || observerInfo.cleaned) {
+                return false;
+            }
+
+            try {
+                observerInfo.cleanupTime = Date.now();
+                observerInfo.cleanupReason = reason;
+                observerInfo.cleaned = true;
+
+                // Disconnect observer
+                if (observerInfo.scopedObserver && observerInfo.scopedObserver.disconnect) {
+                    observerInfo.scopedObserver.disconnect();
+                } else if (observerInfo.observer && observerInfo.observer.disconnect) {
+                    observerInfo.observer.disconnect();
+                }
+
+                // Clear timeout
+                var timeoutId = observerCleanupValidator.timeouts.get(observerId);
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                    observerCleanupValidator.timeouts.delete(observerId);
+                }
+
+                // Move to cleaned observers
+                observerCleanupValidator.cleanedObservers.set(observerId, observerInfo);
+                observerCleanupValidator.createdObservers.delete(observerId);
+
+                // Update stats
+                observerCleanupValidator.stats.totalCleaned++;
+                switch (reason) {
+                    case 'timeout':
+                        observerCleanupValidator.stats.timeoutCleanups++;
+                        break;
+                    case 'manual':
+                        observerCleanupValidator.stats.manualCleanups++;
+                        break;
+                    case 'force':
+                        observerCleanupValidator.stats.forceCleanups++;
+                        break;
+                }
+
+                return true;
+            } catch (e) {
+                observerCleanupValidator.stats.failedCleanups++;
+                addTestResult('Observer Cleanup', 'FAIL', 'Failed to cleanup observer ' + observerId + ': ' + e.message);
+                return false;
+            }
+        }
+
+        // Observer cleanup test scenarios
+        function testTimeoutCleanup() {
+            runObserverCleanupTest('Timeout Cleanup Test', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create observers with short timeouts
+                for (var i = 0; i < 5; i++) {
+                    var target = document.createElement('div');
+                    target.id = 'timeout-test-' + i;
+                    container.appendChild(target);
+
+                    var observer = createTrackedObserver(target, function(mutations) {
+                        console.log('Timeout test observer callback');
+                    }, {
+                        timeout: 2000, // 2 second timeout
+                        context: 'Timeout Test ' + i
+                    });
+
+                    if (observer) {
+                        // Trigger observer
+                        var child = document.createElement('span');
+                        child.textContent = 'Test content ' + i;
+                        target.appendChild(child);
+                    }
+                }
+
+                return {
+                    expectedCleanups: 5,
+                    timeoutMs: 2000,
+                    validationDelay: 3000
+                };
+            });
+        }
+
+        function testCustomTimeoutCleanup() {
+            runObserverCleanupTest('Custom Timeout Test', function() {
+                var container = document.getElementById('observer-test-targets');
+                var timeouts = [1000, 2000, 3000, 4000, 5000];
+                var maxTimeout = Math.max.apply(Math, timeouts);
+
+                timeouts.forEach(function(timeout, index) {
+                    var target = document.createElement('div');
+                    target.id = 'custom-timeout-' + index;
+                    container.appendChild(target);
+
+                    createTrackedObserver(target, function(mutations) {
+                        console.log('Custom timeout observer:', timeout + 'ms');
+                    }, {
+                        timeout: timeout,
+                        context: 'Custom Timeout ' + timeout + 'ms'
+                    });
+                });
+
+                return {
+                    expectedCleanups: timeouts.length,
+                    timeoutMs: maxTimeout,
+                    validationDelay: maxTimeout + 1000
+                };
+            });
+        }
+
+        function testShortTimeoutCleanup() {
+            runObserverCleanupTest('Short Timeout Test', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create observers with very short timeouts
+                for (var i = 0; i < 3; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    createTrackedObserver(target, function() {
+                        console.log('Short timeout observer');
+                    }, {
+                        timeout: 500, // 0.5 second timeout
+                        context: 'Short Timeout Test'
+                    });
+                }
+
+                return {
+                    expectedCleanups: 3,
+                    timeoutMs: 500,
+                    validationDelay: 1000
+                };
+            });
+        }
+
+        function testLongTimeoutCleanup() {
+            runObserverCleanupTest('Long Timeout Test', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create observer with long timeout, then manually cleanup
+                var target = document.createElement('div');
+                container.appendChild(target);
+
+                var observer = createTrackedObserver(target, function() {
+                    console.log('Long timeout observer');
+                }, {
+                    timeout: 30000, // 30 second timeout
+                    context: 'Long Timeout Test'
+                });
+
+                // Manually disconnect after 1 second
+                setTimeout(function() {
+                    if (observer) {
+                        observer.disconnect();
+                    }
+                }, 1000);
+
+                return {
+                    expectedCleanups: 1,
+                    timeoutMs: 1000, // Expected manual cleanup time
+                    validationDelay: 2000
+                };
+            });
+        }
+
+        function testScopedObserverCleanup() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Scoped Observer Cleanup', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Scoped Observer Cleanup', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Test scoped observer system directly
+                for (var i = 0; i < 4; i++) {
+                    var target = document.createElement('div');
+                    target.className = 'scoped-test-target';
+                    container.appendChild(target);
+
+                    var scopedObserver = window.cuftObserverCleanup.createScopedObserver(
+                        target,
+                        function() {
+                            console.log('Scoped observer callback');
+                        },
+                        {
+                            timeout: 3000,
+                            context: 'Scoped Observer Test ' + i,
+                            config: { childList: true, attributes: true }
+                        }
+                    );
+
+                    if (scopedObserver) {
+                        // Trigger observer
+                        target.setAttribute('data-test', 'scoped-' + i);
+                    }
+                }
+
+                return {
+                    expectedCleanups: 4,
+                    timeoutMs: 3000,
+                    validationDelay: 4000
+                };
+            });
+        }
+
+        function testMultipleScopedObservers() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Multiple Scoped Observers', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Multiple Scoped Observers', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create multiple observers on same target
+                var target = document.createElement('div');
+                target.className = 'multiple-observer-target';
+                container.appendChild(target);
+
+                var observers = [];
+                for (var i = 0; i < 6; i++) {
+                    var scopedObserver = window.cuftObserverCleanup.createScopedObserver(
+                        target,
+                        function(mutations, observer) {
+                            console.log('Multiple observer callback', i);
+                        },
+                        {
+                            timeout: 2500,
+                            context: 'Multiple Observer ' + i
+                        }
+                    );
+
+                    if (scopedObserver) {
+                        observers.push(scopedObserver);
+                    }
+                }
+
+                // Trigger all observers
+                for (var j = 0; j < 5; j++) {
+                    var child = document.createElement('span');
+                    child.textContent = 'Trigger ' + j;
+                    target.appendChild(child);
+                }
+
+                return {
+                    expectedCleanups: observers.length,
+                    timeoutMs: 2500,
+                    validationDelay: 3500
+                };
+            });
+        }
+
+        function testNestedScopedObservers() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Nested Scoped Observers', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Nested Scoped Observers', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create nested structure
+                var parent = document.createElement('div');
+                var child1 = document.createElement('div');
+                var child2 = document.createElement('div');
+
+                parent.appendChild(child1);
+                parent.appendChild(child2);
+                container.appendChild(parent);
+
+                // Create observers at different levels
+                var parentObserver = window.cuftObserverCleanup.createScopedObserver(
+                    parent,
+                    function() { console.log('Parent observer'); },
+                    { timeout: 2000, context: 'Parent Observer' }
+                );
+
+                var child1Observer = window.cuftObserverCleanup.createScopedObserver(
+                    child1,
+                    function() { console.log('Child1 observer'); },
+                    { timeout: 2000, context: 'Child1 Observer' }
+                );
+
+                var child2Observer = window.cuftObserverCleanup.createScopedObserver(
+                    child2,
+                    function() { console.log('Child2 observer'); },
+                    { timeout: 2000, context: 'Child2 Observer' }
+                );
+
+                // Trigger observers
+                child1.appendChild(document.createElement('span'));
+                child2.appendChild(document.createElement('span'));
+
+                return {
+                    expectedCleanups: 3,
+                    timeoutMs: 2000,
+                    validationDelay: 3000
+                };
+            });
+        }
+
+        function testScopedObserverManualDisconnect() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Scoped Observer Manual Disconnect', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Scoped Observer Manual Disconnect', function() {
+                var container = document.getElementById('observer-test-targets');
+                var observers = [];
+
+                // Create observers and manually disconnect them
+                for (var i = 0; i < 4; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    var scopedObserver = window.cuftObserverCleanup.createScopedObserver(
+                        target,
+                        function() { console.log('Manual disconnect observer'); },
+                        { timeout: 10000, context: 'Manual Disconnect Test' }
+                    );
+
+                    if (scopedObserver) {
+                        observers.push(scopedObserver);
+                    }
+                }
+
+                // Manually disconnect after delays
+                observers.forEach(function(observer, index) {
+                    setTimeout(function() {
+                        if (observer.disconnect) {
+                            observer.disconnect();
+                        }
+                    }, 500 + index * 200);
+                });
+
+                return {
+                    expectedCleanups: observers.length,
+                    timeoutMs: 500 + observers.length * 200,
+                    validationDelay: 2000
+                };
+            });
+        }
+
+        function testPeriodicCleanup() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Periodic Cleanup System', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Periodic Cleanup System', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create observers that should be cleaned by periodic system
+                for (var i = 0; i < 8; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    // Create observer with short timeout to test periodic cleanup
+                    window.cuftObserverCleanup.createScopedObserver(
+                        target,
+                        function() { console.log('Periodic cleanup test'); },
+                        {
+                            timeout: 1000, // 1 second timeout
+                            context: 'Periodic Cleanup Test ' + i
+                        }
+                    );
+                }
+
+                return {
+                    expectedCleanups: 8,
+                    timeoutMs: 1000,
+                    validationDelay: 2000
+                };
+            });
+        }
+
+        function testGarbageCollectionCleanup() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Garbage Collection Cleanup', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Garbage Collection Cleanup', function() {
+                // Test garbage collection of cleaned observer references
+                var container = document.getElementById('observer-test-targets');
+
+                // Create observers that will be cleaned up
+                for (var i = 0; i < 10; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    window.cuftObserverCleanup.createScopedObserver(
+                        target,
+                        function() { console.log('GC cleanup test'); },
+                        {
+                            timeout: 500,
+                            context: 'GC Test ' + i
+                        }
+                    );
+                }
+
+                // Force garbage collection of observer references
+                setTimeout(function() {
+                    if (window.cuftObserverCleanup.garbageCollectObservers) {
+                        window.cuftObserverCleanup.garbageCollectObservers();
+                    }
+                }, 1500);
+
+                return {
+                    expectedCleanups: 10,
+                    timeoutMs: 500,
+                    validationDelay: 2500
+                };
+            });
+        }
+
+        function testStuckObserverDetection() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Stuck Observer Detection', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            runObserverCleanupTest('Stuck Observer Detection', function() {
+                // This test verifies that the periodic cleanup system detects stuck observers
+                // We can't easily create truly "stuck" observers in a test environment
+                // So we'll test the detection mechanism indirectly
+
+                var container = document.getElementById('observer-test-targets');
+
+                // Create observers with very long timeouts
+                for (var i = 0; i < 3; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    window.cuftObserverCleanup.createScopedObserver(
+                        target,
+                        function() { console.log('Stuck observer test'); },
+                        {
+                            timeout: 60000, // Very long timeout
+                            context: 'Stuck Observer Test ' + i
+                        }
+                    );
+                }
+
+                return {
+                    expectedCleanups: 0, // These shouldn't be cleaned up immediately
+                    timeoutMs: 1000,
+                    validationDelay: 2000,
+                    customValidation: function(results) {
+                        // Custom validation to check that observers are still active
+                        var stats = getObserverStatistics();
+                        return {
+                            success: stats.system.active >= 3,
+                            message: 'Stuck observer detection - observers remain active as expected'
+                        };
+                    }
+                };
+            });
+        }
+
+        function testCleanupIntervalManagement() {
+            if (!observerCleanupValidator.cleanupSystemAvailable) {
+                addTestResult('Cleanup Interval Management', 'SKIP', 'Observer cleanup system not available');
+                return;
+            }
+
+            addTestResult('Cleanup Interval Management', 'INFO', 'Testing cleanup interval management (observational test)');
+
+            // This is an observational test of the cleanup system's interval management
+            var initialStats = getObserverStatistics();
+
+            setTimeout(function() {
+                var finalStats = getObserverStatistics();
+                var message = 'Cleanup interval observed - initial: ' + initialStats.system.active +
+                            ', final: ' + finalStats.system.active + ' active observers';
+                addTestResult('Cleanup Interval Management', 'PASS', message);
+            }, 3000);
+        }
+
+        function testObserverLimitEnforcement() {
+            runObserverCleanupTest('Observer Limit Enforcement', function() {
+                var container = document.getElementById('observer-test-targets');
+                var maxObservers = 25; // Try to exceed typical limits
+
+                // Create many observers to test limit enforcement
+                var createdCount = 0;
+                for (var i = 0; i < maxObservers; i++) {
+                    var target = document.createElement('div');
+                    target.id = 'limit-test-' + i;
+                    container.appendChild(target);
+
+                    var observer = createTrackedObserver(target, function() {
+                        console.log('Limit test observer');
+                    }, {
+                        timeout: 8000,
+                        context: 'Limit Test ' + i
+                    });
+
+                    if (observer) {
+                        createdCount++;
+                    }
+                }
+
+                return {
+                    expectedCleanups: createdCount,
+                    timeoutMs: 8000,
+                    validationDelay: 9000,
+                    customValidation: function(results) {
+                        var stats = getObserverStatistics();
+                        var limitEnforced = createdCount < maxObservers || stats.system.active <= 20;
+
+                        return {
+                            success: limitEnforced,
+                            message: 'Observer limit enforcement - created: ' + createdCount +
+                                   ', active: ' + stats.system.active +
+                                   (limitEnforced ? ' (limits enforced)' : ' (limits may be exceeded)')
+                        };
+                    }
+                };
+            });
+        }
+
+        function testRapidObserverCreation() {
+            runObserverCleanupTest('Rapid Observer Creation', function() {
+                var container = document.getElementById('observer-test-targets');
+                var observerCount = 15;
+
+                // Rapidly create observers
+                for (var i = 0; i < observerCount; i++) {
+                    (function(index) {
+                        setTimeout(function() {
+                            var target = document.createElement('div');
+                            target.id = 'rapid-test-' + index;
+                            container.appendChild(target);
+
+                            createTrackedObserver(target, function() {
+                                console.log('Rapid creation observer', index);
+                            }, {
+                                timeout: 3000,
+                                context: 'Rapid Creation ' + index
+                            });
+                        }, index * 50); // 50ms intervals
+                    })(i);
+                }
+
+                return {
+                    expectedCleanups: observerCount,
+                    timeoutMs: 3000 + observerCount * 50,
+                    validationDelay: 4000
+                };
+            });
+        }
+
+        function testObserverCreationUnderLoad() {
+            runObserverCleanupTest('Observer Creation Under Load', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create background load
+                var loadInterval = setInterval(function() {
+                    for (var i = 0; i < 10; i++) {
+                        var temp = document.createElement('div');
+                        temp.innerHTML = 'Load test ' + Math.random();
+                        container.appendChild(temp);
+                        container.removeChild(temp);
+                    }
+                }, 10);
+
+                // Create observers under load
+                var observerCount = 8;
+                for (var i = 0; i < observerCount; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    createTrackedObserver(target, function() {
+                        console.log('Observer under load');
+                    }, {
+                        timeout: 4000,
+                        context: 'Under Load Test ' + i
+                    });
+                }
+
+                // Stop load after test
+                setTimeout(function() {
+                    clearInterval(loadInterval);
+                }, 5000);
+
+                return {
+                    expectedCleanups: observerCount,
+                    timeoutMs: 4000,
+                    validationDelay: 5000
+                };
+            });
+        }
+
+        function testCleanupUnderStress() {
+            runObserverCleanupTest('Cleanup Under Stress', function() {
+                var container = document.getElementById('observer-test-targets');
+
+                // Create many observers with varying timeouts
+                var observerCount = 20;
+                var timeouts = [];
+
+                for (var i = 0; i < observerCount; i++) {
+                    var target = document.createElement('div');
+                    container.appendChild(target);
+
+                    var timeout = 1000 + Math.random() * 3000; // 1-4 second range
+                    timeouts.push(timeout);
+
+                    createTrackedObserver(target, function() {
+                        console.log('Stress test observer');
+                    }, {
+                        timeout: timeout,
+                        context: 'Stress Test ' + i
+                    });
+
+                    // Trigger observers with DOM changes
+                    setTimeout(function() {
+                        var child = document.createElement('span');
+                        child.textContent = 'Stress trigger';
+                        target.appendChild(child);
+                    }, Math.random() * 1000);
+                }
+
+                var maxTimeout = Math.max.apply(Math, timeouts);
+
+                return {
+                    expectedCleanups: observerCount,
+                    timeoutMs: maxTimeout,
+                    validationDelay: maxTimeout + 1000
+                };
+            });
+        }
+
+        // Test execution framework
+        function runObserverCleanupTest(testName, testSetup) {
+            addTestResult(testName, 'RUNNING', 'Starting observer cleanup test...');
+
+            var beforeStats = getObserverStatistics();
+            var testConfig = testSetup();
+
+            if (!testConfig) {
+                addTestResult(testName, 'ERROR', 'Test setup failed');
+                return;
+            }
+
+            // Wait for cleanup to occur
+            setTimeout(function() {
+                var afterStats = getObserverStatistics();
+                var validationResult;
+
+                if (testConfig.customValidation) {
+                    validationResult = testConfig.customValidation({
+                        before: beforeStats,
+                        after: afterStats,
+                        config: testConfig
+                    });
+                } else {
+                    validationResult = validateCleanupResults(beforeStats, afterStats, testConfig);
+                }
+
+                addTestResult(testName, validationResult.success ? 'PASS' : 'FAIL', validationResult.message, {
+                    before: beforeStats,
+                    after: afterStats,
+                    config: testConfig,
+                    validation: validationResult
+                });
+
+                updateObserverDisplay();
+            }, testConfig.validationDelay);
+        }
+
+        function validateCleanupResults(beforeStats, afterStats, testConfig) {
+            var expectedCleanups = testConfig.expectedCleanups || 0;
+            var actualCleanups = afterStats.validator.cleaned - beforeStats.validator.cleaned;
+            var activeDifference = afterStats.system.active - beforeStats.system.active;
+
+            var success = true;
+            var messages = [];
+
+            // Check cleanup count
+            if (expectedCleanups > 0) {
+                if (actualCleanups >= expectedCleanups * 0.8) { // Allow 20% tolerance
+                    messages.push('Cleanup count: ' + actualCleanups + '/' + expectedCleanups + ' ✅');
+                } else {
+                    success = false;
+                    messages.push('Cleanup count: ' + actualCleanups + '/' + expectedCleanups + ' ❌');
+                }
+            }
+
+            // Check that observers aren't accumulating
+            if (activeDifference <= expectedCleanups - actualCleanups + 2) { // Allow small margin
+                messages.push('Observer accumulation controlled ✅');
+            } else {
+                success = false;
+                messages.push('Observer accumulation detected ❌');
+            }
+
+            // Check success rate
+            var successRate = afterStats.performance.cleanupSuccessRate;
+            if (successRate >= 90) {
+                messages.push('Success rate: ' + successRate + '% ✅');
+            } else if (successRate >= 70) {
+                messages.push('Success rate: ' + successRate + '% ⚠️');
+            } else {
+                success = false;
+                messages.push('Success rate: ' + successRate + '% ❌');
+            }
+
+            return {
+                success: success,
+                message: messages.join(', ')
+            };
+        }
+
+        function runAllCleanupScenarios() {
+            clearResults();
+            addTestResult('Observer Cleanup Test Suite', 'RUNNING', 'Starting comprehensive cleanup validation...');
+
+            var tests = [
+                testTimeoutCleanup,
+                testCustomTimeoutCleanup,
+                testShortTimeoutCleanup,
+                testScopedObserverCleanup,
+                testMultipleScopedObservers,
+                testScopedObserverManualDisconnect,
+                testPeriodicCleanup,
+                testObserverLimitEnforcement,
+                testRapidObserverCreation,
+                testCleanupUnderStress
+            ];
+
+            tests.forEach(function(test, index) {
+                setTimeout(test, index * 6000); // 6 second intervals
+            });
+
+            // Final summary
+            setTimeout(function() {
+                generateCleanupReport();
+            }, tests.length * 6000 + 2000);
+        }
+
+        function startObserverCleanupTest() {
+            if (observerCleanupValidator.testRunning) {
+                stopObserverCleanupTest();
+                return;
+            }
+
+            observerCleanupValidator.testRunning = true;
+
+            // Start continuous monitoring
+            observerCleanupValidator.monitoringInterval = setInterval(function() {
+                updateObserverDisplay();
+            }, 1000);
+
+            addTestResult('Observer Monitoring', 'RUNNING', 'Continuous observer monitoring started');
+            document.querySelector('button[onclick="startObserverCleanupTest()"]').textContent = 'Stop Observer Test';
+        }
+
+        function stopObserverCleanupTest() {
+            observerCleanupValidator.testRunning = false;
+
+            if (observerCleanupValidator.monitoringInterval) {
+                clearInterval(observerCleanupValidator.monitoringInterval);
+                observerCleanupValidator.monitoringInterval = null;
+            }
+
+            document.querySelector('button[onclick="startObserverCleanupTest()"]').textContent = 'Start Observer Cleanup Test';
+            addTestResult('Observer Monitoring', 'STOPPED', 'Continuous observer monitoring stopped');
+        }
+
+        function forceObserverCleanup() {
+            var beforeCount = observerCleanupValidator.createdObservers.size;
+
+            // Force cleanup of all tracked observers
+            var observerIds = Array.from(observerCleanupValidator.createdObservers.keys());
+            observerIds.forEach(function(id) {
+                cleanupTrackedObserver(id, 'force');
+            });
+
+            // Force system cleanup if available
+            if (window.cuftObserverCleanup) {
+                if (window.cuftObserverCleanup.cleanupAllObservers) {
+                    window.cuftObserverCleanup.cleanupAllObservers('force');
+                }
+                if (window.cuftObserverCleanup.garbageCollectObservers) {
+                    window.cuftObserverCleanup.garbageCollectObservers();
+                }
+            }
+
+            var afterCount = observerCleanupValidator.createdObservers.size;
+            var cleanedCount = beforeCount - afterCount;
+
+            addTestResult('Force Cleanup', 'SUCCESS', 'Force cleanup completed: ' + cleanedCount + ' observers cleaned');
+            updateObserverDisplay();
+        }
+
+        function generateCleanupReport() {
+            var stats = getObserverStatistics();
+            var passedTests = observerCleanupValidator.testResults.filter(function(r) { return r.status === 'PASS'; }).length;
+            var failedTests = observerCleanupValidator.testResults.filter(function(r) { return r.status === 'FAIL'; }).length;
+            var totalTests = passedTests + failedTests;
+
+            var report = {
+                timestamp: new Date().toISOString(),
+                systemAvailable: observerCleanupValidator.cleanupSystemAvailable,
+                testResults: {
+                    total: totalTests,
+                    passed: passedTests,
+                    failed: failedTests,
+                    successRate: totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0
+                },
+                observerStats: stats,
+                recommendations: []
+            };
+
+            // Generate recommendations
+            if (stats.performance.cleanupSuccessRate < 90) {
+                report.recommendations.push('Improve observer cleanup reliability - success rate below 90%');
+            }
+            if (stats.system.active > 10) {
+                report.recommendations.push('Review active observer count - ' + stats.system.active + ' observers currently active');
+            }
+            if (failedTests > 0) {
+                report.recommendations.push('Address ' + failedTests + ' failed cleanup validation tests');
+            }
+            if (report.recommendations.length === 0) {
+                report.recommendations.push('Observer cleanup system performing well');
+            }
+
+            var status = failedTests === 0 ? 'SUCCESS' : 'WARNING';
+            var message = 'Observer cleanup validation complete: ' + report.testResults.successRate + '% success rate';
+
+            addTestResult('Observer Cleanup Report', status, message, report);
+        }
+
+        function exportCleanupReport() {
+            var report = {
+                timestamp: new Date().toISOString(),
+                systemAvailable: observerCleanupValidator.cleanupSystemAvailable,
+                statistics: getObserverStatistics(),
+                testResults: observerCleanupValidator.testResults,
+                observerHistory: {
+                    created: Array.from(observerCleanupValidator.createdObservers.values()),
+                    cleaned: Array.from(observerCleanupValidator.cleanedObservers.values())
+                }
+            };
+
+            var blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'observer-cleanup-test-report-' + new Date().getTime() + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            addTestResult('Export Report', 'SUCCESS', 'Observer cleanup test report exported');
+        }
+
+        function addTestResult(testName, status, message, details) {
+            var result = {
+                testName: testName,
+                status: status,
+                message: message,
+                details: details,
+                timestamp: new Date().toISOString()
+            };
+
+            observerCleanupValidator.testResults.push(result);
+
+            var resultsDiv = document.getElementById('testResults');
+            var resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' +
+                (status === 'PASS' ? 'pass' :
+                 status === 'FAIL' ? 'fail' :
+                 status === 'WARNING' ? 'warning' : 'pending');
+
+            var html = '<strong>' + testName + ':</strong> ' + status + ' - ' + message;
+
+            if (details && details.validation) {
+                html += '<br><strong>Validation:</strong> ' + JSON.stringify(details.validation, null, 2);
+            }
+
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('observer-test-targets').innerHTML = '';
+            observerCleanupValidator.testResults = [];
+
+            // Clear tracked observers
+            observerCleanupValidator.createdObservers.clear();
+            observerCleanupValidator.cleanedObservers.clear();
+            observerCleanupValidator.timeouts.forEach(function(timeoutId) {
+                clearTimeout(timeoutId);
+            });
+            observerCleanupValidator.timeouts.clear();
+
+            // Reset stats
+            observerCleanupValidator.stats = {
+                totalCreated: 0,
+                totalCleaned: 0,
+                timeoutCleanups: 0,
+                manualCleanups: 0,
+                forceCleanups: 0,
+                failedCleanups: 0
+            };
+
+            updateObserverDisplay();
+        }
+
+        // Initialize observer cleanup validation
+        function initializeObserverCleanupValidation() {
+            checkCleanupSystemAvailability();
+            updateObserverDisplay();
+
+            addTestResult('Observer Cleanup Validation System', 'READY', 'Ready to validate observer cleanup mechanisms');
+        }
+
+        // Start validation when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeObserverCleanupValidation);
+        } else {
+            initializeObserverCleanupValidation();
+        }
+    </script>
+</body>
+</html>

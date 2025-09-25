@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Handling Test: Avada/Fusion Forms</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .pending { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .error-scenario { margin: 10px 0; padding: 10px; border: 1px solid #ffcccc; border-radius: 4px; background: #fff8f8; }
+    </style>
+</head>
+<body>
+    <h1>Error Handling Test: Avada/Fusion Forms</h1>
+    <p><strong>Purpose:</strong> Verify that Avada/Fusion form tracking continues to work correctly even when errors occur in dynamic loading, modal forms, or builder-specific functionality</p>
+
+    <div class="test-section">
+        <h2>Test Status</h2>
+        <div id="testResults"></div>
+        <button onclick="runAllErrorTests()">Run All Error Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <button onclick="showErrorBoundaryStatus()">Show Error Boundary Status</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Avada/Fusion Forms Error Test Scenarios</h2>
+
+        <div class="error-scenario">
+            <h4>🔮 Fusion Builder & Dynamic Loading Errors</h4>
+            <button onclick="testMissingFusionForm()">Missing Fusion Form Element</button>
+            <button onclick="testDynamicFormLoadError()">Dynamic Form Loading Error</button>
+            <button onclick="testBuilderCompatibilityError()">Fusion Builder Compatibility Error</button>
+            <button onclick="testThemeIntegrationError()">Theme Integration Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>🎭 Modal & Popup Form Errors</h4>
+            <button onclick="testModalFormError()">Modal Form Processing Error</button>
+            <button onclick="testPopupFormError()">Popup Form Detection Error</button>
+            <button onclick="testOverlayFormError()">Overlay Form Submission Error</button>
+            <button onclick="testModalCloseError()">Modal Close Event Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>🎯 Multi-Step & Success Message Errors</h4>
+            <button onclick="testMultiStepFormError()">Multi-Step Form Navigation Error</button>
+            <button onclick="testSuccessMessageVarietyError()">Success Message Variety Error</button>
+            <button onclick="testFormProgressionError()">Form Progression Tracking Error</button>
+            <button onclick="testStepValidationError()">Step Validation Error</button>
+        </div>
+
+        <div class="error-scenario">
+            <h4>⚡ AJAX & Field Processing Errors</h4>
+            <button onclick="testAjaxSubmissionError()">AJAX Submission Error</button>
+            <button onclick="testFieldMappingError()">Field Mapping Error</button>
+            <button onclick="testCustomFieldError()">Custom Field Processing Error</button>
+            <button onclick="testFormValidationError()">Form Validation Error</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Avada/Fusion Behavior</h2>
+        <h3>✅ Avada/Fusion Error Handling Requirements:</h3>
+        <ul>
+            <li><strong>Dynamic Loading Support:</strong> Handle forms loaded via AJAX/builder dynamically</li>
+            <li><strong>Modal Form Resilience:</strong> Track forms in modals, popups, and overlays</li>
+            <li><strong>Multiple Success Patterns:</strong> Detect various success message formats and behaviors</li>
+            <li><strong>Builder Compatibility:</strong> Work with Fusion Builder and theme customizations</li>
+            <li><strong>Multi-Step Support:</strong> Only track final step with error tolerance</li>
+            <li><strong>Theme Integration:</strong> Handle theme-specific form modifications gracefully</li>
+        </ul>
+    </div>
+
+    <!-- Mock Avada/Fusion Forms Elements -->
+    <div style="display: none;">
+        <!-- Standard Avada/Fusion Form -->
+        <form class="fusion-form" id="fusion-form-1" data-form-id="1">
+            <div class="fusion-form-field">
+                <input type="email" name="email" id="fusion-email-1" value="valid@avada.com" class="fusion-form-input">
+            </div>
+            <div class="fusion-form-field">
+                <input type="text" name="phone" id="fusion-phone-1" value="123-456-7890" class="fusion-form-input">
+            </div>
+            <div class="fusion-form-field">
+                <input type="text" name="name" id="fusion-name-1" value="John Doe" class="fusion-form-input">
+            </div>
+            <div class="fusion-form-field">
+                <button type="submit" class="fusion-button fusion-form-submit">Submit</button>
+            </div>
+        </form>
+
+        <!-- Modal Fusion Form -->
+        <div class="fusion-modal" id="fusion-modal-form" style="display: none;">
+            <div class="fusion-modal-content">
+                <form class="fusion-form" data-form-id="modal-form">
+                    <div class="fusion-form-field">
+                        <input type="email" name="email" value="modal@avada.com">
+                        <input type="text" name="phone" value="555-modal-123">
+                    </div>
+                    <button type="submit" class="fusion-form-submit">Submit Modal Form</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Multi-Step Fusion Form -->
+        <form class="fusion-form fusion-form-multistep" id="fusion-multistep" data-form-id="multistep">
+            <div class="fusion-form-step" data-step="1" style="display: block;">
+                <div class="fusion-form-field">
+                    <input type="text" name="first_step_data" value="Step 1 Data">
+                </div>
+                <button type="button" class="fusion-form-next" data-next="2">Next</button>
+            </div>
+            <div class="fusion-form-step" data-step="2" style="display: none;">
+                <div class="fusion-form-field">
+                    <input type="email" name="email" value="multistep@avada.com">
+                    <input type="text" name="phone" value="multistep-phone">
+                </div>
+                <button type="button" class="fusion-form-prev" data-prev="1">Previous</button>
+                <button type="submit" class="fusion-form-submit">Submit</button>
+            </div>
+        </form>
+
+        <!-- Fusion Form with Missing Structure -->
+        <div class="fusion-form-wrapper" id="fusion-broken">
+            <!-- Missing form element -->
+            <div class="fusion-form-field">
+                <input type="email" name="email" value="broken@avada.com">
+            </div>
+        </div>
+
+        <!-- Dynamically Loaded Fusion Form (simulated) -->
+        <div id="dynamic-form-container"></div>
+    </div>
+
+    <script>
+        // Initialize error tracking for Avada/Fusion Forms
+        var avadaErrorTracker = {
+            capturedErrors: [],
+            capturedEvents: [],
+            originalConsoleError: console.error,
+            modalStates: new Map(),
+            stepStates: new Map(),
+            dynamicForms: new Set()
+        };
+
+        // Track all dataLayer events
+        window.dataLayer = window.dataLayer || [];
+        var originalPush = window.dataLayer.push.bind(window.dataLayer);
+
+        window.dataLayer.push = function(event) {
+            if (event && typeof event === 'object') {
+                avadaErrorTracker.capturedEvents.push({
+                    event: event,
+                    timestamp: new Date().toISOString(),
+                    testContext: window.currentTestContext || 'unknown'
+                });
+            }
+            return originalPush(event);
+        };
+
+        // Monitor console errors specifically for Avada/Fusion
+        console.error = function() {
+            var message = Array.prototype.slice.call(arguments).join(' ');
+            if (message.indexOf('fusion') > -1 || message.indexOf('avada') > -1 || window.currentTestContext) {
+                avadaErrorTracker.capturedErrors.push({
+                    type: 'console.error',
+                    args: Array.prototype.slice.call(arguments),
+                    timestamp: new Date().toISOString(),
+                    testContext: window.currentTestContext || 'unknown'
+                });
+            }
+            return avadaErrorTracker.originalConsoleError.apply(console, arguments);
+        };
+
+        // Avada/Fusion-specific test execution framework
+        function runAvadaErrorTest(testName, errorSetup, formTrigger, expectedBehavior) {
+            window.currentTestContext = testName;
+            var startErrorCount = avadaErrorTracker.capturedErrors.length;
+            var startEventCount = avadaErrorTracker.capturedEvents.length;
+
+            try {
+                // Set up the error condition
+                if (errorSetup) {
+                    errorSetup();
+                }
+
+                // Trigger the Avada/Fusion form event/action
+                formTrigger();
+
+                // Give time for async processing, modal handling, dynamic loading, etc.
+                setTimeout(function() {
+                    var newErrors = avadaErrorTracker.capturedErrors.slice(startErrorCount);
+                    var newEvents = avadaErrorTracker.capturedEvents.slice(startEventCount);
+                    var formSubmitEvents = newEvents.filter(function(item) {
+                        return item.event.event === 'form_submit' &&
+                               (item.event.form_type === 'avada' || item.event.form_type === 'fusion');
+                    });
+
+                    // Evaluate results based on expected behavior
+                    var result = evaluateAvadaErrorTestResult(testName, newErrors, formSubmitEvents, expectedBehavior);
+                    addTestResult(testName, result.status, result.message, result.details);
+
+                    window.currentTestContext = null;
+                }, 3000); // Longer timeout for modal/dynamic scenarios
+
+            } catch (error) {
+                addTestResult(testName, 'ERROR', 'Avada test setup failed: ' + error.message, { error: error });
+                window.currentTestContext = null;
+            }
+        }
+
+        function evaluateAvadaErrorTestResult(testName, errors, formSubmitEvents, expectedBehavior) {
+            var result = { status: 'PENDING', message: '', details: {} };
+
+            var trackingWorked = formSubmitEvents.length > 0;
+            var errorsOccurred = errors.length > 0;
+
+            if (expectedBehavior.shouldTrackForm) {
+                if (trackingWorked) {
+                    // Verify Avada/Fusion-specific fields
+                    var event = formSubmitEvents[0].event;
+                    var hasAvadaFields = (event.form_type === 'avada' || event.form_type === 'fusion') &&
+                                       event.cuft_source &&
+                                       (event.cuft_source.indexOf('avada') > -1 || event.cuft_source.indexOf('fusion') > -1);
+
+                    if (hasAvadaFields) {
+                        var contextInfo = '';
+                        if (expectedBehavior.isModal) contextInfo += ' (modal form)';
+                        if (expectedBehavior.isMultiStep) contextInfo += ' (multi-step final)';
+                        if (expectedBehavior.isDynamic) contextInfo += ' (dynamically loaded)';
+
+                        result = {
+                            status: 'PASS',
+                            message: 'Avada/Fusion tracking worked correctly despite errors' + contextInfo,
+                            details: { errors: errors, events: formSubmitEvents, avada_validated: true }
+                        };
+                    } else {
+                        result = {
+                            status: 'FAIL',
+                            message: 'Avada/Fusion tracking succeeded but missing framework-specific fields',
+                            details: { errors: errors, events: formSubmitEvents, missing_fields: true }
+                        };
+                    }
+                } else {
+                    if (expectedBehavior.isMultiStep && !expectedBehavior.isFinalStep) {
+                        result = {
+                            status: 'PASS',
+                            message: 'Correctly did not track non-final step of multi-step form',
+                            details: { errors: errors, events: formSubmitEvents, multi_step_behavior: true }
+                        };
+                    } else {
+                        result = {
+                            status: 'FAIL',
+                            message: 'Avada/Fusion tracking failed - no form_submit event captured',
+                            details: { errors: errors, events: formSubmitEvents }
+                        };
+                    }
+                }
+            } else {
+                if (!trackingWorked) {
+                    result = {
+                        status: 'PASS',
+                        message: 'Correctly did not track invalid Avada/Fusion form (' + errors.length + ' errors as expected)',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                } else {
+                    result = {
+                        status: 'FAIL',
+                        message: 'Unexpectedly tracked invalid Avada/Fusion form',
+                        details: { errors: errors, events: formSubmitEvents }
+                    };
+                }
+            }
+
+            return result;
+        }
+
+        // Avada/Fusion-specific error test scenarios
+        function testMissingFusionForm() {
+            runAvadaErrorTest('Missing Fusion Form Element', null, function() {
+                // Try to submit without proper form structure
+                var fakeForm = document.createElement('div');
+                fakeForm.className = 'fusion-form';
+                var event = new CustomEvent('submit', { bubbles: true });
+                fakeForm.dispatchEvent(event);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testDynamicFormLoadError() {
+            runAvadaErrorTest('Dynamic Form Loading Error', function() {
+                // Mock dynamic form injection to fail
+                var originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+                Object.defineProperty(Element.prototype, 'innerHTML', {
+                    set: function(value) {
+                        if (value && value.indexOf('fusion-form') > -1) {
+                            throw new Error('Simulated dynamic form loading error');
+                        }
+                        return originalInnerHTML.set.call(this, value);
+                    },
+                    get: originalInnerHTML.get
+                });
+            }, function() {
+                // Simulate dynamic form loading
+                simulateDynamicFormLoad();
+            }, { shouldTrackForm: false, shouldHaveErrors: true, isDynamic: true });
+        }
+
+        function testBuilderCompatibilityError() {
+            runAvadaErrorTest('Fusion Builder Compatibility Error', function() {
+                // Mock Fusion Builder interaction to fail
+                window.originalFusionApp = window.FusionApp;
+                window.FusionApp = {
+                    callback: function() {
+                        throw new Error('Simulated Fusion Builder error');
+                    }
+                };
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                simulateAvadaFormSubmission(form);
+
+                // Restore FusionApp
+                window.FusionApp = window.originalFusionApp;
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testThemeIntegrationError() {
+            runAvadaErrorTest('Theme Integration Error', function() {
+                // Mock theme-specific functionality to fail
+                window.originalAvadaVars = window.avadaVars;
+                window.avadaVars = undefined;
+
+                // Mock theme CSS access
+                var originalGetComputedStyle = window.getComputedStyle;
+                window.getComputedStyle = function(element) {
+                    if (element && element.classList && element.classList.contains('fusion-form')) {
+                        throw new Error('Simulated theme integration error');
+                    }
+                    return originalGetComputedStyle.call(window, element);
+                };
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                simulateAvadaFormSubmission(form);
+
+                // Restore globals
+                window.avadaVars = window.originalAvadaVars;
+                window.getComputedStyle = originalGetComputedStyle;
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testModalFormError() {
+            runAvadaErrorTest('Modal Form Processing Error', function() {
+                // Mock modal state management to fail
+                var originalBoundingClientRect = Element.prototype.getBoundingClientRect;
+                Element.prototype.getBoundingClientRect = function() {
+                    if (this.classList && this.classList.contains('fusion-modal')) {
+                        throw new Error('Simulated modal processing error');
+                    }
+                    return originalBoundingClientRect.call(this);
+                };
+            }, function() {
+                simulateModalFormSubmission();
+            }, { shouldTrackForm: true, shouldHaveErrors: true, isModal: true });
+        }
+
+        function testPopupFormError() {
+            runAvadaErrorTest('Popup Form Detection Error', function() {
+                // Mock popup detection to fail
+                var originalQuerySelector = Document.prototype.querySelector;
+                Document.prototype.querySelector = function(selector) {
+                    if (selector && selector.indexOf('fusion-modal') > -1) {
+                        throw new Error('Simulated popup detection error');
+                    }
+                    return originalQuerySelector.call(this, selector);
+                };
+            }, function() {
+                simulateModalFormSubmission();
+            }, { shouldTrackForm: false, shouldHaveErrors: true, isModal: true });
+        }
+
+        function testOverlayFormError() {
+            runAvadaErrorTest('Overlay Form Submission Error', function() {
+                // Mock overlay form processing to fail
+                var originalClosest = Element.prototype.closest;
+                Element.prototype.closest = function(selector) {
+                    if (selector && selector.indexOf('fusion-modal') > -1) {
+                        throw new Error('Simulated overlay form error');
+                    }
+                    return originalClosest.call(this, selector);
+                };
+            }, function() {
+                simulateModalFormSubmission();
+            }, { shouldTrackForm: false, shouldHaveErrors: true, isModal: true });
+        }
+
+        function testModalCloseError() {
+            runAvadaErrorTest('Modal Close Event Error', function() {
+                // Mock modal close event to fail
+                var originalRemoveEventListener = EventTarget.prototype.removeEventListener;
+                EventTarget.prototype.removeEventListener = function(type, listener) {
+                    if (type === 'click' || type === 'close') {
+                        throw new Error('Simulated modal close error');
+                    }
+                    return originalRemoveEventListener.call(this, type, listener);
+                };
+            }, function() {
+                simulateModalFormSubmission();
+            }, { shouldTrackForm: true, shouldHaveErrors: true, isModal: true });
+        }
+
+        function testMultiStepFormError() {
+            runAvadaErrorTest('Multi-Step Form Navigation Error', function() {
+                // Mock step navigation to fail
+                var steps = document.querySelectorAll('#fusion-multistep .fusion-form-step');
+                steps.forEach(function(step) {
+                    Object.defineProperty(step, 'style', {
+                        get: function() {
+                            throw new Error('Simulated step navigation error');
+                        }
+                    });
+                });
+            }, function() {
+                simulateMultiStepSubmission();
+            }, { shouldTrackForm: true, shouldHaveErrors: true, isMultiStep: true, isFinalStep: true });
+        }
+
+        function testSuccessMessageVarietyError() {
+            runAvadaErrorTest('Success Message Variety Error', function() {
+                // Mock success message detection to fail
+                var originalInnerText = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerText') ||
+                                      Object.getOwnPropertyDescriptor(Node.prototype, 'textContent') ||
+                                      { get: function() { return ''; } };
+                Object.defineProperty(HTMLElement.prototype, 'innerText', {
+                    get: function() {
+                        if (this.classList && (this.classList.contains('fusion-form-success') ||
+                            this.classList.contains('fusion-alert'))) {
+                            throw new Error('Simulated success message error');
+                        }
+                        return originalInnerText.get.call(this);
+                    }
+                });
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                simulateAvadaFormSubmission(form);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testFormProgressionError() {
+            runAvadaErrorTest('Form Progression Tracking Error', function() {
+                // Mock form progression tracking to fail
+                var originalDataset = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'dataset');
+                Object.defineProperty(HTMLElement.prototype, 'dataset', {
+                    get: function() {
+                        if (this.classList && this.classList.contains('fusion-form-step')) {
+                            throw new Error('Simulated progression tracking error');
+                        }
+                        return originalDataset.get.call(this);
+                    }
+                });
+            }, function() {
+                simulateMultiStepSubmission();
+            }, { shouldTrackForm: false, shouldHaveErrors: true, isMultiStep: true });
+        }
+
+        function testStepValidationError() {
+            runAvadaErrorTest('Step Validation Error', function() {
+                // Mock step validation to fail
+                var originalQuerySelectorAll = HTMLElement.prototype.querySelectorAll;
+                HTMLElement.prototype.querySelectorAll = function(selector) {
+                    if (selector && selector.indexOf('required') > -1) {
+                        throw new Error('Simulated step validation error');
+                    }
+                    return originalQuerySelectorAll.call(this, selector);
+                };
+            }, function() {
+                simulateMultiStepSubmission();
+            }, { shouldTrackForm: true, shouldHaveErrors: true, isMultiStep: true, isFinalStep: true });
+        }
+
+        function testAjaxSubmissionError() {
+            runAvadaErrorTest('AJAX Submission Error', function() {
+                // Mock AJAX submission to fail
+                var originalFetch = window.fetch;
+                window.fetch = function(url, options) {
+                    if (url && url.indexOf('fusion') > -1) {
+                        throw new Error('Simulated Avada AJAX error');
+                    }
+                    return originalFetch.call(window, url, options);
+                };
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                form.setAttribute('data-ajax', 'true');
+                simulateAvadaFormSubmission(form);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        function testFieldMappingError() {
+            runAvadaErrorTest('Field Mapping Error', function() {
+                // Mock field mapping to fail
+                var inputs = document.querySelectorAll('#fusion-form-1 input');
+                inputs.forEach(function(input) {
+                    Object.defineProperty(input, 'name', {
+                        get: function() {
+                            throw new Error('Simulated field mapping error');
+                        }
+                    });
+                });
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                simulateAvadaFormSubmission(form);
+            }, { shouldTrackForm: false, shouldHaveErrors: true });
+        }
+
+        function testCustomFieldError() {
+            runAvadaErrorTest('Custom Field Processing Error', function() {
+                // Add custom field and make it fail
+                var form = document.getElementById('fusion-form-1');
+                var customField = document.createElement('input');
+                customField.type = 'text';
+                customField.name = 'custom_field';
+                customField.value = 'custom value';
+                Object.defineProperty(customField, 'value', {
+                    get: function() {
+                        throw new Error('Simulated custom field error');
+                    }
+                });
+                form.appendChild(customField);
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                simulateAvadaFormSubmission(form);
+            }, { shouldTrackForm: true, shouldHaveErrors: true }); // Should work with standard fields
+        }
+
+        function testFormValidationError() {
+            runAvadaErrorTest('Form Validation Error', function() {
+                // Mock form validation to fail
+                var originalReportValidity = HTMLFormElement.prototype.reportValidity;
+                HTMLFormElement.prototype.reportValidity = function() {
+                    if (this.classList && this.classList.contains('fusion-form')) {
+                        throw new Error('Simulated form validation error');
+                    }
+                    return originalReportValidity.call(this);
+                };
+            }, function() {
+                var form = document.getElementById('fusion-form-1');
+                simulateAvadaFormSubmission(form);
+            }, { shouldTrackForm: true, shouldHaveErrors: true });
+        }
+
+        // Helper functions
+        function simulateAvadaFormSubmission(form) {
+            if (!form) return;
+
+            // Avada/Fusion forms typically use submit events
+            var event = new CustomEvent('submit', { bubbles: true });
+            form.dispatchEvent(event);
+
+            // Simulate typical Avada success behavior
+            setTimeout(function() {
+                try {
+                    // Create success message
+                    var successMsg = document.createElement('div');
+                    successMsg.className = 'fusion-form-success fusion-alert success';
+                    successMsg.innerHTML = 'Thank you! Your message has been sent successfully.';
+
+                    form.parentNode.insertBefore(successMsg, form.nextSibling);
+                    form.style.display = 'none';
+                } catch (e) {
+                    // May fail in error scenarios
+                }
+            }, 1000);
+        }
+
+        function simulateModalFormSubmission() {
+            // Show modal first
+            var modal = document.getElementById('fusion-modal-form');
+            modal.style.display = 'block';
+
+            setTimeout(function() {
+                var modalForm = modal.querySelector('.fusion-form');
+                simulateAvadaFormSubmission(modalForm);
+
+                // Hide modal after submission
+                setTimeout(function() {
+                    try {
+                        modal.style.display = 'none';
+                    } catch (e) {
+                        // May fail in error scenarios
+                    }
+                }, 1500);
+            }, 500);
+        }
+
+        function simulateMultiStepSubmission() {
+            var form = document.getElementById('fusion-multistep');
+            var step1 = form.querySelector('[data-step="1"]');
+            var step2 = form.querySelector('[data-step="2"]');
+
+            // Step 1: Navigate to step 2
+            setTimeout(function() {
+                try {
+                    step1.style.display = 'none';
+                    step2.style.display = 'block';
+                } catch (e) {
+                    // May fail in error scenarios
+                }
+
+                // Step 2: Submit final step
+                setTimeout(function() {
+                    simulateAvadaFormSubmission(form);
+                }, 1000);
+            }, 500);
+        }
+
+        function simulateDynamicFormLoad() {
+            var container = document.getElementById('dynamic-form-container');
+            try {
+                container.innerHTML = `
+                    <form class="fusion-form" data-form-id="dynamic">
+                        <div class="fusion-form-field">
+                            <input type="email" name="email" value="dynamic@avada.com">
+                            <input type="text" name="phone" value="dynamic-phone">
+                        </div>
+                        <button type="submit" class="fusion-form-submit">Submit Dynamic Form</button>
+                    </form>
+                `;
+
+                // Trigger submission of dynamically loaded form
+                setTimeout(function() {
+                    var dynamicForm = container.querySelector('.fusion-form');
+                    simulateAvadaFormSubmission(dynamicForm);
+                }, 1000);
+            } catch (e) {
+                // Expected to fail in error scenario
+            }
+        }
+
+        function runAllErrorTests() {
+            clearResults();
+            var tests = [
+                testMissingFusionForm,
+                testDynamicFormLoadError,
+                testBuilderCompatibilityError,
+                testThemeIntegrationError,
+                testModalFormError,
+                testPopupFormError,
+                testOverlayFormError,
+                testModalCloseError,
+                testMultiStepFormError,
+                testSuccessMessageVarietyError,
+                testFormProgressionError,
+                testStepValidationError,
+                testAjaxSubmissionError,
+                testFieldMappingError,
+                testCustomFieldError,
+                testFormValidationError
+            ];
+
+            tests.forEach(function(test, index) {
+                setTimeout(test, index * 4000); // Longer intervals for modal/dynamic testing
+            });
+        }
+
+        function addTestResult(testName, status, message, details) {
+            var resultsDiv = document.getElementById('testResults');
+            var resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result ' + (status === 'PASS' ? 'pass' : status === 'FAIL' ? 'fail' : 'pending');
+
+            var html = '<strong>' + testName + ':</strong> ' + status + ' - ' + message;
+
+            if (details) {
+                if (details.errors && details.errors.length > 0) {
+                    html += '<br><strong>Avada Errors (' + details.errors.length + '):</strong>';
+                    details.errors.forEach(function(error, index) {
+                        html += '<br>' + (index + 1) + '. ' + (error.message || error.type);
+                    });
+                }
+
+                if (details.events && details.events.length > 0) {
+                    html += '<br><strong>Avada Events:</strong> ' + details.events.length + ' form_submit events';
+                    if (details.avada_validated) {
+                        html += ' 🔮 Avada-validated';
+                    }
+                    if (details.multi_step_behavior) {
+                        html += ' 📄 Multi-step behavior correct';
+                    }
+                }
+            }
+
+            resultDiv.innerHTML = html;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            avadaErrorTracker.capturedErrors = [];
+            avadaErrorTracker.capturedEvents = [];
+            avadaErrorTracker.modalStates.clear();
+            avadaErrorTracker.stepStates.clear();
+            avadaErrorTracker.dynamicForms.clear();
+        }
+
+        function showErrorBoundaryStatus() {
+            if (window.cuftErrorBoundary) {
+                var status = window.cuftErrorBoundary.getErrorStatus();
+                console.log('Error Boundary Status:', status);
+                alert('Error Boundary Status: ' + status.totalErrors + ' total errors');
+            } else {
+                alert('Error Boundary system not loaded');
+            }
+        }
+
+        // Initial setup
+        addTestResult('Avada/Fusion Error Test System', 'READY', 'Ready to run Avada/Fusion Forms error handling tests', null);
+    </script>
+</body>
+</html>
