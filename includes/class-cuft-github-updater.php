@@ -187,9 +187,21 @@ class CUFT_GitHub_Updater {
      * Purge update cache
      */
     public function purge_cache( $upgrader, $options ) {
-        if ( isset( $options['plugins'] ) && in_array( $this->plugin_basename, $options['plugins'] ) ) {
-            delete_transient( 'cuft_github_version' );
-            delete_transient( 'cuft_github_changelog' );
+        // Clear our transients regardless of conditions (safer approach)
+        delete_transient( 'cuft_github_version' );
+        delete_transient( 'cuft_github_changelog' );
+
+        // Also clear asset URL caches
+        global $wpdb;
+        $wpdb->query( "DELETE FROM $wpdb->options WHERE option_name LIKE '_transient_cuft_asset_url_%' OR option_name LIKE '_transient_timeout_cuft_asset_url_%'" );
+
+        // Clear WordPress update cache to prevent stale notices
+        delete_site_transient( 'update_plugins' );
+        wp_clean_plugins_cache();
+
+        // Log for debugging
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::log( 'Update cache purged after upgrade completion', 'info' );
         }
     }
     
@@ -209,8 +221,16 @@ class CUFT_GitHub_Updater {
         delete_site_transient( 'update_plugins' );
         wp_clean_plugins_cache();
 
+        // Additional: Clear any admin notices cache
+        delete_transient( 'cuft_admin_notices' );
+
         // Force WordPress to check for updates
         wp_update_plugins();
+
+        // Log the action
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::log( 'Forced update check completed', 'info' );
+        }
 
         return $this->get_remote_version();
     }
