@@ -15,7 +15,7 @@ echo "Choice Universal Form Tracker - Update Test\n";
 echo "============================================\n\n";
 
 // Check if plugin is active
-if (!is_plugin_active('choice-universal-form-tracker/choice-universal-form-tracker.php')) {
+if (!is_plugin_active('choice-uft/choice-universal-form-tracker.php')) {
     echo "❌ Plugin is not active. Please activate it first.\n";
     exit;
 }
@@ -31,7 +31,7 @@ if (class_exists('CUFT_GitHub_Updater')) {
     echo "✅ GitHub Updater class found\n";
 
     $updater = new CUFT_GitHub_Updater(
-        WP_PLUGIN_DIR . '/choice-universal-form-tracker/choice-universal-form-tracker.php',
+        WP_PLUGIN_DIR . '/choice-uft/choice-universal-form-tracker.php',
         $current_version,
         'ChoiceOMG',
         'choice-uft'
