@@ -1,0 +1,160 @@
+name: Validate Release Assets
+
+on:
+  release:
+    types: [published, edited]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Release Asset Structure
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Release Asset Naming
+        run: |
+          echo "🔍 Checking release asset naming convention..."
+
+          # Get release tag and expected asset name
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          EXPECTED_ASSET="choice-uft-${RELEASE_TAG}.zip"
+
+          echo "Release tag: $RELEASE_TAG"
+          echo "Expected asset: $EXPECTED_ASSET"
+
+          # Check if any assets exist
+          ASSET_COUNT=$(echo '${{ toJson(github.event.release.assets) }}' | jq 'length')
+          if [ "$ASSET_COUNT" -eq 0 ]; then
+            echo "❌ No assets found in release. Please upload choice-uft-${RELEASE_TAG}.zip"
+            exit 1
+          fi
+
+          # Find the correct asset
+          ASSET_FOUND=false
+          for asset in $(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[].name'); do
+            echo "Found asset: $asset"
+            if [ "$asset" = "$EXPECTED_ASSET" ]; then
+              ASSET_FOUND=true
+              ASSET_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r ".[] | select(.name == \"$asset\") | .browser_download_url")
+              echo "✅ Correct asset found: $asset"
+              echo "Download URL: $ASSET_URL"
+              echo "ASSET_URL=$ASSET_URL" >> $GITHUB_ENV
+              break
+            fi
+          done
+
+          if [ "$ASSET_FOUND" = false ]; then
+            echo "❌ Release asset must be named exactly: $EXPECTED_ASSET"
+            echo "Found assets:"
+            echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[].name'
+            exit 1
+          fi
+
+      - name: Download and Validate ZIP Structure
+        run: |
+          echo "📥 Downloading release asset for validation..."
+
+          # Download the asset
+          curl -L -o release.zip "$ASSET_URL"
+
+          # Check if file was downloaded
+          if [ ! -f release.zip ]; then
+            echo "❌ Failed to download release asset"
+            exit 1
+          fi
+
+          echo "✅ Asset downloaded successfully"
+
+          # Get file size
+          FILE_SIZE=$(stat -c%s release.zip)
+          echo "File size: $FILE_SIZE bytes"
+
+          # List contents of zip file
+          echo "📂 ZIP file contents:"
+          unzip -l release.zip | head -20
+
+          # Check if it extracts to choice-uft/ directory (not versioned)
+          ROOT_DIRS=$(unzip -l release.zip | awk 'NR>3 {print $4}' | cut -d'/' -f1 | sort -u | head -5)
+          echo "Root directories in ZIP:"
+          echo "$ROOT_DIRS"
+
+          # Verify it contains choice-uft/ directory
+          if echo "$ROOT_DIRS" | grep -q "^choice-uft$"; then
+            echo "✅ ZIP extracts to choice-uft/ directory (correct)"
+          else
+            echo "❌ ZIP must extract to choice-uft/ directory (no version in folder name)"
+            echo "Current root directories:"
+            echo "$ROOT_DIRS"
+            exit 1
+          fi
+
+          # Verify it doesn't contain versioned directory
+          VERSIONED_DIR_COUNT=$(echo "$ROOT_DIRS" | grep -c "choice-uft-v" || true)
+          if [ "$VERSIONED_DIR_COUNT" -gt 0 ]; then
+            echo "❌ ZIP contains versioned directory names. Should extract to choice-uft/ only."
+            exit 1
+          fi
+
+          # Check for critical files
+          echo "🔍 Checking for critical plugin files..."
+          CRITICAL_FILES=(
+            "choice-uft/choice-universal-form-tracker.php"
+            "choice-uft/includes/"
+            "choice-uft/assets/"
+          )
+
+          for file in "${CRITICAL_FILES[@]}"; do
+            if unzip -l release.zip | grep -q "$file"; then
+              echo "✅ Found: $file"
+            else
+              echo "❌ Missing critical file/directory: $file"
+              exit 1
+            fi
+          done
+
+          # Verify main plugin file exists and has correct header
+          unzip -q release.zip
+          if [ -f "choice-uft/choice-universal-form-tracker.php" ]; then
+            VERSION_IN_FILE=$(grep "Version:" choice-uft/choice-universal-form-tracker.php | head -1 | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
+            RELEASE_VERSION="${{ github.event.release.tag_name }}"
+            RELEASE_VERSION_CLEAN=$(echo "$RELEASE_VERSION" | sed 's/^v//')
+
+            echo "Version in plugin file: $VERSION_IN_FILE"
+            echo "Release version: $RELEASE_VERSION_CLEAN"
+
+            if [ "$VERSION_IN_FILE" = "$RELEASE_VERSION_CLEAN" ]; then
+              echo "✅ Plugin file version matches release version"
+            else
+              echo "❌ Version mismatch: Plugin file has $VERSION_IN_FILE, release is $RELEASE_VERSION_CLEAN"
+              exit 1
+            fi
+          else
+            echo "❌ Main plugin file not found in expected location"
+            exit 1
+          fi
+
+      - name: Validation Summary
+        if: success()
+        run: |
+          echo "🎉 Release asset validation passed!"
+          echo "✅ Asset naming follows convention: choice-uft-${{ github.event.release.tag_name }}.zip"
+          echo "✅ ZIP extracts to choice-uft/ directory (correct for WordPress)"
+          echo "✅ All critical plugin files present"
+          echo "✅ Version numbers match between release and plugin file"
+          echo ""
+          echo "The release is ready for WordPress plugin updates! 🚀"
+
+      - name: Validation Failed
+        if: failure()
+        run: |
+          echo "❌ Release asset validation failed!"
+          echo ""
+          echo "Required format:"
+          echo "- Asset name: choice-uft-${{ github.event.release.tag_name }}.zip"
+          echo "- ZIP structure: Extracts to choice-uft/ directory (no version in folder name)"
+          echo "- Contains: choice-universal-form-tracker.php in root of choice-uft/"
+          echo ""
+          echo "Please fix the release asset and re-upload."
+          exit 1

@@ -415,7 +415,7 @@ The plugin is designed to work with:
    gh release create v[VERSION] --title "Version [VERSION]" --notes "[Release notes]"
 
    # Upload the zip file to release assets
-   gh release upload v[VERSION] choice-uft.zip --clobber
+   gh release upload v[VERSION] choice-uft-v[VERSION].zip --clobber
    ```
 
 4. **Verify Release**:

@@ -130,21 +130,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **CRITICAL Plugin Directory Issue**: Updated release system to use `choice-uft.zip` naming (without version number)
+- **CRITICAL Plugin Directory Issue**: Updated release system to use `choice-uft-v{version}.zip` naming (with version number)
 - **WordPress Installation Fix**: Plugin now extracts correctly to `/wp-content/plugins/choice-uft/` instead of version-specific directories
 - **Update System Fix**: GitHub updater now expects correct zip filename for automatic updates
 - **Directory Path Issues**: Resolves fatal errors and plugin deactivation on updates
 
 ### Technical
 
-- Updated GitHub updater class to look for `choice-uft.zip` specifically
+- Updated GitHub updater class to look for `choice-uft-v{version}.zip` specifically
 - Modified GitHub Actions workflow to create properly named zip files
 - Updated all documentation to use correct naming convention
 - Added critical warnings about zip file naming requirements
 
 ### Breaking Change
 
-- **Release assets now named `choice-uft.zip`** (previously `choice-uft-v{version}.zip`)
+- **Release assets now named `choice-uft-v{version}.zip`** (corrected from previous inconsistent naming)
 - This ensures consistent plugin directory structure across all WordPress installations
 - Resolves the "two plugin listings" and automatic deactivation issues
 
