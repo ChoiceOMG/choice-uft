@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.9.9
+ * Version:           3.10.0
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.9.9' );
+define( 'CUFT_VERSION', '3.10.0' );
 define( 'CUFT_URL', plugins_url( '', __FILE__ ) . '/' );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -65,9 +65,9 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-github-updater.php',
             'includes/class-cuft-click-tracker.php',
             'includes/class-cuft-click-integration.php',
+            'includes/class-cuft-utils.php',
+            'includes/class-cuft-migration-events.php',
             'includes/class-cuft-test-forms.php',
-            // Utility systems (Phase 3 improvements)
-            'includes/class-cuft-utility-loader.php',  // Load utility system loader
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
@@ -138,10 +138,6 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Feature_Flags();
             }
 
-            // Initialize utility systems loader (Phase 3 improvements)
-            if ( class_exists( 'CUFT_Utility_Loader' ) ) {
-                new CUFT_Utility_Loader();
-            }
 
             if ( is_admin() && class_exists( 'CUFT_Admin' ) ) {
                 new CUFT_Admin();

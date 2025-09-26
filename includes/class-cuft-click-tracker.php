@@ -101,6 +101,7 @@ class CUFT_Click_Tracker {
             'utm_campaign' => '',
             'utm_term' => '',
             'utm_content' => '',
+            'events' => null, // Initialize events column
             'qualified' => 0,
             'score' => 0,
             'ip_address' => self::get_client_ip(),
@@ -128,7 +129,13 @@ class CUFT_Click_Tracker {
             $data['additional_data'] = json_encode( $data['additional_data'] );
         }
         $data['additional_data'] = sanitize_textarea_field( $data['additional_data'] );
-        
+
+        // Initialize empty events array if events column exists
+        $columns = $wpdb->get_results( "SHOW COLUMNS FROM $table_name LIKE 'events'" );
+        if ( ! empty( $columns ) && $data['events'] === null ) {
+            $data['events'] = json_encode( array() );
+        }
+
         // Check if record exists
         $existing = $wpdb->get_row( $wpdb->prepare(
             "SELECT id FROM $table_name WHERE click_id = %s",
@@ -136,20 +143,34 @@ class CUFT_Click_Tracker {
         ) );
         
         if ( $existing ) {
-            // Update existing record
+            // Update existing record (preserve events if they exist)
+            if ( ! empty( $columns ) ) {
+                // Don't overwrite existing events on update
+                unset( $data['events'] );
+            }
+            unset( $data['click_id'] ); // Don't update click_id
+
+            $format = ! empty( $columns )
+                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+
             $result = $wpdb->update(
                 $table_name,
                 $data,
-                array( 'click_id' => $data['click_id'] ),
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' ),
+                array( 'click_id' => $click_id ),
+                $format,
                 array( '%s' )
             );
         } else {
             // Insert new record
+            $format = ! empty( $columns )
+                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+
             $result = $wpdb->insert(
                 $table_name,
                 $data,
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+                $format
             );
         }
         
@@ -477,7 +498,233 @@ class CUFT_Click_Tracker {
         if ( class_exists( 'CUFT_Logger' ) ) {
             CUFT_Logger::log( "Cleaned up {$result} old click tracking records", 'info' );
         }
-        
+
         return $result;
     }
+
+    /**
+     * Add event to click tracking record
+     *
+     * @param string $click_id Unique click identifier
+     * @param string $event_type Event type (phone_click, email_click, form_submit, generate_lead, status_update)
+     * @return bool Success status
+     */
+    public static function add_event( $click_id, $event_type ) {
+        global $wpdb;
+
+        if ( empty( $click_id ) || empty( $event_type ) ) {
+            return false;
+        }
+
+        // Check feature flag
+        if ( class_exists( 'CUFT_Utils' ) && ! CUFT_Utils::is_feature_enabled( 'click_event_tracking' ) ) {
+            return false;
+        }
+
+        $table_name = $wpdb->prefix . self::$table_name;
+
+        // Validate event type
+        $valid_events = array( 'phone_click', 'email_click', 'form_submit', 'generate_lead', 'status_update' );
+        if ( ! in_array( $event_type, $valid_events ) ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'error', 'Invalid event type: ' . $event_type );
+            }
+            return false;
+        }
+
+        try {
+            // Get current events or initialize empty array
+            $current_record = $wpdb->get_row( $wpdb->prepare(
+                "SELECT id, events FROM $table_name WHERE click_id = %s",
+                sanitize_text_field( $click_id )
+            ) );
+
+            if ( ! $current_record ) {
+                // Create new record if it doesn't exist
+                $result = self::track_click( $click_id, array() );
+                if ( ! $result ) {
+                    return false;
+                }
+
+                // Get the newly created record
+                $current_record = $wpdb->get_row( $wpdb->prepare(
+                    "SELECT id, events FROM $table_name WHERE click_id = %s",
+                    sanitize_text_field( $click_id )
+                ) );
+            }
+
+            // Parse existing events
+            $events = array();
+            if ( ! empty( $current_record->events ) ) {
+                $events = json_decode( $current_record->events, true );
+                if ( ! is_array( $events ) ) {
+                    $events = array();
+                }
+            }
+
+            // Create new event
+            $new_event = array(
+                'event' => $event_type,
+                'timestamp' => gmdate( 'c' ) // ISO 8601 UTC format
+            );
+
+            // Add to events array
+            $events[] = $new_event;
+
+            // Limit to 100 events (keep most recent)
+            if ( count( $events ) > 100 ) {
+                $events = array_slice( $events, -100 );
+            }
+
+            // Sort by timestamp (newest last)
+            usort( $events, function( $a, $b ) {
+                return strcmp( $a['timestamp'], $b['timestamp'] );
+            } );
+
+            // Update record with new events
+            $result = $wpdb->update(
+                $table_name,
+                array(
+                    'events' => json_encode( $events ),
+                    'date_updated' => current_time( 'mysql', true )
+                ),
+                array( 'id' => $current_record->id ),
+                array( '%s', '%s' ),
+                array( '%d' )
+            );
+
+            if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'info', "Event added: {$event_type} for click_id: {$click_id}" );
+            }
+
+            return $result !== false;
+
+        } catch ( Exception $e ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'error', 'Failed to add event: ' . $e->getMessage() );
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Get events for specific click
+     *
+     * @param string $click_id Unique click identifier
+     * @return array Event array with timestamps
+     */
+    public static function get_events( $click_id ) {
+        global $wpdb;
+
+        if ( empty( $click_id ) ) {
+            return array();
+        }
+
+        $table_name = $wpdb->prefix . self::$table_name;
+
+        $events_json = $wpdb->get_var( $wpdb->prepare(
+            "SELECT events FROM $table_name WHERE click_id = %s",
+            sanitize_text_field( $click_id )
+        ) );
+
+        if ( empty( $events_json ) ) {
+            return array();
+        }
+
+        $events = json_decode( $events_json, true );
+        return is_array( $events ) ? $events : array();
+    }
+
+    /**
+     * Get latest event timestamp
+     *
+     * @param string $click_id Unique click identifier
+     * @return string|null ISO timestamp or null
+     */
+    public static function get_latest_event_time( $click_id ) {
+        $events = self::get_events( $click_id );
+
+        if ( empty( $events ) ) {
+            return null;
+        }
+
+        // Events are sorted chronologically, so get the last one
+        $latest_event = end( $events );
+        return isset( $latest_event['timestamp'] ) ? $latest_event['timestamp'] : null;
+    }
+
+    /**
+     * Cleanup old events (keep latest 100)
+     *
+     * @param string $click_id Unique click identifier
+     * @return bool Success status
+     */
+    public static function cleanup_events( $click_id ) {
+        $events = self::get_events( $click_id );
+
+        if ( count( $events ) <= 100 ) {
+            return true; // No cleanup needed
+        }
+
+        // Keep only the latest 100 events
+        $events = array_slice( $events, -100 );
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::$table_name;
+
+        $result = $wpdb->update(
+            $table_name,
+            array( 'events' => json_encode( $events ) ),
+            array( 'click_id' => sanitize_text_field( $click_id ) ),
+            array( '%s' ),
+            array( '%s' )
+        );
+
+        return $result !== false;
+    }
+
+    /**
+     * Get clicks with event filtering
+     *
+     * @param array $args Query arguments including event_type filter
+     * @return array Click records with events
+     */
+    public static function get_clicks_by_event( $event_type, $args = array() ) {
+        global $wpdb;
+
+        if ( empty( $event_type ) ) {
+            return array();
+        }
+
+        $defaults = array(
+            'limit' => 100,
+            'offset' => 0,
+            'orderby' => 'date_updated',
+            'order' => 'DESC'
+        );
+
+        $args = wp_parse_args( $args, $defaults );
+        $table_name = $wpdb->prefix . self::$table_name;
+
+        $orderby = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+        if ( ! $orderby ) {
+            $orderby = 'date_updated DESC';
+        }
+
+        $limit = absint( $args['limit'] );
+        $offset = absint( $args['offset'] );
+
+        // Use JSON_CONTAINS for MySQL 5.7+ compatibility
+        $sql = $wpdb->prepare(
+            "SELECT * FROM $table_name
+             WHERE events IS NOT NULL
+             AND JSON_CONTAINS(events, %s)
+             ORDER BY $orderby
+             LIMIT $limit OFFSET $offset",
+            json_encode( array( 'event' => $event_type ) )
+        );
+
+        return $wpdb->get_results( $sql );
+    }
+
 }

@@ -8,11 +8,6 @@
     // Global namespace for test forms
     window.CUFTTestForms = window.CUFTTestForms || {};
 
-    // Check utility systems availability
-    var hasErrorBoundary = !!(window.cuftErrorBoundary);
-    var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
-    var hasObserverCleanup = !!(window.cuftObserverCleanup);
-    var hasRetryLogic = !!(window.cuftRetryLogic);
     var hasDataLayerUtils = !!(window.cuftDataLayerUtils);
 
     // Common utilities
@@ -23,11 +18,7 @@
          * This data will be stored in sessionStorage for production code to retrieve
          */
         getTestTrackingData: function(framework, formId) {
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeExecute :
-              function(fn) { try { return fn(); } catch (e) { return {}; } };
-
-            return safeOperation(function() {
+            try {
                 const timestamp = Date.now();
 
                 // Only return tracking data that should be stored in sessionStorage
@@ -45,7 +36,9 @@
                 utm_term: 'test_term',
                     utm_content: 'test_content'
                 };
-            }, 'Test Tracking Data Generation') || {};
+            } catch (e) {
+                return {};
+            }
         },
 
         /**
@@ -176,11 +169,7 @@
          * NOTE: We no longer fire events directly - production code should handle this
          */
         checkDataLayerEvents: function(framework, expectedFormId) {
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeExecute :
-              function(fn) { try { return fn(); } catch (e) { return { formSubmit: false, generateLead: false }; } };
-
-            return safeOperation(function() {
+            try {
                 if (!window.dataLayer) {
                     console.error('[CUFT Test] ❌ dataLayer not found');
                     return { formSubmit: false, generateLead: false };
@@ -214,18 +203,16 @@
                     formSubmitEvent: formSubmitEvent,
                     generateLeadEvent: generateLeadEvent
                 };
-            }, 'DataLayer Event Check') || { formSubmit: false, generateLead: false };
+            } catch (e) {
+                return { formSubmit: false, generateLead: false };
+            }
         },
 
         /**
          * Get form field values
          */
         getFormFieldValues: function(form) {
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeDOMOperation :
-              function(fn) { try { return fn(); } catch (e) { return { email: '', phone: '' }; } };
-
-            return safeOperation(function() {
+            try {
                 const emailInput = form.querySelector('input[type="email"], input[name*="email"], input[data-field="email"]');
                 const phoneInput = form.querySelector('input[type="tel"], input[name*="phone"], input[data-field="phone"]');
 
@@ -233,7 +220,9 @@
                     email: emailInput ? emailInput.value : '',
                     phone: phoneInput ? phoneInput.value : ''
                 };
-            }, form, 'Form Field Value Extraction') || { email: '', phone: '' };
+            } catch (e) {
+                return { email: '', phone: '' };
+            }
         },
 
         /**
@@ -264,11 +253,7 @@
          */
         showSuccessMessage: function(container, message, duration) {
             duration = duration || 5000;
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeDOMOperation :
-              function(fn) { try { return fn(); } catch (e) { return false; } };
-
-            return safeOperation(function() {
+            try {
                 if (!container) return false;
 
                 container.style.display = 'block';
@@ -279,7 +264,9 @@
                     container.innerHTML = '';
                 }, duration);
                 return true;
-            }, container, 'Success Message Display');
+            } catch (e) {
+                return false;
+            }
         },
 
         /**
@@ -291,28 +278,12 @@
             console[logMethod](prefix, message);
         },
 
-        /**
-         * Check utility systems availability
-         */
-        getUtilityStatus: function() {
-            return {
-                errorBoundary: hasErrorBoundary,
-                performanceMonitor: hasPerformanceMonitor,
-                observerCleanup: hasObserverCleanup,
-                retryLogic: hasRetryLogic,
-                dataLayerUtils: hasDataLayerUtils
-            };
-        },
 
         /**
          * Add testing controls to form
          */
         addTestingControls: function(formElement, framework) {
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeDOMOperation :
-              function(fn) { try { return fn(); } catch (e) { return false; } };
-
-            return safeOperation(function() {
+            try {
                 const controlsDiv = document.createElement('div');
             controlsDiv.className = 'cuft-testing-controls';
             controlsDiv.style.cssText = `
@@ -358,18 +329,16 @@
                 window.CUFTTestForms.common.setupTestingControlListeners(formElement, framework);
 
                 return controlsDiv;
-            }, formElement, 'Testing Controls Setup') || null;
+            } catch (e) {
+                return null;
+            }
         },
 
         /**
          * Setup testing control event listeners
          */
         setupTestingControlListeners: function(formElement, framework) {
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeDOMOperation :
-              function(fn) { try { return fn(); } catch (e) { return false; } };
-
-            return safeOperation(function() {
+            try {
                 const controlsDiv = formElement.parentNode.querySelector('.cuft-testing-controls');
                 if (!controlsDiv) return false;
 
@@ -392,18 +361,16 @@
                 // Initialize form data based on current control states
                 window.CUFTTestForms.common.updateFormBasedOnControls(formElement, framework, controls);
                 return true;
-            }, formElement, 'Testing Control Event Listeners') || false;
+            } catch (e) {
+                return false;
+            }
         },
 
         /**
          * Update form data based on testing controls
          */
         updateFormBasedOnControls: function(formElement, framework, controls) {
-            var safeOperation = hasErrorBoundary ?
-              window.cuftErrorBoundary.safeDOMOperation :
-              function(fn) { try { return fn(); } catch (e) { return false; } };
-
-            return safeOperation(function() {
+            try {
                 // Store control states in form element for later use during submission
                 formElement.dataset.testControlEmail = controls.email ? controls.email.checked : 'true';
                 formElement.dataset.testControlPhone = controls.phone ? controls.phone.checked : 'true';
@@ -413,7 +380,9 @@
                 window.CUFTTestForms.common.log(`Testing controls updated for ${framework}:`, 'info');
                 window.CUFTTestForms.common.log(`Email: ${formElement.dataset.testControlEmail}, Phone: ${formElement.dataset.testControlPhone}, Click ID: ${formElement.dataset.testControlClickId}, UTM: ${formElement.dataset.testControlUtmCampaign}`, 'info');
                 return true;
-            }, formElement, 'Testing Controls Data Update') || false;
+            } catch (e) {
+                return false;
+            }
         },
 
         /**

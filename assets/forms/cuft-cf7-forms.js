@@ -7,31 +7,22 @@
     return;
   }
 
-  // Check for available utility systems
-  var hasErrorBoundary = !!(window.cuftErrorBoundary);
-  var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
-  var hasObserverCleanup = !!(window.cuftObserverCleanup);
-  var hasRetryLogic = !!(window.cuftRetryLogic);
 
   var DEBUG = !!(window.cuftCF7 && window.cuftCF7.console_logging);
 
   function log() {
     if (!DEBUG) return;
 
-    var args = arguments;
-
-    var safeLog = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeExecute :
-      function(fn) { try { return fn(); } catch (e) { return null; } };
-
-    safeLog(function() {
+    try {
       if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
-          ["[CUFT CF7]"].concat(Array.prototype.slice.call(args))
+          ["[CUFT CF7]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    }, 'CF7 Logging');
+    } catch (e) {
+      // Silent failure
+    }
   }
 
   function ready(fn) {
@@ -51,43 +42,33 @@
   function isCF7Form(form) {
     if (!form) return false;
 
-    var checkForm = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeDOMOperation :
-      function(fn) { try { return fn(); } catch (e) { return false; } };
-
-    return checkForm(function() {
+    try {
       return form && (
         form.closest('.wpcf7') !== null ||
         form.classList.contains('wpcf7-form') ||
         form.hasAttribute('data-wpcf7-id')
       );
-    }, form, 'CF7 Form Detection') || false;
+    } catch (e) {
+      return false;
+    }
   }
 
   /**
    * Get field value from CF7 form using CF7-specific naming patterns
    */
   function getFieldValue(form, type) {
-    var measurement = hasPerformanceMonitor ?
-      window.cuftPerformanceMonitor.startMeasurement('cf7-field-extraction', {
-        fieldType: type,
-        context: 'CF7 Field Detection'
-      }) : null;
-
     try {
       // Framework detection - exit silently if not CF7
       if (!isCF7Form(form)) {
-        if (measurement) measurement.end();
         return "";
       }
 
-      var safeDOMQuery = hasErrorBoundary ?
-        window.cuftErrorBoundary.safeDOMOperation :
-        function(fn) { try { return fn(); } catch (e) { return []; } };
-
-      var inputs = safeDOMQuery(function() {
-        return form.querySelectorAll("input, textarea, select");
-      }, form, 'CF7 Field Input Query') || [];
+      var inputs;
+      try {
+        inputs = form.querySelectorAll("input, textarea, select") || [];
+      } catch (e) {
+        inputs = [];
+      }
 
       var field = null;
 
@@ -179,22 +160,21 @@
 
     if (!field) {
       log("No " + type + " field found in CF7 form");
-      if (measurement) measurement.end();
       return "";
     }
 
-    var value = safeDOMQuery(function() {
-      return (field.value || "").trim();
-    }, field, 'CF7 Field Value Extraction') || "";
+    var value;
+    try {
+      value = (field.value || "").trim();
+    } catch (e) {
+      value = "";
+    }
 
     log("CF7 field value for " + type + ":", value);
-
-    if (measurement) measurement.end();
     return value;
 
     } catch (e) {
       log("Error in CF7 field extraction:", e);
-      if (measurement) measurement.end();
       return "";
     }
   }
@@ -239,42 +219,30 @@
    * Main CF7 success handler using standardized utilities
    */
   function handleCF7Success(form) {
-    var measurement = hasPerformanceMonitor ?
-      window.cuftPerformanceMonitor.startMeasurement('cf7-form-processing', {
-        context: 'CF7 Form Success Handler'
-      }) : null;
-
-    var safeProcess = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeFormOperation :
-      function(formEl, fn, context) { try { return fn(formEl); } catch (e) { log("CF7 form processing error:", e); return false; } };
-
-    return safeProcess(form, function(formElement) {
+    try {
       // Framework detection - exit silently if not CF7
-      if (!isCF7Form(formElement)) {
-        if (measurement) measurement.end();
+      if (!isCF7Form(form)) {
         return false;
       }
 
       // Prevent duplicate processing
-      if (window.cuftDataLayerUtils.isFormProcessed(formElement)) {
+      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
         log("CF7 form already processed, skipping");
-        if (measurement) measurement.end();
         return false;
       }
 
       // Get form details
-      var formDetails = getCF7FormDetails(formElement);
+      var formDetails = getCF7FormDetails(form);
 
       // Skip forms without valid identification to prevent API errors
       if (!formDetails.form_id || formDetails.form_id === "unknown") {
         log("CF7 form lacks valid ID, skipping to prevent NaN errors:", formDetails);
-        if (measurement) measurement.end();
         return false;
       }
 
       // Get field values
-      var email = getFieldValue(formElement, "email");
-      var phone = getFieldValue(formElement, "phone");
+      var email = getFieldValue(form, "email");
+      var phone = getFieldValue(form, "phone");
 
       // Validate email if present
       if (email && !window.cuftDataLayerUtils.validateEmail(email)) {
@@ -295,15 +263,13 @@
       });
 
       // Use standardized tracking function
-      var success = window.cuftDataLayerUtils.trackFormSubmission('cf7', formElement, {
+      var success = window.cuftDataLayerUtils.trackFormSubmission('cf7', form, {
         form_id: formDetails.form_id,
         form_name: formDetails.form_name,
         user_email: email,
         user_phone: phone,
         debug: DEBUG
       });
-
-      if (measurement) measurement.end();
 
       if (success) {
         log("CF7 form successfully tracked");
@@ -312,8 +278,10 @@
         log("CF7 form tracking failed");
         return false;
       }
-
-    }, 'CF7 Success Handler');
+    } catch (e) {
+      log("CF7 form processing error:", e);
+      return false;
+    }
   }
 
   /**
@@ -332,20 +300,10 @@
       }
     };
 
-    if (hasRetryLogic) {
-      window.cuftRetryLogic.executeWithRetry('cf7-mailsent-event', processEvent, {
-        maxAttempts: 2,
-        baseDelay: 500,
-        context: 'CF7 MailSent Handler'
-      }).catch(function(error) {
-        log("CF7 mailsent handler error after retry:", error);
-      });
-    } else {
-      try {
-        processEvent();
-      } catch (e) {
-        log("CF7 mailsent handler error:", e);
-      }
+    try {
+      processEvent();
+    } catch (e) {
+      log("CF7 mailsent handler error:", e);
     }
   }
 
@@ -411,39 +369,14 @@
 
   // Initialize when DOM is ready
   ready(function () {
-    var initialization = hasPerformanceMonitor ?
-      window.cuftPerformanceMonitor.startMeasurement('cf7-initialization', {
-        context: 'CF7 Forms System Initialization'
-      }) : null;
-
-    var safeInit = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeExecute :
-      function(fn, context) { try { return fn(); } catch (e) { log("CF7 initialization error:", e); return false; } };
-
-    safeInit(function() {
-      // Log utility system status
-      log("CF7 Utility Systems Status:", {
-        errorBoundary: hasErrorBoundary,
-        performanceMonitor: hasPerformanceMonitor,
-        observerCleanup: hasObserverCleanup,
-        retryLogic: hasRetryLogic,
-        dataLayerUtils: !!(window.cuftDataLayerUtils)
-      });
-
+    try {
       // Setup event listeners
       setupCF7EventListeners();
 
-      if (initialization) initialization.end();
-
-      log("Contact Form 7 tracking initialized with " +
-          [hasErrorBoundary && "error boundary",
-           hasPerformanceMonitor && "performance monitoring",
-           hasObserverCleanup && "observer cleanup",
-           hasRetryLogic && "retry logic"]
-          .filter(Boolean).join(", ") + " systems");
-
-      return true;
-    }, 'CF7 Forms Initialization');
+      log("Contact Form 7 tracking initialized");
+    } catch (e) {
+      log("CF7 initialization error:", e);
+    }
   });
 
 })();
