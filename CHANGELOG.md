@@ -5,6 +5,28 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.2] - 2025-09-26
+
+### Fixed
+
+- **Plugin Folder References**: Updated test-update.php to use correct `choice-uft/` folder structure instead of `choice-universal-form-tracker/`
+- **Security Compliance**: Removed PII logging from admin quick tests to pass Constitutional Compliance validation
+- **GitHub Updater**: Enhanced asset URL generation with proper versioned naming and error handling
+
+### Enhanced
+
+- **Release Process**: Comprehensive improvements to GitHub updater with reflection-based download URL access
+- **CI/CD Pipeline**: Added validate-release.yml workflow for automated release validation
+- **Test Infrastructure**: Created test-update-process.sh for automated update testing
+- **Error Handling**: Improved plugin reactivation after updates with better error messages
+
+### Technical
+
+- **Documentation**: Updated CLAUDE.md and RELEASE.md with correct zip naming conventions
+- **Validation**: All Constitutional Compliance checks now pass with enhanced security patterns
+- **Asset Management**: GitHub updater now properly handles versioned release assets
+- **Plugin Structure**: Ensures consistent `choice-uft` folder usage throughout codebase
+
 ## [3.10.1] - 2025-01-25
 
 ### Fixed
