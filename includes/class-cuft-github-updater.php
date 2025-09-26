@@ -273,12 +273,11 @@ class CUFT_GitHub_Updater {
         // Always use release asset URL, never use archive URL
         $asset_url = $this->get_release_asset_url( $version );
 
-        // If no asset found, return the expected asset URL anyway
+        // If no asset found, return the expected versioned asset URL
         // This will fail gracefully rather than installing wrong structure
         if ( ! $asset_url ) {
-            // Return expected asset URL format even if not found
-            // This prevents archive URL from being used which breaks the installation
-            return "https://github.com/{$this->github_username}/{$this->github_repo}/releases/download/v{$version}/choice-uft.zip";
+            // Return expected versioned asset URL format
+            return "https://github.com/{$this->github_username}/{$this->github_repo}/releases/download/v{$version}/choice-uft-v{$version}.zip";
         }
 
         return $asset_url;
@@ -328,13 +327,15 @@ class CUFT_GitHub_Updater {
         $body = wp_remote_retrieve_body( $response );
         $data = json_decode( $body, true );
 
-        // Look for a zip file in assets
+        // Look for the versioned zip file in assets
         if ( isset( $data['assets'] ) && is_array( $data['assets'] ) ) {
+            $expected_asset_name = "choice-uft-v{$version}.zip";
+
             foreach ( $data['assets'] as $asset ) {
                 // Look for the plugin zip file
                 if ( isset( $asset['name'] ) && isset( $asset['browser_download_url'] ) ) {
-                    // Look specifically for choice-uft.zip to ensure correct plugin directory
-                    if ( $asset['name'] === 'choice-uft.zip' ) {
+                    // Look specifically for choice-uft-v{version}.zip to ensure correct plugin directory
+                    if ( $asset['name'] === $expected_asset_name ) {
                         $download_url = $asset['browser_download_url'];
                         // Cache for 1 hour
                         set_transient( $cache_key, $download_url, HOUR_IN_SECONDS );
@@ -344,7 +345,11 @@ class CUFT_GitHub_Updater {
             }
         }
 
-        // No asset found
+        // No asset found - log error for debugging
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::log( "Release asset not found: Expected 'choice-uft-v{$version}.zip' in release", 'error' );
+        }
+
         return false;
     }
     

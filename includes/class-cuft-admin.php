@@ -779,8 +779,30 @@ class CUFT_Admin {
         }
 
         try {
-            // Get download URL for the latest version
-            $download_url = "https://github.com/ChoiceOMG/choice-uft/archive/refs/tags/v{$latest_version}.zip";
+            // Get download URL using the GitHub updater to ensure consistency
+            global $cuft_updater;
+            if ( ! $cuft_updater || ! method_exists( $cuft_updater, 'get_download_url' ) ) {
+                wp_send_json_error( array(
+                    'message' => 'GitHub updater not available for download URL generation.'
+                ) );
+                return;
+            }
+
+            // Use reflection to access private method
+            $reflection = new ReflectionClass( $cuft_updater );
+            $get_download_url_method = $reflection->getMethod( 'get_download_url' );
+            $get_download_url_method->setAccessible( true );
+            $download_url = $get_download_url_method->invoke( $cuft_updater, $latest_version );
+
+            if ( ! $download_url ) {
+                wp_send_json_error( array(
+                    'message' => "Release asset 'choice-uft-v{$latest_version}.zip' not found. Please verify the release includes the correct asset."
+                ) );
+                return;
+            }
+
+            // Store plugin activation state before update
+            $was_plugin_active = is_plugin_active( CUFT_BASENAME );
 
             // Initialize the upgrader
             $skin = new CUFT_Ajax_Upgrader_Skin();
@@ -830,15 +852,23 @@ class CUFT_Admin {
                 delete_site_transient( 'update_plugins' );
                 delete_transient( 'cuft_github_version' );
 
-                // For reinstalls using install() method, ensure plugin is reactivated
-                if ( $is_reinstall && ! is_plugin_active( CUFT_BASENAME ) ) {
+                // Ensure plugin is reactivated if it was active before update
+                if ( $was_plugin_active && ! is_plugin_active( CUFT_BASENAME ) ) {
                     $activation_result = activate_plugin( CUFT_BASENAME );
                     if ( is_wp_error( $activation_result ) ) {
+                        $action_type = $is_reinstall ? 'Reinstall' : 'Update';
                         wp_send_json_error( array(
-                            'message' => 'Reinstall completed but plugin reactivation failed: ' . $activation_result->get_error_message(),
+                            'message' => "{$action_type} completed but plugin reactivation failed: " . $activation_result->get_error_message(),
                             'details' => $skin->messages
                         ) );
                         return;
+                    }
+                }
+
+                // Log successful reactivation for debugging
+                if ( $was_plugin_active && is_plugin_active( CUFT_BASENAME ) ) {
+                    if ( class_exists( 'CUFT_Logger' ) ) {
+                        CUFT_Logger::log( 'Plugin successfully reactivated after update', 'info' );
                     }
                 }
 
