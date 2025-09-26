@@ -394,16 +394,19 @@ The plugin is designed to work with:
 2. **Create Installation Zip**:
    ```bash
    # Create zip file excluding development files
-   # IMPORTANT: Always name the zip 'choice-uft.zip' (WITHOUT version number)
-   # This ensures WordPress extracts to /wp-content/plugins/choice-uft/
-   cd choice-uft
-   zip -r ../choice-uft.zip . \
-     -x ".git/*" \
-     -x ".github/*" \
-     -x ".gitignore" \
-     -x "node_modules/*" \
-     -x ".env" \
-     -x "*.zip"
+   # CRITICAL: WordPress Release ZIP Naming Convention:
+   # - ZIP FILENAME: 'choice-uft-v3.xx.xx.zip' (includes version for GitHub releases)
+   # - FOLDER INSIDE: 'choice-uft/' (NO version number - required for WordPress auto-updater)
+   # This ensures WordPress extracts to /wp-content/plugins/choice-uft/ correctly
+
+   cd /path/to/parent/directory
+   zip -r choice-uft-v[VERSION].zip choice-uft/ \
+     -x "choice-uft/.git/*" \
+     -x "choice-uft/.github/*" \
+     -x "choice-uft/.gitignore" \
+     -x "choice-uft/node_modules/*" \
+     -x "choice-uft/.env" \
+     -x "choice-uft/*.zip"
    ```
 
 3. **Create GitHub Release**:
@@ -422,11 +425,14 @@ The plugin is designed to work with:
 
 ### Example Release Commands
 ```bash
-# For version 3.8.2
-cd /home/r11/dev/choice-uft
-zip -r ../choice-uft.zip . -x ".git/*" ".github/*" ".gitignore" "node_modules/*" ".env" "*.zip"
-gh release create v3.8.2 --title "Version 3.8.2" --notes "Release notes here"
-gh release upload v3.8.2 ../choice-uft.zip --clobber
+# For version 3.10.1 (UPDATED PROCESS)
+cd /home/r11/dev
+zip -r choice-uft-v3.10.1.zip choice-uft/ \
+  -x "choice-uft/.git/*" "choice-uft/.github/*" "choice-uft/.gitignore" \
+  -x "choice-uft/node_modules/*" "choice-uft/.env" "choice-uft/*.zip"
+
+gh release create v3.10.1 --title "Version 3.10.1" --notes "Release notes here"
+gh release upload v3.10.1 choice-uft-v3.10.1.zip --clobber
 ```
 
 ## Important Notes
@@ -437,7 +443,10 @@ gh release upload v3.8.2 ../choice-uft.zip --clobber
 4. **Handle errors gracefully** - Use try-catch blocks liberally
 5. **Log in debug mode only** - Minimize console output in production
 6. **Always create release zip files** - Required for WordPress installations and auto-updates
-7. **CRITICAL: Always name zip files 'choice-uft.zip'** - NEVER include version numbers in the filename, as this causes WordPress to extract to wrong directory (e.g., choice-uft-v3.9.3 instead of choice-uft)
+7. **CRITICAL: WordPress ZIP Naming Convention**:
+   - **ZIP FILENAME**: `choice-uft-v3.xx.xx.zip` (includes version for GitHub releases and downloads)
+   - **FOLDER INSIDE**: `choice-uft/` (NO version number - required for WordPress auto-updater)
+   - This ensures WordPress extracts to `/wp-content/plugins/choice-uft/` correctly, not `choice-uft-v3.xx.xx/`
 
 ## Troubleshooting
 

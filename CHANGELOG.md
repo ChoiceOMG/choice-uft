@@ -5,6 +5,20 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.1] - 2025-01-25
+
+### Fixed
+
+- **Release Process**: Updated release zip naming convention to `choice-uft-v3.xx.xx.zip` for WordPress compatibility
+- **Tag Conflicts**: Resolved v3.8.11 tag conflict preventing release deployment
+- **WordPress Updates**: Ensures proper folder structure (`choice-uft/`) for WordPress auto-updater functionality
+
+### Technical
+
+- **Release ZIP**: Now named `choice-uft-v3.10.1.zip` but extracts to `/wp-content/plugins/choice-uft/`
+- **Version Bump**: Updated version number to resolve deployment conflicts
+- **Process Documentation**: Updated CLAUDE.md with clarified release process
+
 ## [3.10.0] - 2025-01-25
 
 ### Added
