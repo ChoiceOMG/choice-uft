@@ -7,31 +7,22 @@
     return;
   }
 
-  // Check for available utility systems
-  var hasErrorBoundary = !!(window.cuftErrorBoundary);
-  var hasPerformanceMonitor = !!(window.cuftPerformanceMonitor);
-  var hasObserverCleanup = !!(window.cuftObserverCleanup);
-  var hasRetryLogic = !!(window.cuftRetryLogic);
 
   var DEBUG = !!(window.cuftGravity && window.cuftGravity.console_logging);
 
   function log() {
     if (!DEBUG) return;
 
-    var args = arguments;
-
-    var safeLog = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeExecute :
-      function(fn) { try { return fn(); } catch (e) { return null; } };
-
-    safeLog(function() {
+    try {
       if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
-          ["[CUFT Gravity]"].concat(Array.prototype.slice.call(args))
+          ["[CUFT Gravity]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    }, 'Gravity Forms Logging');
+    } catch (e) {
+      // Silent failure
+    }
   }
 
   function ready(fn) {
@@ -51,17 +42,15 @@
   function isGravityForm(form) {
     if (!form) return false;
 
-    var checkForm = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeDOMOperation :
-      function(fn) { try { return fn(); } catch (e) { return false; } };
-
-    return checkForm(function() {
+    try {
       return form && (
         form.classList.contains("gform_form") ||
         (form.id && form.id.indexOf("gform_") === 0) ||
         form.closest(".gform_wrapper") !== null
       );
-    }, form, 'Gravity Form Detection') || false;
+    } catch (e) {
+      return false;
+    }
   }
 
   /**
@@ -69,26 +58,18 @@
    * Handles complex multi-part fields (name, address, etc.)
    */
   function getFieldValue(form, type) {
-    var measurement = hasPerformanceMonitor ?
-      window.cuftPerformanceMonitor.startMeasurement('gravity-field-extraction', {
-        fieldType: type,
-        context: 'Gravity Field Detection'
-      }) : null;
-
     try {
       // Framework detection - exit silently if not Gravity Forms
       if (!isGravityForm(form)) {
-        if (measurement) measurement.end();
         return "";
       }
 
-      var safeDOMQuery = hasErrorBoundary ?
-        window.cuftErrorBoundary.safeDOMOperation :
-        function(fn) { try { return fn(); } catch (e) { return []; } };
-
-      var fields = safeDOMQuery(function() {
-        return form.querySelectorAll(".gfield");
-      }, form, 'Gravity Field Container Query') || [];
+      var fields;
+      try {
+        fields = form.querySelectorAll(".gfield") || [];
+      } catch (e) {
+        fields = [];
+      }
 
       var field = null;
 
@@ -176,15 +157,21 @@
 
     // Handle complex multi-part fields (like name fields with multiple inputs)
     if (!field && type === "email") {
-      var allInputs = safeDOMQuery(function() {
-        return form.querySelectorAll("input[type='text'], input[type='email']");
-      }, form, 'Gravity Email Pattern Query') || [];
+      var allInputs;
+      try {
+        allInputs = form.querySelectorAll("input[type='text'], input[type='email']") || [];
+      } catch (e) {
+        allInputs = [];
+      }
 
       for (var j = 0; j < allInputs.length; j++) {
         var testInput = allInputs[j];
-        var value = safeDOMQuery(function() {
-          return (testInput.value || "").trim();
-        }, testInput, 'Gravity Value Pattern Check') || "";
+        var value;
+        try {
+          value = (testInput.value || "").trim();
+        } catch (e) {
+          value = "";
+        }
 
         if (value && window.cuftDataLayerUtils.validateEmail(value)) {
           field = testInput;
@@ -196,22 +183,21 @@
 
     if (!field) {
       log("No " + type + " field found in Gravity form");
-      if (measurement) measurement.end();
       return "";
     }
 
-    var value = safeDOMQuery(function() {
-      return (field.value || "").trim();
-    }, field, 'Gravity Field Value Extraction') || "";
+    var value;
+    try {
+      value = (field.value || "").trim();
+    } catch (e) {
+      value = "";
+    }
 
     log("Gravity field value for " + type + ":", value);
-
-    if (measurement) measurement.end();
     return value;
 
     } catch (e) {
       log("Error in Gravity field extraction:", e);
-      if (measurement) measurement.end();
       return "";
     }
   }
@@ -303,26 +289,15 @@
    * Main Gravity Forms success handler using standardized utilities
    */
   function handleGravitySuccess(form, email, phone) {
-    var measurement = hasPerformanceMonitor ?
-      window.cuftPerformanceMonitor.startMeasurement('gravity-form-processing', {
-        context: 'Gravity Form Success Handler'
-      }) : null;
-
-    var safeProcess = hasErrorBoundary ?
-      window.cuftErrorBoundary.safeFormOperation :
-      function(formEl, fn, context) { try { return fn(formEl); } catch (e) { log("Gravity form processing error:", e); return false; } };
-
-    return safeProcess(form, function(formElement) {
+    try {
       // Framework detection - exit silently if not Gravity Forms
-      if (!isGravityForm(formElement)) {
-        if (measurement) measurement.end();
+      if (!isGravityForm(form)) {
         return false;
       }
 
       // Prevent duplicate processing
-      if (window.cuftDataLayerUtils.isFormProcessed(formElement)) {
+      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
         log("Gravity form already processed, skipping");
-        if (measurement) measurement.end();
         return false;
       }
 
@@ -356,8 +331,6 @@
         debug: DEBUG
       });
 
-      if (measurement) measurement.end();
-
       if (success) {
         log("Gravity form successfully tracked");
         return true;
@@ -365,8 +338,10 @@
         log("Gravity form tracking failed");
         return false;
       }
-
-    }, 'Gravity Success Handler');
+    } catch (e) {
+      log("Gravity form processing error:", e);
+      return false;
+    }
   }
 
   /**
@@ -381,9 +356,7 @@
       description: 'Observing form for confirmation message'
     };
 
-    var cleanup = hasObserverCleanup ?
-      window.cuftObserverCleanup.registerObserver(observerConfig) :
-      function() {};
+    var cleanup = function() {};
 
     var pushed = false;
     var attempts = 0;
@@ -508,20 +481,10 @@
       return true;
     };
 
-    if (hasRetryLogic) {
-      window.cuftRetryLogic.executeWithRetry('gravity-form-submit', processEvent, {
-        maxAttempts: 2,
-        baseDelay: 500,
-        context: 'Gravity Form Submit Handler'
-      }).catch(function(error) {
-        log("Gravity submit handler error after retry:", error);
-      });
-    } else {
-      try {
-        processEvent();
-      } catch (e) {
-        log("Gravity submit handler error:", e);
-      }
+    try {
+      processEvent();
+    } catch (e) {
+      log("Gravity submit handler error:", e);
     }
   }
 

@@ -8,15 +8,6 @@
 window.cuftDataLayerUtils = (function () {
   "use strict";
 
-  /**
-   * Feature flag for new utility systems integration
-   */
-  var FEATURE_FLAGS = {
-    errorBoundary: !!(window.cuftErrorBoundary),
-    performanceMonitor: !!(window.cuftPerformanceMonitor),
-    observerCleanup: !!(window.cuftObserverCleanup),
-    retryLogic: !!(window.cuftRetryLogic)
-  };
 
   /**
    * Framework identifiers mapping
@@ -265,19 +256,7 @@ window.cuftDataLayerUtils = (function () {
   function trackFormSubmission(framework, formElement, options) {
     options = options || {};
 
-    // Use performance monitoring if available
-    var measurement = FEATURE_FLAGS.performanceMonitor ?
-      window.cuftPerformanceMonitor.startMeasurement('dataLayer-form-tracking', {
-        framework: framework,
-        context: 'Form Submission Tracking'
-      }) : null;
-
-    // Use error boundary if available
-    var safeProcess = FEATURE_FLAGS.errorBoundary ?
-      window.cuftErrorBoundary.safeFormOperation :
-      function(formEl, fn, context) { try { return fn(formEl); } catch (e) { return false; } };
-
-    return safeProcess(formElement, function(formEl) {
+    try {
       // Prevent duplicate processing
       if (isFormProcessed(formElement)) {
         if (options.debug) {
@@ -320,34 +299,12 @@ window.cuftDataLayerUtils = (function () {
 
       // Mark form as processed
       markFormProcessed(formElement);
-
-      if (measurement) measurement.end();
       return true;
-
-    }, 'DataLayer Form Tracking');
+    } catch (e) {
+      return false;
+    }
   }
 
-  /**
-   * Get feature flag status for utility systems
-   */
-  function getFeatureFlags() {
-    return {
-      errorBoundary: FEATURE_FLAGS.errorBoundary,
-      performanceMonitor: FEATURE_FLAGS.performanceMonitor,
-      observerCleanup: FEATURE_FLAGS.observerCleanup,
-      retryLogic: FEATURE_FLAGS.retryLogic
-    };
-  }
-
-  /**
-   * Check if new utility systems are enabled
-   */
-  function hasUtilitySupport() {
-    return FEATURE_FLAGS.errorBoundary ||
-           FEATURE_FLAGS.performanceMonitor ||
-           FEATURE_FLAGS.observerCleanup ||
-           FEATURE_FLAGS.retryLogic;
-  }
 
   // Public API
   return {
@@ -371,13 +328,8 @@ window.cuftDataLayerUtils = (function () {
     getTrackingParameters: getTrackingParameters,
     getDataLayer: getDataLayer,
 
-    // Feature flags and utility system support
-    getFeatureFlags: getFeatureFlags,
-    hasUtilitySupport: hasUtilitySupport,
-
     // Constants
     FRAMEWORK_IDENTIFIERS: FRAMEWORK_IDENTIFIERS,
-    CLICK_ID_FIELDS: CLICK_ID_FIELDS,
-    FEATURE_FLAGS: FEATURE_FLAGS
+    CLICK_ID_FIELDS: CLICK_ID_FIELDS
   };
 })();

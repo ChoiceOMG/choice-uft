@@ -9,37 +9,22 @@
     return;
   }
 
-  // Check for available utility systems
-  var hasErrorBoundary = !!window.cuftErrorBoundary;
-  var hasPerformanceMonitor = !!window.cuftPerformanceMonitor;
-  var hasObserverCleanup = !!window.cuftObserverCleanup;
-  var hasRetryLogic = !!window.cuftRetryLogic;
 
   var DEBUG = !!(window.cuftElementor && window.cuftElementor.console_logging);
 
   function log() {
     if (!DEBUG) return;
 
-    var args = arguments;
-
-    var safeLog = hasErrorBoundary
-      ? window.cuftErrorBoundary.safeExecute
-      : function (fn) {
-          try {
-            return fn();
-          } catch (e) {
-            return null;
-          }
-        };
-
-    safeLog(function () {
+    try {
       if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
-          ["[CUFT Elementor]"].concat(Array.prototype.slice.call(args))
+          ["[CUFT Elementor]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    }, "Elementor Logging");
+    } catch (e) {
+      // Silent failure
+    }
   }
 
   function ready(fn) {
@@ -59,71 +44,34 @@
   function isElementorForm(form) {
     if (!form) return false;
 
-    var checkForm = hasErrorBoundary
-      ? window.cuftErrorBoundary.safeDOMOperation
-      : function (fn) {
-          try {
-            return fn();
-          } catch (e) {
-            return false;
-          }
-        };
-
-    return (
-      checkForm(
-        function () {
-          return (
-            form &&
-            (form.classList.contains("elementor-form") ||
-              form.closest(".elementor-widget-form") !== null ||
-              form.getAttribute("data-settings") !== null)
-          );
-        },
-        form,
-        "Elementor Form Detection"
-      ) || false
-    );
+    try {
+      return (
+        form &&
+        (form.classList.contains("elementor-form") ||
+          form.closest(".elementor-widget-form") !== null ||
+          form.getAttribute("data-settings") !== null)
+      );
+    } catch (e) {
+      return false;
+    }
   }
 
   /**
    * Get field value from form using comprehensive detection
    */
   function getFieldValue(form, type) {
-    var measurement = hasPerformanceMonitor
-      ? window.cuftPerformanceMonitor.startMeasurement(
-          "elementor-field-extraction",
-          {
-            fieldType: type,
-            context: "Elementor Field Detection",
-          }
-        )
-      : null;
-
     try {
       // Framework detection - exit silently if not Elementor
       if (!isElementorForm(form)) {
-        if (measurement) measurement.end();
         return "";
       }
 
-      var safeDOMQuery = hasErrorBoundary
-        ? window.cuftErrorBoundary.safeDOMOperation
-        : function (fn) {
-            try {
-              return fn();
-            } catch (e) {
-              return [];
-            }
-          };
-
-      var inputs =
-        safeDOMQuery(
-          function () {
-            return form.querySelectorAll("input, textarea");
-          },
-          form,
-          "Field Input Query"
-        ) || [];
+      var inputs;
+      try {
+        inputs = form.querySelectorAll("input, textarea") || [];
+      } catch (e) {
+        inputs = [];
+      }
 
       var field = null;
 
@@ -252,26 +200,20 @@
 
       if (!field) {
         log("No " + type + " field found in form");
-        if (measurement) measurement.end();
         return "";
       }
 
-      var value =
-        safeDOMQuery(
-          function () {
-            return (field.value || "").trim();
-          },
-          field,
-          "Field Value Extraction"
-        ) || "";
+      var value;
+      try {
+        value = (field.value || "").trim();
+      } catch (e) {
+        value = "";
+      }
 
       log("Field value for " + type + ":", value);
-
-      if (measurement) measurement.end();
       return value;
     } catch (e) {
       log("Error in field extraction:", e);
-      if (measurement) measurement.end();
       return "";
     }
   }
@@ -354,99 +296,73 @@
    * Main success handler using standardized utilities
    */
   function handleElementorSuccess(form) {
-    var measurement = hasPerformanceMonitor
-      ? window.cuftPerformanceMonitor.startMeasurement(
-          "elementor-form-processing",
-          {
-            context: "Elementor Form Success Handler",
-          }
-        )
-      : null;
+    try {
+      // Framework detection - exit silently if not Elementor
+      if (!isElementorForm(form)) {
+        return false;
+      }
 
-    var safeProcess = hasErrorBoundary
-      ? window.cuftErrorBoundary.safeFormOperation
-      : function (formEl, fn, context) {
-          try {
-            return fn(formEl);
-          } catch (e) {
-            log("Form processing error:", e);
-            return false;
-          }
-        };
+      // Prevent duplicate processing
+      if (window.cuftDataLayerUtils.isFormProcessed(form)) {
+        log("Form already processed, skipping");
+        return false;
+      }
 
-    return safeProcess(
-      form,
-      function (formElement) {
-        // Framework detection - exit silently if not Elementor
-        if (!isElementorForm(formElement)) {
-          if (measurement) measurement.end();
-          return false;
+      // Check for multi-step forms (only track final step)
+      if (!isFinalStepForm(form)) {
+        return false;
+      }
+
+      // Get form details
+      var formDetails = getFormDetails(form);
+
+      // Get field values
+      var email = getFieldValue(form, "email");
+      var phone = getFieldValue(form, "phone");
+
+      // Validate email if present
+      if (email && !window.cuftDataLayerUtils.validateEmail(email)) {
+        log("Invalid email found, excluding from tracking:", email);
+        email = "";
+      }
+
+      // Sanitize phone if present
+      if (phone) {
+        phone = window.cuftDataLayerUtils.sanitizePhone(phone);
+      }
+
+      log("Processing Elementor form submission:", {
+        formId: formDetails.form_id,
+        formName: formDetails.form_name,
+        email: email || "not found",
+        phone: phone || "not found",
+        isPopup: isPopupForm(form),
+      });
+
+      // Use standardized tracking function
+      var success = window.cuftDataLayerUtils.trackFormSubmission(
+        "elementor",
+        form,
+        {
+          form_id: formDetails.form_id,
+          form_name: formDetails.form_name,
+          user_email: email,
+          user_phone: phone,
+          debug: DEBUG,
         }
+      );
 
-        // Prevent duplicate processing
-        if (window.cuftDataLayerUtils.isFormProcessed(formElement)) {
-          log("Form already processed, skipping");
-          if (measurement) measurement.end();
-          return false;
-        }
-
-        // Check for multi-step forms (only track final step)
-        if (!isFinalStepForm(formElement)) {
-          if (measurement) measurement.end();
-          return false;
-        }
-
-        // Get form details
-        var formDetails = getFormDetails(formElement);
-
-        // Get field values
-        var email = getFieldValue(formElement, "email");
-        var phone = getFieldValue(formElement, "phone");
-
-        // Validate email if present
-        if (email && !window.cuftDataLayerUtils.validateEmail(email)) {
-          log("Invalid email found, excluding from tracking:", email);
-          email = "";
-        }
-
-        // Sanitize phone if present
-        if (phone) {
-          phone = window.cuftDataLayerUtils.sanitizePhone(phone);
-        }
-
-        log("Processing Elementor form submission:", {
-          formId: formDetails.form_id,
-          formName: formDetails.form_name,
-          email: email || "not found",
-          phone: phone || "not found",
-          isPopup: isPopupForm(formElement),
-        });
-
-        // Use standardized tracking function
-        var success = window.cuftDataLayerUtils.trackFormSubmission(
-          "elementor",
-          formElement,
-          {
-            form_id: formDetails.form_id,
-            form_name: formDetails.form_name,
-            user_email: email,
-            user_phone: phone,
-            debug: DEBUG,
-          }
-        );
-
-        if (measurement) measurement.end();
-
-        if (success) {
-          log("Elementor form successfully tracked");
-          return true;
-        } else {
-          log("Elementor form tracking failed");
-          return false;
-        }
-      },
-      "Elementor Success Handler"
-    );
+      if (success) {
+        log("Elementor form successfully tracked");
+        return true;
+      } else {
+        log("Elementor form tracking failed");
+        return false;
+      }
+    } catch (e) {
+      log("Form processing error:", e);
+      return false;
+    }
   }
 
   /**
@@ -474,22 +390,10 @@
       return false;
     };
 
-    if (hasRetryLogic) {
-      window.cuftRetryLogic
-        .executeWithRetry("elementor-native-success-event", processEvent, {
-          maxAttempts: 2,
-          baseDelay: 500,
-          context: "Elementor Native Success Handler",
-        })
-        .catch(function (error) {
-          log("Native success handler error after retry:", error);
-        });
-    } else {
-      try {
-        processEvent();
-      } catch (e) {
-        log("Native success handler error:", e);
-      }
+    try {
+      processEvent();
+    } catch (e) {
+      log("Native success handler error:", e);
     }
   }
 
@@ -523,22 +427,10 @@
       return false;
     };
 
-    if (hasRetryLogic) {
-      window.cuftRetryLogic
-        .executeWithRetry("elementor-jquery-success-event", processEvent, {
-          maxAttempts: 2,
-          baseDelay: 500,
-          context: "Elementor jQuery Success Handler",
-        })
-        .catch(function (error) {
-          log("jQuery success handler error after retry:", error);
-        });
-    } else {
-      try {
-        processEvent();
-      } catch (e) {
-        log("jQuery success handler error:", e);
-      }
+    try {
+      processEvent();
+    } catch (e) {
+      log("jQuery success handler error:", e);
     }
   }
 
@@ -550,17 +442,7 @@
    */
   function setupMutationObserver() {
     var observerCallback = function (mutations) {
-      var safeMutationProcess = hasErrorBoundary
-        ? window.cuftErrorBoundary.safeExecute
-        : function (fn, context) {
-            try {
-              return fn();
-            } catch (e) {
-              log("Mutation processing error:", e);
-            }
-          };
-
-      safeMutationProcess(function () {
+      try {
         mutations.forEach(function (mutation) {
           if (mutation.type === "childList") {
             mutation.addedNodes.forEach(function (node) {
@@ -589,29 +471,16 @@
             });
           }
         });
-      }, "Elementor Mutation Observer Processing");
+      } catch (e) {
+        log("Mutation processing error:", e);
+      }
     };
 
-    var observer;
-    if (hasObserverCleanup) {
-      // Use scoped observer with automatic cleanup
-      observer = window.cuftObserverCleanup.createScopedObserver(
-        document.body,
-        observerCallback,
-        {
-          config: { childList: true, subtree: true },
-          timeout: 300000, // 5 minutes timeout for long-lived observer
-          context: "Elementor Success Message Detection",
-        }
-      );
-    } else {
-      // Fallback to standard observer
-      observer = new MutationObserver(observerCallback);
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
-    }
+    var observer = new MutationObserver(observerCallback);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
 
     log("MutationObserver setup for success message detection");
     return observer;
@@ -759,58 +628,16 @@
 
   // Initialize when DOM is ready
   ready(function () {
-    var initialization = hasPerformanceMonitor
-      ? window.cuftPerformanceMonitor.startMeasurement(
-          "elementor-initialization",
-          {
-            context: "Elementor Forms System Initialization",
-          }
-        )
-      : null;
-
-    var safeInit = hasErrorBoundary
-      ? window.cuftErrorBoundary.safeExecute
-      : function (fn, context) {
-          try {
-            return fn();
-          } catch (e) {
-            log("Initialization error:", e);
-            return false;
-          }
-        };
-
-    safeInit(function () {
-      // Log utility system status
-      log("Utility Systems Status:", {
-        errorBoundary: hasErrorBoundary,
-        performanceMonitor: hasPerformanceMonitor,
-        observerCleanup: hasObserverCleanup,
-        retryLogic: hasRetryLogic,
-        dataLayerUtils: !!window.cuftDataLayerUtils,
-      });
-
+    try {
       // Fix invalid pattern attributes before any form interactions
       fixElementorPatterns();
 
       // Setup all event listeners
       setupEventListeners();
 
-      if (initialization) initialization.end();
-
-      log(
-        "Elementor forms tracking initialized with " +
-          [
-            hasErrorBoundary && "error boundary",
-            hasPerformanceMonitor && "performance monitoring",
-            hasObserverCleanup && "observer cleanup",
-            hasRetryLogic && "retry logic",
-          ]
-            .filter(Boolean)
-            .join(", ") +
-          " systems"
-      );
-
-      return true;
-    }, "Elementor Forms Initialization");
+      log("Elementor forms tracking initialized");
+    } catch (e) {
+      log("Initialization error:", e);
+    }
   });
 })();

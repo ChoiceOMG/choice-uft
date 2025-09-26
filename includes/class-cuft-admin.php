@@ -88,8 +88,6 @@ class CUFT_Admin {
                 <?php $this->render_debug_section(); ?>
             <?php elseif ( $current_tab === 'click-tracking' ): ?>
                 <?php $this->render_click_tracking_tab(); ?>
-            <?php elseif ( $current_tab === 'utility-systems' ): ?>
-                <?php $this->render_utility_systems_tab(); ?>
             <?php endif; ?>
         </div>
         <?php
@@ -259,24 +257,32 @@ class CUFT_Admin {
                             </span>
                         </div>
                         <?php if ( $framework['detected'] ): ?>
-                            <?php
-                            // Get test page URL for navigation
-                            $test_page_id = get_option( 'cuft_test_page_id' );
-                            $test_page_url = $test_page_id ? get_permalink( $test_page_id ) : '#';
-                            ?>
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                                <div style="display: flex; align-items: center; justify-content: space-between;">
-                                    <div style="font-size: 12px; color: #666;">
-                                        Form tracking enabled and active
+                                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                    Form tracking enabled and active
+                                </div>
+
+                                <!-- Quick Test Controls -->
+                                <div class="cuft-quick-test-controls" data-framework="<?php echo esc_attr( $framework['key'] ); ?>">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <label style="font-size: 12px; font-weight: 600; color: #333;">Quick Test:</label>
+                                        <input type="email"
+                                               class="cuft-test-email"
+                                               value="<?php echo esc_attr( $admin_email ); ?>"
+                                               placeholder="admin@example.com"
+                                               style="font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 3px; flex: 1; min-width: 120px;">
+                                        <button type="button"
+                                                class="cuft-quick-test-btn button button-primary"
+                                                style="font-size: 11px; padding: 4px 12px; height: auto;">
+                                            Test <?php echo esc_html( $framework['name'] ); ?>
+                                        </button>
                                     </div>
-                                    <?php if ( $test_page_url !== '#' ): ?>
-                                        <a href="<?php echo esc_url( $test_page_url ); ?>"
-                                           target="_blank"
-                                           class="button button-secondary"
-                                           style="font-size: 11px; padding: 4px 8px; height: auto;">
-                                            🧪 Test Form
-                                        </a>
-                                    <?php endif; ?>
+
+                                    <!-- Results area (hidden by default) -->
+                                    <div class="cuft-quick-test-results" style="display: none; margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
+                                        <div class="cuft-test-status"></div>
+                                        <div class="cuft-test-events" style="margin-top: 6px; font-size: 11px;"></div>
+                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -642,21 +648,31 @@ class CUFT_Admin {
         
         // Check if WordPress functions exist before enqueuing
         if ( function_exists( 'wp_enqueue_script' ) && function_exists( 'wp_localize_script' ) ) {
-            wp_enqueue_script( 
-                'cuft-admin', 
-                CUFT_URL . '/assets/cuft-admin.js', 
-                array( 'jquery' ), 
-                CUFT_VERSION, 
-                true 
+            wp_enqueue_script(
+                'cuft-admin',
+                CUFT_URL . '/assets/cuft-admin.js',
+                array( 'jquery' ),
+                CUFT_VERSION,
+                true
+            );
+
+            // Enqueue quick tests script
+            wp_enqueue_script(
+                'cuft-admin-quick-tests',
+                CUFT_URL . '/assets/admin/cuft-admin-quick-tests.js',
+                array( 'cuft-admin' ),
+                CUFT_VERSION,
+                true
             );
         } else {
             return; // Exit early if WordPress functions aren't available
         }
-        
+
         wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_ajax_nonce' ),
-            'current_version' => CUFT_VERSION
+            'current_version' => CUFT_VERSION,
+            'plugin_url' => CUFT_URL
         ));
     }
     
@@ -1187,8 +1203,7 @@ class CUFT_Admin {
     private function render_admin_tabs( $current_tab ) {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' ),
-            'utility-systems' => __( 'Utility Systems', 'choice-universal-form-tracker' )
+            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
         );
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
@@ -1697,140 +1712,4 @@ class CUFT_Admin {
         <?php
     }
 
-    /**
-     * Render utility systems tab
-     */
-    private function render_utility_systems_tab() {
-        // Get utility system status from loader
-        $utility_status = array();
-        if ( function_exists( 'cuft_get_utility_loader' ) ) {
-            $loader = cuft_get_utility_loader();
-            $utility_status = $loader->get_utility_status();
-        }
-
-        // Get feature flags
-        $feature_flags = get_option( 'cuft_feature_flags', array() );
-        $utility_systems_enabled = isset( $feature_flags['utility_systems'] ) ? $feature_flags['utility_systems'] : true;
-
-        ?>
-        <div class="card">
-            <h2 style="margin-top: 0;">📊 Utility Systems Status</h2>
-
-            <div style="background: #f1f1f1; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                <h4>Overview</h4>
-                <p>Utility systems provide enhanced error handling, performance monitoring, memory management, and operational resilience for form tracking.</p>
-                <p><strong>Status:</strong>
-                    <?php if ( $utility_systems_enabled ): ?>
-                        <span style="color: #28a745; font-weight: bold;">✅ Enabled</span>
-                    <?php else: ?>
-                        <span style="color: #dc3545; font-weight: bold;">❌ Disabled</span>
-                    <?php endif; ?>
-                </p>
-            </div>
-
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>System</th>
-                        <th>File</th>
-                        <th>Status</th>
-                        <th>Size</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ( $this->get_utility_systems_info() as $system => $info ): ?>
-                        <?php $status = isset( $utility_status[$system] ) ? $utility_status[$system] : array( 'exists' => false ); ?>
-                        <tr>
-                            <td><strong><?php echo esc_html( $info['name'] ); ?></strong></td>
-                            <td><code><?php echo esc_html( $info['file'] ); ?></code></td>
-                            <td>
-                                <?php if ( $status['exists'] ): ?>
-                                    <span style="color: #28a745;">✅ Available</span>
-                                <?php else: ?>
-                                    <span style="color: #dc3545;">❌ Missing</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ( $status['exists'] && isset( $status['size'] ) ): ?>
-                                    <?php echo esc_html( number_format( $status['size'] / 1024, 1 ) ); ?>KB
-                                <?php else: ?>
-                                    -
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo esc_html( $info['description'] ); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-
-            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
-                <h4 style="margin-top: 0; color: #856404;">🛠️ System Information</h4>
-                <ul style="margin: 0; padding-left: 20px; color: #856404;">
-                    <li><strong>Error Boundary:</strong> Prevents JavaScript errors from breaking form tracking</li>
-                    <li><strong>Performance Monitor:</strong> Ensures operations complete within 50ms constitutional requirement</li>
-                    <li><strong>Observer Cleanup:</strong> Prevents memory leaks by managing MutationObserver lifecycles</li>
-                    <li><strong>Retry Logic:</strong> Provides resilient operation patterns with exponential backoff</li>
-                </ul>
-            </div>
-
-            <?php if ( ! empty( $utility_status ) ): ?>
-                <div style="margin-top: 20px;">
-                    <h4>Performance Metrics</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                        <div style="padding: 10px; background: #e8f5e8; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #28a745;"><?php echo count( array_filter( array_column( $utility_status, 'exists' ) ) ); ?></div>
-                            <div style="font-size: 12px; color: #666;">Systems Available</div>
-                        </div>
-                        <div style="padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #6c757d;"><?php echo number_format( array_sum( array_column( $utility_status, 'size' ) ) / 1024, 1 ); ?>KB</div>
-                            <div style="font-size: 12px; color: #666;">Total Size</div>
-                        </div>
-                        <div style="padding: 10px; background: #e3f2fd; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #1976d2;">ES5</div>
-                            <div style="font-size: 12px; color: #666;">Compatibility</div>
-                        </div>
-                        <div style="padding: 10px; background: #fff3e0; border-radius: 5px; text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold; color: #f57c00;">Phase 3</div>
-                            <div style="font-size: 12px; color: #666;">Implementation</div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <div style="margin-top: 20px; text-align: center;">
-                <a href="<?php echo esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=utility-systems&action=refresh' ) ); ?>" class="button button-secondary">🔄 Refresh Status</a>
-                <a href="https://github.com/ChoiceOMG/choice-uft/blob/main/docs/UTILITY_SYSTEMS.md" target="_blank" class="button button-secondary" style="margin-left: 10px;">📖 Documentation</a>
-            </div>
-        </div>
-        <?php
-    }
-
-    /**
-     * Get utility systems information
-     */
-    private function get_utility_systems_info() {
-        return array(
-            'error-boundary' => array(
-                'name' => 'Error Boundary System',
-                'file' => 'cuft-error-boundary.js',
-                'description' => 'Comprehensive error handling with cascade failure prevention'
-            ),
-            'performance-monitor' => array(
-                'name' => 'Performance Monitor System',
-                'file' => 'cuft-performance-monitor.js',
-                'description' => 'Tracks performance metrics to ensure <50ms processing time'
-            ),
-            'observer-cleanup' => array(
-                'name' => 'Observer Cleanup System',
-                'file' => 'cuft-observer-cleanup.js',
-                'description' => 'Manages MutationObserver lifecycles to prevent memory leaks'
-            ),
-            'retry-logic' => array(
-                'name' => 'Retry Logic System',
-                'file' => 'cuft-retry-logic.js',
-                'description' => 'Resilient operation patterns with exponential backoff and circuit breaker'
-            )
-        );
-    }
 }

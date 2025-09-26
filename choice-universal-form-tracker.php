@@ -66,8 +66,6 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-click-tracker.php',
             'includes/class-cuft-click-integration.php',
             'includes/class-cuft-test-forms.php',
-            // Utility systems (Phase 3 improvements)
-            'includes/class-cuft-utility-loader.php',  // Load utility system loader
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
@@ -138,10 +136,6 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Feature_Flags();
             }
 
-            // Initialize utility systems loader (Phase 3 improvements)
-            if ( class_exists( 'CUFT_Utility_Loader' ) ) {
-                new CUFT_Utility_Loader();
-            }
 
             if ( is_admin() && class_exists( 'CUFT_Admin' ) ) {
                 new CUFT_Admin();

@@ -222,10 +222,12 @@ The following click IDs are tracked:
 The plugin provides two separate test form implementations:
 
 1. **Admin Page Quick Tests** (`/wp-admin/options-general.php?page=choice-universal-form-tracker`)
-   - Quick test buttons for each framework
-   - Uses production tracking flow
-   - Fires real framework events
-   - Production code adds `cuft_tracked: true` and `cuft_source`
+   - Quick test buttons integrated directly into Framework Detection cards
+   - One-click testing with customizable admin email
+   - Inline results showing dataLayer events fired
+   - Uses production tracking flow with real framework events
+   - Copy-to-clipboard functionality for event data
+   - No page navigation required
 
 2. **Dedicated Test Page** (`[cuft_test_forms]` shortcode)
    - Full form interfaces for each framework
@@ -256,6 +258,33 @@ formElement.dispatchEvent(event);
 // - Pushes to dataLayer with correct field names
 // - Fires generate_lead if requirements met
 ```
+
+### Admin Page Quick Tests
+
+**Location**: Framework Detection cards in WordPress admin settings page
+
+**Features**:
+- **One-Click Testing**: Test button for each detected framework
+- **Customizable Email**: Admin can specify email for test submissions (defaults to site admin email)
+- **Pre-set Test Values**: Uses standard test data:
+  - Email: From admin input field
+  - Phone: "555-TEST-1234"
+  - Form Name: "Admin Quick Test"
+  - UTM Campaign: "test_campaign_{framework}"
+  - Click IDs: Generated test values to trigger generate_lead
+
+**Results Display**:
+- Inline results showing dataLayer events fired
+- Status indicators for form_submit and generate_lead events
+- JSON event data with copy-to-clipboard functionality
+- Auto-hide after 10 seconds or manual collapse
+
+**Framework Events Fired**:
+- **Elementor**: `submit_success`, `elementor/frontend/form_success`
+- **Contact Form 7**: `wpcf7mailsent`
+- **Avada/Fusion**: `submit` event with success state
+- **Ninja Forms**: `submit` event with `nfFormSubmitResponse`
+- **Gravity Forms**: `submit` event with `gform_confirmation_loaded`
 
 ### Legacy Test Forms Removal
 
