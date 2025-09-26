@@ -411,7 +411,7 @@
         sendEmailNotification: function(framework, formId, email, events) {
             // This would integrate with the existing email notification system
             // For now, just log the intention
-            console.log(`[CUFT Admin] Would send email notification to ${email} for ${framework} test ${formId}`);
+            console.log(`[CUFT Admin] Would send email notification for ${framework} test ${formId}`);
         },
 
         /**
