@@ -18,6 +18,8 @@ class CUFT_Admin {
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
         add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
+        add_action( 'wp_ajax_cuft_record_event', array( $this, 'ajax_record_event' ) );
+        add_action( 'wp_ajax_nopriv_cuft_record_event', array( $this, 'ajax_record_event' ) );
 // Removed admin page test forms - use dedicated test page instead
         add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -1710,6 +1712,41 @@ class CUFT_Admin {
         });
         </script>
         <?php
+    }
+
+    /**
+     * AJAX handler for recording events
+     */
+    public function ajax_record_event() {
+        // Verify nonce
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( $_POST['click_id'] ) : '';
+        $event_type = isset( $_POST['event_type'] ) ? sanitize_text_field( $_POST['event_type'] ) : '';
+
+        if ( empty( $click_id ) || empty( $event_type ) ) {
+            wp_send_json_error( array( 'message' => 'Missing required parameters' ) );
+        }
+
+        // Record the event
+        if ( class_exists( 'CUFT_Click_Tracker' ) ) {
+            $result = CUFT_Click_Tracker::add_event( $click_id, $event_type );
+
+            if ( $result ) {
+                wp_send_json_success( array(
+                    'message' => 'Event recorded successfully',
+                    'click_id' => $click_id,
+                    'event_type' => $event_type,
+                    'timestamp' => gmdate( 'c' )
+                ) );
+            } else {
+                wp_send_json_error( array( 'message' => 'Failed to record event' ) );
+            }
+        } else {
+            wp_send_json_error( array( 'message' => 'Click tracker not available' ) );
+        }
     }
 
 }

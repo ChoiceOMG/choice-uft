@@ -5,6 +5,31 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0] - 2025-01-25
+
+### Added
+
+- **Click Tracking Events**: Complete migration system to transform static click tracking into dynamic event chronology
+- **Event Array Support**: New JSON-based events column tracks user journey from click to conversion
+- **Migration Tools**: Progressive data migration with batch processing and rollback capability
+- **Feature Flags**: Gradual rollout system with percentage-based user targeting
+- **Event Recording**: Automatic recording of phone_click, email_click, form_submit, and generate_lead events
+- **JavaScript Integration**: Enhanced cuft-links.js with secure AJAX event recording
+- **Admin Interface**: Updated click tracking display with event timeline visualization
+- **Database Schema**: Added events JSON column and date_updated index for performance
+
+### Changed
+
+- **Table Structure**: Removed redundant utm_source and platform columns
+- **Event Tracking**: Enhanced with chronological event storage and automatic date_updated management
+- **Click Tracker**: Added comprehensive event recording and retrieval methods
+
+### Migration
+
+- **Seamless Upgrade**: Existing data automatically migrated to new event format
+- **Zero Downtime**: Feature flags enable safe production deployment
+- **Data Preservation**: All existing click tracking data preserved and enhanced
+
 ## [3.9.9] - 2025-09-25
 
 ### Fixed
