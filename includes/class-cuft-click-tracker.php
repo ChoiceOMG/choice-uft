@@ -101,6 +101,7 @@ class CUFT_Click_Tracker {
             'utm_campaign' => '',
             'utm_term' => '',
             'utm_content' => '',
+            'events' => null, // Initialize events column
             'qualified' => 0,
             'score' => 0,
             'ip_address' => self::get_client_ip(),
@@ -128,7 +129,13 @@ class CUFT_Click_Tracker {
             $data['additional_data'] = json_encode( $data['additional_data'] );
         }
         $data['additional_data'] = sanitize_textarea_field( $data['additional_data'] );
-        
+
+        // Initialize empty events array if events column exists
+        $columns = $wpdb->get_results( "SHOW COLUMNS FROM $table_name LIKE 'events'" );
+        if ( ! empty( $columns ) && $data['events'] === null ) {
+            $data['events'] = json_encode( array() );
+        }
+
         // Check if record exists
         $existing = $wpdb->get_row( $wpdb->prepare(
             "SELECT id FROM $table_name WHERE click_id = %s",
@@ -136,20 +143,34 @@ class CUFT_Click_Tracker {
         ) );
         
         if ( $existing ) {
-            // Update existing record
+            // Update existing record (preserve events if they exist)
+            if ( ! empty( $columns ) ) {
+                // Don't overwrite existing events on update
+                unset( $data['events'] );
+            }
+            unset( $data['click_id'] ); // Don't update click_id
+
+            $format = ! empty( $columns )
+                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+
             $result = $wpdb->update(
                 $table_name,
                 $data,
-                array( 'click_id' => $data['click_id'] ),
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' ),
+                array( 'click_id' => $click_id ),
+                $format,
                 array( '%s' )
             );
         } else {
             // Insert new record
+            $format = ! empty( $columns )
+                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+
             $result = $wpdb->insert(
                 $table_name,
                 $data,
-                array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+                $format
             );
         }
         
@@ -706,105 +727,4 @@ class CUFT_Click_Tracker {
         return $wpdb->get_results( $sql );
     }
 
-    /**
-     * Enhanced track_click method with events initialization
-     * Overrides original method to include events column handling
-     */
-    public static function track_click( $click_id, $data = array() ) {
-        global $wpdb;
-
-        if ( empty( $click_id ) ) {
-            return false;
-        }
-
-        $table_name = $wpdb->prefix . self::$table_name;
-
-        // Prepare default data (updated for new schema)
-        $defaults = array(
-            'platform' => '',
-            'campaign' => '',
-            'utm_source' => '',
-            'utm_medium' => '',
-            'utm_campaign' => '',
-            'utm_term' => '',
-            'utm_content' => '',
-            'events' => null, // Initialize empty events
-            'qualified' => 0,
-            'score' => 0,
-            'ip_address' => self::get_client_ip(),
-            'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ) : '',
-            'additional_data' => ''
-        );
-
-        $data = wp_parse_args( $data, $defaults );
-
-        // Sanitize data
-        $data['click_id'] = sanitize_text_field( $click_id );
-        $data['platform'] = sanitize_text_field( $data['platform'] );
-        $data['campaign'] = sanitize_text_field( $data['campaign'] );
-        $data['utm_source'] = sanitize_text_field( $data['utm_source'] );
-        $data['utm_medium'] = sanitize_text_field( $data['utm_medium'] );
-        $data['utm_campaign'] = sanitize_text_field( $data['utm_campaign'] );
-        $data['utm_term'] = sanitize_text_field( $data['utm_term'] );
-        $data['utm_content'] = sanitize_text_field( $data['utm_content'] );
-        $data['qualified'] = (int) $data['qualified'];
-        $data['score'] = max( 0, min( 10, (int) $data['score'] ) );
-        $data['ip_address'] = sanitize_text_field( $data['ip_address'] );
-        $data['user_agent'] = sanitize_textarea_field( $data['user_agent'] );
-
-        if ( is_array( $data['additional_data'] ) ) {
-            $data['additional_data'] = json_encode( $data['additional_data'] );
-        }
-        $data['additional_data'] = sanitize_textarea_field( $data['additional_data'] );
-
-        // Initialize empty events array if events column exists
-        $columns = $wpdb->get_results( "SHOW COLUMNS FROM $table_name LIKE 'events'" );
-        if ( ! empty( $columns ) && $data['events'] === null ) {
-            $data['events'] = json_encode( array() );
-        }
-
-        // Check if record exists
-        $existing = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id FROM $table_name WHERE click_id = %s",
-            $data['click_id']
-        ) );
-
-        if ( $existing ) {
-            // Update existing record (preserve events)
-            unset( $data['events'] ); // Don't overwrite existing events
-            unset( $data['click_id'] ); // Don't update click_id
-
-            $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
-            if ( ! empty( $columns ) ) {
-                // Remove events from format array since we're not updating it
-                $format = array_slice( $format, 0, -1 );
-            }
-
-            $result = $wpdb->update(
-                $table_name,
-                $data,
-                array( 'click_id' => $click_id ),
-                $format,
-                array( '%s' )
-            );
-        } else {
-            // Insert new record
-            $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
-            if ( ! empty( $columns ) ) {
-                $format[] = '%s'; // Add format for events column
-            }
-
-            $result = $wpdb->insert(
-                $table_name,
-                $data,
-                $format
-            );
-        }
-
-        if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', 'Click tracked: ' . $click_id, $data );
-        }
-
-        return $result;
-    }
 }
