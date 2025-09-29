@@ -4,6 +4,155 @@ jQuery(document).ready(function ($) {
   // Show AJAX button if JavaScript is enabled
   $("#cuft-ajax-update-check").show();
 
+  // Real-time GTM ID validation
+  function validateGTMID(gtmId) {
+    const gtmPattern = /^GTM-[A-Z0-9]{4,}$/i;
+    return gtmPattern.test(gtmId);
+  }
+
+  function showGTMValidation(isValid, message) {
+    const $input = $('input[name="gtm_id"]');
+    const $validation = $('#gtm-validation-status');
+
+    // Create validation element if it doesn't exist
+    if ($validation.length === 0) {
+      $input.after('<div id="gtm-validation-status" style="margin-top: 8px;"></div>');
+    }
+
+    if (isValid) {
+      $('#gtm-validation-status').html(
+        '<span class="cuft-status-indicator success">✓ Valid GTM ID format</span>'
+      );
+      $input.css('border-color', '#28a745');
+    } else if (message) {
+      $('#gtm-validation-status').html(
+        '<span class="cuft-status-indicator error">✗ ' + message + '</span>'
+      );
+      $input.css('border-color', '#dc3545');
+    } else {
+      $('#gtm-validation-status').empty();
+      $input.css('border-color', '');
+    }
+  }
+
+  // GTM ID validation on input
+  $('input[name="gtm_id"]').on('input', function() {
+    const gtmId = $(this).val().trim();
+
+    if (gtmId === '') {
+      showGTMValidation(false, '');
+      return;
+    }
+
+    if (validateGTMID(gtmId)) {
+      showGTMValidation(true);
+    } else {
+      showGTMValidation(false, 'GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)');
+    }
+  });
+
+  // Trigger validation on page load if GTM ID exists
+  const initialGTMID = $('input[name="gtm_id"]').val().trim();
+  if (initialGTMID) {
+    if (validateGTMID(initialGTMID)) {
+      showGTMValidation(true);
+    } else {
+      showGTMValidation(false, 'GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)');
+    }
+  }
+
+  // Setup Wizard functionality
+
+  // Save GTM ID from wizard
+  $('#wizard-save-gtm').on('click', function() {
+    const gtmId = $('#wizard-gtm-id').val().trim();
+
+    if (!gtmId) {
+      alert('Please enter a GTM ID');
+      return;
+    }
+
+    if (!validateGTMID(gtmId)) {
+      alert('Please enter a valid GTM ID in format GTM-XXXX');
+      return;
+    }
+
+    const $button = $(this);
+    $button.prop('disabled', true).text('Saving...');
+
+    // Save GTM ID via AJAX
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'cuft_wizard_save_gtm',
+        gtm_id: gtmId,
+        nonce: cuftAdmin.nonce
+      },
+      success: function(response) {
+        if (response.success) {
+          // Reload page to show updated state
+          window.location.reload();
+        } else {
+          alert('Error saving GTM ID: ' + (response.data || 'Unknown error'));
+          $button.prop('disabled', false).text('Save GTM ID & Continue');
+        }
+      },
+      error: function() {
+        alert('Error saving GTM ID. Please try again.');
+        $button.prop('disabled', false).text('Save GTM ID & Continue');
+      }
+    });
+  });
+
+  // Complete setup wizard
+  $('#wizard-complete-setup').on('click', function() {
+    const $button = $(this);
+    $button.prop('disabled', true).text('Completing...');
+
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: 'POST',
+      data: {
+        action: 'cuft_wizard_complete_setup',
+        nonce: cuftAdmin.nonce
+      },
+      success: function(response) {
+        if (response.success) {
+          // Redirect to settings tab
+          window.location.href = cuftAdmin.admin_url + '&tab=settings';
+        } else {
+          alert('Error completing setup: ' + (response.data || 'Unknown error'));
+          $button.prop('disabled', false).text('✓ Mark Setup Complete');
+        }
+      },
+      error: function() {
+        alert('Error completing setup. Please try again.');
+        $button.prop('disabled', false).text('✓ Mark Setup Complete');
+      }
+    });
+  });
+
+  // Wizard GTM ID validation
+  $('#wizard-gtm-id').on('input', function() {
+    const gtmId = $(this).val().trim();
+    const $button = $('#wizard-save-gtm');
+
+    if (gtmId === '') {
+      $(this).css('border-color', '');
+      $button.prop('disabled', false);
+      return;
+    }
+
+    if (validateGTMID(gtmId)) {
+      $(this).css('border-color', '#28a745');
+      $button.prop('disabled', false);
+    } else {
+      $(this).css('border-color', '#dc3545');
+      $button.prop('disabled', true);
+    }
+  });
+
   // Store latest version for install button
   var latestVersion = null;
 

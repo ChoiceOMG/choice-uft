@@ -12,7 +12,6 @@
 
   function log() {
     if (!DEBUG) return;
-
     try {
       if (window.console && window.console.log) {
         window.console.log.apply(
@@ -20,9 +19,7 @@
           ["[CUFT Ninja]"].concat(Array.prototype.slice.call(arguments))
         );
       }
-    } catch (e) {
-      // Silent failure
-    }
+    } catch (e) {}
   }
 
   function ready(fn) {
@@ -55,7 +52,7 @@
   }
 
   /**
-   * Get field value from Ninja Forms using .nf-field container structure
+   * Get field value from Ninja Forms using multiple detection strategies
    */
   function getFieldValue(form, type) {
     try {
@@ -64,26 +61,67 @@
         return "";
       }
 
+      var field = null;
+
+      // Strategy 1: Direct input selection by autocomplete attribute and type
+      if (type === "email") {
+        try {
+          // Try autocomplete="email" first (most reliable for email fields)
+          var directEmail = form.querySelector('input[autocomplete="email"]') ||
+                           form.querySelector('input[type="email"]') ||
+                           form.querySelector('input[name="email"]');
+          if (directEmail && directEmail.value) {
+            log("✓ Found email field via direct selector, value:", directEmail.value);
+            return (directEmail.value || "").trim();
+          }
+        } catch (e) {
+          log("Direct email selector failed:", e);
+        }
+      } else if (type === "phone") {
+        try {
+          // Try autocomplete="tel" or type="tel" first
+          var directPhone = form.querySelector('input[autocomplete="tel"]') ||
+                           form.querySelector('input[type="tel"]') ||
+                           form.querySelector('input[name*="phone"]') ||
+                           form.querySelector('input[name*="tel"]');
+          if (directPhone && directPhone.value) {
+            log("✓ Found phone field via direct selector, value:", directPhone.value);
+            return (directPhone.value || "").trim();
+          }
+        } catch (e) {
+          log("Direct phone selector failed:", e);
+        }
+      }
+
+      // Strategy 2: Look for Ninja Forms field containers and inputs
       var fields;
       try {
-        fields = form.querySelectorAll(".nf-field") || [];
+        // Try multiple class selectors for Ninja Forms fields
+        fields = form.querySelectorAll(".nf-field, .ninja-forms-field, .nf-element") || [];
       } catch (e) {
         fields = [];
       }
 
-      var field = null;
-
       log("Searching for " + type + " field in Ninja form with " + fields.length + " fields");
 
-    for (var i = 0; i < fields.length; i++) {
-      var fieldContainer = fields[i];
-      var input = fieldContainer.querySelector("input, textarea, select");
+      for (var i = 0; i < fields.length; i++) {
+        var fieldContainer = fields[i];
 
-      if (!input) continue;
+        // Check if this element IS an input (not a container)
+        var input = null;
+        if (fieldContainer.tagName === 'INPUT' || fieldContainer.tagName === 'TEXTAREA' || fieldContainer.tagName === 'SELECT') {
+          input = fieldContainer;
+        } else {
+          // It's a container, look for input inside
+          input = fieldContainer.querySelector("input, textarea, select");
+        }
+
+        if (!input) continue;
 
       var fieldType = fieldContainer.getAttribute("data-field-type") || "";
       var inputType = (input.getAttribute("type") || "").toLowerCase();
       var inputMode = (input.getAttribute("inputmode") || "").toLowerCase();
+      var autocomplete = (input.getAttribute("autocomplete") || "").toLowerCase();
       var name = (input.name || "").toLowerCase();
       var id = (input.id || "").toLowerCase();
       var className = (input.className || "").toLowerCase();
@@ -101,6 +139,7 @@
       log("Checking Ninja field " + i + ":", {
         fieldType: fieldType,
         inputType: inputType,
+        autocomplete: autocomplete,
         name: name,
         id: id,
         className: className,
@@ -111,6 +150,7 @@
       if (type === "email") {
         var pattern = input.getAttribute("pattern") || "";
         if (
+          autocomplete === "email" ||
           fieldType === "email" ||
           inputType === "email" ||
           inputMode === "email" ||
@@ -146,6 +186,8 @@
         } catch (e) {}
 
         if (
+          autocomplete === "tel" ||
+          autocomplete.indexOf("phone") > -1 ||
           fieldType === "phone" ||
           fieldType === "tel" ||
           inputType === "tel" ||
@@ -319,6 +361,49 @@
         phone: phone || "not found"
       });
 
+      // Test mode: Add click IDs if on test page and none exist
+      var isTestMode = window.location.pathname.indexOf('-test-form') > -1 ||
+                       window.location.search.indexOf('test=1') > -1 ||
+                       window.location.search.indexOf('cuft_test=1') > -1;
+
+      if (isTestMode && email && phone) {
+        try {
+          // Check if tracking data already has click IDs
+          var currentTracking = window.cuftGetTrackingData ? window.cuftGetTrackingData() : {};
+          var hasClickId = currentTracking.click_id || currentTracking.gclid ||
+                          currentTracking.fbclid || currentTracking.wbraid || currentTracking.gbraid;
+
+          if (!hasClickId) {
+            // Store test click ID in sessionStorage for generate_lead testing
+            var testData = {
+              tracking: {
+                click_id: 'test_ninja_' + Date.now(),
+                gclid: 'test_gclid_ninja_' + formDetails.form_id,
+                fbclid: 'test_fbclid_ninja_' + formDetails.form_id,
+                utm_source: 'test_ninja',
+                utm_medium: 'test_form',
+                utm_campaign: 'ninja_forms_test',
+                utm_term: 'ninja_test',
+                utm_content: 'form_test'
+              },
+              timestamp: Date.now()
+            };
+
+            try {
+              sessionStorage.setItem('cuft_tracking_data', JSON.stringify(testData));
+              log('Test mode: Added test tracking data for generate_lead testing');
+              log('Test tracking data:', testData.tracking);
+            } catch (storageError) {
+              log('Test mode: Could not store test data in sessionStorage:', storageError);
+            }
+          } else {
+            log('Test mode: Click IDs already exist, using existing tracking data');
+          }
+        } catch (e) {
+          log('Test mode: Error adding test tracking data:', e);
+        }
+      }
+
       // Use standardized tracking function
       var success = window.cuftDataLayerUtils.trackFormSubmission('ninja', form, {
         form_id: formDetails.form_id,
@@ -437,7 +522,289 @@
   }
 
   /**
-   * Handle form submit to capture field values and start observation
+   * Store for capturing form data before submission
+   */
+  var ninjaFormData = {};
+
+  /**
+   * Handle Ninja Forms API before submit to capture field values
+   */
+  function handleNinjaBeforeSubmit(formModel) {
+    try {
+      // Handle different API parameter formats
+      var formId, fields;
+
+      if (formModel && typeof formModel.get === 'function') {
+        // Backbone model format
+        formId = formModel.get('id');
+        fields = formModel.get('fields');
+      } else if (formModel && formModel.id) {
+        // Plain object format
+        formId = formModel.id;
+        fields = formModel.fields;
+      } else {
+        log("Ninja Forms before submit - unrecognized formModel format:", formModel);
+        return;
+      }
+
+      log("Ninja Forms before submit - capturing field data for form:", formId);
+
+      var email = "";
+      var phone = "";
+      var formElement = null;
+
+      // Try to find the form element or container
+      // Ninja Forms uses div containers, not <form> tags
+      var formContainers = document.querySelectorAll('.nf-form-cont, .nf-form-wrap');
+      log("Looking for Ninja Forms container for form ID:", formId, "- found", formContainers.length, "containers");
+
+      for (var i = 0; i < formContainers.length; i++) {
+        var container = formContainers[i];
+        var containerId = container.id || "";
+        var dataFormId = container.getAttribute('data-form-id');
+
+        log("Checking container " + i + ":", {
+          id: containerId,
+          dataFormId: dataFormId,
+          matchesFormId: containerId.indexOf(formId) > -1 || dataFormId == formId
+        });
+
+        if (containerId.indexOf(formId) > -1 || dataFormId == formId) {
+          // Found the container, now look for actual form or use container
+          var actualForm = container.querySelector('form');
+          formElement = actualForm || container;
+          log("✓ Found Ninja Forms container/form:", formElement.tagName, formElement.id || formElement.className);
+          break;
+        }
+      }
+
+      if (!formElement) {
+        log("⚠ No form container found, will rely purely on API field extraction");
+      }
+
+      // Extract field values from Ninja Forms fields collection
+      if (fields) {
+        log("Extracting fields from API - fields type:", typeof fields, "has models:", !!fields.models);
+
+        if (fields.models && Array.isArray(fields.models)) {
+          // Backbone collection with models
+          log("Processing", fields.models.length, "field models from Backbone collection");
+
+          fields.models.forEach(function(field, index) {
+            var fieldType, fieldValue, fieldKey, fieldId;
+
+            if (typeof field.get === 'function') {
+              fieldType = field.get('type');
+              fieldValue = field.get('value');
+              fieldKey = field.get('key');
+              fieldId = field.get('id');
+
+              log("Field " + index + " (Backbone model):", {
+                id: fieldId,
+                key: fieldKey,
+                type: fieldType,
+                value: fieldValue ? (fieldValue.substring ? fieldValue.substring(0, 30) : fieldValue) : "(empty)"
+              });
+            } else {
+              fieldType = field.type;
+              fieldValue = field.value;
+              fieldKey = field.key;
+              fieldId = field.id;
+
+              log("Field " + index + " (plain object):", {
+                id: fieldId,
+                key: fieldKey,
+                type: fieldType,
+                value: fieldValue ? (fieldValue.substring ? fieldValue.substring(0, 30) : fieldValue) : "(empty)"
+              });
+            }
+
+            if (fieldType === 'email' || (fieldKey && fieldKey.indexOf('email') > -1)) {
+              email = fieldValue || "";
+              log("✓ Email field found:", fieldKey, "value:", email ? email.substring(0, 30) : "(empty)");
+            } else if (fieldType === 'phone' || (fieldKey && fieldKey.indexOf('phone') > -1)) {
+              phone = fieldValue || "";
+              log("✓ Phone field found:", fieldKey, "value:", phone || "(empty)");
+            }
+          });
+        } else if (Array.isArray(fields)) {
+          // Array of field objects
+          log("Processing", fields.length, "fields from array");
+
+          fields.forEach(function(field, index) {
+            var fieldType = field.type || "";
+            var fieldValue = field.value || "";
+            var fieldKey = field.key || "";
+
+            log("Field " + index + ":", {
+              key: fieldKey,
+              type: fieldType,
+              value: fieldValue ? (fieldValue.substring ? fieldValue.substring(0, 30) : fieldValue) : "(empty)"
+            });
+
+            if (fieldType === 'email' || fieldKey.indexOf('email') > -1) {
+              email = fieldValue;
+              log("✓ Email field found:", fieldKey, "value:", email ? email.substring(0, 30) : "(empty)");
+            } else if (fieldType === 'phone' || fieldKey.indexOf('phone') > -1) {
+              phone = fieldValue;
+              log("✓ Phone field found:", fieldKey, "value:", phone || "(empty)");
+            }
+          });
+        } else {
+          // Try iterating as object
+          log("Processing fields as object");
+          var fieldCount = 0;
+
+          for (var key in fields) {
+            if (fields.hasOwnProperty(key)) {
+              var field = fields[key];
+              if (field && typeof field === 'object') {
+                fieldCount++;
+                var fieldType = field.type || "";
+                var fieldValue = field.value || "";
+                var fieldKey = field.key || key;
+
+                log("Field " + fieldCount + " (key: " + key + "):", {
+                  key: fieldKey,
+                  type: fieldType,
+                  value: fieldValue ? (fieldValue.substring ? fieldValue.substring(0, 30) : fieldValue) : "(empty)"
+                });
+
+                if (fieldType === 'email' || fieldKey.indexOf('email') > -1) {
+                  email = fieldValue;
+                  log("✓ Email field found:", fieldKey, "value:", email ? email.substring(0, 30) : "(empty)");
+                } else if (fieldType === 'phone' || fieldKey.indexOf('phone') > -1) {
+                  phone = fieldValue;
+                  log("✓ Phone field found:", fieldKey, "value:", phone || "(empty)");
+                }
+              }
+            }
+          }
+          log("Total fields processed from object:", fieldCount);
+        }
+      }
+
+      // Fallback: try to get values from DOM if API extraction failed
+      if (formElement && (!email || !phone)) {
+        log("Attempting DOM fallback extraction - current values:", {
+          email: email || "empty",
+          phone: phone || "empty"
+        });
+
+        var domEmail = getFieldValue(formElement, "email");
+        var domPhone = getFieldValue(formElement, "phone");
+
+        log("DOM extraction results:", {
+          email: domEmail || "not found",
+          phone: domPhone || "not found"
+        });
+
+        if (!email && domEmail) {
+          email = domEmail;
+          log("✓ Email set from DOM fallback:", email);
+        }
+        if (!phone && domPhone) {
+          phone = domPhone;
+          log("✓ Phone set from DOM fallback:", phone);
+        }
+      }
+
+      // Store the data for later use
+      ninjaFormData[formId] = {
+        formElement: formElement,
+        email: email,
+        phone: phone,
+        formId: formId
+      };
+
+      log("Ninja Forms field data captured:", {
+        formId: formId,
+        email: email || "not found",
+        phone: phone || "not found",
+        hasFormElement: !!formElement
+      });
+
+    } catch (e) {
+      log("Error in Ninja Forms before submit handler:", e);
+    }
+  }
+
+  /**
+   * Handle Ninja Forms API submit response (successful submission)
+   */
+  function handleNinjaSubmitResponse(response, formModel) {
+    try {
+      // Handle different API parameter formats for formModel
+      var formId;
+
+      if (formModel && typeof formModel.get === 'function') {
+        // Backbone model format
+        formId = formModel.get('id');
+      } else if (formModel && formModel.id) {
+        // Plain object format
+        formId = formModel.id;
+      } else if (response && response.form_id) {
+        // Form ID might be in response
+        formId = response.form_id;
+      } else {
+        // Try to find any stored form data and use the first one
+        var storedKeys = Object.keys(ninjaFormData);
+        if (storedKeys.length > 0) {
+          formId = storedKeys[0];
+          log("Ninja Forms using fallback form ID from stored data:", formId);
+        } else {
+          log("Ninja Forms submit response - cannot determine form ID. formModel:", formModel, "response:", response);
+          return;
+        }
+      }
+
+      var storedData = ninjaFormData[formId];
+
+      log("Ninja Forms submit response received for form:", formId);
+      log("Response data:", response);
+
+      if (!storedData) {
+        log("No stored form data found for form:", formId);
+        return;
+      }
+
+      // Check if submission was successful
+      var isSuccess = response && (
+        response.success === true ||
+        response.data ||
+        !response.errors ||
+        (response.errors && response.errors.length === 0)
+      );
+
+      if (isSuccess) {
+        log("Ninja Forms submission successful, processing tracking...");
+
+        // Process the successful form submission
+        var success = handleNinjaSuccess(
+          storedData.formElement,
+          storedData.email,
+          storedData.phone
+        );
+
+        if (success) {
+          log("Ninja Forms tracking completed successfully");
+        } else {
+          log("Ninja Forms tracking failed");
+        }
+      } else {
+        log("Ninja Forms submission failed, not tracking:", response.errors || response);
+      }
+
+      // Clean up stored data
+      delete ninjaFormData[formId];
+
+    } catch (e) {
+      log("Error in Ninja Forms submit response handler:", e);
+    }
+  }
+
+  /**
+   * Legacy fallback: Handle traditional form submit events
    */
   function handleNinjaFormSubmit(event) {
     var processEvent = function() {
@@ -461,7 +828,7 @@
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
 
-      log("Ninja form submit detected, starting success observation:", {
+      log("Ninja form submit detected (fallback method), starting success observation:", {
         formId: form.getAttribute("data-form-id") || form.getAttribute("id") || "unknown",
         email: email || "not found",
         phone: phone || "not found"
@@ -485,26 +852,54 @@
   function setupNinjaEventListeners() {
     var listenersSetup = [];
 
-    // Primary: Form submit handler with success observation
+    // Primary: Ninja Forms API events (modern approach)
+    if (window.Marionette && window.nfRadio) {
+      try {
+        // Listen for before submit to capture field data
+        window.nfRadio.channel("forms").on("before:submit", handleNinjaBeforeSubmit);
+
+        // Listen for submit response to process successful submissions
+        window.nfRadio.channel("forms").on("submit:response", handleNinjaSubmitResponse);
+
+        listenersSetup.push("Ninja Forms API events (before:submit, submit:response)");
+        log("Ninja Forms nfRadio API listeners attached successfully");
+      } catch (e) {
+        log("Could not setup Ninja Forms API listeners:", e);
+      }
+    } else {
+      log("Ninja Forms API (nfRadio) not available, will try fallback methods");
+    }
+
+    // Fallback: Traditional form submit handler
     try {
       document.addEventListener("submit", handleNinjaFormSubmit, true);
-      listenersSetup.push("form submit handler");
+      listenersSetup.push("form submit handler (fallback)");
+      log("Traditional form submit listener added as fallback");
     } catch (e) {
       log("Could not add Ninja submit listener:", e);
     }
 
-    // Optional: Ninja Forms API events if available
-    if (window.Marionette && window.nfRadio) {
-      try {
-        window.nfRadio.channel("forms").on("submit:response", function (response) {
-          log("Ninja Forms API response received:", response);
-          // Could potentially use this for more direct success detection
-          // but submit observation is more reliable across versions
-        });
-        listenersSetup.push("Ninja Forms API events");
-      } catch (e) {
-        log("Could not setup Ninja Forms API listeners:", e);
-      }
+    // Additional fallback: Watch for DOM ready and try to set up API listeners later
+    if (!window.nfRadio && !window.Marionette) {
+      var checkForAPIInterval = setInterval(function() {
+        if (window.Marionette && window.nfRadio) {
+          try {
+            window.nfRadio.channel("forms").on("before:submit", handleNinjaBeforeSubmit);
+            window.nfRadio.channel("forms").on("submit:response", handleNinjaSubmitResponse);
+            log("Ninja Forms API listeners attached after delay");
+            clearInterval(checkForAPIInterval);
+          } catch (e) {
+            log("Delayed API setup failed:", e);
+          }
+        }
+      }, 500);
+
+      // Stop trying after 10 seconds
+      setTimeout(function() {
+        clearInterval(checkForAPIInterval);
+      }, 10000);
+
+      listenersSetup.push("delayed API setup check");
     }
 
     log("Ninja Forms event listeners setup complete:", listenersSetup);
@@ -514,6 +909,17 @@
   ready(function () {
     setupNinjaEventListeners();
     log("Ninja Forms tracking initialized using standardized dataLayer utilities");
+
+    // Debug: Log available global objects for troubleshooting
+    if (DEBUG) {
+      log("DEBUG: Available global objects:", {
+        hasMarionette: !!window.Marionette,
+        hasNfRadio: !!window.nfRadio,
+        hasJQuery: !!window.jQuery,
+        ninjaFormsDetected: document.querySelector('.nf-form-cont, .nf-form-wrap, .nf-form') !== null,
+        location: window.location.pathname
+      });
+    }
   });
 
 })();

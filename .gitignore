@@ -1,0 +1,35 @@
+# Local development environment documentation
+CLAUDE.local.md
+
+# Node modules (if any)
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# WordPress specific
+wp-config-local.php
+debug.log
+
+# Environment files
+.env
+.env.local
+
+# Local testing files
+local-test-*
+test-output/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Local Claude settings (already excluded by Claude)
+.claude/settings.local.json
