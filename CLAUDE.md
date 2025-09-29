@@ -215,112 +215,18 @@ The following click IDs are tracked:
 - `snap_click_id` (Snapchat)
 - `pclid` (Pinterest)
 
-## Test Forms Implementation
+## Testing
 
-### Two Test Form Systems
+For testing form tracking, use real forms on your site with browser DevTools Console to monitor dataLayer events. Verify that:
 
-The plugin provides two separate test form implementations:
+- Form submissions trigger `form_submit` event with `cuft_tracked: true`
+- Events use snake_case field names (`form_type`, `user_email`, etc.)
+- UTM parameters are captured from all sources
+- Click IDs are properly tracked
+- Events fire only once per submission
 
-1. **Admin Page Quick Tests** (`/wp-admin/options-general.php?page=choice-universal-form-tracker`)
-   - Quick test buttons integrated directly into Framework Detection cards
-   - One-click testing with customizable admin email
-   - Inline results showing dataLayer events fired
-   - Uses production tracking flow with real framework events
-   - Copy-to-clipboard functionality for event data
-   - No page navigation required
-
-2. **Dedicated Test Page** (`[cuft_test_forms]` shortcode)
-   - Full form interfaces for each framework
-   - Advanced testing controls (enable/disable requirements)
-   - Real-time dataLayer event monitoring
-   - Framework-specific UI styling
-
-### Test Form Architecture
-
-**Both test systems use the same production tracking flow:**
-
-```javascript
-// 1. Store tracking data in sessionStorage
-common.prepareTrackingDataForProduction('elementor', form_id, formElement);
-
-// 2. Set form data attributes for production code
-formElement.setAttribute('data-cuft-email', email);
-formElement.setAttribute('data-cuft-phone', phone);
-formElement.setAttribute('data-cuft-tracking', 'pending');
-
-// 3. Fire framework-specific event
-const event = new CustomEvent('submit_success', { ... });
-formElement.dispatchEvent(event);
-
-// 4. Production code handles the rest
-// - Adds cuft_tracked: true
-// - Adds cuft_source: "elementor_pro"
-// - Pushes to dataLayer with correct field names
-// - Fires generate_lead if requirements met
-```
-
-### Admin Page Quick Tests
-
-**Location**: Framework Detection cards in WordPress admin settings page
-
-**Features**:
-- **One-Click Testing**: Test button for each detected framework
-- **Customizable Email**: Admin can specify email for test submissions (defaults to site admin email)
-- **Pre-set Test Values**: Uses standard test data:
-  - Email: From admin input field
-  - Phone: "555-TEST-1234"
-  - Form Name: "Admin Quick Test"
-  - UTM Campaign: "test_campaign_{framework}"
-  - Click IDs: Generated test values to trigger generate_lead
-
-**Results Display**:
-- Inline results showing dataLayer events fired
-- Status indicators for form_submit and generate_lead events
-- JSON event data with copy-to-clipboard functionality
-- Auto-hide after 10 seconds or manual collapse
-
-**Framework Events Fired**:
-- **Elementor**: `submit_success`, `elementor/frontend/form_success`
-- **Contact Form 7**: `wpcf7mailsent`
-- **Avada/Fusion**: `submit` event with success state
-- **Ninja Forms**: `submit` event with `nfFormSubmitResponse`
-- **Gravity Forms**: `submit` event with `gform_confirmation_loaded`
-
-### Legacy Test Forms Removal
-
-**IMPORTANT:** The old legacy test forms script (`assets/cuft-test-forms.js`) has been **completely removed** because it:
-- Bypassed production tracking code
-- Used wrong field names (`form_framework` instead of `form_type`)
-- Added unwanted fields (`test_submission: true`)
-- Missing required fields (`cuft_tracked`, `cuft_source`)
-- Caused GTM tags not to fire
-
-## Testing Guidelines
-
-### Quick Testing Checklist
-
-**Essential verifications before deployment:**
-
-- [ ] Form submissions trigger `form_submit` event with `cuft_tracked: true`
-- [ ] Events use snake_case field names (`form_type`, `user_email`, etc.)
-- [ ] UTM parameters are captured from all sources
-- [ ] Click IDs are properly tracked
-- [ ] Generate lead fires only with email + phone + click_id
-- [ ] Fallback chain works (URL → Session → Cookie)
-- [ ] Works without jQuery
-- [ ] Works with jQuery
-- [ ] Console has no errors in production mode
-- [ ] Events fire only once per submission
-- [ ] Multiple frameworks can coexist without console noise
-
-### Testing Documentation
-
-For comprehensive testing procedures, test files, and debugging guides, see:
+For comprehensive testing procedures and debugging guides, see:
 - **[docs/TESTING.md](docs/TESTING.md)** - Full testing documentation
-- Test scenarios and manual testing procedures
-- Console commands for verification
-- Performance testing guidelines
-- Debugging guide and common issues
 
 ## Debug Mode
 
@@ -460,19 +366,12 @@ gh release upload v3.10.1 choice-uft-v3.10.1.zip --clobber
 1. **Wrong field names**: Ensure events use `form_type` (not `form_framework`)
 2. **Missing cuft_tracked**: Verify events have `cuft_tracked: true`
 3. **Missing cuft_source**: Verify events have `cuft_source: "framework_name"`
-4. **Legacy test forms**: Ensure old `cuft-test-forms.js` script is removed
 
 #### Cross-Framework Console Noise
 
 **Problem**: Multiple framework scripts logging messages for non-relevant forms.
 
 **Fixed**: Framework detection now happens before logging. Scripts exit silently for non-matching forms.
-
-#### Test Forms Not Working
-
-**Problem**: Test forms show wrong field names or missing required fields.
-
-**Fixed**: Both admin and test page forms now use production tracking flow and fire real framework events.
 
 #### Multiple Frameworks Conflicting
 

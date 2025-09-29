@@ -101,7 +101,6 @@ class CUFT_Click_Tracker {
             'utm_campaign' => '',
             'utm_term' => '',
             'utm_content' => '',
-            'events' => null, // Initialize events column
             'qualified' => 0,
             'score' => 0,
             'ip_address' => self::get_client_ip(),
@@ -132,7 +131,7 @@ class CUFT_Click_Tracker {
 
         // Initialize empty events array if events column exists
         $columns = $wpdb->get_results( "SHOW COLUMNS FROM $table_name LIKE 'events'" );
-        if ( ! empty( $columns ) && $data['events'] === null ) {
+        if ( ! empty( $columns ) && ! isset( $data['events'] ) ) {
             $data['events'] = json_encode( array() );
         }
 
@@ -141,7 +140,7 @@ class CUFT_Click_Tracker {
             "SELECT id FROM $table_name WHERE click_id = %s",
             $data['click_id']
         ) );
-        
+
         if ( $existing ) {
             // Update existing record (preserve events if they exist)
             if ( ! empty( $columns ) ) {
@@ -150,9 +149,7 @@ class CUFT_Click_Tracker {
             }
             unset( $data['click_id'] ); // Don't update click_id
 
-            $format = ! empty( $columns )
-                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
-                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+            $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
 
             $result = $wpdb->update(
                 $table_name,

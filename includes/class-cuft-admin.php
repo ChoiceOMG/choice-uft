@@ -23,10 +23,6 @@ class CUFT_Admin {
 // Removed admin page test forms - use dedicated test page instead
         add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
-
-        // Setup wizard AJAX handlers
-        add_action( 'wp_ajax_cuft_wizard_save_gtm', array( $this, 'ajax_wizard_save_gtm' ) );
-        add_action( 'wp_ajax_cuft_wizard_complete_setup', array( $this, 'ajax_wizard_complete_setup' ) );
     }
     
     /**
@@ -74,15 +70,9 @@ class CUFT_Admin {
         $lead_value = get_option( 'cuft_lead_value', 100 );
         $console_logging = get_option( 'cuft_console_logging', 'no' );
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
-        
-        // Get current tab - default to setup wizard if setup is incomplete
-        $gtm_id_check = get_option( 'cuft_gtm_id', '' );
-        $frameworks_check = CUFT_Form_Detector::get_framework_status();
-        $detected_frameworks_check = array_filter( $frameworks_check, function($fw) { return $fw['detected']; } );
-        $setup_complete_check = !empty( $gtm_id_check ) && !empty( $detected_frameworks_check ) && get_option( 'cuft_setup_testing_complete', false );
 
-        $default_tab = $setup_complete_check ? 'settings' : 'setup-wizard';
-        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : $default_tab;
+        // Get current tab
+        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'settings';
         ?>
         <div class="wrap cuft-admin-container">
             <div class="cuft-admin-header">
@@ -95,10 +85,8 @@ class CUFT_Admin {
             <?php $this->render_setup_progress(); ?>
             <?php $this->render_admin_tabs( $current_tab ); ?>
 
-            <?php if ( $current_tab === 'setup-wizard' ): ?>
-                <?php $this->render_setup_wizard(); ?>
-            <?php elseif ( $current_tab === 'settings' ): ?>
-                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ); ?>
+            <?php if ( $current_tab === 'settings' ): ?>
+                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled ); ?>
                 <?php $this->render_framework_status(); ?>
                 <?php $this->render_github_status(); ?>
                 <?php $this->render_utm_status(); ?>
@@ -113,7 +101,7 @@ class CUFT_Admin {
     /**
      * Render settings form
      */
-    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ) {
+    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled ) {
         ?>
         <div class="cuft-settings-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <h2 style="margin-top: 0;">Settings</h2>
@@ -282,24 +270,6 @@ class CUFT_Admin {
         ?>
         <div class="cuft-status-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <h2 style="margin-top: 0;">Framework Detection Status</h2>
-            <?php
-            // Add link to test page
-            $test_page_id = get_option( 'cuft_test_page_id' );
-            if ( $test_page_id && get_post( $test_page_id ) ):
-                $test_page_url = get_permalink( $test_page_id );
-            ?>
-                <div style="background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>🧪 Frontend Testing Available</strong><br>
-                            <small>Test forms with full Tag Assistant visibility and real dataLayer events</small>
-                        </div>
-                        <a href="<?php echo esc_url( $test_page_url ); ?>" target="_blank" class="button button-primary">
-                            Open Test Page →
-                        </a>
-                    </div>
-                </div>
-            <?php endif; ?>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <?php foreach ( $frameworks as $framework ): ?>
@@ -312,31 +282,8 @@ class CUFT_Admin {
                         </div>
                         <?php if ( $framework['detected'] ): ?>
                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                                <div style="font-size: 12px; color: #666;">
                                     Form tracking enabled and active
-                                </div>
-
-                                <!-- Quick Test Controls -->
-                                <div class="cuft-quick-test-controls" data-framework="<?php echo esc_attr( $framework['key'] ); ?>">
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                        <label style="font-size: 12px; font-weight: 600; color: #333;">Quick Test:</label>
-                                        <input type="email"
-                                               class="cuft-test-email"
-                                               value="<?php echo esc_attr( $admin_email ); ?>"
-                                               placeholder="admin@example.com"
-                                               style="font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 3px; flex: 1; min-width: 120px;">
-                                        <button type="button"
-                                                class="cuft-quick-test-btn button button-primary"
-                                                style="font-size: 11px; padding: 4px 12px; height: auto;">
-                                            Test <?php echo esc_html( $framework['name'] ); ?>
-                                        </button>
-                                    </div>
-
-                                    <!-- Results area (hidden by default) -->
-                                    <div class="cuft-quick-test-results" style="display: none; margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
-                                        <div class="cuft-test-status"></div>
-                                        <div class="cuft-test-events" style="margin-top: 6px; font-size: 11px;"></div>
-                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -397,8 +344,8 @@ class CUFT_Admin {
         $gtm_id = sanitize_text_field( $_POST['gtm_id'] );
         $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
         $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
-        $lead_currency = sanitize_text_field( $_POST['lead_currency'] ?? 'CAD' );
-        $lead_value = floatval( $_POST['lead_value'] ?? 100 );
+        $lead_currency = isset( $_POST['lead_currency'] ) ? sanitize_text_field( $_POST['lead_currency'] ) : 'CAD';
+        $lead_value = isset( $_POST['lead_value'] ) ? floatval( $_POST['lead_value'] ) : 100;
 
         // Validate currency (ensure it's one of the allowed values)
         $allowed_currencies = array( 'CAD', 'USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK' );
@@ -721,15 +668,6 @@ class CUFT_Admin {
                 'cuft-admin',
                 CUFT_URL . '/assets/cuft-admin.js',
                 array( 'jquery' ),
-                CUFT_VERSION,
-                true
-            );
-
-            // Enqueue quick tests script
-            wp_enqueue_script(
-                'cuft-admin-quick-tests',
-                CUFT_URL . '/assets/admin/cuft-admin-quick-tests.js',
-                array( 'cuft-admin' ),
                 CUFT_VERSION,
                 true
             );
@@ -1308,8 +1246,7 @@ class CUFT_Admin {
         // Calculate setup completion
         $steps = array(
             'gtm_setup' => !empty( $gtm_id ),
-            'framework_detected' => !empty( $detected_frameworks ),
-            'testing_complete' => get_option( 'cuft_setup_testing_complete', false ),
+            'framework_detected' => !empty( $detected_frameworks )
         );
 
         $completed_steps = array_filter( $steps );
@@ -1344,133 +1281,15 @@ class CUFT_Admin {
         }
     }
 
-    /**
-     * Render setup wizard
-     */
-    private function render_setup_wizard() {
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
-        $frameworks = CUFT_Form_Detector::get_framework_status();
-        $detected_frameworks = array_filter( $frameworks, function($fw) { return $fw['detected']; } );
-        ?>
-        <div class="cuft-settings-card">
-            <div class="cuft-card-header">
-                <h2>🎯 Setup Wizard</h2>
-            </div>
-            <div class="cuft-card-content">
-                <p>Welcome! Let's get your Universal Form Tracker configured in just a few steps.</p>
-
-                <div class="cuft-form-section">
-                    <div class="cuft-section-header">
-                        <h3>Step 1: Google Tag Manager Configuration</h3>
-                        <p>Enter your GTM container ID to start tracking form submissions</p>
-                    </div>
-
-                    <?php if ( empty( $gtm_id ) ): ?>
-                        <div class="cuft-input-group">
-                            <label for="wizard-gtm-id">Google Tag Manager ID</label>
-                            <input type="text" id="wizard-gtm-id" name="gtm_id"
-                                   placeholder="GTM-XXXX (e.g., GTM-ABC123)"
-                                   class="cuft-input" style="width: 300px;" />
-                            <p class="description">
-                                Don't have a GTM container? <a href="https://tagmanager.google.com/" target="_blank">Create one here →</a>
-                            </p>
-                        </div>
-                        <button type="button" class="cuft-button primary" id="wizard-save-gtm">
-                            Save GTM ID & Continue
-                        </button>
-                    <?php else: ?>
-                        <div class="cuft-status-indicator success">
-                            ✓ GTM ID configured: <?php echo esc_html( $gtm_id ); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="cuft-form-section">
-                    <div class="cuft-section-header">
-                        <h3>Step 2: Framework Detection</h3>
-                        <p>We automatically detect supported form frameworks on your site</p>
-                    </div>
-
-                    <?php if ( empty( $detected_frameworks ) ): ?>
-                        <div class="cuft-status-indicator warning">
-                            ⚠ No supported frameworks detected yet. Make sure you have forms on your site.
-                        </div>
-                        <p>Supported frameworks: Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, Avada Forms</p>
-                        <button type="button" class="cuft-button secondary" onclick="window.location.reload();">
-                            Refresh Detection
-                        </button>
-                    <?php else: ?>
-                        <div class="cuft-status-indicator success">
-                            ✓ Detected: <?php echo esc_html( implode( ', ', array_column( $detected_frameworks, 'name' ) ) ); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="cuft-form-section">
-                    <div class="cuft-section-header">
-                        <h3>Step 3: Test Your Setup</h3>
-                        <p>Verify everything is working correctly</p>
-                    </div>
-
-                    <?php if ( !empty( $gtm_id ) && !empty( $detected_frameworks ) ): ?>
-                        <?php
-                        $test_page_id = get_option( 'cuft_test_page_id' );
-                        if ( $test_page_id && get_post( $test_page_id ) ):
-                            $test_page_url = get_permalink( $test_page_id );
-                        ?>
-                            <p>Your setup looks good! Now test it:</p>
-                            <div style="margin: 16px 0;">
-                                <a href="<?php echo esc_url( $test_page_url ); ?>" target="_blank" class="cuft-button primary">
-                                    🧪 Open Test Page →
-                                </a>
-                                <button type="button" class="cuft-button success" id="wizard-complete-setup" style="margin-left: 12px;">
-                                    ✓ Mark Setup Complete
-                                </button>
-                            </div>
-                            <p class="description">
-                                Open the test page, submit a form, and verify the events appear in your browser's developer tools (Console → dataLayer events).
-                            </p>
-                        <?php else: ?>
-                            <div class="cuft-status-indicator warning">
-                                ⚠ Test page not available. You can test manually on your forms.
-                            </div>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <div class="cuft-status-indicator info">
-                            ℹ Complete steps 1 and 2 first to enable testing
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <?php if ( !empty( $gtm_id ) && !empty( $detected_frameworks ) ): ?>
-                    <div style="background: #e8f5e8; padding: 16px; border-radius: 8px; margin-top: 20px;">
-                        <strong>🎉 Great! Your setup is ready.</strong><br>
-                        Once you've tested your forms, you can mark the setup as complete to hide this wizard.
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-        <?php
-    }
 
     /**
      * Render admin tabs
      */
     private function render_admin_tabs( $current_tab ) {
-        // Show Setup Wizard tab if setup is not complete
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
-        $frameworks = CUFT_Form_Detector::get_framework_status();
-        $detected_frameworks = array_filter( $frameworks, function($fw) { return $fw['detected']; } );
-        $setup_complete = !empty( $gtm_id ) && !empty( $detected_frameworks ) && get_option( 'cuft_setup_testing_complete', false );
-
-        $tabs = array();
-
-        if ( ! $setup_complete ) {
-            $tabs['setup-wizard'] = __( 'Setup Wizard', 'choice-universal-form-tracker' );
-        }
-
-        $tabs['settings'] = __( 'Settings', 'choice-universal-form-tracker' );
-        $tabs['click-tracking'] = __( 'Click Tracking', 'choice-universal-form-tracker' );
+        $tabs = array(
+            'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
+            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
+        );
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
         foreach ( $tabs as $tab_key => $tab_label ) {
@@ -1929,42 +1748,6 @@ class CUFT_Admin {
         wp_send_json_success( array( 'message' => 'Notice dismissed' ) );
     }
 
-    /**
-     * AJAX handler for wizard GTM ID save
-     */
-    public function ajax_wizard_save_gtm() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( 'Security check failed' );
-        }
-
-        $gtm_id = isset( $_POST['gtm_id'] ) ? sanitize_text_field( $_POST['gtm_id'] ) : '';
-
-        // Validate GTM ID format
-        if ( empty( $gtm_id ) || ! preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id ) ) {
-            wp_send_json_error( 'Invalid GTM ID format' );
-        }
-
-        // Save GTM ID
-        update_option( 'cuft_gtm_id', $gtm_id );
-
-        wp_send_json_success( 'GTM ID saved successfully' );
-    }
-
-    /**
-     * AJAX handler for completing setup wizard
-     */
-    public function ajax_wizard_complete_setup() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( 'Security check failed' );
-        }
-
-        // Mark setup as complete
-        update_option( 'cuft_setup_testing_complete', true );
-
-        wp_send_json_success( 'Setup completed successfully' );
-    }
 
     /**
      * Display admin notices

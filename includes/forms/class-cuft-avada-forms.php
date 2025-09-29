@@ -65,7 +65,26 @@ class CUFT_Avada_Forms {
             'lead_currency' => get_option( 'cuft_lead_currency', 'CAD' ),
             'lead_value' => get_option( 'cuft_lead_value', 100 ),
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'cuft_avada_tracking' )
+            'nonce' => wp_create_nonce( 'cuft_avada_tracking' ),
+            'formTitles' => $this->get_fusion_form_titles()
         ) );
+    }
+
+    /**
+     * Get all Fusion form titles for JavaScript access
+     */
+    private function get_fusion_form_titles() {
+        $forms = get_posts( array(
+            'post_type' => 'fusion_form',
+            'posts_per_page' => -1,
+            'post_status' => 'publish'
+        ) );
+
+        $titles = array();
+        foreach ( $forms as $form ) {
+            $titles[ $form->ID ] = $form->post_title;
+        }
+
+        return $titles;
     }
 }

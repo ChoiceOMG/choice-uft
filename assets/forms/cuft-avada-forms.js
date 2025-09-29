@@ -56,6 +56,57 @@
   }
 
   /**
+   * Check if field exists in Avada/Fusion forms (returns true/false, not value)
+   */
+  function hasField(form, type) {
+    try {
+      if (!isAvadaForm(form)) {
+        return false;
+      }
+
+      var inputs;
+      try {
+        inputs = form.querySelectorAll("input, textarea, select") || [];
+      } catch (e) {
+        return false;
+      }
+
+      for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        if (input.type === "hidden") continue;
+
+        var inputType = (input.getAttribute("type") || "").toLowerCase();
+        var name = (input.name || "").toLowerCase();
+        var id = (input.id || "").toLowerCase();
+
+        if (type === "email") {
+          if (
+            inputType === "email" ||
+            name.indexOf("email") > -1 ||
+            id.indexOf("email") > -1
+          ) {
+            return true;
+          }
+        } else if (type === "phone") {
+          if (
+            inputType === "tel" ||
+            name.indexOf("phone") > -1 ||
+            name.indexOf("tel") > -1 ||
+            id.indexOf("phone") > -1 ||
+            id.indexOf("tel") > -1
+          ) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Get field value from Avada/Fusion forms with dynamic form loading support
    */
   function getFieldValue(form, type) {
@@ -221,15 +272,52 @@
                    form.getAttribute("data-form-name") ||
                    form.getAttribute("aria-label");
 
-    // Check wrapper for additional details
+    // Check wrapper for additional details (including data-form-id and data-config)
     var formWrapper = form.closest('.fusion-form-wrapper, .avada-form-wrapper');
-    if (formWrapper && !formName) {
-      formName = formWrapper.getAttribute("data-form-name") ||
-                 formWrapper.getAttribute("data-form-title");
+    if (formWrapper) {
+      // Try to get form ID from wrapper
+      if (!formId) {
+        formId = formWrapper.getAttribute("data-form-id");
+      }
+
+      // Try to extract form post ID and title from data-config
+      if (!formName) {
+        try {
+          var dataConfig = formWrapper.getAttribute("data-config");
+          if (dataConfig) {
+            var config = JSON.parse(dataConfig);
+            if (config.form_post_id) {
+              formId = formId || "fusion-form-" + config.form_post_id;
+
+              // Try to get form title from localized form titles
+              if (window.cuftAvada && window.cuftAvada.formTitles) {
+                var formPostId = config.form_post_id.toString();
+                if (window.cuftAvada.formTitles[formPostId]) {
+                  formName = window.cuftAvada.formTitles[formPostId];
+                  log("Found form title from WordPress:", formName);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          log("Could not parse Avada form config:", e);
+        }
+
+        // Check for other wrapper attributes
+        formName = formName ||
+                   formWrapper.getAttribute("data-form-name") ||
+                   formWrapper.getAttribute("data-form-title");
+      }
     }
 
+    // If no ID, try to extract from class name (e.g., "fusion-form-27")
     if (!formId) {
-      formId = "unknown";
+      var classMatch = form.className.match(/fusion-form-(\d+)/);
+      if (classMatch) {
+        formId = "fusion-form-" + classMatch[1];
+      } else {
+        formId = "fusion-form-unknown";
+      }
     }
 
     log("Avada form identification:", {
@@ -247,6 +335,21 @@
    * Check if Avada form is in success state with exponential backoff
    */
   function isAvadaSuccessState(form) {
+    log("Checking Avada success state for form classes:", form.className);
+
+    // Check if form fields have been reset (common success indicator)
+    var emailField = form.querySelector('input[type="email"]');
+    var wasFilledNowEmpty = false;
+    if (emailField) {
+      var currentValue = (emailField.value || "").trim();
+      var hadValue = emailField.hasAttribute('data-cuft-had-value');
+
+      if (hadValue && currentValue === "") {
+        log("Avada form fields were reset - likely successful submission");
+        wasFilledNowEmpty = true;
+      }
+    }
+
     var successSelectors = [
       ".fusion-form-response-success",
       ".fusion-alert.success",
@@ -261,10 +364,18 @@
     // Check for success elements in form
     for (var i = 0; i < successSelectors.length; i++) {
       var element = form.querySelector(successSelectors[i]);
-      if (element && element.style.display !== "none") {
-        log("Avada success state detected with selector:", successSelectors[i]);
-        return true;
+      if (element) {
+        log("Found element matching selector:", successSelectors[i], "display:", element.style.display);
+        if (element.style.display !== "none") {
+          log("Avada success state detected with selector:", successSelectors[i]);
+          return true;
+        }
       }
+    }
+
+    // If form was reset, that's a success indicator
+    if (wasFilledNowEmpty) {
+      return true;
     }
 
     // Check if form is hidden with success message in parent
@@ -502,7 +613,7 @@
       }
 
       // Check if form has email field (contact forms only, not search forms)
-      var hasEmailField = getFieldValue(form, "email") !== "";
+      var hasEmailField = hasField(form, "email");
       if (!hasEmailField) {
         log("Avada form has no email field, skipping (likely search form)");
         return;
@@ -519,6 +630,12 @@
       // Capture field values at submit time
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
+
+      // Mark email field as having had a value (for reset detection)
+      var emailField = form.querySelector('input[type="email"]');
+      if (emailField && email) {
+        emailField.setAttribute('data-cuft-had-value', 'true');
+      }
 
       log("Avada form submit detected, starting success observation:", {
         formId: getAvadaFormDetails(form).form_id,
@@ -564,7 +681,7 @@
       if (form.hasAttribute("data-cuft-avada-ajax-watching")) continue;
 
       // Check if form has email field (contact forms only)
-      var hasEmailField = getFieldValue(form, "email") !== "";
+      var hasEmailField = hasField(form, "email");
       if (!hasEmailField) {
         log("Avada form has no email field, skipping AJAX watch");
         continue;
@@ -593,6 +710,13 @@
             setTimeout(function () {
               var email = getFieldValue(clickedForm, "email");
               var phone = getFieldValue(clickedForm, "phone");
+
+              // Mark email field as having had a value (for reset detection)
+              var emailField = clickedForm.querySelector('input[type="email"]');
+              if (emailField && email) {
+                emailField.setAttribute('data-cuft-had-value', 'true');
+              }
+
               observeAvadaSuccess(clickedForm, email, phone);
             }, 100);
           }

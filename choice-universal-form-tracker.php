@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.12.0
+ * Version:           3.13.0
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.12.0' );
-define( 'CUFT_URL', plugins_url( '', __FILE__ ) . '/' );
+define( 'CUFT_VERSION', '3.13.0' );
+define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
 
@@ -54,12 +54,13 @@ class Choice_Universal_Form_Tracker {
         // Core includes with error handling
         $includes = array(
             'includes/class-cuft-feature-flags.php',  // Load feature flags first
+            'includes/class-cuft-logger.php',         // Load logger early
+            'includes/class-cuft-db-migration.php',   // Load migration handler
             'includes/class-cuft-admin.php',
             'includes/class-cuft-gtm.php',
             'includes/class-cuft-form-detector.php',
             'includes/class-cuft-form-tracker.php',
             'includes/class-cuft-link-tracking.php',
-            'includes/class-cuft-logger.php',
             'includes/class-cuft-utm-tracker.php',
             'includes/class-cuft-console-logger.php',
             'includes/class-cuft-github-updater.php',
@@ -67,7 +68,6 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-click-integration.php',
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
-            'includes/class-cuft-test-forms.php',
             'includes/class-cuft-cryptojs.php',
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
@@ -132,6 +132,11 @@ class Choice_Universal_Form_Tracker {
             return;
         }
         
+        // Run database migrations if needed (for plugin updates)
+        if ( class_exists( 'CUFT_DB_Migration' ) && CUFT_DB_Migration::needs_migration() ) {
+            CUFT_DB_Migration::run_migrations();
+        }
+
         // Initialize core components with error handling
         try {
             // Initialize feature flags first (Phase 1 migration)
@@ -236,6 +241,11 @@ class Choice_Universal_Form_Tracker {
         // Create click tracking table
         if ( class_exists( 'CUFT_Click_Tracker' ) ) {
             CUFT_Click_Tracker::create_table();
+        }
+
+        // Run database migrations
+        if ( class_exists( 'CUFT_DB_Migration' ) ) {
+            CUFT_DB_Migration::run_migrations();
         }
 
         // Clear update-related transients on activation (handles update completion)
