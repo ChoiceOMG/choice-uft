@@ -66,6 +66,8 @@ class CUFT_Admin {
         $gtm_id = get_option( 'cuft_gtm_id', '' );
         $debug_enabled = get_option( 'cuft_debug_enabled', false );
         $generate_lead_enabled = get_option( 'cuft_generate_lead_enabled', false );
+        $lead_currency = get_option( 'cuft_lead_currency', 'CAD' );
+        $lead_value = get_option( 'cuft_lead_value', 100 );
         $console_logging = get_option( 'cuft_console_logging', 'no' );
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
         
@@ -173,12 +175,49 @@ class CUFT_Admin {
                         <th scope="row">Generate Lead Events</th>
                         <td>
                             <label>
-                                <input type="checkbox" name="generate_lead_enabled" value="1" <?php checked( $generate_lead_enabled ); ?> />
+                                <input type="checkbox" name="generate_lead_enabled" value="1" <?php checked( $generate_lead_enabled ); ?> id="cuft-generate-lead-enabled" />
                                 Fire generate_lead events for qualified form submissions
                             </label>
                             <p class="description">
-                                Automatically creates generate_lead events when forms are submitted with both user email and UTM campaign data. Ideal for conversion tracking in GA4.
+                                Automatically creates generate_lead events when forms are submitted with email, phone, and click ID data. Ideal for conversion tracking in GA4.
                             </p>
+
+                            <div id="cuft-lead-settings" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; <?php echo $generate_lead_enabled ? '' : 'display:none;'; ?>">
+                                <table class="form-table" style="margin: 0;">
+                                    <tr>
+                                        <th scope="row" style="padding-left: 0; width: 150px;">
+                                            <label for="cuft-lead-currency">Lead Currency</label>
+                                        </th>
+                                        <td style="padding-left: 0;">
+                                            <select name="lead_currency" id="cuft-lead-currency">
+                                                <option value="CAD" <?php selected( $lead_currency, 'CAD' ); ?>>CAD - Canadian Dollar</option>
+                                                <option value="USD" <?php selected( $lead_currency, 'USD' ); ?>>USD - US Dollar</option>
+                                                <option value="EUR" <?php selected( $lead_currency, 'EUR' ); ?>>EUR - Euro</option>
+                                                <option value="GBP" <?php selected( $lead_currency, 'GBP' ); ?>>GBP - British Pound</option>
+                                                <option value="AUD" <?php selected( $lead_currency, 'AUD' ); ?>>AUD - Australian Dollar</option>
+                                                <option value="JPY" <?php selected( $lead_currency, 'JPY' ); ?>>JPY - Japanese Yen</option>
+                                                <option value="CHF" <?php selected( $lead_currency, 'CHF' ); ?>>CHF - Swiss Franc</option>
+                                                <option value="SEK" <?php selected( $lead_currency, 'SEK' ); ?>>SEK - Swedish Krona</option>
+                                                <option value="NOK" <?php selected( $lead_currency, 'NOK' ); ?>>NOK - Norwegian Krone</option>
+                                                <option value="DKK" <?php selected( $lead_currency, 'DKK' ); ?>>DKK - Danish Krone</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" style="padding-left: 0;">
+                                            <label for="cuft-lead-value">Lead Value</label>
+                                        </th>
+                                        <td style="padding-left: 0;">
+                                            <input type="number" name="lead_value" id="cuft-lead-value"
+                                                   value="<?php echo esc_attr( $lead_value ); ?>"
+                                                   min="0" step="0.01" class="regular-text" />
+                                            <p class="description">
+                                                Monetary value for each lead in your chosen currency. Used for conversion tracking in Google Analytics 4.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -345,6 +384,19 @@ class CUFT_Admin {
         $gtm_id = sanitize_text_field( $_POST['gtm_id'] );
         $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
         $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
+        $lead_currency = sanitize_text_field( $_POST['lead_currency'] ?? 'CAD' );
+        $lead_value = floatval( $_POST['lead_value'] ?? 100 );
+
+        // Validate currency (ensure it's one of the allowed values)
+        $allowed_currencies = array( 'CAD', 'USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK' );
+        if ( ! in_array( $lead_currency, $allowed_currencies ) ) {
+            $lead_currency = 'CAD';
+        }
+
+        // Ensure lead value is not negative
+        if ( $lead_value < 0 ) {
+            $lead_value = 0;
+        }
         $console_logging = in_array( $_POST['console_logging'], array( 'no', 'yes', 'admin_only' ) ) ? $_POST['console_logging'] : 'no';
         $github_updates_enabled = isset( $_POST['github_updates_enabled'] ) && $_POST['github_updates_enabled'];
         $sgtm_enabled = isset( $_POST['sgtm_enabled'] ) && $_POST['sgtm_enabled'];
@@ -358,6 +410,8 @@ class CUFT_Admin {
             update_option( 'cuft_gtm_id', $gtm_id );
             update_option( 'cuft_debug_enabled', $debug_enabled );
             update_option( 'cuft_generate_lead_enabled', $generate_lead_enabled );
+            update_option( 'cuft_lead_currency', $lead_currency );
+            update_option( 'cuft_lead_value', $lead_value );
             update_option( 'cuft_console_logging', $console_logging );
             update_option( 'cuft_github_updates_enabled', $github_updates_enabled );
             update_option( 'cuft_sgtm_enabled', $sgtm_enabled );

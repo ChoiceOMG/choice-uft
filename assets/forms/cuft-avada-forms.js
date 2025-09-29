@@ -352,7 +352,9 @@
         form_name: formDetails.form_name,
         user_email: email,
         user_phone: phone,
-        debug: DEBUG
+        debug: DEBUG,
+        lead_currency: window.cuftAvada && window.cuftAvada.lead_currency ? window.cuftAvada.lead_currency : 'CAD',
+        lead_value: window.cuftAvada && window.cuftAvada.lead_value ? window.cuftAvada.lead_value : 100,
       });
 
       if (success) {
