@@ -5,6 +5,39 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0] - 2025-09-29
+
+### Added
+
+- **Modern Admin Interface**: Complete UX overhaul with card-based design, gradient styling, and improved visual hierarchy
+- **Setup Wizard**: Step-by-step onboarding with progress indicators for first-time setup
+- **Real-time GTM ID Validation**: Live validation feedback with visual indicators (green/red borders)
+- **Enhanced Framework Detection**: Modern card-based display with clear status indicators for detected frameworks
+- **Responsive Design**: Mobile and tablet-optimized admin interface with improved touch interactions
+
+### Fixed
+
+- **Generate Lead Tracking**: Fixed `generate_lead` event conditions to properly detect all click ID types (gclid, fbclid, wbraid, gbraid, msclkid)
+- **Tracking Data Persistence**: Enhanced fallback chain (URL → SessionStorage → LocalStorage → Cookie) to preserve click IDs across page loads
+- **Data Merging Strategy**: Improved tracking parameter merging to retain click IDs from multiple sources
+- **Gravity Forms Detection**: Enhanced field detection using autocomplete attributes and email confirmation field filtering
+- **Ninja Forms Tracking**: Added test mode click ID injection for accurate `generate_lead` testing
+- **Debug Logging**: Reduced console noise in production mode while maintaining comprehensive debug information
+
+### Enhanced
+
+- **Generic Click ID Assignment**: Automatic assignment of `click_id` from specific click ID parameters for better tracking reliability
+- **Error Handling**: Improved fallback mechanisms and error recovery across all form frameworks
+- **AJAX Interactions**: Smoother admin experience with AJAX-powered saves and validation
+- **Code Documentation**: Enhanced inline documentation and logging consistency
+
+### Technical
+
+- **Added .gitignore**: Proper exclusion of development files and dependencies
+- **CSS Enhancements**: 350+ lines of modern CSS for improved admin interface
+- **JavaScript Improvements**: 150+ lines of new validation and wizard logic
+- **Framework Compatibility**: Enhanced detection and tracking for all supported frameworks
+
 ## [3.10.2] - 2025-09-26
 
 ### Fixed
