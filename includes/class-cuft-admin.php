@@ -23,6 +23,10 @@ class CUFT_Admin {
 // Removed admin page test forms - use dedicated test page instead
         add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+
+        // Setup wizard AJAX handlers
+        add_action( 'wp_ajax_cuft_wizard_save_gtm', array( $this, 'ajax_wizard_save_gtm' ) );
+        add_action( 'wp_ajax_cuft_wizard_complete_setup', array( $this, 'ajax_wizard_complete_setup' ) );
     }
     
     /**
@@ -71,20 +75,29 @@ class CUFT_Admin {
         $console_logging = get_option( 'cuft_console_logging', 'no' );
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
         
-        // Get current tab
-        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'settings';
+        // Get current tab - default to setup wizard if setup is incomplete
+        $gtm_id_check = get_option( 'cuft_gtm_id', '' );
+        $frameworks_check = CUFT_Form_Detector::get_framework_status();
+        $detected_frameworks_check = array_filter( $frameworks_check, function($fw) { return $fw['detected']; } );
+        $setup_complete_check = !empty( $gtm_id_check ) && !empty( $detected_frameworks_check ) && get_option( 'cuft_setup_testing_complete', false );
+
+        $default_tab = $setup_complete_check ? 'settings' : 'setup-wizard';
+        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : $default_tab;
         ?>
-        <div class="wrap">
-            <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+        <div class="wrap cuft-admin-container">
+            <div class="cuft-admin-header">
+                <div class="cuft-logo">
                     <span style="color: white; font-size: 24px; font-weight: bold;">📊</span>
                 </div>
-                <h1 style="margin: 0;">Choice Universal Form Tracker</h1>
+                <h1>Choice Universal Form Tracker</h1>
             </div>
-            
+
+            <?php $this->render_setup_progress(); ?>
             <?php $this->render_admin_tabs( $current_tab ); ?>
-            
-            <?php if ( $current_tab === 'settings' ): ?>
+
+            <?php if ( $current_tab === 'setup-wizard' ): ?>
+                <?php $this->render_setup_wizard(); ?>
+            <?php elseif ( $current_tab === 'settings' ): ?>
                 <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $console_logging, $github_updates_enabled ); ?>
                 <?php $this->render_framework_status(); ?>
                 <?php $this->render_github_status(); ?>
@@ -726,9 +739,10 @@ class CUFT_Admin {
 
         wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'cuft_ajax_nonce' ),
+            'nonce' => wp_create_nonce( 'cuft_admin' ),
             'current_version' => CUFT_VERSION,
-            'plugin_url' => CUFT_URL
+            'plugin_url' => CUFT_URL,
+            'admin_url' => admin_url( 'options-general.php?page=choice-universal-form-tracker' )
         ));
     }
     
@@ -1284,13 +1298,179 @@ class CUFT_Admin {
     }
 
     /**
+     * Render setup progress indicator
+     */
+    private function render_setup_progress() {
+        $gtm_id = get_option( 'cuft_gtm_id', '' );
+        $frameworks = CUFT_Form_Detector::get_framework_status();
+        $detected_frameworks = array_filter( $frameworks, function($fw) { return $fw['detected']; } );
+
+        // Calculate setup completion
+        $steps = array(
+            'gtm_setup' => !empty( $gtm_id ),
+            'framework_detected' => !empty( $detected_frameworks ),
+            'testing_complete' => get_option( 'cuft_setup_testing_complete', false ),
+        );
+
+        $completed_steps = array_filter( $steps );
+        $total_steps = count( $steps );
+        $completed_count = count( $completed_steps );
+        $progress_percentage = ( $completed_count / $total_steps ) * 100;
+
+        // Only show if setup is not complete
+        if ( $completed_count < $total_steps ) {
+            ?>
+            <div class="cuft-setup-progress">
+                <h3>Setup Progress</h3>
+                <div class="cuft-progress-bar">
+                    <div class="cuft-progress-fill" style="width: <?php echo round($progress_percentage); ?>%;"></div>
+                </div>
+                <div class="cuft-progress-steps">
+                    <div class="cuft-progress-step <?php echo $steps['gtm_setup'] ? 'completed' : ''; ?>">
+                        <span><?php echo $steps['gtm_setup'] ? '✓' : '○'; ?></span>
+                        GTM Configuration
+                    </div>
+                    <div class="cuft-progress-step <?php echo $steps['framework_detected'] ? 'completed' : ''; ?>">
+                        <span><?php echo $steps['framework_detected'] ? '✓' : '○'; ?></span>
+                        Framework Detected
+                    </div>
+                    <div class="cuft-progress-step <?php echo $steps['testing_complete'] ? 'completed' : ''; ?>">
+                        <span><?php echo $steps['testing_complete'] ? '✓' : '○'; ?></span>
+                        Testing Complete
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Render setup wizard
+     */
+    private function render_setup_wizard() {
+        $gtm_id = get_option( 'cuft_gtm_id', '' );
+        $frameworks = CUFT_Form_Detector::get_framework_status();
+        $detected_frameworks = array_filter( $frameworks, function($fw) { return $fw['detected']; } );
+        ?>
+        <div class="cuft-settings-card">
+            <div class="cuft-card-header">
+                <h2>🎯 Setup Wizard</h2>
+            </div>
+            <div class="cuft-card-content">
+                <p>Welcome! Let's get your Universal Form Tracker configured in just a few steps.</p>
+
+                <div class="cuft-form-section">
+                    <div class="cuft-section-header">
+                        <h3>Step 1: Google Tag Manager Configuration</h3>
+                        <p>Enter your GTM container ID to start tracking form submissions</p>
+                    </div>
+
+                    <?php if ( empty( $gtm_id ) ): ?>
+                        <div class="cuft-input-group">
+                            <label for="wizard-gtm-id">Google Tag Manager ID</label>
+                            <input type="text" id="wizard-gtm-id" name="gtm_id"
+                                   placeholder="GTM-XXXX (e.g., GTM-ABC123)"
+                                   class="cuft-input" style="width: 300px;" />
+                            <p class="description">
+                                Don't have a GTM container? <a href="https://tagmanager.google.com/" target="_blank">Create one here →</a>
+                            </p>
+                        </div>
+                        <button type="button" class="cuft-button primary" id="wizard-save-gtm">
+                            Save GTM ID & Continue
+                        </button>
+                    <?php else: ?>
+                        <div class="cuft-status-indicator success">
+                            ✓ GTM ID configured: <?php echo esc_html( $gtm_id ); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="cuft-form-section">
+                    <div class="cuft-section-header">
+                        <h3>Step 2: Framework Detection</h3>
+                        <p>We automatically detect supported form frameworks on your site</p>
+                    </div>
+
+                    <?php if ( empty( $detected_frameworks ) ): ?>
+                        <div class="cuft-status-indicator warning">
+                            ⚠ No supported frameworks detected yet. Make sure you have forms on your site.
+                        </div>
+                        <p>Supported frameworks: Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, Avada Forms</p>
+                        <button type="button" class="cuft-button secondary" onclick="window.location.reload();">
+                            Refresh Detection
+                        </button>
+                    <?php else: ?>
+                        <div class="cuft-status-indicator success">
+                            ✓ Detected: <?php echo esc_html( implode( ', ', array_column( $detected_frameworks, 'name' ) ) ); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="cuft-form-section">
+                    <div class="cuft-section-header">
+                        <h3>Step 3: Test Your Setup</h3>
+                        <p>Verify everything is working correctly</p>
+                    </div>
+
+                    <?php if ( !empty( $gtm_id ) && !empty( $detected_frameworks ) ): ?>
+                        <?php
+                        $test_page_id = get_option( 'cuft_test_page_id' );
+                        if ( $test_page_id && get_post( $test_page_id ) ):
+                            $test_page_url = get_permalink( $test_page_id );
+                        ?>
+                            <p>Your setup looks good! Now test it:</p>
+                            <div style="margin: 16px 0;">
+                                <a href="<?php echo esc_url( $test_page_url ); ?>" target="_blank" class="cuft-button primary">
+                                    🧪 Open Test Page →
+                                </a>
+                                <button type="button" class="cuft-button success" id="wizard-complete-setup" style="margin-left: 12px;">
+                                    ✓ Mark Setup Complete
+                                </button>
+                            </div>
+                            <p class="description">
+                                Open the test page, submit a form, and verify the events appear in your browser's developer tools (Console → dataLayer events).
+                            </p>
+                        <?php else: ?>
+                            <div class="cuft-status-indicator warning">
+                                ⚠ Test page not available. You can test manually on your forms.
+                            </div>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="cuft-status-indicator info">
+                            ℹ Complete steps 1 and 2 first to enable testing
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ( !empty( $gtm_id ) && !empty( $detected_frameworks ) ): ?>
+                    <div style="background: #e8f5e8; padding: 16px; border-radius: 8px; margin-top: 20px;">
+                        <strong>🎉 Great! Your setup is ready.</strong><br>
+                        Once you've tested your forms, you can mark the setup as complete to hide this wizard.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
      * Render admin tabs
      */
     private function render_admin_tabs( $current_tab ) {
-        $tabs = array(
-            'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
-        );
+        // Show Setup Wizard tab if setup is not complete
+        $gtm_id = get_option( 'cuft_gtm_id', '' );
+        $frameworks = CUFT_Form_Detector::get_framework_status();
+        $detected_frameworks = array_filter( $frameworks, function($fw) { return $fw['detected']; } );
+        $setup_complete = !empty( $gtm_id ) && !empty( $detected_frameworks ) && get_option( 'cuft_setup_testing_complete', false );
+
+        $tabs = array();
+
+        if ( ! $setup_complete ) {
+            $tabs['setup-wizard'] = __( 'Setup Wizard', 'choice-universal-form-tracker' );
+        }
+
+        $tabs['settings'] = __( 'Settings', 'choice-universal-form-tracker' );
+        $tabs['click-tracking'] = __( 'Click Tracking', 'choice-universal-form-tracker' );
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
         foreach ( $tabs as $tab_key => $tab_label ) {
@@ -1747,6 +1927,43 @@ class CUFT_Admin {
         update_user_meta( $user_id, 'cuft_notice_dismissed', true );
 
         wp_send_json_success( array( 'message' => 'Notice dismissed' ) );
+    }
+
+    /**
+     * AJAX handler for wizard GTM ID save
+     */
+    public function ajax_wizard_save_gtm() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Security check failed' );
+        }
+
+        $gtm_id = isset( $_POST['gtm_id'] ) ? sanitize_text_field( $_POST['gtm_id'] ) : '';
+
+        // Validate GTM ID format
+        if ( empty( $gtm_id ) || ! preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id ) ) {
+            wp_send_json_error( 'Invalid GTM ID format' );
+        }
+
+        // Save GTM ID
+        update_option( 'cuft_gtm_id', $gtm_id );
+
+        wp_send_json_success( 'GTM ID saved successfully' );
+    }
+
+    /**
+     * AJAX handler for completing setup wizard
+     */
+    public function ajax_wizard_complete_setup() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Security check failed' );
+        }
+
+        // Mark setup as complete
+        update_option( 'cuft_setup_testing_complete', true );
+
+        wp_send_json_success( 'Setup completed successfully' );
     }
 
     /**

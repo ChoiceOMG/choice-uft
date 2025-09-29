@@ -185,6 +185,20 @@ window.cuftDataLayerUtils = (function () {
     // Add UTM and click ID parameters
     var trackingParams = getTrackingParameters();
     if (trackingParams && typeof trackingParams === 'object') {
+      // Ensure generic click_id is set if any specific click ID exists
+      var hasClickId = false;
+      for (var i = 0; i < CLICK_ID_FIELDS.length; i++) {
+        var clickField = CLICK_ID_FIELDS[i];
+        if (trackingParams[clickField] && clickField !== 'click_id') {
+          // Set generic click_id to the first specific click ID found
+          if (!trackingParams.click_id) {
+            trackingParams.click_id = trackingParams[clickField];
+          }
+          hasClickId = true;
+          break;
+        }
+      }
+
       // Add all tracking parameters to payload
       for (var key in trackingParams) {
         if (trackingParams.hasOwnProperty(key) && trackingParams[key]) {
@@ -291,7 +305,29 @@ window.cuftDataLayerUtils = (function () {
       }
 
       // Check for generate_lead conditions
-      if (meetsLeadConditions(formSubmitPayload)) {
+      var meetsConditions = meetsLeadConditions(formSubmitPayload);
+
+      if (options.debug && window.console && window.console.log) {
+        window.console.log('[CUFT DataLayer] Generate lead conditions check:', {
+          framework: framework,
+          meetsConditions: meetsConditions,
+          hasEmail: !!formSubmitPayload.user_email,
+          hasPhone: !!formSubmitPayload.user_phone,
+          hasClickId: !!(formSubmitPayload.click_id || formSubmitPayload.gclid ||
+                       formSubmitPayload.fbclid || formSubmitPayload.wbraid ||
+                       formSubmitPayload.gbraid || formSubmitPayload.msclkid),
+          clickIds: {
+            click_id: formSubmitPayload.click_id || null,
+            gclid: formSubmitPayload.gclid || null,
+            fbclid: formSubmitPayload.fbclid || null,
+            wbraid: formSubmitPayload.wbraid || null,
+            gbraid: formSubmitPayload.gbraid || null,
+            msclkid: formSubmitPayload.msclkid || null
+          }
+        });
+      }
+
+      if (meetsConditions) {
         var leadPayload = createGenerateLeadPayload(formSubmitPayload, framework, {
           lead_currency: options.lead_currency,
           lead_value: options.lead_value
@@ -300,6 +336,14 @@ window.cuftDataLayerUtils = (function () {
           debug: options.debug,
           framework: framework
         });
+
+        if (options.debug && window.console && window.console.log) {
+          window.console.log('[CUFT DataLayer] ✅ generate_lead event fired for:', framework);
+        }
+      } else {
+        if (options.debug && window.console && window.console.log) {
+          window.console.log('[CUFT DataLayer] ❌ generate_lead NOT fired for:', framework, 'Missing requirements');
+        }
       }
 
       // Mark form as processed

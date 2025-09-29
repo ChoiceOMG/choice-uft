@@ -4,8 +4,9 @@
   var DEBUG = !!(window.cuftUTM && window.cuftUTM.debug);
 
   function log() {
+    if (!DEBUG) return;
     try {
-      if (DEBUG && window.console && window.console.log) {
+      if (window.console && window.console.log) {
         window.console.log.apply(
           window.console,
           ["[CUFT UTM]"].concat(Array.prototype.slice.call(arguments))
@@ -80,13 +81,24 @@
     }
 
     // Extract Click ID parameters
+    var firstClickId = null;
     for (var j = 0; j < CLICK_ID_PARAMS.length; j++) {
       var clickParam = CLICK_ID_PARAMS[j];
       if (urlParams[clickParam]) {
         trackingData[clickParam] = urlParams[clickParam];
+        // Store first non-generic click ID as generic click_id
+        if (!firstClickId && clickParam !== 'click_id') {
+          firstClickId = urlParams[clickParam];
+        }
         hasData = true;
         log("Click ID detected:", clickParam, urlParams[clickParam]);
       }
+    }
+
+    // Set generic click_id if we found any specific click ID
+    if (firstClickId && !trackingData.click_id) {
+      trackingData.click_id = firstClickId;
+      log("Setting generic click_id:", firstClickId);
     }
 
     return hasData ? trackingData : null;
@@ -156,6 +168,7 @@
 
   /**
    * Get stored tracking data from cookies
+   * Returns empty object if no data found (for consistent merging)
    */
   function getStoredTrackingDataFromCookie() {
     try {
@@ -181,11 +194,39 @@
     } catch (e) {
       log("Error reading tracking data from cookie:", e);
     }
-    return null;
+    return {};
+  }
+
+  /**
+   * Get stored tracking data from localStorage
+   * Returns empty object if no data found (for consistent merging)
+   */
+  function getStoredTrackingDataFromLocalStorage() {
+    try {
+      var stored = localStorage.getItem("cuft_tracking_data");
+      if (stored) {
+        var data = JSON.parse(stored);
+        // Check if data is not too old (30 days)
+        if (
+          data.timestamp &&
+          Date.now() - data.timestamp < 30 * 24 * 60 * 60 * 1000
+        ) {
+          log("Tracking data retrieved from localStorage:", data.tracking);
+          return data.tracking || {};
+        } else {
+          log("LocalStorage data is too old, cleaning up");
+          localStorage.removeItem("cuft_tracking_data");
+        }
+      }
+    } catch (e) {
+      log("Error reading stored tracking data from localStorage:", e);
+    }
+    return {};
   }
 
   /**
    * Get stored tracking data from sessionStorage
+   * Returns empty object if no data found (for consistent merging)
    */
   function getStoredTrackingData() {
     try {
@@ -198,7 +239,7 @@
           Date.now() - data.timestamp < 30 * 24 * 60 * 60 * 1000
         ) {
           log("Tracking data retrieved from sessionStorage:", data.tracking);
-          return data.tracking;
+          return data.tracking || {};
         } else {
           log("SessionStorage data is too old");
         }
@@ -207,8 +248,15 @@
       log("Error reading stored tracking data from sessionStorage:", e);
     }
 
-    // Fallback to cookie if sessionStorage fails
-    return getStoredTrackingDataFromCookie();
+    // Fallback to localStorage if sessionStorage fails
+    var localData = getStoredTrackingDataFromLocalStorage();
+    if (localData && Object.keys(localData).length > 0) {
+      return localData;
+    }
+
+    // Final fallback to cookie
+    var cookieData = getStoredTrackingDataFromCookie();
+    return cookieData || {};
   }
 
   /**
@@ -242,22 +290,55 @@
   }
 
   /**
-   * Get current tracking data with graceful fallback
-   * Priority: URL parameters -> SessionStorage -> Cookie -> Empty
+   * Get current tracking data with graceful fallback and data merging
+   * Strategy: Merge URL + SessionStorage + Cookie data
+   * Priority: URL params override sessionStorage/cookie for same keys (fresher data)
+   *          but preserve click IDs from sessionStorage if not in URL
    */
   function getCurrentTrackingData() {
-    var trackingData = null;
+    var merged = {};
 
-    // 1. First check URL for fresh tracking parameters
-    log("Checking URL for tracking parameters...");
-    trackingData = getTrackingParams();
-    if (trackingData && Object.keys(trackingData).length > 0) {
-      log("Tracking data found in URL:", trackingData);
-      return trackingData;
+    // 1. Start with cookie data (oldest, lowest priority)
+    log("Checking cookies for tracking parameters...");
+    var cookieData = getStoredTrackingDataFromCookie();
+    if (cookieData && Object.keys(cookieData).length > 0) {
+      log("Tracking data found in cookie:", cookieData);
+      for (var key in cookieData) {
+        if (cookieData.hasOwnProperty(key)) {
+          merged[key] = cookieData[key];
+        }
+      }
     }
 
-    // 2. Then check sessionStorage
-    log("No URL parameters found, checking sessionStorage...");
+    // 2. Merge localStorage data (for traditional page reload submissions)
+    log("Checking localStorage for tracking parameters...");
+    var localData = null;
+    try {
+      var storedLocal = localStorage.getItem("cuft_tracking_data");
+      if (storedLocal) {
+        var dataLocal = JSON.parse(storedLocal);
+        if (
+          dataLocal.timestamp &&
+          Date.now() - dataLocal.timestamp < 30 * 24 * 60 * 60 * 1000
+        ) {
+          localData = dataLocal.tracking;
+          log("Tracking data found in localStorage:", localData);
+          for (var key in localData) {
+            if (localData.hasOwnProperty(key)) {
+              merged[key] = localData[key];
+            }
+          }
+        } else {
+          log("LocalStorage data is too old, cleaning up");
+          localStorage.removeItem("cuft_tracking_data");
+        }
+      }
+    } catch (e) {
+      log("Error reading localStorage:", e);
+    }
+
+    // 3. Merge sessionStorage data (medium-high priority - may have click IDs)
+    log("Checking sessionStorage for tracking parameters...");
     var sessionData = null;
     try {
       var stored = sessionStorage.getItem("cuft_tracking_data");
@@ -269,22 +350,35 @@
         ) {
           sessionData = data.tracking;
           log("Tracking data found in sessionStorage:", sessionData);
+          for (var key in sessionData) {
+            if (sessionData.hasOwnProperty(key)) {
+              merged[key] = sessionData[key];
+            }
+          }
+        } else {
+          log("SessionStorage data is too old, ignoring");
         }
       }
     } catch (e) {
       log("Error reading sessionStorage:", e);
     }
 
-    if (sessionData && Object.keys(sessionData).length > 0) {
-      return sessionData;
+    // 4. Merge URL parameters (highest priority - freshest data)
+    log("Checking URL for tracking parameters...");
+    var urlData = getTrackingParams();
+    if (urlData && Object.keys(urlData).length > 0) {
+      log("Tracking data found in URL:", urlData);
+      for (var key in urlData) {
+        if (urlData.hasOwnProperty(key)) {
+          merged[key] = urlData[key];
+        }
+      }
     }
 
-    // 3. Finally check cookies
-    log("No sessionStorage data found, checking cookies...");
-    var cookieData = getStoredTrackingDataFromCookie();
-    if (cookieData && Object.keys(cookieData).length > 0) {
-      log("Tracking data found in cookie:", cookieData);
-      return cookieData;
+    // Log final merged result
+    if (Object.keys(merged).length > 0) {
+      log("Merged tracking data from all sources:", merged);
+      return merged;
     }
 
     // 4. Return empty object if nothing found

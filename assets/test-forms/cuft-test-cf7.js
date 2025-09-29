@@ -336,8 +336,11 @@
          * Get CF7 form HTML structure
          */
         getFormHTML: function(formId, adminEmail) {
+            // Extract numeric ID from formId to prevent NaN errors
+            const numericId = formId.replace(/\D/g, '') || '123';
+
             return `
-                <form class="wpcf7-form init" novalidate="novalidate" data-status="init">
+                <form class="wpcf7-form init" novalidate="novalidate" data-status="init" data-wpcf7-id="${numericId}">
                     <p>
                         <label>Email Address<br>
                             <span class="wpcf7-form-control-wrap" data-name="your-email">
