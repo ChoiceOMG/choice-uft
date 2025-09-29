@@ -199,12 +199,14 @@ window.cuftDataLayerUtils = (function () {
   /**
    * Create standardized generate_lead event payload
    */
-  function createGenerateLeadPayload(formSubmitPayload, framework) {
+  function createGenerateLeadPayload(formSubmitPayload, framework, options) {
     // Validate framework
     var frameworkConfig = FRAMEWORK_IDENTIFIERS[framework];
     if (!frameworkConfig) {
       throw new Error('[CUFT DataLayer] Unknown framework: ' + framework);
     }
+
+    options = options || {};
 
     // Copy all form_submit fields and modify event-specific fields
     var leadPayload = {};
@@ -217,8 +219,8 @@ window.cuftDataLayerUtils = (function () {
     // Override event-specific fields
     leadPayload.event = "generate_lead";
     leadPayload.cuft_source = frameworkConfig.cuft_source_lead;
-    leadPayload.currency = "USD";
-    leadPayload.value = 0;
+    leadPayload.currency = options.lead_currency || "CAD";
+    leadPayload.value = parseFloat(options.lead_value) || 100;
 
     return leadPayload;
   }
@@ -290,7 +292,10 @@ window.cuftDataLayerUtils = (function () {
 
       // Check for generate_lead conditions
       if (meetsLeadConditions(formSubmitPayload)) {
-        var leadPayload = createGenerateLeadPayload(formSubmitPayload, framework);
+        var leadPayload = createGenerateLeadPayload(formSubmitPayload, framework, {
+          lead_currency: options.lead_currency,
+          lead_value: options.lead_value
+        });
         pushToDataLayer(leadPayload, {
           debug: options.debug,
           framework: framework

@@ -328,7 +328,9 @@
         form_name: formDetails.form_name,
         user_email: email,
         user_phone: phone,
-        debug: DEBUG
+        debug: DEBUG,
+        lead_currency: window.cuftGravity && window.cuftGravity.lead_currency ? window.cuftGravity.lead_currency : 'CAD',
+        lead_value: window.cuftGravity && window.cuftGravity.lead_value ? window.cuftGravity.lead_value : 100,
       });
 
       if (success) {

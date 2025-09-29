@@ -68,6 +68,7 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
             'includes/class-cuft-test-forms.php',
+            'includes/class-cuft-cryptojs.php',
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
@@ -171,6 +172,10 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Click_Integration();
             }
 
+            if ( class_exists( 'CUFT_CryptoJS' ) ) {
+                new CUFT_CryptoJS();
+            }
+
             // Initialize GitHub updater
             if ( class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
                 global $cuft_updater;
@@ -220,6 +225,12 @@ class Choice_Universal_Form_Tracker {
         }
         if ( false === get_option( 'cuft_github_updates_enabled' ) ) {
             add_option( 'cuft_github_updates_enabled', true );
+        }
+        if ( false === get_option( 'cuft_lead_currency' ) ) {
+            add_option( 'cuft_lead_currency', 'CAD' );
+        }
+        if ( false === get_option( 'cuft_lead_value' ) ) {
+            add_option( 'cuft_lead_value', 100 );
         }
 
         // Create click tracking table

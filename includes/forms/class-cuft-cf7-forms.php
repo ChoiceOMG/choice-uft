@@ -184,6 +184,8 @@ class CUFT_CF7_Forms {
             'debug' => apply_filters( 'cuft_debug', false ),
             'console_logging' => CUFT_Console_Logger::get_console_logging_setting(),
             'generate_lead_enabled' => get_option( 'cuft_generate_lead_enabled', false ),
+            'lead_currency' => get_option( 'cuft_lead_currency', 'CAD' ),
+            'lead_value' => get_option( 'cuft_lead_value', 100 ),
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_cf7_tracking' )
         ) );

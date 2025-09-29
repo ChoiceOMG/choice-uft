@@ -649,4 +649,14 @@ jQuery(document).ready(function ($) {
 
     return eventMap[framework] || 'submit_success';
   }
+
+  // Handle Generate Lead settings show/hide
+  $('#cuft-generate-lead-enabled').on('change', function() {
+    var $leadSettings = $('#cuft-lead-settings');
+    if ($(this).is(':checked')) {
+      $leadSettings.slideDown();
+    } else {
+      $leadSettings.slideUp();
+    }
+  });
 });

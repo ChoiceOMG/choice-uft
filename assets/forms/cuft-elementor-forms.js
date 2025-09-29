@@ -349,6 +349,8 @@
           user_email: email,
           user_phone: phone,
           debug: DEBUG,
+          lead_currency: window.cuftElementor && window.cuftElementor.lead_currency ? window.cuftElementor.lead_currency : 'CAD',
+          lead_value: window.cuftElementor && window.cuftElementor.lead_value ? window.cuftElementor.lead_value : 100,
         }
       );
 
