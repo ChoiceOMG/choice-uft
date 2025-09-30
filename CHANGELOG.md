@@ -5,6 +5,82 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.13.0] - 2025-09-30
+
+### Added - Google Ads Offline Conversion Import Export
+
+- **Export for Google Ads**: New "Export for Google Ads" button in Click Tracking admin
+  - GCLID-only filtering (validates `Cj0K%` and `EAIaIQ%` patterns)
+  - Google Ads OCI CSV format with Parameters row declaring UTC timezone
+  - UTF-8 BOM for Excel compatibility
+  - One row per event (phone clicks, form submits, qualified leads)
+  - Click records with no events export as "Ad Click"
+- **Conversion Value Calculation**: Proportional lead value based on score
+  - Qualified Lead conversions: `(lead_value × score) ÷ 10`
+  - All other conversion types: `0`
+  - Uses existing `cuft_lead_value` and `cuft_lead_currency` settings
+- **Filter Support**: Respects existing admin filters (qualified status, date range)
+- **Export Limits**: 10,000 record maximum for performance
+- **Security**: Administrator-level permissions required, nonce verification
+
+### Added - Click Tracking Events Migration
+
+- **Event-Based Tracking**: New JSON `events` column stores chronological event history for each click
+  - `phone_click` - Telephone link clicks
+  - `email_click` - Email link clicks
+  - `form_submit` - Form submission events
+  - `generate_lead` - Qualified lead events (email + phone + click_id)
+  - `status_qualified` - Webhook qualification updates
+  - `score_updated` - Webhook score changes
+- **AJAX Event Recorder**: New endpoint `/wp-admin/admin-ajax.php?action=cuft_record_event` for client-side event recording
+  - Fire-and-forget pattern ensures non-blocking user experience
+  - Nonce-based security validation
+  - Event type whitelist protection
+- **Admin Events Display**: Enhanced Click Tracking admin interface
+  - Events timeline with color-coded badges
+  - Event type filtering (6 event types)
+  - Last Activity sort option using `idx_date_updated` index
+  - Newest-first chronological display (up to 3 events, "+X more" indicator)
+- **Database Enhancements**:
+  - New `events` column (MySQL JSON type) for event storage
+  - New `idx_date_updated` index for performance optimization
+  - Event deduplication (updates timestamp for duplicate event types)
+  - FIFO cleanup maintains 100-event limit per click_id
+- **Performance Features**:
+  - JSON operations: <12ms for add_event, <5ms for get_events
+  - AJAX response time: <100ms P95
+  - Aggregate overhead: <10%
+- **Migration System**: Automated database migration with hybrid rollback
+  - Preserves business-critical data (qualified/score) on rollback
+  - Backup creation before schema changes
+  - Safe migration with error handling
+
+### Changed
+
+- **Admin Table Layout**: Removed `Platform` and `UTM Source` columns, added `Events` column
+- **JavaScript Integration**: Centralized event recording in `cuft-dataLayer-utils.js`
+  - All form frameworks now use shared `recordEvent()` function
+  - Unified error handling and debug logging
+- **Filter System**: Replaced Platform filter with Event Type filter
+
+### Technical
+
+- **New Files**:
+  - `includes/ajax/class-cuft-event-recorder.php` - AJAX handler
+  - `includes/migrations/class-cuft-migration-3-12-0.php` - Database migration
+  - `tests/performance/test-json-performance.php` - JSON operations benchmark
+  - `tests/performance/test-ajax-performance.php` - AJAX endpoint benchmark
+  - TDD test suite (7 test files for contracts and integration)
+- **Modified Files**:
+  - `includes/class-cuft-click-tracker.php` - Event methods with deduplication
+  - `assets/cuft-links.js` - Phone/email click event recording
+  - `assets/cuft-dataLayer-utils.js` - Centralized event recording
+  - `includes/class-cuft-admin.php` - Events display and filtering
+- **Backward Compatibility**: 100% maintained
+  - Webhook API unchanged
+  - Existing click tracking functionality preserved
+  - Deprecated columns retained during transition period
+
 ## [3.12.0] - 2025-09-29
 
 ### Added
