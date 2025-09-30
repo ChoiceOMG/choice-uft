@@ -18,8 +18,9 @@ class CUFT_Admin {
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
         add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
-        add_action( 'wp_ajax_cuft_record_event', array( $this, 'ajax_record_event' ) );
-        add_action( 'wp_ajax_nopriv_cuft_record_event', array( $this, 'ajax_record_event' ) );
+        // Removed duplicate AJAX handlers - now handled by CUFT_Event_Recorder class
+        // add_action( 'wp_ajax_cuft_record_event', array( $this, 'ajax_record_event' ) );
+        // add_action( 'wp_ajax_nopriv_cuft_record_event', array( $this, 'ajax_record_event' ) );
 // Removed admin page test forms - use dedicated test page instead
         add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -57,7 +58,12 @@ class CUFT_Admin {
         if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_csv' && wp_verify_nonce( $_GET['nonce'], 'cuft_export_csv' ) ) {
             $this->handle_csv_export();
         }
-        
+
+        // Handle Google Ads OCI export
+        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_google_ads_oci' && wp_verify_nonce( $_GET['nonce'], 'cuft_export_google_ads_oci' ) ) {
+            $this->handle_google_ads_oci_export();
+        }
+
         // Handle webhook key regeneration
         if ( isset( $_GET['action'] ) && $_GET['action'] === 'regenerate_webhook_key' && wp_verify_nonce( $_GET['_wpnonce'], 'regenerate_webhook_key' ) ) {
             $this->regenerate_webhook_key();
@@ -1311,20 +1317,22 @@ class CUFT_Admin {
         
         // Handle filters
         $filter_qualified = isset( $_GET['filter_qualified'] ) ? sanitize_text_field( $_GET['filter_qualified'] ) : '';
-        $filter_platform = isset( $_GET['filter_platform'] ) ? sanitize_text_field( $_GET['filter_platform'] ) : '';
+        $filter_event_type = isset( $_GET['filter_event_type'] ) ? sanitize_text_field( $_GET['filter_event_type'] ) : '';
         $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
         $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
-        
+        $sort_by = isset( $_GET['sort_by'] ) ? sanitize_text_field( $_GET['sort_by'] ) : 'date_created';
+
         $args = array(
             'limit' => $per_page,
-            'offset' => $offset
+            'offset' => $offset,
+            'sort_by' => $sort_by
         );
-        
+
         if ( $filter_qualified !== '' ) {
             $args['qualified'] = (int) $filter_qualified;
         }
-        if ( ! empty( $filter_platform ) ) {
-            $args['platform'] = $filter_platform;
+        if ( ! empty( $filter_event_type ) ) {
+            $args['event_type'] = $filter_event_type;
         }
         if ( ! empty( $filter_date_from ) ) {
             $args['date_from'] = $filter_date_from . ' 00:00:00';
@@ -1344,22 +1352,30 @@ class CUFT_Admin {
                     <span style="margin-right: 8px;">🎯</span>
                     Click Tracking Management
                 </h2>
-                <div>
-                    <?php 
-                    $export_url = wp_nonce_url( 
-                        add_query_arg( array( 'action' => 'export_csv' ), admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ), 
-                        'cuft_export_csv', 
-                        'nonce' 
+                <div style="display: flex; gap: 10px;">
+                    <?php
+                    $export_url = wp_nonce_url(
+                        add_query_arg( array( 'action' => 'export_csv' ), admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ),
+                        'cuft_export_csv',
+                        'nonce'
+                    );
+                    $google_ads_export_url = wp_nonce_url(
+                        add_query_arg( array( 'action' => 'export_google_ads_oci' ), admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ),
+                        'cuft_export_google_ads_oci',
+                        'nonce'
                     );
                     ?>
                     <a href="<?php echo esc_url( $export_url ); ?>" class="button button-secondary">
                         📊 Export CSV
                     </a>
+                    <a href="<?php echo esc_url( $google_ads_export_url ); ?>" class="button button-primary" title="Export GCLID records for Google Ads Offline Conversion Import">
+                        🎯 Export for Google Ads
+                    </a>
                 </div>
             </div>
             
             <?php $this->render_webhook_settings(); ?>
-            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_platform, $filter_date_from, $filter_date_to ); ?>
+            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $sort_by ); ?>
             <?php $this->render_click_tracking_stats( $args ); ?>
             <?php $this->render_click_tracking_table( $clicks ); ?>
             <?php $this->render_click_tracking_pagination( $current_page, $total_pages ); ?>
@@ -1371,46 +1387,119 @@ class CUFT_Admin {
      * Render webhook settings
      */
     private function render_webhook_settings() {
-        $webhook_key = get_option( 'cuft_webhook_key', '' );
-        
-        if ( empty( $webhook_key ) ) {
-            $webhook_key = wp_generate_password( 32, false );
-            update_option( 'cuft_webhook_key', $webhook_key );
-        }
-        
-        $webhook_url = home_url( '/cuft-webhook/' );
+        // Use AJAX endpoint which works reliably regardless of permalink settings
+        $webhook_url = admin_url( 'admin-ajax.php' );
+
+        // Get a real click_id from the database for the example
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'cuft_click_tracking';
+        $sample_click_id = $wpdb->get_var( "SELECT click_id FROM {$table_name} ORDER BY date_created DESC LIMIT 1" );
+        $has_data = ! empty( $sample_click_id );
+
+        // Use placeholder for display if no data exists
+        $display_click_id = $has_data ? $sample_click_id : 'YOUR_CLICK_ID';
+
         $example_url = add_query_arg( array(
-            'key' => $webhook_key,
-            'click_id' => 'example_click_123',
+            'action' => 'cuft_webhook',
+            'click_id' => $display_click_id,
             'qualified' => '1',
             'score' => '8'
         ), $webhook_url );
-        
+
         ?>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-            <h3 style="margin-top: 0;">Webhook Configuration</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <label><strong>Webhook URL:</strong></label><br>
-                    <input type="text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly class="regular-text" onclick="this.select();" />
-                </div>
-                <div>
-                    <label><strong>Webhook Key:</strong></label><br>
-                    <input type="text" value="<?php echo esc_attr( $webhook_key ); ?>" readonly class="regular-text" onclick="this.select();" />
-                    <button type="button" class="button button-small" onclick="if(confirm('Generate new webhook key? This will invalidate the current key.')) { location.href='<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'regenerate_webhook_key' ) ), 'regenerate_webhook_key' ) ); ?>'; }">
-                        🔄 Regenerate
-                    </button>
-                </div>
+            <h3 style="margin-top: 0;">📡 Public Webhook Endpoint</h3>
+            <p style="color: #666; margin-top: 0;">
+                <strong>Public, obscure endpoint for updating click status from email messages.</strong><br>
+                Security through obscurity: The click_id itself acts as the authorization token.
+            </p>
+
+            <div style="margin-bottom: 15px;">
+                <label><strong>Webhook Base URL:</strong></label><br>
+                <input type="text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly class="regular-text" onclick="this.select();" style="font-family: monospace;" />
+                <p class="description">Use with action=cuft_webhook parameter</p>
             </div>
-            <div>
+
+            <div style="margin-bottom: 15px;">
                 <strong>Example Usage:</strong><br>
-                <code style="background: white; padding: 8px; display: block; border-radius: 4px; font-size: 12px; word-break: break-all;">
+                <code style="background: white; padding: 8px; display: block; border-radius: 4px; font-size: 12px; word-break: break-all; font-family: monospace;">
                     <?php echo esc_html( $example_url ); ?>
                 </code>
+                <p class="description" style="margin-top: 8px;">
+                    <strong>Parameters:</strong><br>
+                    • <code>action</code> = cuft_webhook (required)<br>
+                    • <code>click_id</code> = The click ID to update (required, acts as auth token)<br>
+                    • <code>qualified</code> = 0 or 1 (optional)<br>
+                    • <code>score</code> = 0-10 (optional)
+                </p>
+            </div>
+
+            <div style="background: white; padding: 12px; border-left: 4px solid #3b82f6; margin-bottom: 15px;">
+                <strong>💡 For Email Messages:</strong><br>
                 <small style="color: #666;">
-                    Send GET requests to update click status. Parameters: key (required), click_id (required), qualified (0 or 1), score (0-10)
+                    Embed the webhook URL in email links/images to track lead status updates.
+                    The click_id is already obscure (e.g., gclid, fbclid, or generated hash),
+                    providing security through obscurity without requiring additional authentication.
                 </small>
             </div>
+
+            <div>
+                <strong>Test Webhook:</strong><br>
+                <div style="display: flex; gap: 10px; align-items: flex-start; margin-top: 10px;">
+                    <div style="flex: 1;">
+                        <input type="text" id="test-click-id" value="<?php echo $has_data ? esc_attr( $sample_click_id ) : ''; ?>" placeholder="Enter a click_id to test" class="regular-text" style="font-family: monospace;" />
+                        <p class="description" style="margin-top: 5px;">
+                            <?php if ( $has_data ): ?>
+                                Click any Click ID in the table below to copy it here.
+                            <?php else: ?>
+                                You need at least one click tracking record. Create one by clicking a tracked link or submitting a tracked form.
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                    <button type="button" class="button button-secondary" onclick="testWebhook()" style="margin-top: 0;">
+                        🧪 Test Endpoint
+                    </button>
+                </div>
+                <div id="webhook-test-result" style="margin-top: 10px;"></div>
+            </div>
+
+            <script>
+            function testWebhook() {
+                var resultDiv = document.getElementById('webhook-test-result');
+                var clickId = document.getElementById('test-click-id').value.trim();
+
+                if (!clickId) {
+                    resultDiv.innerHTML = '<span style="color: #dc3545;">❌ Please enter a click_id to test</span>';
+                    return;
+                }
+
+                resultDiv.innerHTML = '<em>Testing webhook...</em>';
+
+                var testUrl = '<?php echo esc_js( $webhook_url ); ?>?action=cuft_webhook&click_id=' + encodeURIComponent(clickId) + '&qualified=1&score=8';
+
+                fetch(testUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            resultDiv.innerHTML = '<span style="color: #28a745;">✅ Webhook test successful! Click ID "' + clickId + '" updated.</span>';
+                        } else {
+                            resultDiv.innerHTML = '<span style="color: #dc3545;">❌ Webhook test failed: ' + (data.data ? data.data.message : 'Unknown error') + '</span>';
+                        }
+                    })
+                    .catch(error => {
+                        resultDiv.innerHTML = '<span style="color: #dc3545;">❌ Webhook test failed: ' + error.message + '</span>';
+                    });
+            }
+            </script>
+            <?php if ( ! $has_data ): ?>
+            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 4px;">
+                <strong>⚠️ No Click Data Available</strong><br>
+                <small style="color: #666;">
+                    The test button will appear once you have at least one click tracking record in the database.
+                    Click tracking records are created when users interact with tracked links or forms.
+                </small>
+            </div>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -1418,12 +1507,12 @@ class CUFT_Admin {
     /**
      * Render click tracking filters
      */
-    private function render_click_tracking_filters( $filter_qualified, $filter_platform, $filter_date_from, $filter_date_to ) {
+    private function render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $sort_by ) {
         ?>
         <form method="GET" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
             <input type="hidden" name="page" value="choice-universal-form-tracker" />
             <input type="hidden" name="tab" value="click-tracking" />
-            
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
                 <div>
                     <label><strong>Qualified Status:</strong></label><br>
@@ -1434,8 +1523,23 @@ class CUFT_Admin {
                     </select>
                 </div>
                 <div>
-                    <label><strong>Platform:</strong></label><br>
-                    <input type="text" name="filter_platform" value="<?php echo esc_attr( $filter_platform ); ?>" placeholder="e.g., facebook, google" />
+                    <label><strong>Event Type:</strong></label><br>
+                    <select name="filter_event_type">
+                        <option value="">All Events</option>
+                        <option value="phone_click" <?php selected( $filter_event_type, 'phone_click' ); ?>>Phone Click</option>
+                        <option value="email_click" <?php selected( $filter_event_type, 'email_click' ); ?>>Email Click</option>
+                        <option value="form_submit" <?php selected( $filter_event_type, 'form_submit' ); ?>>Form Submit</option>
+                        <option value="generate_lead" <?php selected( $filter_event_type, 'generate_lead' ); ?>>Generate Lead</option>
+                        <option value="status_qualified" <?php selected( $filter_event_type, 'status_qualified' ); ?>>Status Qualified</option>
+                        <option value="score_updated" <?php selected( $filter_event_type, 'score_updated' ); ?>>Score Updated</option>
+                    </select>
+                </div>
+                <div>
+                    <label><strong>Sort By:</strong></label><br>
+                    <select name="sort_by">
+                        <option value="date_created" <?php selected( $sort_by, 'date_created' ); ?>>Date Created</option>
+                        <option value="date_updated" <?php selected( $sort_by, 'date_updated' ); ?>>Last Activity</option>
+                    </select>
                 </div>
                 <div>
                     <label><strong>Date From:</strong></label><br>
@@ -1500,9 +1604,8 @@ class CUFT_Admin {
                 <thead>
                     <tr>
                         <th>Click ID</th>
-                        <th>Platform</th>
                         <th>Campaign</th>
-                        <th>UTM Source</th>
+                        <th>Events</th>
                         <th>Qualified</th>
                         <th>Score</th>
                         <th>Date Created</th>
@@ -1513,7 +1616,7 @@ class CUFT_Admin {
                 <tbody>
                     <?php if ( empty( $clicks ) ): ?>
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
+                            <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
                                 No click tracking data found. Click data will appear here when tracking is active.
                             </td>
                         </tr>
@@ -1521,14 +1624,64 @@ class CUFT_Admin {
                         <?php foreach ( $clicks as $click ): ?>
                             <tr>
                                 <td>
-                                    <strong><?php echo esc_html( $click->click_id ); ?></strong>
+                                    <span
+                                        class="cuft-click-id-copy"
+                                        onclick="copyClickIdToTest('<?php echo esc_js( $click->click_id ); ?>')"
+                                        style="cursor: pointer; display: inline-block;"
+                                        title="Click to copy to test field"
+                                    >
+                                        <strong style="text-decoration: underline; text-decoration-style: dotted;"><?php echo esc_html( $click->click_id ); ?></strong>
+                                        <span class="dashicons dashicons-clipboard" style="font-size: 14px; vertical-align: middle; color: #666;"></span>
+                                    </span>
                                     <?php if ( ! empty( $click->ip_address ) ): ?>
                                         <br><small style="color: #666;"><?php echo esc_html( $click->ip_address ); ?></small>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo esc_html( $click->platform ?: '—' ); ?></td>
                                 <td><?php echo esc_html( $click->campaign ?: '—' ); ?></td>
-                                <td><?php echo esc_html( $click->utm_source ?: '—' ); ?></td>
+                                <td>
+                                    <?php
+                                    // Display events timeline (v3.12.0+)
+                                    $events = isset( $click->events ) ? CUFT_Click_Tracker::get_events( $click->click_id ) : array();
+                                    if ( ! empty( $events ) ) :
+                                        // Sort events by timestamp descending (newest first)
+                                        usort( $events, function( $a, $b ) {
+                                            return strcmp( $b['timestamp'], $a['timestamp'] );
+                                        });
+
+                                        // Display first 3 events, collapse rest
+                                        $visible_events = array_slice( $events, 0, 3 );
+                                        $hidden_events = array_slice( $events, 3 );
+
+                                        foreach ( $visible_events as $event ):
+                                            $event_type = $event['event'];
+                                            $event_time = date( 'M j, g:i A', strtotime( $event['timestamp'] ) );
+
+                                            // Badge colors by event type
+                                            $badge_colors = array(
+                                                'phone_click' => '#3b82f6',
+                                                'email_click' => '#8b5cf6',
+                                                'form_submit' => '#10b981',
+                                                'generate_lead' => '#f59e0b',
+                                                'status_qualified' => '#ef4444',
+                                                'score_updated' => '#06b6d4'
+                                            );
+                                            $badge_color = isset( $badge_colors[ $event_type ] ) ? $badge_colors[ $event_type ] : '#6b7280';
+                                            ?>
+                                            <span style="display: inline-block; padding: 3px 8px; margin: 2px; border-radius: 4px; font-size: 11px; color: white; background: <?php echo esc_attr( $badge_color ); ?>;">
+                                                <?php echo esc_html( $event_type ); ?>
+                                            </span>
+                                            <small style="color: #666; font-size: 10px;"><?php echo esc_html( $event_time ); ?></small>
+                                            <br>
+                                        <?php endforeach;
+
+                                        if ( ! empty( $hidden_events ) ) :
+                                            ?>
+                                            <small style="color: #666;">+<?php echo count( $hidden_events ); ?> more</small>
+                                        <?php endif;
+                                    else: ?>
+                                        <span style="color: #999;">No events</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background: <?php echo $click->qualified ? '#28a745' : '#6c757d'; ?>;">
                                         <?php echo $click->qualified ? 'YES' : 'NO'; ?>
@@ -1596,14 +1749,51 @@ class CUFT_Admin {
             </div>
         </div>
         
+        <style>
+        .cuft-click-id-copy:hover {
+            background: #f0f6ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .cuft-click-id-copy:hover strong {
+            color: #0073aa;
+        }
+        .cuft-click-id-copy:active {
+            background: #e0f0ff;
+        }
+        </style>
+
         <script>
+        function copyClickIdToTest(clickId) {
+            var testInput = document.getElementById('test-click-id');
+            if (testInput) {
+                testInput.value = clickId;
+                testInput.focus();
+
+                // Visual feedback
+                testInput.style.background = '#e7f3ff';
+                setTimeout(function() {
+                    testInput.style.background = '';
+                }, 500);
+
+                // Scroll to webhook section if not visible
+                var webhookSection = testInput.closest('.cuft-click-tracking');
+                if (webhookSection) {
+                    var rect = testInput.getBoundingClientRect();
+                    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+                        testInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+        }
+
         function editClick(clickId, qualified, score) {
             document.getElementById('edit-click-id').value = clickId;
             document.getElementById('edit-qualified-' + (qualified ? 'yes' : 'no')).checked = true;
             document.getElementById('edit-score').value = score;
             document.getElementById('edit-click-modal').style.display = 'block';
         }
-        
+
         function closeEditModal() {
             document.getElementById('edit-click-modal').style.display = 'none';
         }
@@ -1630,7 +1820,7 @@ class CUFT_Admin {
         
         // Preserve current filters
         $filter_params = array();
-        foreach ( array( 'filter_qualified', 'filter_platform', 'filter_date_from', 'filter_date_to' ) as $param ) {
+        foreach ( array( 'filter_qualified', 'filter_event_type', 'filter_date_from', 'filter_date_to', 'sort_by' ) as $param ) {
             if ( ! empty( $_GET[ $param ] ) ) {
                 $filter_params[ $param ] = sanitize_text_field( $_GET[ $param ] );
             }
@@ -1696,12 +1886,12 @@ class CUFT_Admin {
         
         // Get filter parameters
         $args = array();
-        
+
         if ( isset( $_GET['filter_qualified'] ) && $_GET['filter_qualified'] !== '' ) {
             $args['qualified'] = (int) $_GET['filter_qualified'];
         }
-        if ( ! empty( $_GET['filter_platform'] ) ) {
-            $args['platform'] = sanitize_text_field( $_GET['filter_platform'] );
+        if ( ! empty( $_GET['filter_event_type'] ) ) {
+            $args['event_type'] = sanitize_text_field( $_GET['filter_event_type'] );
         }
         if ( ! empty( $_GET['filter_date_from'] ) ) {
             $args['date_from'] = sanitize_text_field( $_GET['filter_date_from'] ) . ' 00:00:00';
@@ -1709,10 +1899,41 @@ class CUFT_Admin {
         if ( ! empty( $_GET['filter_date_to'] ) ) {
             $args['date_to'] = sanitize_text_field( $_GET['filter_date_to'] ) . ' 23:59:59';
         }
+        if ( ! empty( $_GET['sort_by'] ) ) {
+            $args['sort_by'] = sanitize_text_field( $_GET['sort_by'] );
+        }
         
         CUFT_Click_Tracker::export_csv( $args );
     }
-    
+
+    /**
+     * Handle Google Ads OCI export
+     */
+    private function handle_google_ads_oci_export() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( 'Insufficient permissions' );
+        }
+
+        if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
+            wp_die( 'Click tracker not available' );
+        }
+
+        // Get filter parameters (same as regular CSV export)
+        $args = array();
+
+        if ( isset( $_GET['filter_qualified'] ) && $_GET['filter_qualified'] !== '' ) {
+            $args['qualified'] = (int) $_GET['filter_qualified'];
+        }
+        if ( ! empty( $_GET['filter_date_from'] ) ) {
+            $args['date_from'] = sanitize_text_field( $_GET['filter_date_from'] ) . ' 00:00:00';
+        }
+        if ( ! empty( $_GET['filter_date_to'] ) ) {
+            $args['date_to'] = sanitize_text_field( $_GET['filter_date_to'] ) . ' 23:59:59';
+        }
+
+        CUFT_Click_Tracker::export_google_ads_oci_csv( $args );
+    }
+
     /**
      * Regenerate webhook key
      */

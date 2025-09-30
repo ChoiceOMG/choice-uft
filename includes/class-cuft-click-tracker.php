@@ -183,29 +183,38 @@ class CUFT_Click_Tracker {
      */
     public static function update_click_status( $click_id, $qualified = null, $score = null ) {
         global $wpdb;
-        
+
         if ( empty( $click_id ) ) {
             return false;
         }
-        
+
         $table_name = $wpdb->prefix . self::$table_name;
+
+        // Get current record to check for score increase
+        $current_record = $wpdb->get_row( $wpdb->prepare(
+            "SELECT qualified, score FROM $table_name WHERE click_id = %s",
+            sanitize_text_field( $click_id )
+        ) );
+
+        $old_score = $current_record ? (int) $current_record->score : 0;
+
         $update_data = array();
         $update_format = array();
-        
+
         if ( $qualified !== null ) {
             $update_data['qualified'] = (int) $qualified;
             $update_format[] = '%d';
         }
-        
+
         if ( $score !== null ) {
             $update_data['score'] = max( 0, min( 10, (int) $score ) );
             $update_format[] = '%d';
         }
-        
+
         if ( empty( $update_data ) ) {
             return false;
         }
-        
+
         $result = $wpdb->update(
             $table_name,
             $update_data,
@@ -213,11 +222,31 @@ class CUFT_Click_Tracker {
             $update_format,
             array( '%s' )
         );
-        
-        if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'Click status updated: ' . $click_id, 'info', $update_data );
+
+        if ( $result !== false ) {
+            // Record events for webhook updates (non-breaking, wrapped in try-catch)
+            try {
+                // Record status_qualified event if qualified=1
+                if ( $qualified === 1 ) {
+                    self::add_event( $click_id, 'status_qualified' );
+                }
+
+                // Record score_updated event if score increased
+                if ( $score !== null && $score > $old_score ) {
+                    self::add_event( $click_id, 'score_updated' );
+                }
+            } catch ( Exception $e ) {
+                // Never break webhook functionality due to event recording failures
+                if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    CUFT_Logger::log( 'error', 'Failed to record webhook event: ' . $e->getMessage() );
+                }
+            }
+
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'Click status updated: ' . $click_id, 'info', $update_data );
+            }
         }
-        
+
         return $result;
     }
     
@@ -226,7 +255,7 @@ class CUFT_Click_Tracker {
      */
     public static function get_clicks( $args = array() ) {
         global $wpdb;
-        
+
         $defaults = array(
             'limit' => 100,
             'offset' => 0,
@@ -234,52 +263,62 @@ class CUFT_Click_Tracker {
             'order' => 'DESC',
             'qualified' => null,
             'platform' => '',
+            'event_type' => '',
             'date_from' => '',
-            'date_to' => ''
+            'date_to' => '',
+            'sort_by' => 'date_created'
         );
-        
+
         $args = wp_parse_args( $args, $defaults );
         $table_name = $wpdb->prefix . self::$table_name;
-        
+
         $where_clauses = array( '1=1' );
         $where_values = array();
-        
+
         if ( $args['qualified'] !== null ) {
             $where_clauses[] = 'qualified = %d';
             $where_values[] = (int) $args['qualified'];
         }
-        
+
         if ( ! empty( $args['platform'] ) ) {
             $where_clauses[] = 'platform = %s';
             $where_values[] = sanitize_text_field( $args['platform'] );
         }
-        
+
+        // Event type filter (v3.12.0+)
+        if ( ! empty( $args['event_type'] ) ) {
+            $where_clauses[] = 'JSON_CONTAINS(events, %s)';
+            $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+        }
+
         if ( ! empty( $args['date_from'] ) ) {
             $where_clauses[] = 'date_created >= %s';
             $where_values[] = sanitize_text_field( $args['date_from'] );
         }
-        
+
         if ( ! empty( $args['date_to'] ) ) {
             $where_clauses[] = 'date_created <= %s';
             $where_values[] = sanitize_text_field( $args['date_to'] );
         }
-        
+
         $where_sql = implode( ' AND ', $where_clauses );
-        
-        $orderby = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+
+        // Handle sort_by parameter (v3.12.0+)
+        $orderby_column = ( $args['sort_by'] === 'date_updated' ) ? 'date_updated' : 'date_created';
+        $orderby = sanitize_sql_orderby( $orderby_column . ' ' . $args['order'] );
         if ( ! $orderby ) {
             $orderby = 'date_created DESC';
         }
-        
+
         $limit = absint( $args['limit'] );
         $offset = absint( $args['offset'] );
-        
+
         $sql = "SELECT * FROM $table_name WHERE $where_sql ORDER BY $orderby LIMIT $limit OFFSET $offset";
-        
+
         if ( ! empty( $where_values ) ) {
             $sql = $wpdb->prepare( $sql, $where_values );
         }
-        
+
         return $wpdb->get_results( $sql );
     }
     
@@ -288,47 +327,54 @@ class CUFT_Click_Tracker {
      */
     public static function get_clicks_count( $args = array() ) {
         global $wpdb;
-        
+
         $defaults = array(
             'qualified' => null,
             'platform' => '',
+            'event_type' => '',
             'date_from' => '',
             'date_to' => ''
         );
-        
+
         $args = wp_parse_args( $args, $defaults );
         $table_name = $wpdb->prefix . self::$table_name;
-        
+
         $where_clauses = array( '1=1' );
         $where_values = array();
-        
+
         if ( $args['qualified'] !== null ) {
             $where_clauses[] = 'qualified = %d';
             $where_values[] = (int) $args['qualified'];
         }
-        
+
         if ( ! empty( $args['platform'] ) ) {
             $where_clauses[] = 'platform = %s';
             $where_values[] = sanitize_text_field( $args['platform'] );
         }
-        
+
+        // Event type filter (v3.12.0+)
+        if ( ! empty( $args['event_type'] ) ) {
+            $where_clauses[] = 'JSON_CONTAINS(events, %s)';
+            $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+        }
+
         if ( ! empty( $args['date_from'] ) ) {
             $where_clauses[] = 'date_created >= %s';
             $where_values[] = sanitize_text_field( $args['date_from'] );
         }
-        
+
         if ( ! empty( $args['date_to'] ) ) {
             $where_clauses[] = 'date_created <= %s';
             $where_values[] = sanitize_text_field( $args['date_to'] );
         }
-        
+
         $where_sql = implode( ' AND ', $where_clauses );
         $sql = "SELECT COUNT(*) FROM $table_name WHERE $where_sql";
-        
+
         if ( ! empty( $where_values ) ) {
             $sql = $wpdb->prepare( $sql, $where_values );
         }
-        
+
         return (int) $wpdb->get_var( $sql );
     }
     
@@ -352,37 +398,49 @@ class CUFT_Click_Tracker {
     
     /**
      * Handle webhook requests
+     *
+     * Public endpoint for updating click status. Security through obscurity:
+     * - No authentication required (for use in email messages)
+     * - click_id acts as the obscure identifier
+     * - Only allows updates to existing records
+     *
+     * @since 3.13.0 Changed from key-based auth to public obscure endpoint
      */
     public function handle_webhook() {
-        // Verify webhook key
-        $webhook_key = get_option( 'cuft_webhook_key', '' );
-        $provided_key = isset( $_GET['key'] ) ? sanitize_text_field( $_GET['key'] ) : '';
-        
-        if ( empty( $webhook_key ) || $provided_key !== $webhook_key ) {
-            wp_send_json_error( array( 'message' => 'Invalid webhook key' ), 403 );
-        }
-        
         // Get required parameters
         $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( $_GET['click_id'] ) : '';
-        
+
         if ( empty( $click_id ) ) {
             wp_send_json_error( array( 'message' => 'Missing click_id parameter' ), 400 );
         }
-        
+
+        // Verify the click_id exists (security: only allow updates to existing records)
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::$table_name;
+        $exists = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table_name} WHERE click_id = %s",
+            $click_id
+        ) );
+
+        if ( ! $exists ) {
+            // Don't reveal whether record exists (return generic error)
+            wp_send_json_error( array( 'message' => 'Invalid request' ), 400 );
+        }
+
         // Get optional parameters
         $qualified = isset( $_GET['qualified'] ) ? (int) $_GET['qualified'] : null;
         $score = isset( $_GET['score'] ) ? (int) $_GET['score'] : null;
-        
+
         // Validate score range
         if ( $score !== null && ( $score < 0 || $score > 10 ) ) {
             wp_send_json_error( array( 'message' => 'Score must be between 0 and 10' ), 400 );
         }
-        
+
         // Update the record
         $result = self::update_click_status( $click_id, $qualified, $score );
-        
+
         if ( $result !== false ) {
-            wp_send_json_success( array( 
+            wp_send_json_success( array(
                 'message' => 'Click status updated successfully',
                 'click_id' => $click_id,
                 'qualified' => $qualified,
@@ -420,20 +478,20 @@ class CUFT_Click_Tracker {
      */
     public static function export_csv( $args = array() ) {
         $clicks = self::get_clicks( array_merge( $args, array( 'limit' => 10000 ) ) );
-        
+
         if ( empty( $clicks ) ) {
             return false;
         }
-        
+
         $filename = 'cuft-click-tracking-' . date( 'Y-m-d-H-i-s' ) . '.csv';
-        
+
         header( 'Content-Type: text/csv' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'Pragma: no-cache' );
         header( 'Expires: 0' );
-        
+
         $output = fopen( 'php://output', 'w' );
-        
+
         // CSV headers
         fputcsv( $output, array(
             'ID',
@@ -441,7 +499,7 @@ class CUFT_Click_Tracker {
             'Platform',
             'Campaign',
             'UTM Source',
-            'UTM Medium', 
+            'UTM Medium',
             'UTM Campaign',
             'UTM Term',
             'UTM Content',
@@ -452,7 +510,7 @@ class CUFT_Click_Tracker {
             'IP Address',
             'User Agent'
         ) );
-        
+
         // CSV data
         foreach ( $clicks as $click ) {
             fputcsv( $output, array(
@@ -473,9 +531,194 @@ class CUFT_Click_Tracker {
                 $click->user_agent
             ) );
         }
-        
+
         fclose( $output );
         exit;
+    }
+
+    /**
+     * Generate Google Ads OCI (Offline Conversion Import) CSV export
+     *
+     * Exports click tracking data in Google Ads OCI format for importing
+     * offline conversions. Only includes GCLID records.
+     *
+     * @param array $args Query arguments for filtering clicks
+     * @return void
+     */
+    public static function export_google_ads_oci_csv( $args = array() ) {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . self::$table_name;
+
+        // Get settings
+        $lead_value = get_option( 'cuft_lead_value', 100 );
+        $currency = get_option( 'cuft_lead_currency', 'CAD' );
+
+        // Build query to get only GCLID records
+        $where_clauses = array( '1=1' );
+        $where_values = array();
+
+        // Filter for GCLID only (common patterns: Cj0K, EAIaIQ)
+        $where_clauses[] = "(click_id LIKE 'Cj0K%' OR click_id LIKE 'EAIaIQ%')";
+
+        // Apply additional filters from $args
+        if ( isset( $args['qualified'] ) && $args['qualified'] !== null ) {
+            $where_clauses[] = 'qualified = %d';
+            $where_values[] = (int) $args['qualified'];
+        }
+
+        if ( ! empty( $args['date_from'] ) ) {
+            $where_clauses[] = 'date_created >= %s';
+            $where_values[] = sanitize_text_field( $args['date_from'] );
+        }
+
+        if ( ! empty( $args['date_to'] ) ) {
+            $where_clauses[] = 'date_created <= %s';
+            $where_values[] = sanitize_text_field( $args['date_to'] );
+        }
+
+        $where_sql = implode( ' AND ', $where_clauses );
+
+        // Limit to 10000 records
+        $sql = "SELECT * FROM $table_name WHERE $where_sql ORDER BY date_created DESC LIMIT 10000";
+
+        if ( ! empty( $where_values ) ) {
+            $sql = $wpdb->prepare( $sql, $where_values );
+        }
+
+        $clicks = $wpdb->get_results( $sql );
+
+        if ( empty( $clicks ) ) {
+            return false;
+        }
+
+        // Clean any output buffers to prevent corruption
+        if ( ob_get_level() ) {
+            ob_end_clean();
+        }
+
+        // Set headers for CSV download
+        $filename = 'google-ads-oci-' . date( 'Y-m-d-H-i-s' ) . '.csv';
+
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'Pragma: no-cache' );
+        header( 'Expires: 0' );
+
+        $output = fopen( 'php://output', 'w' );
+
+        // Add UTF-8 BOM for Excel compatibility
+        fprintf( $output, "\xEF\xBB\xBF" );
+
+        // Google Ads OCI format requires Parameters row first
+        fputcsv( $output, array( 'Parameters', 'Time Zone=UTC' ) );
+
+        // CSV headers
+        fputcsv( $output, array(
+            'Google Click ID',
+            'Conversion Name',
+            'Conversion Time',
+            'Conversion Value',
+            'Conversion Currency'
+        ) );
+
+        // Process each click record
+        foreach ( $clicks as $click ) {
+            $events = self::get_events( $click->click_id );
+
+            if ( ! empty( $events ) ) {
+                // Export one row per event
+                foreach ( $events as $event ) {
+                    $conversion_name = self::get_conversion_name( $event['event'] );
+                    $conversion_time = $event['timestamp']; // Already in ISO 8601 UTC
+                    $conversion_value = self::calculate_conversion_value(
+                        $event['event'],
+                        $click->score,
+                        $lead_value
+                    );
+
+                    fputcsv( $output, array(
+                        $click->click_id,
+                        $conversion_name,
+                        $conversion_time,
+                        $conversion_value,
+                        $currency
+                    ) );
+                }
+            } else {
+                // No events - export single row for the ad click
+                $conversion_time = self::convert_to_iso8601_utc( $click->date_created );
+
+                fputcsv( $output, array(
+                    $click->click_id,
+                    'Ad Click',
+                    $conversion_time,
+                    0,
+                    $currency
+                ) );
+            }
+        }
+
+        fclose( $output );
+        exit;
+    }
+
+    /**
+     * Get human-readable conversion name for event type
+     *
+     * @param string $event_type Event type from events JSON
+     * @return string Conversion name for Google Ads
+     */
+    private static function get_conversion_name( $event_type ) {
+        $conversion_names = array(
+            'phone_click' => 'Phone Click',
+            'email_click' => 'Email Click',
+            'form_submit' => 'Form Submit',
+            'generate_lead' => 'Qualified Lead',
+            'status_qualified' => 'Status Qualified',
+            'score_updated' => 'Score Updated'
+        );
+
+        return isset( $conversion_names[ $event_type ] )
+            ? $conversion_names[ $event_type ]
+            : ucwords( str_replace( '_', ' ', $event_type ) );
+    }
+
+    /**
+     * Calculate conversion value based on event type and score
+     *
+     * @param string $event_type Event type from events JSON
+     * @param int $score Lead quality score (0-10)
+     * @param float $lead_value Base lead value from settings
+     * @return float Calculated conversion value
+     */
+    private static function calculate_conversion_value( $event_type, $score, $lead_value ) {
+        // Only qualified leads get a value
+        if ( $event_type === 'generate_lead' ) {
+            return round( ( $lead_value * $score ) / 10, 2 );
+        }
+
+        // All other events have 0 value
+        return 0;
+    }
+
+    /**
+     * Convert MySQL datetime to ISO 8601 UTC format
+     *
+     * @param string $mysql_datetime MySQL datetime string (e.g., "2025-01-15 14:30:00")
+     * @return string ISO 8601 UTC format (e.g., "2025-01-15T14:30:00Z")
+     */
+    private static function convert_to_iso8601_utc( $mysql_datetime ) {
+        if ( empty( $mysql_datetime ) ) {
+            return gmdate( 'c' ); // Current UTC time
+        }
+
+        try {
+            $dt = new DateTime( $mysql_datetime, new DateTimeZone( 'UTC' ) );
+            return $dt->format( 'Y-m-d\TH:i:s\Z' );
+        } catch ( Exception $e ) {
+            return gmdate( 'c' );
+        }
     }
     
     /**
@@ -521,7 +764,14 @@ class CUFT_Click_Tracker {
         $table_name = $wpdb->prefix . self::$table_name;
 
         // Validate event type
-        $valid_events = array( 'phone_click', 'email_click', 'form_submit', 'generate_lead', 'status_update' );
+        $valid_events = array(
+            'phone_click',
+            'email_click',
+            'form_submit',
+            'generate_lead',
+            'status_qualified',  // Webhook event
+            'score_updated'      // Webhook event
+        );
         if ( ! in_array( $event_type, $valid_events ) ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'error', 'Invalid event type: ' . $event_type );
@@ -559,17 +809,37 @@ class CUFT_Click_Tracker {
                 }
             }
 
-            // Create new event
-            $new_event = array(
-                'event' => $event_type,
-                'timestamp' => gmdate( 'c' ) // ISO 8601 UTC format
-            );
+            // Create new event timestamp
+            $new_timestamp = gmdate( 'c' ); // ISO 8601 UTC format
 
-            // Add to events array
-            $events[] = $new_event;
+            // Check for duplicate event type (deduplication)
+            $event_exists = false;
+            foreach ( $events as &$existing_event ) {
+                if ( $existing_event['event'] === $event_type ) {
+                    // Update timestamp for duplicate event type
+                    $existing_event['timestamp'] = $new_timestamp;
+                    $event_exists = true;
+                    break;
+                }
+            }
+            unset( $existing_event ); // Break reference
 
-            // Limit to 100 events (keep most recent)
+            // If event type doesn't exist, append it
+            if ( ! $event_exists ) {
+                $events[] = array(
+                    'event' => $event_type,
+                    'timestamp' => $new_timestamp
+                );
+            }
+
+            // FIFO cleanup: Limit to 100 events (remove oldest if exceeded)
             if ( count( $events ) > 100 ) {
+                // Sort by timestamp to identify oldest
+                usort( $events, function( $a, $b ) {
+                    return strcmp( $a['timestamp'], $b['timestamp'] );
+                } );
+
+                // Keep only newest 100
                 $events = array_slice( $events, -100 );
             }
 
