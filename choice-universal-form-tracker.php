@@ -69,6 +69,9 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
             'includes/class-cuft-cryptojs.php',
+            'includes/ajax/class-cuft-event-recorder.php',  // AJAX event recording handler
+            // Migrations
+            'includes/migrations/class-cuft-migration-3-12-0.php',
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
@@ -181,6 +184,14 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_CryptoJS();
             }
 
+            // Initialize AJAX Event Recorder (v3.12.0)
+            if ( class_exists( 'CUFT_Event_Recorder' ) ) {
+                new CUFT_Event_Recorder();
+            }
+
+            // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
+            add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
+
             // Initialize GitHub updater
             if ( class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
                 global $cuft_updater;
@@ -267,11 +278,35 @@ class Choice_Universal_Form_Tracker {
     public function deactivate() {
         // Cleanup debug logs older than 30 days
         delete_option( 'cuft_debug_logs' );
-        
+
         // Flush rewrite rules
         flush_rewrite_rules();
     }
-    
+
+    /**
+     * Enqueue cuftConfig JavaScript object (v3.12.0)
+     *
+     * Provides AJAX URL and nonce for client-side event recording.
+     */
+    public function enqueue_cuft_config() {
+        // Create nonce for event recording
+        $nonce = wp_create_nonce( 'cuft-event-recorder' );
+
+        // Prepare config object
+        $cuft_config = array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => $nonce,
+            'debug' => defined( 'WP_DEBUG' ) && WP_DEBUG,
+        );
+
+        // Add inline script to make config globally available
+        wp_add_inline_script(
+            'jquery', // Attach to jQuery since it's always loaded
+            'var cuftConfig = ' . wp_json_encode( $cuft_config ) . ';',
+            'before'
+        );
+    }
+
     /**
      * Add plugin action links
      */

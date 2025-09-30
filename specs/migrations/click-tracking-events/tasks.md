@@ -1,640 +1,441 @@
-# Click Tracking Events Migration Tasks
+# Tasks: Click Tracking Events Migration
 
-## Version: 1.0
-## Date: 2025-01-25
-## Status: Draft
+**Input**: Design documents from `/specs/migrations/click-tracking-events/`
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
 
----
-
-## Task Overview
-
-This document breaks down the click tracking events migration into specific, actionable tasks with clear dependencies and success criteria.
-
----
-
-## Phase 1: Database Schema Preparation
-
-### Task 1.1: Database Schema Update
-**Priority**: Critical
-**Estimated Time**: 4 hours
-**Dependencies**: None
-**Assignee**: Database Developer
-
-**Description**: Add events JSON column and new indexes to existing table
-
-**Subtasks**:
-- [ ] Create database migration script
-- [ ] Add events JSON column (nullable, default NULL)
-- [ ] Add date_updated index for performance
-- [ ] Test schema changes on development environment
-- [ ] Validate MySQL JSON support (5.7+ required)
-
-**Acceptance Criteria**:
-- [ ] events column exists and accepts JSON data
-- [ ] date_updated index improves query performance
-- [ ] All existing functionality works unchanged
-- [ ] No data loss during schema update
-
-**Files Modified**:
-- `includes/class-cuft-migration-events.php` (new)
-- Database schema
-
----
-
-### Task 1.2: Migration Utility Development
-**Priority**: Critical
-**Estimated Time**: 8 hours
-**Dependencies**: Task 1.1
-**Assignee**: Backend Developer
-
-**Description**: Create utility class for progressive data migration
-
-**Subtasks**:
-- [ ] Create CUFT_Migration_Events class
-- [ ] Implement batch processing (1000 records per batch)
-- [ ] Add progress tracking and resumability
-- [ ] Implement data reconstruction from utm_source/platform
-- [ ] Add rollback capability
-- [ ] Create WP-CLI command interface
-
-**Acceptance Criteria**:
-- [ ] Can process existing records in batches
-- [ ] Reconstructs events from available data
-- [ ] Handles errors gracefully with retry logic
-- [ ] Provides progress reporting
-- [ ] Can rollback changes if needed
-
-**Files Created**:
-- `includes/class-cuft-migration-events.php`
-- `includes/class-cuft-cli-migration.php`
-
----
-
-## Phase 2: Core Class Enhancement
-
-### Task 2.1: Update CUFT_Click_Tracker Class
-**Priority**: Critical
-**Estimated Time**: 12 hours
-**Dependencies**: Task 1.1
-**Assignee**: Backend Developer
-
-**Description**: Add event recording methods to existing click tracker class
-
-**Subtasks**:
-- [ ] Add `add_event($click_id, $event_type)` method
-- [ ] Add `get_events($click_id)` method
-- [ ] Add `get_latest_event_time($click_id)` method
-- [ ] Add `cleanup_events($click_id)` method (limit to 100 events)
-- [ ] Update `track_click()` to initialize empty events array
-- [ ] Update `get_clicks()` to include events in results
-- [ ] Add JSON validation for event structure
-- [ ] Update date_updated when events are added
-
-**Acceptance Criteria**:
-- [ ] All new methods work correctly with JSON data
-- [ ] Events maintain chronological order
-- [ ] date_updated automatically updates with new events
-- [ ] Events array limited to 100 items maximum
-- [ ] All existing methods remain backward compatible
-
-**Files Modified**:
-- `includes/class-cuft-click-tracker.php`
-
----
-
-### Task 2.2: Event Recording AJAX Endpoint
-**Priority**: High
-**Estimated Time**: 6 hours
-**Dependencies**: Task 2.1
-**Assignee**: Backend Developer
-
-**Description**: Create WordPress AJAX endpoint for JavaScript event recording
-
-**Subtasks**:
-- [ ] Add wp_ajax_cuft_record_event action
-- [ ] Implement nonce verification
-- [ ] Validate click_id and event_type parameters
-- [ ] Call CUFT_Click_Tracker::add_event()
-- [ ] Return JSON response with success/error
-- [ ] Add rate limiting for abuse prevention
-- [ ] Log events for debugging (if debug mode enabled)
-
-**Acceptance Criteria**:
-- [ ] JavaScript can successfully record events
-- [ ] Proper security validation (nonce, permissions)
-- [ ] Handles errors gracefully
-- [ ] Returns meaningful error messages
-- [ ] Rate limiting prevents abuse
-
-**Files Modified**:
-- `includes/class-cuft-admin.php`
-- `assets/cuft-admin.js` (localization)
-
----
-
-## Phase 3: JavaScript Integration
-
-### Task 3.1: Enhance cuft-links.js for Event Recording
-**Priority**: High
-**Estimated Time**: 6 hours
-**Dependencies**: Task 2.2
-**Assignee**: Frontend Developer
-
-**Description**: Add event recording to existing link click tracking
-
-**Subtasks**:
-- [ ] Extract click_id from UTM parameters or generate temporary ID
-- [ ] Add recordClickEvent() function for AJAX calls
-- [ ] Hook into existing phone_click events
-- [ ] Hook into existing email_click events
-- [ ] Add error handling (silent failure)
-- [ ] Ensure no interference with existing functionality
-- [ ] Add debug logging when cuftDebug enabled
-
-**Acceptance Criteria**:
-- [ ] phone_click events recorded to database
-- [ ] email_click events recorded to database
-- [ ] Click functionality not affected by recording failures
-- [ ] Works with or without click_id present
-- [ ] Debug logging available for troubleshooting
-
-**Files Modified**:
-- `assets/cuft-links.js`
-
----
-
-### Task 3.2: Integrate Form Event Recording
-**Priority**: High
-**Estimated Time**: 8 hours
-**Dependencies**: Task 2.2
-**Assignee**: Frontend Developer
-
-**Description**: Add event recording to form submission tracking
-
-**Subtasks**:
-- [ ] Hook into form_submit dataLayer pushes
-- [ ] Extract click_id from form data or session
-- [ ] Record form_submit events after successful tracking
-- [ ] Record generate_lead events when criteria met
-- [ ] Add to all framework-specific form handlers
-- [ ] Ensure proper timing (after dataLayer push)
-- [ ] Add feature flag support for gradual rollout
-
-**Acceptance Criteria**:
-- [ ] form_submit events recorded for all frameworks
-- [ ] generate_lead events recorded when qualified
-- [ ] Works across all supported form frameworks
-- [ ] Timing is correct (doesn't interfere with GTM)
-- [ ] Feature flag controls recording behavior
-
-**Files Modified**:
-- `assets/forms/cuft-avada-forms.js`
-- `assets/forms/cuft-cf7-forms.js`
-- `assets/forms/cuft-elementor-forms.js`
-- `assets/forms/cuft-gravity-forms.js`
-- `assets/forms/cuft-ninja-forms.js`
-
----
-
-## Phase 4: Admin Interface Enhancement
-
-### Task 4.1: Update Click Tracking Table Display
-**Priority**: Medium
-**Estimated Time**: 10 hours
-**Dependencies**: Task 2.1
-**Assignee**: Frontend Developer
-
-**Description**: Replace utm_source/platform columns with events timeline
-
-**Subtasks**:
-- [ ] Remove utm_source and platform columns from table
-- [ ] Add events timeline column with visual indicators
-- [ ] Style events with appropriate colors/icons
-- [ ] Show event timestamps in user-friendly format
-- [ ] Handle empty events gracefully
-- [ ] Add tooltip/expandable view for long event lists
-- [ ] Ensure responsive design on mobile
-
-**Acceptance Criteria**:
-- [ ] Events display clearly in chronological order
-- [ ] Visual design is intuitive and professional
-- [ ] Performance acceptable for large datasets
-- [ ] Mobile-friendly display
-- [ ] Empty events handled appropriately
-
-**Files Modified**:
-- `includes/class-cuft-admin.php` (render_click_tracking_table method)
-- `assets/cuft-admin.css` (new styles)
-
----
-
-### Task 4.2: Enhanced Filtering and Sorting
-**Priority**: Medium
-**Estimated Time**: 6 hours
-**Dependencies**: Task 4.1, Task 2.1
-**Assignee**: Backend Developer
-
-**Description**: Add event-based filtering and sorting options
-
-**Subtasks**:
-- [ ] Add event type filter dropdown
-- [ ] Add "most recent event" date range filter
-- [ ] Add "last activity" sort option
-- [ ] Update get_clicks() to support event filtering
-- [ ] Add JavaScript for dynamic filter updates
-- [ ] Preserve existing filter functionality
-
-**Acceptance Criteria**:
-- [ ] Can filter by specific event types
-- [ ] Can filter by recent activity date
-- [ ] Can sort by last event timestamp
-- [ ] All existing filters continue to work
-- [ ] Filter state preserved in URL parameters
-
-**Files Modified**:
-- `includes/class-cuft-admin.php`
-- `includes/class-cuft-click-tracker.php`
-- `assets/cuft-admin.js`
-
----
-
-### Task 4.3: Update CSV Export Format
-**Priority**: Medium
-**Estimated Time**: 4 hours
-**Dependencies**: Task 2.1
-**Assignee**: Backend Developer
-
-**Description**: Modify CSV export to include event data
-
-**Subtasks**:
-- [ ] Remove utm_source and platform columns from export
-- [ ] Add events column with formatted event list
-- [ ] Add individual columns for each event type (latest timestamp)
-- [ ] Format events as pipe-separated: "phone_click|2025-01-01 12:00:00"
-- [ ] Maintain backward compatibility where possible
-- [ ] Update export filename to indicate new format
-
-**Acceptance Criteria**:
-- [ ] CSV includes all event data
-- [ ] Format is readable and parseable
-- [ ] Export performance acceptable for large datasets
-- [ ] File naming indicates format version
-
-**Files Modified**:
-- `includes/class-cuft-click-tracker.php` (export_csv method)
-
----
-
-## Phase 5: Feature Flag Implementation
-
-### Task 5.1: Feature Flag System
-**Priority**: High
-**Estimated Time**: 6 hours
-**Dependencies**: None
-**Assignee**: Backend Developer
-
-**Description**: Implement feature flag system for gradual rollout
-
-**Subtasks**:
-- [ ] Add cuft_feature_flags option to wp_options
-- [ ] Create CUFT_Utils::is_feature_enabled() method
-- [ ] Add admin interface for flag management
-- [ ] Implement user-based rollout (percentage)
-- [ ] Add logging for flag state changes
-- [ ] Create flag for click_event_tracking
-
-**Acceptance Criteria**:
-- [ ] Feature flags can be enabled/disabled via admin
-- [ ] Supports percentage-based rollout
-- [ ] Changes logged for debugging
-- [ ] Easy to add new flags in future
-
-**Files Created**:
-- `includes/class-cuft-feature-flags.php`
-- `includes/class-cuft-utils.php` (if not exists)
-
-**Files Modified**:
-- `includes/class-cuft-admin.php`
-
----
-
-### Task 5.2: Apply Feature Flags to Event Recording
-**Priority**: High
-**Estimated Time**: 4 hours
-**Dependencies**: Task 5.1, all event recording tasks
-**Assignee**: Backend Developer
-
-**Description**: Wrap all event recording functionality with feature flags
-
-**Subtasks**:
-- [ ] Add feature flag checks to add_event() method
-- [ ] Add feature flag checks to JavaScript event recording
-- [ ] Add feature flag checks to admin interface enhancements
-- [ ] Ensure graceful degradation when flag disabled
-- [ ] Add debug logging for flag-controlled behavior
-
-**Acceptance Criteria**:
-- [ ] Event recording only occurs when flag enabled
-- [ ] Admin interface shows appropriate content based on flag
-- [ ] No errors when flag disabled
-- [ ] Easy to enable/disable entire feature
-
-**Files Modified**:
-- `includes/class-cuft-click-tracker.php`
-- `includes/class-cuft-admin.php`
-- `assets/cuft-links.js`
-- All form tracking scripts
-
----
-
-## Phase 6: Testing and Validation
-
-### Task 6.1: Unit Tests for Event Methods
-**Priority**: High
-**Estimated Time**: 8 hours
-**Dependencies**: Task 2.1
-**Assignee**: QA Developer
-
-**Description**: Create comprehensive unit tests for event functionality
-
-**Subtasks**:
-- [ ] Test add_event() with various event types
-- [ ] Test get_events() data retrieval
-- [ ] Test event chronological ordering
-- [ ] Test event array size limits (100 max)
-- [ ] Test JSON validation and error handling
-- [ ] Test date_updated automatic updates
-- [ ] Mock WordPress database functions
-
-**Acceptance Criteria**:
-- [ ] 100% code coverage for new event methods
-- [ ] All edge cases tested and handled
-- [ ] Tests pass in isolation and as suite
-- [ ] Mock database interactions properly
-
-**Files Created**:
-- `tests/unit/test-click-tracker-events.php`
-- `tests/unit/test-event-validation.php`
-
----
-
-### Task 6.2: Integration Tests for Event Recording
-**Priority**: High
-**Estimated Time**: 10 hours
-**Dependencies**: Task 3.1, Task 3.2, Task 2.2
-**Assignee**: QA Developer
-
-**Description**: Create end-to-end tests for complete event recording flow
-
-**Subtasks**:
-- [ ] Test phone_click event recording from JavaScript
-- [ ] Test email_click event recording from JavaScript
-- [ ] Test form_submit event recording from forms
-- [ ] Test generate_lead event recording
-- [ ] Test AJAX endpoint error handling
-- [ ] Test feature flag behavior
-- [ ] Use headless browser for JavaScript testing
-
-**Acceptance Criteria**:
-- [ ] Complete user journey tested end-to-end
-- [ ] All event types recorded correctly
-- [ ] Error conditions handled properly
-- [ ] Feature flags work as expected
-
-**Files Created**:
-- `tests/integration/test-event-recording.php`
-- `tests/integration/test-form-event-flow.php`
-
----
-
-### Task 6.3: Performance Testing
-**Priority**: Medium
-**Estimated Time**: 6 hours
-**Dependencies**: All implementation tasks
-**Assignee**: QA Developer
-
-**Description**: Validate performance impact of JSON operations
-
-**Subtasks**:
-- [ ] Benchmark add_event() performance
-- [ ] Benchmark get_clicks() with events
-- [ ] Test admin interface load times
-- [ ] Test CSV export performance with events
-- [ ] Compare performance with/without feature flag
-- [ ] Test with realistic data volumes (100k+ records)
-
-**Acceptance Criteria**:
-- [ ] Performance impact <20% of baseline
-- [ ] Admin interface loads within acceptable time
-- [ ] Large dataset operations remain functional
-- [ ] No memory leaks or excessive usage
-
-**Files Created**:
-- `tests/performance/test-event-performance.php`
-- `tests/performance/benchmark-results.md`
-
----
-
-## Phase 7: Data Migration Execution
-
-### Task 7.1: Execute Data Migration
-**Priority**: Critical
-**Estimated Time**: 4 hours execution + monitoring
-**Dependencies**: Task 1.2, all testing tasks
-**Assignee**: Database Administrator
-
-**Description**: Run progressive data migration on production data
-
-**Subtasks**:
-- [ ] Create full database backup
-- [ ] Run migration in maintenance mode (optional)
-- [ ] Execute batch processing with progress monitoring
-- [ ] Validate data integrity after each batch
-- [ ] Monitor performance impact during migration
-- [ ] Handle any errors with retry logic
-- [ ] Verify final data consistency
-
-**Acceptance Criteria**:
-- [ ] All existing records have events or null (acceptable)
-- [ ] No data loss during migration
-- [ ] Performance impact minimal during migration
-- [ ] Error handling worked for any issues
-- [ ] Final data validation passes all checks
-
-**Files Used**:
-- `includes/class-cuft-migration-events.php`
-- `includes/class-cuft-cli-migration.php`
-
----
-
-### Task 7.2: Column Cleanup
-**Priority**: Medium
-**Estimated Time**: 2 hours
-**Dependencies**: Task 7.1, successful validation period
-**Assignee**: Database Administrator
-
-**Description**: Remove deprecated columns after successful migration
-
-**Subtasks**:
-- [ ] Verify all systems working with new structure
-- [ ] Remove utm_source column
-- [ ] Remove platform column
-- [ ] Drop related indexes
-- [ ] Update any remaining references in code
-- [ ] Create final backup with new structure
-
-**Acceptance Criteria**:
-- [ ] Deprecated columns successfully removed
-- [ ] No broken references or errors
-- [ ] Database size reduced as expected
-- [ ] All functionality working normally
-
-**Files Modified**:
-- Database schema
-- Any code with column references
-
----
-
-## Phase 8: Deployment and Monitoring
-
-### Task 8.1: Gradual Feature Rollout
-**Priority**: High
-**Estimated Time**: 5 days (1 day each rollout stage)
-**Dependencies**: Task 7.1, Task 5.2
-**Assignee**: DevOps/Product Owner
-
-**Description**: Gradually enable event tracking for increasing user percentages
-
-**Subtasks**:
-- [ ] Day 1: Enable for 1% of users
-- [ ] Day 2: Monitor metrics, increase to 10%
-- [ ] Day 3: Monitor metrics, increase to 50%
-- [ ] Day 4: Monitor metrics, increase to 90%
-- [ ] Day 5: Enable for 100% of users
-- [ ] Monitor error rates at each stage
-- [ ] Be ready to rollback if issues detected
-
-**Acceptance Criteria**:
-- [ ] Each rollout stage completes without issues
-- [ ] Error rates remain within acceptable limits
-- [ ] Performance metrics remain stable
-- [ ] User experience not negatively affected
-
-**Files Modified**:
-- Feature flag settings in wp_options
-
----
-
-### Task 8.2: Monitoring and Alerting Setup
-**Priority**: Medium
-**Estimated Time**: 4 hours
-**Dependencies**: Task 8.1
-**Assignee**: DevOps
-
-**Description**: Set up monitoring for event recording functionality
-
-**Subtasks**:
-- [ ] Monitor event recording success/failure rates
-- [ ] Monitor database performance for JSON operations
-- [ ] Set up alerts for unusual error patterns
-- [ ] Monitor admin interface performance
-- [ ] Track event recording volume trends
-- [ ] Set up dashboard for stakeholder visibility
-
-**Acceptance Criteria**:
-- [ ] Key metrics monitored and alerting configured
-- [ ] Dashboard provides clear system status
-- [ ] Alerts fire appropriately for issues
-- [ ] Historical data tracked for analysis
-
-**Tools/Services**:
-- Application monitoring service
-- Database monitoring tools
-- Custom WordPress logging
-
----
-
-## Task Dependencies Graph
-
+## Execution Flow
 ```
-Phase 1: Schema Preparation
-Task 1.1 (Schema) → Task 1.2 (Migration Utility)
+1. Load plan.md from feature directory ✅
+2. Load optional design documents ✅
+   → spec.md: Feature requirements
+   → research.md: Technical decisions
+   → contracts/ajax-endpoint.md: AJAX endpoint contract
+   → contracts/webhook-api.md: Webhook compatibility
+   → quickstart.md: Testing scenarios
+3. Generate tasks by category:
+   → Setup: Migration class, backup utility
+   → Tests: Contract tests (AJAX, webhook), integration tests
+   → Core: Click tracker methods, AJAX handler
+   → Integration: JavaScript event recording, admin UI
+   → Polish: Performance validation, documentation
+4. Apply task rules:
+   → Different files = mark [P] for parallel
+   → Same file = sequential (no [P])
+   → Tests before implementation (TDD)
+5. Number tasks sequentially (T001, T002...)
+6. Return: Ready for execution
+```
 
-Phase 2: Core Enhancement
-Task 1.1 → Task 2.1 (Click Tracker) → Task 2.2 (AJAX)
+## Format: `[ID] [P?] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)
+- Include exact file paths in descriptions
 
-Phase 3: JavaScript Integration
-Task 2.2 → Task 3.1 (Links JS)
-Task 2.2 → Task 3.2 (Form JS)
+## Path Conventions
+WordPress plugin structure with files at repository root:
+- `/includes/` - PHP classes
+- `/assets/` - JavaScript files
+- `/admin/` - Admin interface
+- `/migrations/` - Database migrations
 
-Phase 4: Admin Interface
-Task 2.1 → Task 4.1 (Table Display) → Task 4.2 (Filtering)
-Task 2.1 → Task 4.3 (CSV Export)
+---
 
-Phase 5: Feature Flags
-Task 5.1 (Flag System) → Task 5.2 (Apply Flags)
-[All Event Tasks] → Task 5.2
+## Phase 3.1: Setup & Database Migration
 
-Phase 6: Testing
-Task 2.1 → Task 6.1 (Unit Tests)
-[Task 3.1, 3.2, 2.2] → Task 6.2 (Integration Tests)
-[All Implementation] → Task 6.3 (Performance Tests)
+### T001: Create Migration Class Structure ✅
+**File**: `/home/r11/dev/choice-uft/includes/migrations/class-cuft-migration-3-12-0.php`
+**Description**: Create migration class with up(), down(), and create_backup() methods. Implement schema changes (add events JSON column, add idx_date_updated index). Implement hybrid rollback strategy (restore schema, preserve qualified/score, discard events).
+**Dependencies**: None
+**Status**: COMPLETED
 
-Phase 7: Migration
-Task 1.2 + [All Tests] → Task 7.1 (Execute Migration)
-Task 7.1 + Validation Period → Task 7.2 (Cleanup)
+### T002: Create Migration Backup Utility ✅
+**File**: `/home/r11/dev/choice-uft/includes/migrations/class-cuft-migration-3-12-0.php`
+**Description**: Implement create_backup() method to create timestamped backup table before migration. Store backup table name in wp_options for rollback reference.
+**Dependencies**: T001
+**Status**: COMPLETED
 
-Phase 8: Deployment
-Task 7.1 + Task 5.2 → Task 8.1 (Gradual Rollout)
-Task 8.1 → Task 8.2 (Monitoring)
+### T003: Test Migration in Development Environment ✅
+**Manual**: Run migration via WP-CLI or admin interface
+**Description**: Execute migration up() in wp-pdev environment. Verify events column and index created. Test backup creation. Document any issues.
+**Dependencies**: T002
+**Status**: COMPLETED
+**Results**:
+- ✅ Events column created with JSON type
+- ✅ idx_date_updated index created successfully
+- ✅ Backup table created: wp_cuft_click_tracking_backup_20250930_020533
+- ✅ Migration status stored in wp_options
+
+---
+
+## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
+
+**CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
+
+### T004: [P] Contract Test - AJAX Endpoint Valid Event ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-ajax-endpoint.php`
+**Description**: Create PHPUnit test for valid event recording. Test POST to `cuft_record_event` with valid nonce, click_id, and event_type. Assert success response with event_count. Verify event recorded in database.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/ajax-endpoint.md`
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T013 implemented
+
+### T005: [P] Contract Test - AJAX Endpoint Security ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-ajax-security.php`
+**Description**: Create PHPUnit tests for security validation. Test invalid nonce (expect 403), invalid event_type (expect 400), missing click_id (expect 400). Test event type whitelist enforcement.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/ajax-endpoint.md`
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T013 implemented
+
+### T006: [P] Contract Test - AJAX Event Deduplication ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-ajax-deduplication.php`
+**Description**: Create PHPUnit test for event deduplication. Record phone_click twice with same click_id. Assert only one event exists with latest timestamp. Verify date_updated reflects most recent event.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/ajax-endpoint.md`
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T011-T012 implemented
+
+### T007: [P] Contract Test - AJAX FIFO Cleanup ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-ajax-fifo.php`
+**Description**: Create PHPUnit test for 100-event limit. Record 105 events for single click_id. Assert final count is 100. Verify oldest events removed (FIFO). Check date_updated reflects newest event.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/ajax-endpoint.md`
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T011-T012 implemented
+
+### T008: [P] Contract Test - Webhook Backward Compatibility ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-webhook-compatibility.php`
+**Description**: Create PHPUnit tests for webhook API. Test GET/POST with valid key updates qualified/score. Verify response format unchanged. Test error responses (invalid key, missing click_id, invalid score). Assert 100% backward compatibility.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/webhook-api.md`
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T014 implemented
+
+### T009: [P] Integration Test - Phone Click Event Recording ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-phone-click-integration.php`
+**Description**: Create integration test simulating phone link click. Mock JavaScript fetch to AJAX endpoint. Verify phone_click event recorded. Test with and without existing click_id. Validate error isolation (no JavaScript errors on failure).
+**Scenario**: quickstart.md Step 3
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T013-T016 implemented
+
+### T010: [P] Integration Test - Form Submit Event Recording ✅
+**File**: `/home/r11/dev/choice-uft/tests/test-form-submit-integration.php`
+**Description**: Create integration test simulating form submission. Mock Elementor/CF7/Ninja/Gravity/Avada form success. Verify form_submit event recorded. Test generate_lead event when email+phone+click_id present.
+**Scenario**: quickstart.md Step 4
+**Dependencies**: None
+**Status**: COMPLETED - Tests will fail until T013-T021 implemented
+
+---
+
+## Phase 3.3: Core Implementation (ONLY after tests are failing)
+
+### T011: Add Event Methods to Click Tracker
+**File**: `/home/r11/dev/choice-uft/includes/class-cuft-click-tracker.php`
+**Description**: Implement add_event($click_id, $event_type) method. Use JSON_ARRAY_APPEND for new events. Implement event deduplication (update timestamp for duplicate event types). Update date_updated to latest event timestamp. Add get_events($click_id) method to retrieve event array.
+**Dependencies**: T001 (migration complete), T004-T007 (tests failing)
+
+### T012: Implement FIFO Event Cleanup
+**File**: `/home/r11/dev/choice-uft/includes/class-cuft-click-tracker.php`
+**Description**: Add enforce_event_limit($click_id) method. Check JSON_LENGTH, if >100 remove oldest events. Sort by timestamp, keep newest 100. Log cleanup in debug mode only.
+**Dependencies**: T011
+
+### T013: Create AJAX Event Recorder Handler
+**File**: `/home/r11/dev/choice-uft/includes/ajax/class-cuft-event-recorder.php`
+**Description**: Create AJAX handler class with record_event() method. Register wp_ajax and wp_ajax_nopriv hooks. Implement nonce validation (check_ajax_referer). Sanitize click_id and event_type inputs. Validate event_type against whitelist. Call CUFT_Click_Tracker::add_event(). Return JSON response with event_count.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/ajax-endpoint.md`
+**Dependencies**: T011 (add_event available), T004-T005 (tests failing)
+
+### T014: Add Webhook Event Recording
+**File**: `/home/r11/dev/choice-uft/includes/class-cuft-webhook-handler.php`
+**Description**: Update existing webhook handler. After successful update, record status_qualified event if qualified=1. Record score_updated event if score increased. Wrap event recording in try-catch (never break webhook). Maintain 100% backward compatibility.
+**Contract**: `/specs/migrations/click-tracking-events/contracts/webhook-api.md`
+**Dependencies**: T011 (add_event available), T008 (tests failing)
+
+### T015: Register AJAX Endpoint and Enqueue Nonce
+**File**: `/home/r11/dev/choice-uft/choice-universal-form-tracker.php`
+**Description**: Instantiate CUFT_Event_Recorder class in plugin initialization. Enqueue cuftConfig JavaScript object with ajaxUrl and nonce. Use wp_localize_script to pass config to all scripts. Set nonce action to 'cuft-event-recorder'.
+**Dependencies**: T013 (AJAX handler exists)
+
+---
+
+## Phase 3.4: JavaScript Integration
+
+### T016: [P] Add Event Recording to cuft-links.js
+**File**: `/home/r11/dev/choice-uft/assets/links/cuft-links.js`
+**Description**: Create recordEvent(clickId, eventType) function using fetch API fire-and-forget pattern. Add try-catch wrappers for error isolation. Hook into existing phone link click handler to record phone_click event. Hook into existing email link click handler to record email_click event. Silent failures in production, log in debug mode only.
+**Dependencies**: T015 (AJAX endpoint registered), T009 (test failing)
+
+### T017: [P] Add Event Recording to cuft-elementor-forms.js
+**File**: `/home/r11/dev/choice-uft/assets/forms/cuft-elementor-forms.js`
+**Description**: Import shared recordEvent() function. Hook into existing submit_success handler. After dataLayer push, call recordEvent(clickId, 'form_submit'). Extract click_id from form data or UTM storage. Never block form submission.
+**Dependencies**: T015 (AJAX endpoint registered), T010 (test failing)
+
+### T018: [P] Add Event Recording to cuft-cf7-forms.js
+**File**: `/home/r11/dev/choice-uft/assets/forms/cuft-cf7-forms.js`
+**Description**: Import shared recordEvent() function. Hook into existing wpcf7mailsent handler. After dataLayer push, call recordEvent(clickId, 'form_submit'). Extract click_id from form data or UTM storage. Never block form submission.
+**Dependencies**: T015 (AJAX endpoint registered), T010 (test failing)
+
+### T019: [P] Add Event Recording to cuft-ninja-forms.js
+**File**: `/home/r11/dev/choice-uft/assets/forms/cuft-ninja-forms.js`
+**Description**: Import shared recordEvent() function. Hook into existing submit handler. After dataLayer push, call recordEvent(clickId, 'form_submit'). Extract click_id from form data or UTM storage. Never block form submission.
+**Dependencies**: T015 (AJAX endpoint registered), T010 (test failing)
+
+### T020: [P] Add Event Recording to cuft-gravity-forms.js
+**File**: `/home/r11/dev/choice-uft/assets/forms/cuft-gravity-forms.js`
+**Description**: Import shared recordEvent() function. Hook into existing submit handler. After dataLayer push, call recordEvent(clickId, 'form_submit'). Extract click_id from form data or UTM storage. Never block form submission.
+**Dependencies**: T015 (AJAX endpoint registered), T010 (test failing)
+
+### T021: [P] Add Event Recording to cuft-avada-forms.js
+**File**: `/home/r11/dev/choice-uft/assets/forms/cuft-avada-forms.js`
+**Description**: Import shared recordEvent() function. Hook into existing submit handler. After dataLayer push, call recordEvent(clickId, 'form_submit'). Extract click_id from form data or UTM storage. Never block form submission.
+**Dependencies**: T015 (AJAX endpoint registered), T010 (test failing)
+
+---
+
+## Phase 3.5: Admin Interface
+
+### T022: Add Events Timeline Column to Admin Table
+**File**: `/home/r11/dev/choice-uft/admin/class-cuft-admin.php`
+**Description**: Add events column to click tracking admin table. Display events as timeline (event type + timestamp). Sort events chronologically (newest first). Add CSS for event badges (different colors per event type). Remove utm_source and platform columns from display.
+**Dependencies**: T011 (get_events method available)
+
+### T023: Add Event Type Filter to Admin Interface
+**File**: `/home/r11/dev/choice-uft/admin/class-cuft-admin.php`
+**Description**: Add dropdown filter for event types (phone_click, email_click, form_submit, generate_lead). Filter records using JSON_CONTAINS query. Add "Last Activity" sort option using date_updated index.
+**Dependencies**: T022 (events column displayed)
+
+### T024: Implement Feature Flag Controls
+**File**: `/home/r11/dev/choice-uft/admin/class-cuft-admin.php`
+**Description**: Add feature flag toggles to admin settings page. Create cuft_click_event_tracking_enabled option (enable/disable event recording). Create cuft_click_event_tracking_display option (show/hide events in admin). Implement shadow mode (write events when enabled=true, display=false). Add explanatory text for shadow mode testing.
+**Dependencies**: T022 (admin interface exists)
+
+---
+
+## Phase 3.6: Integration Testing & Validation
+
+### T025: Execute Quickstart Validation - Database Schema
+**Manual**: Follow quickstart.md Steps 1-2
+**Description**: Verify events column exists with JSON type. Verify idx_date_updated index created. Verify platform and utm_source columns removed. Document any schema discrepancies.
+**Scenario**: quickstart.md Step 1
+**Dependencies**: T001 (migration complete)
+
+### T026: Execute Quickstart Validation - AJAX Endpoint
+**Manual**: Follow quickstart.md Step 2
+**Description**: Test AJAX endpoint via browser console. Verify valid event recording succeeds. Test invalid nonce/event_type errors. Verify event appears in database. Document response times.
+**Scenario**: quickstart.md Step 2
+**Dependencies**: T013 (AJAX handler complete)
+
+### T027: Execute Quickstart Validation - Phone/Email Links
+**Manual**: Follow quickstart.md Step 3
+**Description**: Test phone link click records phone_click event. Test email link click records email_click event. Verify events in database with correct timestamps. Test error isolation (broken AJAX doesn't break links).
+**Scenario**: quickstart.md Step 3
+**Dependencies**: T016 (cuft-links.js complete)
+
+### T028: Execute Quickstart Validation - Form Submissions
+**Manual**: Follow quickstart.md Step 4
+**Description**: Test form submission records form_submit event. Test generate_lead fires when email+phone+click_id present. Verify events across all frameworks (Elementor, CF7, Ninja, Gravity, Avada). Check dataLayer events still fire correctly.
+**Scenario**: quickstart.md Step 4
+**Dependencies**: T017-T021 (all form scripts complete)
+
+### T029: Execute Quickstart Validation - Event Deduplication
+**Manual**: Follow quickstart.md Step 5
+**Description**: Record duplicate phone_click events. Verify only one event exists with latest timestamp. Test deduplication across all event types. Verify date_updated reflects most recent event.
+**Scenario**: quickstart.md Step 5
+**Dependencies**: T012 (deduplication implemented)
+
+### T030: Execute Quickstart Validation - Admin Interface
+**Manual**: Follow quickstart.md Step 6
+**Description**: Verify events timeline displays correctly. Test event type filtering. Test last activity sorting. Verify event badges styled correctly. Check responsive design on mobile.
+**Scenario**: quickstart.md Step 6
+**Dependencies**: T022-T023 (admin UI complete)
+
+### T031: Execute Quickstart Validation - Webhook Compatibility
+**Manual**: Follow quickstart.md Step 7
+**Description**: Test webhook updates via curl. Verify qualified/score updates work unchanged. Verify status_qualified and score_updated events recorded. Confirm response format unchanged (backward compatibility). Test error responses (invalid key, missing click_id).
+**Scenario**: quickstart.md Step 7
+**Dependencies**: T014 (webhook events complete)
+
+### T032: Execute Quickstart Validation - FIFO Cleanup
+**Manual**: Follow quickstart.md Step 8
+**Description**: Record 105 events for single click_id. Verify event count capped at 100. Verify oldest events removed (FIFO). Check performance of JSON_LENGTH operations. Document cleanup timing.
+**Scenario**: quickstart.md Step 8 (Optional)
+**Dependencies**: T012 (FIFO cleanup implemented)
+
+---
+
+## Phase 3.7: Performance & Polish
+
+### T033: [P] Benchmark JSON Operations Performance
+**Manual**: Use MySQL EXPLAIN and timing
+**Description**: Benchmark JSON_ARRAY_APPEND operations (<12ms target). Benchmark JSON_LENGTH checks (<5ms target). Benchmark JSON_EXTRACT queries with idx_date_updated. Verify aggregate overhead <10%. Document results in performance log.
+**Dependencies**: T011 (event methods complete)
+
+### T034: [P] Benchmark AJAX Endpoint Performance
+**Manual**: Use browser DevTools Network tab
+**Description**: Measure AJAX endpoint response times (<100ms p95 target). Test with varying event counts (1, 50, 100 events). Measure fire-and-forget latency. Verify non-blocking behavior. Document results.
+**Dependencies**: T013 (AJAX handler complete)
+
+### T035: [P] Benchmark Admin Table Load Performance
+**Manual**: Use WordPress Query Monitor plugin
+**Description**: Measure admin table load time with events displayed. Test with records having 1, 50, 100 events each. Verify acceptable performance (<500ms page load). Identify slow queries. Optimize if needed.
+**Dependencies**: T022 (admin UI complete)
+
+### T036: Test Rollback Procedure
+**Manual**: Execute migration down() method
+**Description**: Trigger migration rollback in wp-pdev environment. Verify events column removed. Verify idx_date_updated index removed. Verify qualified/score values preserved (hybrid rollback). Test backup restoration if needed. Document rollback timing and success.
+**Scenario**: quickstart.md Rollback Testing
+**Dependencies**: T002 (backup utility complete)
+
+### T037: Update CLAUDE.md with Migration Status
+**File**: `/home/r11/dev/choice-uft/CLAUDE.md`
+**Description**: Update "Active Migration" section to "Completed Migration". Document final implementation details. Add troubleshooting tips from testing. Update version to 3.12.0. Mark all tasks as completed.
+**Dependencies**: T025-T032 (all validation complete)
+
+### T038: Update CHANGELOG.md for v3.12.0
+**File**: `/home/r11/dev/choice-uft/CHANGELOG.md`
+**Description**: Add v3.12.0 entry with feature summary. Document database changes (events column, indexes). List new AJAX endpoint. Note backward compatibility preserved. Include migration instructions.
+**Dependencies**: T037 (CLAUDE.md updated)
+
+---
+
+## Dependencies
+
+### Critical Path
+```
+T001 (Migration) → T002 (Backup) → T003 (Test Migration)
+  ↓
+T004-T010 (All Tests - parallel, must FAIL)
+  ↓
+T011 (Click Tracker) → T012 (FIFO) → T013 (AJAX Handler) → T015 (Register Endpoint)
+  ↓                      ↓
+T014 (Webhook)       T016-T021 (JavaScript - parallel)
+  ↓                      ↓
+T022 (Admin UI) → T023 (Filters) → T024 (Feature Flags)
+  ↓
+T025-T032 (Validation - sequential)
+  ↓
+T033-T036 (Performance - parallel) → T037 (Docs) → T038 (Changelog)
+```
+
+### Blocking Relationships
+- **T001 blocks**: T002, T003, T004-T010 (need schema)
+- **T004-T010 block**: T011-T014 (TDD - tests must fail first)
+- **T011 blocks**: T012, T013, T014, T022
+- **T013 blocks**: T015
+- **T015 blocks**: T016-T021
+- **T022 blocks**: T023, T024, T030
+- **T012 blocks**: T029, T032
+- **T016-T021 block**: T027, T028
+- **T025-T032 block**: T033-T036 (validate before optimization)
+
+### Parallel Opportunities
+- **T004-T010**: All test files (different files, no dependencies)
+- **T016-T021**: All JavaScript files (different files, independent)
+- **T017-T021**: All form framework scripts (different files)
+- **T033-T035**: All performance benchmarks (different focus areas)
+
+---
+
+## Parallel Execution Examples
+
+### Launch All Contract Tests Together (Phase 3.2)
+```bash
+# After T001-T003 complete, launch all tests in parallel
+# These MUST fail before implementation begins
+Task: "Create contract test for AJAX valid event recording in tests/test-ajax-endpoint.php"
+Task: "Create contract test for AJAX security validation in tests/test-ajax-security.php"
+Task: "Create contract test for AJAX event deduplication in tests/test-ajax-deduplication.php"
+Task: "Create contract test for AJAX FIFO cleanup in tests/test-ajax-fifo.php"
+Task: "Create contract test for webhook backward compatibility in tests/test-webhook-compatibility.php"
+Task: "Create integration test for phone click events in tests/test-phone-click-integration.php"
+Task: "Create integration test for form submit events in tests/test-form-submit-integration.php"
+```
+
+### Launch All JavaScript Updates Together (Phase 3.4)
+```bash
+# After T015 complete, launch all JavaScript updates in parallel
+Task: "Add event recording to phone/email links in assets/links/cuft-links.js"
+Task: "Add form_submit recording to Elementor forms in assets/forms/cuft-elementor-forms.js"
+Task: "Add form_submit recording to CF7 forms in assets/forms/cuft-cf7-forms.js"
+Task: "Add form_submit recording to Ninja forms in assets/forms/cuft-ninja-forms.js"
+Task: "Add form_submit recording to Gravity forms in assets/forms/cuft-gravity-forms.js"
+Task: "Add form_submit recording to Avada forms in assets/forms/cuft-avada-forms.js"
+```
+
+### Launch All Performance Benchmarks Together (Phase 3.7)
+```bash
+# After T025-T032 complete, launch all benchmarks in parallel
+Task: "Benchmark JSON operations performance (<12ms target)"
+Task: "Benchmark AJAX endpoint performance (<100ms target)"
+Task: "Benchmark admin table load performance (<500ms target)"
 ```
 
 ---
 
-## Risk Mitigation Tasks
+## Task Execution Notes
 
-### High-Risk Mitigation
-- **Data Loss Prevention**: Task 1.2 includes comprehensive backup and rollback
-- **Performance Impact**: Task 6.3 validates before production deployment
-- **Integration Breakage**: Task 6.2 tests all integration points
+### Test-Driven Development (TDD)
+1. **Phase 3.2 MUST complete first**: All tests written and failing
+2. **Phase 3.3 makes tests pass**: Implement code to satisfy tests
+3. **Never implement without failing tests**: Ensures tests are valid
 
-### Medium-Risk Mitigation
-- **Feature Flag Rollback**: Task 5.2 enables quick disable if issues
-- **Migration Failure**: Task 7.1 includes error handling and retry logic
-- **User Experience**: Task 8.1 gradual rollout allows early issue detection
+### Error Isolation Pattern
+All JavaScript event recording must follow:
+```javascript
+try {
+    fetch(cuftConfig.ajaxUrl, {
+        method: 'POST',
+        body: formData
+    }).catch(error => {
+        if (cuftConfig.debug) console.warn('Event recording failed:', error);
+    });
+} catch (error) {
+    if (cuftConfig.debug) console.error('Event recording exception:', error);
+}
+```
+
+### Constitutional Compliance
+- ✅ JavaScript-First: Use fetch(), jQuery fallback
+- ✅ DataLayer Standards: snake_case, cuft_tracked, cuft_source
+- ✅ Framework Compatibility: Silent exits, no interference
+- ✅ Event Firing Rules: Unchanged for form_submit/generate_lead
+- ✅ Error Handling: Try-catch wrappers, fallback chains
+- ✅ Performance: <10% overhead, <100ms operations
+- ✅ Security: Nonce validation, input sanitization, whitelists
+
+### Commit Strategy
+- Commit after each task completion
+- Commit message format: `feat: [Task ID] - [Brief description]`
+- Example: `feat: T011 - Add event methods to click tracker`
 
 ---
 
-## Success Metrics
+## Validation Checklist
 
-### Technical Metrics
-- [ ] Zero data loss during migration
-- [ ] <20% performance impact from JSON operations
-- [ ] >99.9% event recording success rate
-- [ ] <100ms average response time for admin interface
+### Design Coverage
+- [x] All contracts have corresponding tests (T004-T008)
+- [x] All entities have implementation tasks (CUFT_Click_Tracker, CUFT_Event_Recorder)
+- [x] All tests come before implementation (T004-T010 before T011-T014)
+- [x] All quickstart scenarios have validation tasks (T025-T032)
 
-### Business Metrics
-- [ ] Enhanced user journey visibility achieved
-- [ ] Improved lead qualification insights available
-- [ ] Simplified table structure (removed redundant columns)
-- [ ] Maintained all existing functionality
+### Task Quality
+- [x] Parallel tasks truly independent (different files, no shared state)
+- [x] Each task specifies exact file path
+- [x] No task modifies same file as another [P] task
+- [x] Dependencies clearly documented
+- [x] Performance targets specified (<10% overhead, <100ms operations)
+
+### Constitutional Alignment
+- [x] JavaScript-First approach maintained (fetch primary, jQuery fallback)
+- [x] DataLayer standards preserved (snake_case, required fields)
+- [x] Framework compatibility maintained (silent exits, no interference)
+- [x] Error handling comprehensive (try-catch, fallback chains)
+- [x] Security measures implemented (nonce, sanitization, validation)
 
 ---
 
-## Timeline Summary
+**Total Tasks**: 38 numbered, dependency-ordered tasks
+**Parallelizable**: ~50% of tasks marked with [P]
+**Critical Path**: Migration → Tests → Core → JavaScript → Admin → Validation → Polish
+**Estimated Effort**: 3-5 days for full implementation
+**Constitutional Compliance**: ✅ All principles maintained
 
-**Total Estimated Time**: 85 hours (approximately 11 working days)
+---
 
-**Phase Breakdown**:
-- Phase 1: 12 hours (1.5 days)
-- Phase 2: 18 hours (2.3 days)
-- Phase 3: 14 hours (1.8 days)
-- Phase 4: 20 hours (2.5 days)
-- Phase 5: 10 hours (1.3 days)
-- Phase 6: 24 hours (3 days)
-- Phase 7: 6 hours (0.8 days)
-- Phase 8: 5 days monitoring (includes waiting periods)
-
-**Critical Path**: Schema → Core Enhancement → Event Integration → Testing → Migration
-
-This task breakdown ensures systematic implementation with proper validation and risk mitigation at each stage.
+*Based on Constitution v1.0 - See `.specify/memory/constitution.md`*
+*Tasks generated by /tasks command on 2025-09-29*
+*Ready for execution following Test-Driven Development (TDD) approach*
