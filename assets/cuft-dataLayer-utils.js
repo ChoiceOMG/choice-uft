@@ -267,6 +267,98 @@ window.cuftDataLayerUtils = (function () {
   }
 
   /**
+   * Record event to click tracking database via AJAX
+   * Fire-and-forget pattern with silent failures
+   */
+  function recordEvent(clickId, eventType, debugMode) {
+    try {
+      // Validate inputs
+      if (!clickId || !eventType) {
+        return;
+      }
+
+      // Check if cuftConfig is available
+      if (typeof window.cuftConfig === "undefined" || !window.cuftConfig.ajaxUrl) {
+        if (debugMode && window.console) {
+          window.console.log('[CUFT DataLayer] cuftConfig not available for event recording');
+        }
+        return;
+      }
+
+      // Fire-and-forget: Use fetch if available, fallback to XMLHttpRequest
+      if (typeof fetch !== "undefined") {
+        fetch(window.cuftConfig.ajaxUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "cuft_record_event",
+            nonce: window.cuftConfig.nonce,
+            click_id: clickId,
+            event_type: eventType,
+          }),
+        })
+          .then(function (response) {
+            if (response.ok && debugMode && window.console) {
+              window.console.log('[CUFT DataLayer] Event recorded:', eventType, 'for click_id:', clickId);
+            }
+          })
+          .catch(function (err) {
+            // Silent failure in production, log in debug mode
+            if (debugMode && window.console) {
+              window.console.warn('[CUFT DataLayer] Failed to record event:', err);
+            }
+          });
+      } else {
+        // Legacy browsers: fallback to XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", window.cuftConfig.ajaxUrl, true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        var params =
+          "action=cuft_record_event" +
+          "&nonce=" + encodeURIComponent(window.cuftConfig.nonce) +
+          "&click_id=" + encodeURIComponent(clickId) +
+          "&event_type=" + encodeURIComponent(eventType);
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4 && xhr.status === 200 && debugMode && window.console) {
+            window.console.log('[CUFT DataLayer] Event recorded:', eventType, 'for click_id:', clickId);
+          }
+        };
+
+        xhr.send(params);
+      }
+    } catch (err) {
+      // Silent failure - never interfere with main functionality
+      if (debugMode && window.console) {
+        window.console.error('[CUFT DataLayer] Event recording error:', err);
+      }
+    }
+  }
+
+  /**
+   * Get click_id from tracking parameters
+   */
+  function getClickIdFromTracking() {
+    try {
+      var trackingParams = getTrackingParameters();
+      if (trackingParams && typeof trackingParams === 'object') {
+        // Check all click ID fields in priority order
+        for (var i = 0; i < CLICK_ID_FIELDS.length; i++) {
+          if (trackingParams[CLICK_ID_FIELDS[i]]) {
+            return trackingParams[CLICK_ID_FIELDS[i]];
+          }
+        }
+      }
+    } catch (e) {
+      // Silent failure
+    }
+    return null;
+  }
+
+  /**
    * Main function to handle form submission tracking
    */
   function trackFormSubmission(framework, formElement, options) {
@@ -294,7 +386,7 @@ window.cuftDataLayerUtils = (function () {
         user_phone: options.user_phone
       });
 
-      // Push form_submit event
+      // Push form_submit event to dataLayer
       var submitSuccess = pushToDataLayer(formSubmitPayload, {
         debug: options.debug,
         framework: framework
@@ -302,6 +394,12 @@ window.cuftDataLayerUtils = (function () {
 
       if (!submitSuccess) {
         return false;
+      }
+
+      // Record form_submit event to click tracking database (fire-and-forget)
+      var clickId = getClickIdFromTracking();
+      if (clickId) {
+        recordEvent(clickId, 'form_submit', options.debug);
       }
 
       // Check for generate_lead conditions
@@ -336,6 +434,11 @@ window.cuftDataLayerUtils = (function () {
           debug: options.debug,
           framework: framework
         });
+
+        // Record generate_lead event to click tracking database (fire-and-forget)
+        if (clickId) {
+          recordEvent(clickId, 'generate_lead', options.debug);
+        }
 
         if (options.debug && window.console && window.console.log) {
           window.console.log('[CUFT DataLayer] ✅ generate_lead event fired for:', framework);
@@ -372,6 +475,10 @@ window.cuftDataLayerUtils = (function () {
     createFormSubmitPayload: createFormSubmitPayload,
     createGenerateLeadPayload: createGenerateLeadPayload,
     pushToDataLayer: pushToDataLayer,
+
+    // Event recording functions (v3.12.0)
+    recordEvent: recordEvent,
+    getClickIdFromTracking: getClickIdFromTracking,
 
     // Data access
     getTrackingParameters: getTrackingParameters,

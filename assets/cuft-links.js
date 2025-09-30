@@ -64,36 +64,68 @@ try {
         return;
       }
 
-      // Check if WordPress AJAX is available
-      if (typeof window.cuftAdmin === "undefined" || !window.cuftAdmin.ajax_url) {
-        log("CUFT admin AJAX not available");
+      // Check if cuftConfig is available (provided by main plugin)
+      if (typeof window.cuftConfig === "undefined" || !window.cuftConfig.ajaxUrl) {
+        log("cuftConfig not available");
         return;
       }
 
-      // Send event to WordPress AJAX endpoint
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", window.cuftAdmin.ajax_url, true);
-      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      // Fire-and-forget: Send event to WordPress AJAX endpoint
+      // Use fetch if available, fallback to XMLHttpRequest
+      if (typeof fetch !== "undefined") {
+        // Modern browsers: use fetch API (fire-and-forget)
+        fetch(window.cuftConfig.ajaxUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "cuft_record_event",
+            nonce: window.cuftConfig.nonce,
+            click_id: clickId,
+            event_type: eventType,
+          }),
+        })
+          .then(function (response) {
+            if (response.ok && window.cuftConfig.debug) {
+              log("Event recorded:", eventType, "for click_id:", clickId);
+            }
+          })
+          .catch(function (err) {
+            // Silent failure in production, log in debug mode
+            if (window.cuftConfig.debug) {
+              log("Failed to record event:", err);
+            }
+          });
+      } else {
+        // Legacy browsers: fallback to XMLHttpRequest
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", window.cuftConfig.ajaxUrl, true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 
-      var params = "action=cuft_record_event" +
-                   "&nonce=" + encodeURIComponent(window.cuftAdmin.nonce) +
-                   "&click_id=" + encodeURIComponent(clickId) +
-                   "&event_type=" + encodeURIComponent(eventType);
+        var params =
+          "action=cuft_record_event" +
+          "&nonce=" + encodeURIComponent(window.cuftConfig.nonce) +
+          "&click_id=" + encodeURIComponent(clickId) +
+          "&event_type=" + encodeURIComponent(eventType);
 
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            log("Event recorded:", eventType, "for click_id:", clickId);
-          } else {
-            log("Failed to record event:", xhr.status);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200 && window.cuftConfig.debug) {
+              log("Event recorded:", eventType, "for click_id:", clickId);
+            } else if (xhr.status !== 200 && window.cuftConfig.debug) {
+              log("Failed to record event:", xhr.status);
+            }
           }
-        }
-      };
+        };
 
-      xhr.send(params);
+        xhr.send(params);
+      }
     } catch (err) {
-      log("Event recording error:", err);
-      // Never interfere with main functionality
+      // Silent failure - never interfere with main functionality
+      if (window.cuftConfig && window.cuftConfig.debug) {
+        log("Event recording error:", err);
+      }
     }
   }
 

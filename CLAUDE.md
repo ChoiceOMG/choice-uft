@@ -58,6 +58,138 @@ The AI development workflow has been successfully implemented with:
 
 All future AI-assisted development will now automatically reference specifications first and maintain constitutional compliance.
 
+## Completed Migration: Click Tracking Events (v3.12.0) ✅
+
+### Migration Overview
+**Status**: Implementation Complete, Production Ready
+**Version**: 3.12.0
+**Branch**: `feat/click-tracking-events`
+**Spec**: [specs/migrations/click-tracking-events/spec.md](specs/migrations/click-tracking-events/spec.md)
+
+The click tracking system has been enhanced with event-based chronological tracking:
+- **New**: JSON `events` column for event chronology (MySQL JSON type)
+- **Deprecated**: `utm_source` and `platform` columns (retained for transition period, will be removed in Phase 5)
+- **Added**: `idx_date_updated` index for recent activity queries
+- **New**: AJAX endpoint `/wp-admin/admin-ajax.php?action=cuft_record_event` for client-side event recording
+- **Enhanced**: Admin UI with events timeline, filtering, and sorting
+
+### Key Implementation Details
+
+#### Event Types Supported
+- `phone_click` - Tel link clicks from cuft-links.js
+- `email_click` - Mailto link clicks from cuft-links.js
+- `form_submit` - Form submission events from framework scripts
+- `generate_lead` - Qualified lead events (email + phone + click_id)
+
+#### Event Recording Pattern
+```javascript
+// Fire-and-forget async pattern (never block user interactions)
+function recordEvent(clickId, eventType) {
+    try {
+        fetch(cuftConfig.ajaxUrl, {
+            method: 'POST',
+            body: new URLSearchParams({
+                action: 'cuft_record_event',
+                nonce: cuftConfig.nonce,
+                click_id: clickId,
+                event_type: eventType
+            })
+        }).catch(error => {
+            // Silent fail in production
+            if (cuftConfig.debug) {
+                console.warn('Event recording failed:', error);
+            }
+        });
+    } catch (error) {
+        // Never break user functionality
+    }
+}
+```
+
+#### Database Operations
+```php
+// Add event with deduplication (updates timestamp for duplicate event types)
+CUFT_Click_Tracker::add_event($click_id, $event_type);
+
+// Get all events for a click_id
+CUFT_Click_Tracker::get_events($click_id);
+
+// FIFO cleanup enforces 100 event limit
+```
+
+#### Migration Strategy
+- **Phase 1**: Add events column (nullable, non-breaking)
+- **Phase 2**: Integrate event recording (feature flag controlled)
+- **Phase 3**: Shadow mode rollout (write events, hide UI)
+- **Phase 4**: Full rollout (show events in admin)
+- **Phase 5**: Remove deprecated columns
+
+#### Rollback Strategy (Hybrid)
+If rollback needed:
+- ✅ Restore schema (remove events column)
+- ✅ Preserve qualified/score updates (business-critical)
+- ✅ Discard event data
+
+### Implementation Files (All Complete ✅)
+- ✅ `includes/class-cuft-click-tracker.php` - Event methods with deduplication and FIFO cleanup
+- ✅ `includes/ajax/class-cuft-event-recorder.php` - AJAX handler with nonce validation
+- ✅ `assets/cuft-links.js` - Event recording for phone/email clicks
+- ✅ `assets/cuft-dataLayer-utils.js` - Centralized event recording for all form frameworks
+- ✅ `includes/class-cuft-admin.php` - Events timeline display, filtering, and sorting
+- ✅ `includes/migrations/class-cuft-migration-3-12-0.php` - Database migration with hybrid rollback
+
+### Implementation Status
+**All Phases Complete**:
+- ✅ **Phase 3.1**: Database migration infrastructure
+- ✅ **Phase 3.2**: TDD test suite (unit + integration tests)
+- ✅ **Phase 3.3**: Core event tracking implementation
+- ✅ **Phase 3.4**: JavaScript integration (links + forms)
+- ✅ **Phase 3.5**: Admin interface with events display
+- ✅ **Phase 3.6**: Integration testing and validation
+- ✅ **Phase 3.7**: Performance benchmarking and documentation
+
+### Testing Results
+- ✅ Database schema validated (JSON column, indexes)
+- ✅ AJAX endpoint functional (nonce security working)
+- ✅ Phone/email link tracking operational
+- ✅ Form submission events recording correctly
+- ✅ Event deduplication working as designed
+- ✅ Admin UI displaying events timeline
+- ✅ Webhook API backward compatible
+- ✅ FIFO cleanup maintaining 100-event limit
+
+### Troubleshooting Tips
+
+**AJAX Endpoint Issues**
+- Ensure `cuftConfig` JavaScript object is available globally
+- Check browser console for nonce errors
+- Verify AJAX URL points to `/wp-admin/admin-ajax.php`
+- Flush rewrite rules: `wp rewrite flush` (for custom webhook URL)
+
+**Events Not Recording**
+- Verify `click_id` is present in URL parameters or sessionStorage
+- Check `cuftConfig.debug` for detailed logging
+- Ensure migration has been run (`CUFT_DB_Migration::run_migrations()`)
+- Verify `events` column exists: `SHOW COLUMNS FROM wp_cuft_click_tracking`
+
+**Admin UI Not Showing Events**
+- Check if `events` column contains valid JSON: `SELECT click_id, events FROM wp_cuft_click_tracking`
+- Verify `CUFT_Click_Tracker::get_events()` returns array
+- Clear browser cache if events column appears empty
+
+**Performance Issues**
+- JSON operations target: <12ms for add_event, <5ms for get_events
+- AJAX response time target: <100ms P95
+- Run performance tests: `php tests/performance/test-json-performance.php`
+- Monitor using `EXPLAIN` for query optimization
+
+### Design Artifacts
+- [research.md](specs/migrations/click-tracking-events/research.md) - Technical research findings
+- [data-model.md](specs/migrations/click-tracking-events/data-model.md) - Database schema details
+- [contracts/ajax-endpoint.md](specs/migrations/click-tracking-events/contracts/ajax-endpoint.md) - AJAX API contract
+- [contracts/webhook-api.md](specs/migrations/click-tracking-events/contracts/webhook-api.md) - Webhook compatibility
+- [quickstart.md](specs/migrations/click-tracking-events/quickstart.md) - Testing guide
+
 ## Core Development Principles
 
 ### JavaScript-First Approach

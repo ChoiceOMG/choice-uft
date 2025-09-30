@@ -23,6 +23,17 @@ Migrate to event-based tracking with JSON array storage:
 
 ---
 
+## Clarifications
+
+### Session 2025-09-29
+- Q: When a duplicate event type occurs (e.g., user clicks phone link twice), how should the system handle it? → A: Update existing - replace the timestamp of the first occurrence with the latest
+- Q: If the migration fails and rollback is triggered, what should be restored? → A: Hybrid - restore schema, preserve qualified/score updates, discard events
+- Q: When the 100-event limit per click_id is reached, which events should be removed? → A: Oldest events - FIFO (First In First Out), remove earliest timestamps
+- Q: During gradual rollout with feature flag, how should the system behave when flag is OFF? → A: Shadow mode - Write events silently but don't display in admin interface
+- Q: How should events be recorded in the database when triggered from client-side (JavaScript)? → A: AJAX endpoint - JavaScript POSTs to dedicated PHP endpoint for event recording
+
+---
+
 ## Requirements
 
 ### Functional Requirements
@@ -30,7 +41,7 @@ Migrate to event-based tracking with JSON array storage:
 #### FR-01: Event Array Storage
 - **Requirement**: Store events as JSON array with chronological order
 - **Format**: `[{"event": "phone_click", "timestamp": "2025-01-01T12:00:00Z"}, ...]`
-- **Behavior**: New events append to array, `date_updated` updates to latest event timestamp
+- **Behavior**: For new event types, append to array. For duplicate event types, update the existing entry's timestamp to the latest occurrence. The `date_updated` column always reflects the most recent event timestamp
 
 #### FR-02: Supported Event Types
 - **phone_click**: Tel link clicks from cuft-links.js
@@ -57,11 +68,11 @@ Migrate to event-based tracking with JSON array storage:
 
 #### NFR-02: Data Integrity
 - **Validation**: JSON schema validation for event structure
-- **Rollback**: Complete rollback capability if migration fails
-- **Backup**: Full backup before migration starts
+- **Rollback**: Hybrid rollback strategy - restore original schema (remove events column and indexes), preserve business-critical updates (qualified/score changes via webhook), discard all event data written during migration
+- **Backup**: Full backup before migration starts to enable rollback
 
 #### NFR-03: Scalability
-- **Event Limit**: Maximum 100 events per click_id (with cleanup)
+- **Event Limit**: Maximum 100 events per click_id. When limit reached, apply FIFO cleanup by removing oldest events (earliest timestamps) before adding new events
 - **Storage**: JSON column efficient for small to medium arrays
 - **Growth**: Architecture supports future event types
 
@@ -154,17 +165,17 @@ CREATE TABLE cuft_click_tracking (
 #### Phone/Email Clicks (cuft-links.js)
 - **Current**: Fires `phone_click` and `email_click` events to dataLayer
 - **Enhancement**: Hook these events to also record in click tracking table
-- **Implementation**: Add event listener that calls CUFT_Click_Tracker::add_event()
+- **Implementation**: Add event listener that POSTs to dedicated AJAX endpoint for event recording (calls CUFT_Click_Tracker::add_event() on server-side)
 
 #### Form Submissions (Framework Scripts)
 - **Current**: All framework scripts fire `form_submit` events
 - **Enhancement**: Hook form submissions to record click tracking events
-- **Implementation**: Extract click_id from form data, record form_submit event
+- **Implementation**: Extract click_id from form data, POST to AJAX endpoint to record form_submit event
 
 #### Generate Lead Events
 - **Current**: Fired when email + phone + click_id present
 - **Enhancement**: Record as final event in click journey
-- **Implementation**: Hook generate_lead dataLayer pushes
+- **Implementation**: Hook generate_lead dataLayer pushes, POST to AJAX endpoint to record generate_lead event
 
 ### API Compatibility
 
@@ -198,7 +209,7 @@ CREATE TABLE cuft_click_tracking (
 3. **Update admin filters** to use campaign/utm_medium instead
 
 ### Phase 4: Validation & Rollout
-1. **Feature flag** for gradual rollout
+1. **Feature flag** for gradual rollout (shadow mode: when OFF, events are written to database but hidden from admin interface; when ON, events are both written and displayed)
 2. **A/B testing** to compare data quality
 3. **Full deployment** once validated
 
