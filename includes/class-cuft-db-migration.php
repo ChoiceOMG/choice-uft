@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '1.0.0';
+    const CURRENT_VERSION = '3.14.0';
 
     /**
      * Option name for storing database version
@@ -34,6 +34,11 @@ class CUFT_DB_Migration {
         // Run migrations in order
         if ( version_compare( $current_version, '1.0.0', '<' ) ) {
             self::migrate_to_1_0_0();
+        }
+
+        // Run 3.14.0 migration for indexes
+        if ( version_compare( $current_version, '3.14.0', '<' ) ) {
+            self::migrate_to_3_14_0();
         }
 
         // Update version
@@ -156,6 +161,134 @@ class CUFT_DB_Migration {
 
         // Run migrations
         self::run_migrations();
+    }
+
+    /**
+     * Migration to version 3.14.0
+     * Adds performance indexes to click tracking table
+     */
+    private static function migrate_to_3_14_0() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'cuft_click_tracking';
+
+        // Check if table exists
+        if ( $wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name ) {
+            error_log('CUFT Migration 3.14.0: Table does not exist, skipping index creation');
+            return;
+        }
+
+        // Array of indexes to add (using actual column names)
+        $indexes = array(
+            'idx_date_created' => 'date_created',
+            'idx_click_id' => 'click_id(50)',
+            'idx_qualified' => 'qualified',
+            'idx_composite_date_qualified' => 'date_created, qualified',
+            'idx_date_updated' => 'date_updated', // Ensure it exists (from 3.12.0)
+            'idx_utm_source' => 'utm_source(50)',
+            'idx_utm_campaign' => 'utm_campaign(50)'
+        );
+
+        $success = true;
+        foreach ($indexes as $index_name => $columns) {
+            if (!self::index_exists($table_name, $index_name)) {
+                $sql = "ALTER TABLE $table_name ADD INDEX $index_name ($columns)";
+                $result = $wpdb->query($sql);
+
+                if ($wpdb->last_error) {
+                    error_log("CUFT Migration 3.14.0: Failed to add index $index_name: " . $wpdb->last_error);
+                    $success = false;
+                } else {
+                    error_log("CUFT Migration 3.14.0: Successfully added index $index_name");
+                }
+            }
+        }
+
+        // Log migration status
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::log(
+                $success ? 'info' : 'warning',
+                'Migration 3.14.0 completed',
+                array(
+                    'success' => $success,
+                    'indexes' => $indexes
+                )
+            );
+        }
+
+        return $success;
+    }
+
+    /**
+     * Check if an index exists on a table
+     *
+     * @param string $table_name Table name
+     * @param string $index_name Index name
+     * @return bool
+     */
+    private static function index_exists($table_name, $index_name) {
+        global $wpdb;
+        $index = $wpdb->get_row(
+            $wpdb->prepare(
+                "SHOW INDEX FROM $table_name WHERE Key_name = %s",
+                $index_name
+            )
+        );
+        return !is_null($index);
+    }
+
+    /**
+     * Verify all indexes are present
+     *
+     * @return array Array of index status
+     */
+    public static function verify_indexes() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'cuft_click_tracking';
+
+        $expected_indexes = array(
+            'PRIMARY',
+            'idx_date_created',
+            'idx_click_id',
+            'idx_qualified',
+            'idx_composite_date_qualified',
+            'idx_date_updated',
+            'idx_utm_source',
+            'idx_utm_campaign'
+        );
+
+        $results = array();
+        foreach ($expected_indexes as $index_name) {
+            $results[$index_name] = self::index_exists($table_name, $index_name);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get query performance stats
+     *
+     * @param string $query_type Type of query to analyze
+     * @return array Query execution plan
+     */
+    public static function analyze_query_performance($query_type = 'recent') {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'cuft_click_tracking';
+
+        $queries = array(
+            'recent' => "SELECT * FROM $table_name WHERE date_created > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+            'qualified' => "SELECT * FROM $table_name WHERE qualified = 1",
+            'composite' => "SELECT * FROM $table_name WHERE date_created > DATE_SUB(NOW(), INTERVAL 30 DAY) AND qualified = 1",
+            'click_id' => "SELECT * FROM $table_name WHERE click_id = 'test_id'",
+            'utm_source' => "SELECT * FROM $table_name WHERE utm_source = 'google'",
+            'utm_campaign' => "SELECT * FROM $table_name WHERE utm_campaign = 'summer_sale'"
+        );
+
+        if (!isset($queries[$query_type])) {
+            return array('error' => 'Invalid query type');
+        }
+
+        $explain = $wpdb->get_results("EXPLAIN " . $queries[$query_type], ARRAY_A);
+        return $explain;
     }
 
     /**

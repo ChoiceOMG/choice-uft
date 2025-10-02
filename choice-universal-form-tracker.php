@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.13.1
+ * Version:           3.13.3
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.13.1' );
+define( 'CUFT_VERSION', '3.13.3' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -57,6 +57,7 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-logger.php',         // Load logger early
             'includes/class-cuft-db-migration.php',   // Load migration handler
             'includes/class-cuft-admin.php',
+            'includes/admin/class-cuft-testing-dashboard.php',  // Testing dashboard
             'includes/class-cuft-gtm.php',
             'includes/class-cuft-form-detector.php',
             'includes/class-cuft-form-tracker.php',
@@ -70,6 +71,11 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-migration-events.php',
             'includes/class-cuft-cryptojs.php',
             'includes/ajax/class-cuft-event-recorder.php',  // AJAX event recording handler
+            'includes/ajax/class-cuft-test-data-generator.php',  // Test data generator AJAX
+            'includes/ajax/class-cuft-event-simulator.php',  // Event simulator AJAX
+            'includes/ajax/class-cuft-test-form-builder.php',  // Test form builder AJAX
+            'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
+            'includes/database/class-cuft-test-events-table.php',  // Test events database table
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
             // Form framework handlers
@@ -189,6 +195,25 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Event_Recorder();
             }
 
+            // Initialize Testing Dashboard (v3.14.0)
+            if ( is_admin() && class_exists( 'CUFT_Testing_Dashboard' ) ) {
+                new CUFT_Testing_Dashboard();
+            }
+
+            // Initialize Testing Dashboard AJAX Handlers (v3.14.0)
+            if ( class_exists( 'CUFT_Test_Data_Generator' ) ) {
+                new CUFT_Test_Data_Generator();
+            }
+            if ( class_exists( 'CUFT_Event_Simulator' ) ) {
+                new CUFT_Event_Simulator();
+            }
+            if ( class_exists( 'CUFT_Test_Form_Builder' ) ) {
+                new CUFT_Test_Form_Builder();
+            }
+            if ( class_exists( 'CUFT_Test_Events_Ajax' ) ) {
+                new CUFT_Test_Events_Ajax();
+            }
+
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
             add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
 
@@ -252,6 +277,12 @@ class Choice_Universal_Form_Tracker {
         // Create click tracking table
         if ( class_exists( 'CUFT_Click_Tracker' ) ) {
             CUFT_Click_Tracker::create_table();
+        }
+
+        // Create test events table
+        if ( class_exists( 'CUFT_Test_Events_Table' ) ) {
+            $test_events_table = new CUFT_Test_Events_Table();
+            $test_events_table->maybe_update();
         }
 
         // Run database migrations
