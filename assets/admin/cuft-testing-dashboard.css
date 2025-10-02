@@ -1,0 +1,326 @@
+/**
+ * CUFT Testing Dashboard Styles
+ *
+ * @package Choice_UFT
+ * @since 3.14.0
+ */
+
+/* Card Layout */
+.wrap .card {
+    max-width: 100%;
+    margin-top: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.wrap .card h2 {
+    margin-top: 0;
+    color: #1d2327;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.wrap .card p {
+    color: #50575e;
+    margin-bottom: 15px;
+}
+
+/* Button Groups */
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+
+.button-group .button {
+    flex: 0 0 auto;
+}
+
+/* Test Data Display */
+.test-data-display {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f6f7f7;
+    border-left: 4px solid #2271b1;
+    border-radius: 2px;
+}
+
+.test-data-display h3 {
+    margin-top: 0;
+    font-size: 1.1em;
+}
+
+.test-data-content {
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff;
+    padding: 10px;
+    border: 1px solid #c3c4c7;
+    margin-top: 10px;
+}
+
+/* Simulation Status */
+.simulation-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 2px;
+    display: none;
+}
+
+.simulation-status.success {
+    display: block;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.simulation-status.error {
+    display: block;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.simulation-status.info {
+    display: block;
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+/* Form Builder Controls */
+.form-builder-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.form-builder-controls label {
+    font-weight: 600;
+    margin: 0;
+}
+
+.form-builder-controls select {
+    min-width: 200px;
+}
+
+/* Test Form Container */
+.test-form-container {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f6f7f7;
+    border: 1px dashed #8c8f94;
+    border-radius: 2px;
+    min-height: 100px;
+}
+
+.test-form-container:empty::after {
+    content: 'No test form generated yet. Select a framework and click "Build Test Form" to begin.';
+    color: #8c8f94;
+    font-style: italic;
+}
+
+/* Event Viewer */
+.event-viewer-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.event-viewer-controls label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+}
+
+.event-viewer {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #c3c4c7;
+}
+
+.event-viewer table {
+    margin: 0;
+    border: none;
+}
+
+.event-viewer .no-events {
+    text-align: center;
+    color: #8c8f94;
+    font-style: italic;
+    padding: 20px;
+}
+
+/* Event Status Icons */
+.event-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.event-status.valid::before {
+    content: '✓';
+    color: #00a32a;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.event-status.invalid::before {
+    content: '✗';
+    color: #d63638;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* Event Details */
+.event-details {
+    position: relative;
+}
+
+.event-details-toggle {
+    cursor: pointer;
+    color: #2271b1;
+    text-decoration: underline;
+}
+
+.event-details-content {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 10px;
+    min-width: 400px;
+    max-width: 600px;
+    max-height: 400px;
+    overflow: auto;
+    top: 100%;
+    left: 0;
+    margin-top: 5px;
+}
+
+.event-details-content.show {
+    display: block;
+}
+
+.event-details-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+}
+
+/* Database Events Container */
+.db-events-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.db-events-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.db-events-container:empty::after {
+    content: 'No test database events loaded. Click "Load Events" to view stored test events.';
+    display: block;
+    color: #8c8f94;
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+}
+
+/* Loading States */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #c3c4c7;
+    border-top-color: #2271b1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 782px) {
+    .form-builder-controls,
+    .event-viewer-controls,
+    .db-events-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-builder-controls select {
+        width: 100%;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .button-group .button {
+        width: 100%;
+    }
+
+    .event-details-content {
+        position: static;
+        margin-top: 10px;
+        max-width: 100%;
+    }
+}
+
+/* Accessibility */
+.screen-reader-text {
+    position: absolute;
+    margin: -1px;
+    padding: 0;
+    height: 1px;
+    width: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    border: 0;
+}
+
+/* Print Styles */
+@media print {
+    .button,
+    .button-group,
+    .event-viewer-controls,
+    .db-events-controls,
+    .form-builder-controls {
+        display: none;
+    }
+}

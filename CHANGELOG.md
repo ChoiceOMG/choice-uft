@@ -5,6 +5,39 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.13.3] - 2025-10-01
+
+### Added - Admin Testing Dashboard
+
+- **Testing Dashboard**: New admin-only testing interface at Settings → Testing Dashboard
+  - Test data generation with realistic click IDs and UTM parameters
+  - Event simulation for phone clicks, email clicks, form submissions, and lead generation
+  - Dynamic form framework detection - only shows installed plugins
+  - GTM integration with test_mode flag for safe testing
+  - Separate test_events database table to isolate test data
+  - Real-time dataLayer event monitoring and validation
+  - Performance optimized - all operations under 500ms
+
+### Improved
+
+- **Test Data Realism**: Simplified test data to match actual production events
+  - Reduced click ID types to commonly used platforms (Google, Facebook, Microsoft)
+  - Minimal UTM parameters (campaign only) for realistic scenarios
+  - Event structures now exactly match production tracking
+
+### Fixed
+
+- **Build Test Form**: Added missing JavaScript event handler
+- **Dynamic Framework Detection**: Form builder dropdown now only shows installed frameworks
+- **Event Field Names**: Corrected to match production (clicked_phone, clicked_email, etc.)
+
+### Security
+
+- Admin-only access with manage_options capability check
+- Nonce validation on all AJAX endpoints
+- Input sanitization throughout
+- Test events isolated in separate database table
+
 ## [3.13.1] - 2025-09-30
 
 ### Fixed
