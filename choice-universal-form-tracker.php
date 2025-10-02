@@ -79,6 +79,12 @@ class Choice_Universal_Form_Tracker {
             'includes/admin/framework-adapters/class-cuft-avada-adapter.php',
             'includes/admin/class-cuft-adapter-factory.php',  // Adapter factory
             'includes/admin/class-cuft-form-builder.php',  // Form builder core
+            // Form Builder Supporting Classes
+            'includes/class-cuft-test-mode.php',  // Test mode manager
+            'includes/class-cuft-test-routing.php',  // Test form routing
+            'includes/class-cuft-form-template.php',  // Form templates
+            'includes/class-cuft-test-session.php',  // Test sessions
+            'includes/class-cuft-form-builder-validator.php',  // Compliance validator
             // AJAX Handlers
             'includes/ajax/class-cuft-event-recorder.php',  // AJAX event recording handler
             'includes/ajax/class-cuft-test-data-generator.php',  // Test data generator AJAX

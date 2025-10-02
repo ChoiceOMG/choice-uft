@@ -204,6 +204,63 @@ console.log(CUFT_Adapter_Factory::get_frameworks_info());
 - [Quick Start Guide](specs/003-testing-dashboard-form/quickstart.md)
 - [Implementation Tasks](specs/003-testing-dashboard-form/tasks.md)
 
+### Additional Infrastructure (Phases 3.7-3.9) ✅
+
+#### Test Mode Manager
+- **File**: `includes/class-cuft-test-mode.php`
+- **Purpose**: Prevents real form actions during testing
+- **Features**:
+  - Detects `?test_mode=1` parameter
+  - Blocks Contact Form 7 emails (`wpcf7_skip_mail`)
+  - Blocks Gravity Forms emails (`gform_pre_send_email`)
+  - Blocks Ninja Forms actions
+  - Blocks Elementor Pro actions (emails, webhooks, redirects)
+  - Displays visual test mode indicator
+  - Returns fake success for wp_mail()
+
+#### Test Form Routing
+- **File**: `includes/class-cuft-test-routing.php`
+- **Purpose**: Custom routing for test forms by instance_id
+- **Features**:
+  - Custom rewrite rules (`/cuft-test-form/{instance_id}`)
+  - Query var registration (cuft_test_form, form_id, test_mode)
+  - Automatic redirect to actual form with test_mode parameter
+  - 404 handling for missing forms
+  - Test mode script enqueuing
+
+#### Form Templates
+- **File**: `includes/class-cuft-form-template.php`
+- **Purpose**: Template storage and management
+- **Features**:
+  - wp_options storage for templates
+  - Template validation
+  - Default templates: "Basic Contact Form", "Lead Generation Form"
+  - Test data generation based on field types
+  - Template CRUD operations
+
+#### Test Sessions
+- **File**: `includes/class-cuft-test-session.php`
+- **Purpose**: Ephemeral test session management
+- **Features**:
+  - Transient-based storage (1 hour TTL)
+  - Event recording
+  - Validation result storage
+  - Form data collection
+  - Auto-cleanup on expiry
+  - Session listing and retrieval
+
+#### Compliance Validator
+- **File**: `includes/class-cuft-form-builder-validator.php`
+- **Purpose**: Constitutional compliance validation
+- **Features**:
+  - Validates `cuft_tracked: true` requirement
+  - Validates `cuft_source` field presence
+  - Checks snake_case naming convention
+  - Verifies required fields
+  - Tracks click IDs
+  - Validates generate_lead requirements
+  - Generates compliance reports
+
 ---
 
 ## Completed Migration: Click Tracking Events (v3.12.0) ✅
