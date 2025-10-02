@@ -25,7 +25,7 @@
         /**
          * Initialize monitor
          * Note: This monitor intercepts dataLayer pushes but does not create events.
-         * All events must include cuft_tracked and cuft_source from their original source.
+         * All events must include cuft_tracked: true and cuft_source from their original source.
          */
         init() {
             // Ensure dataLayer exists

@@ -173,8 +173,12 @@
 
                 if (result.success && result.data) {
                     // Push event to dataLayer
-                    // Note: cuft_tracked and cuft_source are added server-side by CUFT_Event_Simulator
-                    if (window.dataLayer) {
+                    // Server adds cuft_tracked: true and cuft_source to all events
+                    if (window.dataLayer && result.data.event) {
+                        // Validate required fields are present (added server-side)
+                        if (!result.data.event.cuft_tracked || !result.data.event.cuft_source) {
+                            console.warn('CUFT: Event missing required fields', result.data.event);
+                        }
                         window.dataLayer.push(result.data.event);
                     }
 
