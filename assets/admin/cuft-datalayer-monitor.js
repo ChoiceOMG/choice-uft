@@ -24,6 +24,8 @@
 
         /**
          * Initialize monitor
+         * Note: This monitor intercepts dataLayer pushes but does not create events.
+         * All events must include cuft_tracked and cuft_source from their original source.
          */
         init() {
             // Ensure dataLayer exists
@@ -32,7 +34,7 @@
             // Store original push method
             const originalPush = window.dataLayer.push;
 
-            // Intercept push method
+            // Intercept push method (monitoring only, not creating events)
             window.dataLayer.push = (...args) => {
                 // Call original method
                 const result = originalPush.apply(window.dataLayer, args);

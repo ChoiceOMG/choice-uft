@@ -173,6 +173,7 @@
 
                 if (result.success && result.data) {
                     // Push event to dataLayer
+                    // Note: cuft_tracked and cuft_source are added server-side by CUFT_Event_Simulator
                     if (window.dataLayer) {
                         window.dataLayer.push(result.data.event);
                     }
