@@ -1984,39 +1984,47 @@ class CUFT_Admin {
             return;
         }
 
-        // Check if notice has been dismissed by this user
-        $user_id = get_current_user_id();
-        $dismissed = get_user_meta( $user_id, 'cuft_notice_dismissed', true );
-        if ( $dismissed ) {
-            return;
-        }
-
         $gtm_id = get_option( 'cuft_gtm_id' );
         $detected_count = count( array_filter( CUFT_Form_Detector::get_detected_frameworks() ) );
-        $gtm_status = $gtm_id && $this->is_valid_gtm_id( $gtm_id )
-            ? " GTM container <code>$gtm_id</code> active."
-            : ' <a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Configure GTM</a>';
-
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
 
-        echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
-        echo '<p><strong>Choice Universal Form Tracker</strong> active with ' . $detected_count . ' form framework(s) detected. ';
-        echo $gtm_status . ' <a href="' . $settings_url . '">Settings</a></p>';
-        echo '</div>';
+        // Check if GTM ID is missing or invalid
+        $gtm_missing = ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id );
 
-        // Add inline script to handle dismiss
-        ?>
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            $(document).on('click', '.notice[data-dismiss-action="cuft-dismiss-notice"] .notice-dismiss', function() {
-                $.post(ajaxurl, {
-                    action: 'cuft_dismiss_notice',
-                    nonce: '<?php echo wp_create_nonce( 'cuft_dismiss_notice' ); ?>'
+        if ( $gtm_missing ) {
+            // Show persistent warning notice for missing GTM ID (not dismissible)
+            echo '<div class="notice notice-warning">';
+            echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
+            echo 'Please <a href="' . $settings_url . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
+            echo '</div>';
+        } else {
+            // Check if success notice has been dismissed by this user
+            $user_id = get_current_user_id();
+            $dismissed = get_user_meta( $user_id, 'cuft_notice_dismissed', true );
+
+            if ( ! $dismissed ) {
+                // Show dismissible success notice
+                echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
+                echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . $detected_count . ' form framework(s) detected. ';
+                echo 'GTM container <code>' . esc_html( $gtm_id ) . '</code> is configured. ';
+                echo '<a href="' . $settings_url . '">Settings</a></p>';
+                echo '</div>';
+
+                // Add inline script to handle dismiss
+                ?>
+                <script type="text/javascript">
+                jQuery(document).ready(function($) {
+                    $(document).on('click', '.notice[data-dismiss-action="cuft-dismiss-notice"] .notice-dismiss', function() {
+                        $.post(ajaxurl, {
+                            action: 'cuft_dismiss_notice',
+                            nonce: '<?php echo wp_create_nonce( 'cuft_dismiss_notice' ); ?>'
+                        });
+                    });
                 });
-            });
-        });
-        </script>
-        <?php
+                </script>
+                <?php
+            }
+        }
     }
 
     /**

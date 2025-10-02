@@ -70,11 +70,22 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
             'includes/class-cuft-cryptojs.php',
+            // Form Builder Infrastructure
+            'includes/admin/framework-adapters/abstract-cuft-adapter.php',  // Base adapter
+            'includes/admin/framework-adapters/class-cuft-elementor-adapter.php',
+            'includes/admin/framework-adapters/class-cuft-cf7-adapter.php',
+            'includes/admin/framework-adapters/class-cuft-gravity-adapter.php',
+            'includes/admin/framework-adapters/class-cuft-ninja-adapter.php',
+            'includes/admin/framework-adapters/class-cuft-avada-adapter.php',
+            'includes/admin/class-cuft-adapter-factory.php',  // Adapter factory
+            'includes/admin/class-cuft-form-builder.php',  // Form builder core
+            // AJAX Handlers
             'includes/ajax/class-cuft-event-recorder.php',  // AJAX event recording handler
             'includes/ajax/class-cuft-test-data-generator.php',  // Test data generator AJAX
             'includes/ajax/class-cuft-event-simulator.php',  // Event simulator AJAX
             'includes/ajax/class-cuft-test-form-builder.php',  // Test form builder AJAX
             'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
+            'includes/ajax/class-cuft-form-builder-ajax.php',  // Form builder AJAX endpoints
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
@@ -85,7 +96,7 @@ class Choice_Universal_Form_Tracker {
             'includes/forms/class-cuft-ninja-forms.php',
             'includes/forms/class-cuft-gravity-forms.php'
         );
-        
+
         foreach ( $includes as $file ) {
             $filepath = CUFT_PATH . $file;
             if ( file_exists( $filepath ) ) {

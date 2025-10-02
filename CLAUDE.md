@@ -58,6 +58,154 @@ The AI development workflow has been successfully implemented with:
 
 All future AI-assisted development will now automatically reference specifications first and maintain constitutional compliance.
 
+## Testing Dashboard Form Builder (v3.14.0) ✅
+
+### Feature Overview
+**Status**: Implementation Complete
+**Version**: 3.14.0
+**Branch**: `003-testing-dashboard-form`
+**Specs**: [specs/003-testing-dashboard-form/](specs/003-testing-dashboard-form/)
+
+The Testing Dashboard Form Builder allows admins to generate real test forms within active form frameworks, populate them with test data, and validate tracking without affecting production analytics.
+
+### Key Components
+
+#### Backend Infrastructure
+- **Form Builder Core**: `includes/admin/class-cuft-form-builder.php` - Main form builder class
+- **AJAX Endpoints**: `includes/ajax/class-cuft-form-builder-ajax.php` - Handles all AJAX requests
+- **Adapter Factory**: `includes/admin/class-cuft-adapter-factory.php` - Lazy-loads framework adapters
+- **Framework Adapters**:
+  - `includes/admin/framework-adapters/abstract-cuft-adapter.php` - Base adapter class
+  - `includes/admin/framework-adapters/class-cuft-elementor-adapter.php`
+  - `includes/admin/framework-adapters/class-cuft-cf7-adapter.php`
+  - `includes/admin/framework-adapters/class-cuft-gravity-adapter.php`
+  - `includes/admin/framework-adapters/class-cuft-ninja-adapter.php`
+  - `includes/admin/framework-adapters/class-cuft-avada-adapter.php`
+
+#### Frontend Assets
+- **Main Controller**: `assets/admin/js/cuft-form-builder.js` - Dashboard UI controller
+- **Iframe Bridge**: `assets/admin/js/cuft-iframe-bridge.js` - PostMessage communication
+- **Test Mode Script**: `assets/admin/js/cuft-test-mode.js` - Field population & event capture
+- **Styles**: `assets/admin/css/cuft-form-builder.css` - Form builder UI styles
+
+#### AJAX Endpoints
+1. **POST `/wp-admin/admin-ajax.php?action=cuft_create_test_form`** - Creates a test form
+2. **GET `/wp-admin/admin-ajax.php?action=cuft_get_test_forms`** - Retrieves test forms
+3. **POST `/wp-admin/admin-ajax.php?action=cuft_delete_test_form`** - Deletes a test form
+4. **POST `/wp-admin/admin-ajax.php?action=cuft_populate_form`** - Generates test data
+5. **POST `/wp-admin/admin-ajax.php?action=cuft_test_submit`** - Validates submission
+6. **GET `/wp-admin/admin-ajax.php?action=cuft_get_frameworks`** - Lists available frameworks
+
+### Usage Guide
+
+#### Accessing the Form Builder
+1. Navigate to **Settings → Testing Dashboard**
+2. Scroll to the **Test Form Builder** section
+3. Select a framework from the dropdown (only active frameworks shown)
+4. Select a template (currently: "Basic Contact Form")
+5. Click **"Create Test Form"**
+
+#### Testing Workflow
+1. **Create Form**: Click "Create Test Form" - form loads in iframe
+2. **Populate Data**: Click "Populate Test Data" - fields auto-fill
+3. **Submit Form**: Click "Submit Form" or use iframe submit button
+4. **Validate Events**: Check "Captured Events" panel for tracking data
+5. **Review Results**: Check "Validation Results" for compliance
+6. **Cleanup**: Click "Delete Test Form" when done
+
+### PostMessage Protocol
+
+#### Dashboard → Iframe Messages
+```javascript
+// Populate fields
+iframe.contentWindow.postMessage({
+  action: 'cuft_populate_fields',
+  nonce: cuftFormBuilder.nonce,
+  data: {
+    fields: { name: 'Test User', email: 'test@example.com', ... },
+    options: { trigger_events: true, clear_first: true }
+  }
+}, window.location.origin);
+
+// Trigger submission
+iframe.contentWindow.postMessage({
+  action: 'cuft_trigger_submit',
+  nonce: cuftFormBuilder.nonce
+}, window.location.origin);
+```
+
+#### Iframe → Dashboard Messages
+```javascript
+// Form loaded
+window.parent.postMessage({
+  action: 'cuft_form_loaded',
+  data: { framework: 'elementor', form_id: 'form-123', ready: true }
+}, window.location.origin);
+
+// Form submitted
+window.parent.postMessage({
+  action: 'cuft_form_submitted',
+  data: {
+    form_data: { ... },
+    tracking_event: { event: 'form_submit', cuft_tracked: true, ... }
+  }
+}, window.location.origin);
+```
+
+### Security Features
+- **Nonce Validation**: All AJAX requests require valid nonces
+- **Origin Validation**: PostMessage communication validates origin
+- **Capability Checks**: Only admins can create/manage test forms
+- **Test Mode Isolation**: Test forms don't trigger real emails/webhooks
+
+### Troubleshooting
+
+#### Form Won't Create
+- Verify framework plugin is active
+- Check browser console for JavaScript errors
+- Ensure admin permissions (`manage_options` capability)
+- Check PHP error logs for server-side issues
+
+#### Fields Won't Populate
+- Confirm iframe loaded successfully
+- Check postMessage protocol in browser console
+- Verify test mode script is enqueued (`?test_mode=1` in URL)
+- Try manual population via browser console
+
+#### Events Not Captured
+- Ensure dataLayer interceptor is active
+- Check that form framework tracking script loaded
+- Verify `cuft_tracked: true` in events
+- Review validation results for missing fields
+
+### Debug Commands
+
+```javascript
+// Enable debug mode
+window.CUFTFormBuilder.debugMode = true;
+window.CUFTTestMode.debugMode = true;
+
+// Check form builder state
+console.log(window.CUFTFormBuilder.currentForm);
+console.log(window.CUFTFormBuilder.capturedEvents);
+
+// Manually send message to iframe
+const iframe = document.getElementById('cuft-test-iframe');
+window.cuftBridge.sendToIframe(iframe, 'cuft_populate_fields', {
+  fields: { email: 'test@example.com' }
+});
+
+// View all framework adapters
+console.log(CUFT_Adapter_Factory::get_frameworks_info());
+```
+
+### Design Artifacts
+- [PostMessage Protocol](specs/003-testing-dashboard-form/contracts/postmessage-protocol.md)
+- [Quick Start Guide](specs/003-testing-dashboard-form/quickstart.md)
+- [Implementation Tasks](specs/003-testing-dashboard-form/tasks.md)
+
+---
+
 ## Completed Migration: Click Tracking Events (v3.12.0) ✅
 
 ### Migration Overview
@@ -485,6 +633,45 @@ gh release upload v3.10.1 choice-uft-v3.10.1.zip --clobber
    - **ZIP FILENAME**: `choice-uft-v3.xx.xx.zip` (includes version for GitHub releases and downloads)
    - **FOLDER INSIDE**: `choice-uft/` (NO version number - required for WordPress auto-updater)
    - This ensures WordPress extracts to `/wp-content/plugins/choice-uft/` correctly, not `choice-uft-v3.xx.xx/`
+
+## Admin Notifications
+
+The plugin displays WordPress admin notices to help administrators configure and monitor the plugin:
+
+### Notice Types
+
+1. **GTM ID Missing (Persistent Warning)**
+   - **Type**: Warning (yellow/orange)
+   - **Dismissible**: No - persists until GTM ID is configured
+   - **Message**: "GTM container ID is missing or invalid. Please configure your GTM ID to enable conversion tracking."
+   - **Action**: Displays until a valid GTM ID (format: GTM-XXXXXXX) is added in Settings
+
+2. **Plugin Active (Success - Dismissible)**
+   - **Type**: Success (green)
+   - **Dismissible**: Yes - can be dismissed by clicking the X
+   - **Message**: Shows framework count and configured GTM ID
+   - **Behavior**: Once dismissed, won't show again for that user (stored in user meta)
+
+### Resetting Dismissed Notices
+
+If you need to see the success notice again after dismissing it:
+```php
+// Reset for current user
+delete_user_meta(get_current_user_id(), 'cuft_notice_dismissed');
+
+// Reset for specific user
+delete_user_meta($user_id, 'cuft_notice_dismissed');
+
+// Reset for all users (use with caution)
+delete_metadata('user', null, 'cuft_notice_dismissed', '', true);
+```
+
+### Notice Behavior
+
+- **Appears on**: All admin pages except the plugin's own settings page
+- **Permissions**: Only shown to users with `manage_options` capability (administrators)
+- **Priority**: GTM missing warning takes precedence over success notice
+- **AJAX Handler**: `cuft_dismiss_notice` handles dismissal via user meta
 
 ## Troubleshooting
 
