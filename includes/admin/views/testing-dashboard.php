@@ -86,63 +86,86 @@ if (!defined('ABSPATH')) {
     <!-- Test Form Builder Section -->
     <div class="card">
         <h2><?php _e('Test Form Builder', 'choice-uft'); ?></h2>
-        <p><?php _e('Create a test form using your preferred framework with pre-populated test data.', 'choice-uft'); ?></p>
+        <p><?php _e('Generate real test forms within your active form frameworks, populate them with test data, and validate tracking.', 'choice-uft'); ?></p>
 
+        <!-- Notices Container -->
+        <div id="cuft-notices"></div>
+
+        <!-- Loading Indicator -->
+        <div id="cuft-loader" class="cuft-loader" style="display:none;">
+            <span class="spinner is-active"></span>
+            <span id="cuft-loader-text">Loading...</span>
+        </div>
+
+        <!-- Form Builder Controls -->
         <div class="form-builder-controls">
-            <label for="cuft-form-framework">
-                <?php _e('Select Form Framework:', 'choice-uft'); ?>
-            </label>
-            <select id="cuft-form-framework">
-                <option value=""><?php _e('-- Select Framework --', 'choice-uft'); ?></option>
-                <?php
-                // Dynamically detect which form frameworks are active
-                $available_frameworks = array();
-
-                // Check Elementor Pro
-                if (defined('ELEMENTOR_PRO_VERSION')) {
-                    $available_frameworks['elementor'] = __('Elementor Pro', 'choice-uft');
-                }
-
-                // Check Contact Form 7
-                if (class_exists('WPCF7')) {
-                    $available_frameworks['cf7'] = __('Contact Form 7', 'choice-uft');
-                }
-
-                // Check Ninja Forms
-                if (function_exists('Ninja_Forms')) {
-                    $available_frameworks['ninja'] = __('Ninja Forms', 'choice-uft');
-                }
-
-                // Check Gravity Forms
-                if (class_exists('GFAPI')) {
-                    $available_frameworks['gravity'] = __('Gravity Forms', 'choice-uft');
-                }
-
-                // Check Avada/Fusion Builder
-                if (class_exists('FusionBuilder')) {
-                    $available_frameworks['avada'] = __('Avada Forms', 'choice-uft');
-                }
-
-                // Display available options
-                if (!empty($available_frameworks)) {
-                    foreach ($available_frameworks as $value => $label) {
-                        printf('<option value="%s">%s</option>', esc_attr($value), esc_html($label));
-                    }
-                } else {
-                    ?>
-                    <option value="" disabled><?php _e('No form frameworks detected', 'choice-uft'); ?></option>
+            <div class="cuft-control-group">
+                <label for="cuft-framework-select">
+                    <?php _e('Select Form Framework:', 'choice-uft'); ?>
+                </label>
+                <select id="cuft-framework-select">
+                    <option value=""><?php _e('-- Select Framework --', 'choice-uft'); ?></option>
                     <?php
-                }
-                ?>
-            </select>
+                    // Dynamically detect which form frameworks are active
+                    $available_frameworks = array();
 
-            <button type="button" class="button button-primary" id="cuft-build-test-form">
-                <?php _e('Build Test Form', 'choice-uft'); ?>
-            </button>
+                    // Check Elementor Pro
+                    if (defined('ELEMENTOR_PRO_VERSION')) {
+                        $available_frameworks['elementor'] = __('Elementor Pro', 'choice-uft');
+                    }
 
-            <button type="button" class="button" id="cuft-change-form-data" style="display:none;">
-                <?php _e('Change Preloaded Data', 'choice-uft'); ?>
-            </button>
+                    // Check Contact Form 7
+                    if (class_exists('WPCF7')) {
+                        $available_frameworks['cf7'] = __('Contact Form 7', 'choice-uft');
+                    }
+
+                    // Check Ninja Forms
+                    if (function_exists('Ninja_Forms')) {
+                        $available_frameworks['ninja'] = __('Ninja Forms', 'choice-uft');
+                    }
+
+                    // Check Gravity Forms
+                    if (class_exists('GFAPI')) {
+                        $available_frameworks['gravity'] = __('Gravity Forms', 'choice-uft');
+                    }
+
+                    // Check Avada/Fusion Builder
+                    if (class_exists('FusionBuilder')) {
+                        $available_frameworks['avada'] = __('Avada Forms', 'choice-uft');
+                    }
+
+                    // Display available options
+                    if (!empty($available_frameworks)) {
+                        foreach ($available_frameworks as $value => $label) {
+                            printf('<option value="%s">%s</option>', esc_attr($value), esc_html($label));
+                        }
+                    } else {
+                        ?>
+                        <option value="" disabled><?php _e('No form frameworks detected', 'choice-uft'); ?></option>
+                        <?php
+                    }
+                    ?>
+                </select>
+            </div>
+
+            <div class="cuft-control-group">
+                <label for="cuft-template-select">
+                    <?php _e('Select Template:', 'choice-uft'); ?>
+                </label>
+                <select id="cuft-template-select">
+                    <option value="basic_contact_form"><?php _e('Basic Contact Form', 'choice-uft'); ?></option>
+                </select>
+            </div>
+
+            <div class="cuft-button-group">
+                <button type="button" class="button button-primary" id="cuft-create-form-btn">
+                    <?php _e('Create Test Form', 'choice-uft'); ?>
+                </button>
+
+                <button type="button" class="button button-secondary" id="cuft-delete-form-btn">
+                    <?php _e('Delete Test Form', 'choice-uft'); ?>
+                </button>
+            </div>
         </div>
 
         <?php if (empty($available_frameworks)) : ?>
@@ -173,7 +196,31 @@ if (!defined('ABSPATH')) {
             </p>
         <?php endif; ?>
 
-        <div id="cuft-test-form-container" class="test-form-container"></div>
+        <!-- Form Info Display -->
+        <div id="cuft-form-info" class="cuft-form-info"></div>
+
+        <!-- Iframe Container -->
+        <div id="cuft-iframe-container" class="cuft-iframe-container" style="display:none;">
+            <div class="cuft-iframe-controls">
+                <button type="button" class="button" id="cuft-populate-fields-btn">
+                    <?php _e('Populate Test Data', 'choice-uft'); ?>
+                </button>
+                <button type="button" class="button" id="cuft-trigger-submit-btn">
+                    <?php _e('Submit Form', 'choice-uft'); ?>
+                </button>
+            </div>
+
+            <iframe id="cuft-test-iframe" class="cuft-test-iframe"></iframe>
+        </div>
+
+        <!-- Event Monitor -->
+        <div class="cuft-event-monitor-container">
+            <h3><?php _e('Captured Events', 'choice-uft'); ?></h3>
+            <div id="cuft-event-monitor" class="cuft-event-monitor"></div>
+
+            <h3><?php _e('Validation Results', 'choice-uft'); ?></h3>
+            <div id="cuft-validation-results" class="cuft-validation-results"></div>
+        </div>
     </div>
 
     <!-- Event Viewer Section -->

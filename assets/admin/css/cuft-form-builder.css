@@ -1,0 +1,380 @@
+/**
+ * CUFT Form Builder Styles
+ *
+ * @package Choice_UTM_Form_Tracker
+ * @since 3.14.0
+ */
+
+/* Form Builder Controls */
+.form-builder-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.cuft-control-group {
+    margin-bottom: 15px;
+}
+
+.cuft-control-group:last-child {
+    margin-bottom: 0;
+}
+
+.cuft-control-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.cuft-control-group select,
+.cuft-control-group input[type="text"] {
+    width: 100%;
+    max-width: 400px;
+}
+
+.cuft-button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+/* Notices Container */
+#cuft-notices {
+    margin-bottom: 15px;
+}
+
+#cuft-notices .notice {
+    margin: 5px 0;
+    animation: slideIn 0.3s ease-out;
+    transition: opacity 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading Indicator */
+.cuft-loader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f0f0f1;
+    border-left: 4px solid #2271b1;
+    margin-bottom: 15px;
+}
+
+.cuft-loader .spinner {
+    margin: 0;
+}
+
+#cuft-loader-text {
+    font-weight: 500;
+}
+
+/* Form Info Display */
+.cuft-form-info {
+    margin-top: 15px;
+    padding: 12px;
+    background: #e7f5fe;
+    border-left: 4px solid #00a0d2;
+    border-radius: 3px;
+}
+
+.cuft-form-info-item {
+    margin: 5px 0;
+    line-height: 1.6;
+}
+
+.cuft-form-info-item strong {
+    display: inline-block;
+    min-width: 100px;
+    color: #135e96;
+}
+
+.cuft-form-info-item a {
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.cuft-form-info-item a:hover {
+    text-decoration: underline;
+}
+
+/* Iframe Container */
+.cuft-iframe-container {
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.cuft-iframe-controls {
+    padding: 12px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.cuft-test-iframe {
+    width: 100%;
+    height: 600px;
+    border: none;
+    display: block;
+    background: #fff;
+}
+
+/* Responsive Iframe */
+@media screen and (max-width: 782px) {
+    .cuft-test-iframe {
+        height: 500px;
+    }
+}
+
+/* Event Monitor */
+.cuft-event-monitor-container {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.cuft-event-monitor-container h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #23282d;
+    font-size: 16px;
+}
+
+.cuft-event-monitor {
+    max-height: 400px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+}
+
+.cuft-event-monitor:empty::after {
+    content: 'No events captured yet';
+    display: block;
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.cuft-event-item {
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #f9f9f9;
+    border-left: 3px solid #2271b1;
+    border-radius: 3px;
+}
+
+.cuft-event-item:last-child {
+    margin-bottom: 0;
+}
+
+.cuft-event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.cuft-event-header strong {
+    color: #2271b1;
+    font-size: 14px;
+}
+
+.cuft-event-time {
+    font-size: 12px;
+    color: #666;
+}
+
+.cuft-event-data {
+    margin: 0;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 12px;
+    overflow-x: auto;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Validation Results */
+.cuft-validation-results {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.cuft-validation-results:empty::after {
+    content: 'Submit a form to see validation results';
+    display: block;
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+    width: 100%;
+}
+
+.cuft-validation-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.cuft-validation-item.success {
+    border-left: 3px solid #46b450;
+    background: #ecf7ed;
+}
+
+.cuft-validation-item.error {
+    border-left: 3px solid #dc3232;
+    background: #f9e9ea;
+}
+
+.cuft-validation-item .dashicons {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+}
+
+.cuft-validation-item.success .dashicons-yes {
+    color: #46b450;
+}
+
+.cuft-validation-item.error .dashicons-no {
+    color: #dc3232;
+}
+
+/* Mobile Responsive */
+@media screen and (max-width: 782px) {
+    .form-builder-controls {
+        padding: 12px;
+    }
+
+    .cuft-button-group {
+        flex-direction: column;
+    }
+
+    .cuft-button-group .button {
+        width: 100%;
+    }
+
+    .cuft-control-group select,
+    .cuft-control-group input[type="text"] {
+        max-width: 100%;
+    }
+
+    .cuft-event-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .cuft-validation-results {
+        flex-direction: column;
+    }
+
+    .cuft-validation-item {
+        width: 100%;
+    }
+}
+
+/* Loading States */
+.cuft-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.cuft-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    cursor: wait;
+}
+
+/* Success/Error States */
+.cuft-success {
+    color: #46b450;
+}
+
+.cuft-error {
+    color: #dc3232;
+}
+
+/* Scrollbar Styling */
+.cuft-event-monitor::-webkit-scrollbar,
+.cuft-event-data::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.cuft-event-monitor::-webkit-scrollbar-track,
+.cuft-event-data::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.cuft-event-monitor::-webkit-scrollbar-thumb,
+.cuft-event-data::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.cuft-event-monitor::-webkit-scrollbar-thumb:hover,
+.cuft-event-data::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Accessibility */
+.cuft-control-group label {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Print Styles */
+@media print {
+    .cuft-iframe-container,
+    .form-builder-controls {
+        display: none;
+    }
+
+    .cuft-event-monitor {
+        max-height: none;
+        overflow: visible;
+    }
+}

@@ -35,6 +35,7 @@ class CUFT_Testing_Dashboard {
         add_action('admin_menu', array($this, 'add_menu_page'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('admin_head', array($this, 'inject_gtm_script'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_test_mode_assets'));
     }
 
     /**
@@ -152,6 +153,14 @@ class CUFT_Testing_Dashboard {
             CUFT_VERSION
         );
 
+        // Form Builder styles
+        wp_enqueue_style(
+            'cuft-form-builder',
+            CUFT_URL . '/assets/admin/css/cuft-form-builder.css',
+            array(),
+            CUFT_VERSION
+        );
+
         // Enqueue JavaScript modules (dependencies first)
         wp_enqueue_script(
             'cuft-test-data-manager',
@@ -185,11 +194,29 @@ class CUFT_Testing_Dashboard {
             true
         );
 
+        // Iframe Bridge (for postMessage communication)
+        wp_enqueue_script(
+            'cuft-iframe-bridge',
+            CUFT_URL . '/assets/admin/js/cuft-iframe-bridge.js',
+            array(),
+            CUFT_VERSION,
+            true
+        );
+
+        // Form Builder (depends on bridge)
+        wp_enqueue_script(
+            'cuft-form-builder',
+            CUFT_URL . '/assets/admin/js/cuft-form-builder.js',
+            array('cuft-iframe-bridge'),
+            CUFT_VERSION,
+            true
+        );
+
         // Main dashboard controller (depends on modules above)
         wp_enqueue_script(
             'cuft-testing-dashboard',
             CUFT_URL . '/assets/admin/cuft-testing-dashboard.js',
-            array('cuft-test-data-manager', 'cuft-datalayer-monitor', 'cuft-event-validator', 'cuft-ajax-client'),
+            array('cuft-test-data-manager', 'cuft-datalayer-monitor', 'cuft-event-validator', 'cuft-ajax-client', 'cuft-form-builder'),
             CUFT_VERSION . '.1', // Force cache refresh
             true
         );
@@ -200,6 +227,46 @@ class CUFT_Testing_Dashboard {
             'nonce' => wp_create_nonce('cuft-testing-dashboard'),
             'debug' => defined('WP_DEBUG') && WP_DEBUG,
             'version' => CUFT_VERSION
+        ));
+
+        // Localize form builder script
+        wp_localize_script('cuft-form-builder', 'cuftFormBuilder', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('cuft_form_builder_nonce'),
+            'debug' => defined('WP_DEBUG') && WP_DEBUG,
+        ));
+    }
+
+    /**
+     * Enqueue test mode assets for iframe pages
+     *
+     * @return void
+     */
+    public function enqueue_test_mode_assets() {
+        // Only enqueue if test_mode parameter is set
+        if (!isset($_GET['test_mode']) || $_GET['test_mode'] !== '1') {
+            return;
+        }
+
+        // Only for admin users
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        // Enqueue test mode script
+        wp_enqueue_script(
+            'cuft-test-mode',
+            CUFT_URL . '/assets/admin/js/cuft-test-mode.js',
+            array(),
+            CUFT_VERSION,
+            true
+        );
+
+        // Localize with configuration
+        wp_localize_script('cuft-test-mode', 'cuftTestMode', array(
+            'enabled' => true,
+            'nonce' => wp_create_nonce('cuft_test_mode_nonce'),
+            'debug' => defined('WP_DEBUG') && WP_DEBUG,
         ));
     }
 }
