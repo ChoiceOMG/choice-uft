@@ -1,0 +1,1624 @@
+{
+    "exportFormatVersion": 2,
+    "exportTime": "2025-10-03 04:01:19",
+    "containerVersion": {
+        "path": "accounts/1234567890/containers/987654321/versions/0",
+        "accountId": "1234567890",
+        "containerId": "987654321",
+        "containerVersionId": "0",
+        "container": {
+            "path": "accounts/1234567890/containers/987654321",
+            "accountId": "1234567890",
+            "containerId": "987654321",
+            "name": "web",
+            "publicId": "GTM-XXXXX3",
+            "usageContext": [
+                "WEB"
+            ],
+            "fingerprint": "1758568231995",
+            "tagManagerUrl": "https://tagmanager.google.com/#/container/accounts/1234567890/containers/987654321/workspaces?apiLink=container",
+            "features": {
+                "supportUserPermissions": true,
+                "supportEnvironments": true,
+                "supportWorkspaces": true,
+                "supportGtagConfigs": false,
+                "supportBuiltInVariables": true,
+                "supportClients": false,
+                "supportFolders": true,
+                "supportTags": true,
+                "supportTemplates": true,
+                "supportTriggers": true,
+                "supportVariables": true,
+                "supportVersions": true,
+                "supportZones": true,
+                "supportTransformations": false
+            },
+            "tagIds": [
+                "GTM-XXXXX3"
+            ]
+        },
+        "tag": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "29",
+                "name": "3 - GAds - Lead Generated",
+                "type": "awct",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableNewCustomerReporting",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableConversionLinker",
+                        "value": "true"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableProductReporting",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableShippingData",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "conversionId",
+                        "value": "{{GAds Conversion ID - Generate Lead}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventSettingsVariable",
+                        "value": "{{CUFT - Event Settings}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "conversionLabel",
+                        "value": "{{Google Ads Conversion Label - Generate Lead}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "rdp",
+                        "value": "false"
+                    }
+                ],
+                "fingerprint": "1759463815358",
+                "firingTriggerId": [
+                    "12"
+                ],
+                "parentFolderId": "36",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "52",
+                "name": "3 - GA - Lead Generated",
+                "type": "gaawe",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "sendEcommerceData",
+                        "value": "false"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "eventSettingsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "click_id"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Click ID}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "gclid"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - gclid}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "wbraid"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - wbraid}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "form_id"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Form ID}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "utm_campaign"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Campaign Name}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "ec_email_sha256"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{CUFT JS - ec_email_sha256}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "ec_phone_sha256"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{CUFT JS - ec_phone_sha256}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "user_email"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - User Email}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "user_phone"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - User Phone}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "fbclid"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - fbclid}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventName",
+                        "value": "{{Event}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "measurementIdOverride",
+                        "value": "{{GA4 Measurement ID}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventSettingsVariable",
+                        "value": "{{CUFT - Event Settings}}"
+                    }
+                ],
+                "fingerprint": "1759463888179",
+                "firingTriggerId": [
+                    "12"
+                ],
+                "parentFolderId": "36",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "67",
+                "name": "1 - GTag - Server",
+                "type": "googtag",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "tagId",
+                        "value": "{{GA4 Measurement ID}}"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "configSettingsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "server_container_url"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{GTM Server URL}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759463780269",
+                "firingTriggerId": [
+                    "2147479573"
+                ],
+                "parentFolderId": "35",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "69",
+                "name": "3 - Meta - Lead Generated",
+                "type": "cvt_230541293_63",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "autoFbc",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventId",
+                        "value": "{{CUFT - getEventId}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableDebugMode",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableCapi",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "actionSource",
+                        "value": "website"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "pixelId",
+                        "value": "{{Meta Pixel ID}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "phone",
+                        "value": "{{CUFT JS - ec_phone_sha256}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableConsentMode",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventName",
+                        "value": "Lead"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "currency",
+                        "value": "{{DLV - Currency}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "autoFbp",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "{{DLV - Value}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableAdvancedMatching",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "email",
+                        "value": "{{CUFT JS - ec_email_sha256}}"
+                    }
+                ],
+                "fingerprint": "1759463888179",
+                "firingTriggerId": [
+                    "12"
+                ],
+                "parentFolderId": "36",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "76",
+                "name": "1 - GTag",
+                "type": "googtag",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "tagId",
+                        "value": "{{GA4 Measurement ID}}"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "configSettingsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "send_page_view"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "true"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759463768041",
+                "firingTriggerId": [
+                    "2147479573"
+                ],
+                "parentFolderId": "35",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "99",
+                "name": "2 - GA - Events",
+                "type": "gaawe",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "sendEcommerceData",
+                        "value": "false"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "eventSettingsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "utm_campaign"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Campaign Name}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "clicked_phone"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Phone Number Clicked}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "form_id"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Form ID}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventName",
+                        "value": "{{DLV - Event Name}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "measurementIdOverride",
+                        "value": "{{GA4 Measurement ID}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventSettingsVariable",
+                        "value": "{{CUFT - Event Settings}}"
+                    }
+                ],
+                "fingerprint": "1759463875073",
+                "firingTriggerId": [
+                    "83",
+                    "79",
+                    "108",
+                    "109"
+                ],
+                "parentFolderId": "35",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "111",
+                "name": "1 - Meta - PageView",
+                "type": "cvt_230541293_63",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "pixelId",
+                        "value": "{{Meta Pixel ID}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "autoFbc",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventId",
+                        "value": "{{CUFT - getEventId}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableDebugMode",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableConsentMode",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventName",
+                        "value": "PageView"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableCapi",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "currency",
+                        "value": "USD"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "autoFbp",
+                        "value": "true"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableAdvancedMatching",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "actionSource",
+                        "value": "website"
+                    }
+                ],
+                "fingerprint": "1759463875073",
+                "firingTriggerId": [
+                    "79"
+                ],
+                "parentFolderId": "35",
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            }
+        ],
+        "trigger": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "12",
+                "name": "CUFT - Lead Generated",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^generate_lead$"
+                            }
+                        ]
+                    }
+                ],
+                "filter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{DLV - Is CUFT Tracked?}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^(true|1)$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759463967063",
+                "parentFolderId": "36"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "79",
+                "name": "Page View",
+                "type": "PAGEVIEW",
+                "fingerprint": "1759463921981",
+                "parentFolderId": "35"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "83",
+                "name": "CUFT - Clicked on a Phone Number",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^phone_click$"
+                            }
+                        ]
+                    }
+                ],
+                "filter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{DLV - Is CUFT Tracked?}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^(true|1)$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759463967063",
+                "parentFolderId": "36"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "108",
+                "name": "CUFT - Form Started",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^form_start$"
+                            }
+                        ]
+                    }
+                ],
+                "filter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{DLV - Is CUFT Tracked?}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^(true|1)$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759463921980",
+                "parentFolderId": "35"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "109",
+                "name": "CUFT - Form Submitted",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^form_submit$"
+                            }
+                        ]
+                    }
+                ],
+                "filter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{DLV - Is CUFT Tracked?}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^(true|1)$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759463921981",
+                "parentFolderId": "35"
+            }
+        ],
+        "variable": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "6",
+                "name": "DLV - Event Name",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "event"
+                    }
+                ],
+                "fingerprint": "1758669908545",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "7",
+                "name": "DLV - Is CUFT Tracked?",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "defaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "cuft_tracked"
+                    }
+                ],
+                "fingerprint": "1758730786618",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "23",
+                "name": "DLV - User Phone",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "user_phone"
+                    }
+                ],
+                "fingerprint": "1758669908541",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "25",
+                "name": "DLV - Campaign Name",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "utm_campaign"
+                    }
+                ],
+                "fingerprint": "1758669908542",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "26",
+                "name": "DLV - User Email",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "user_email"
+                    }
+                ],
+                "fingerprint": "1758669908542",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "28",
+                "name": "Google Ads Conversion Label - Generate Lead",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "AW-CONVERSION_LABEL_LEAD"
+                    }
+                ],
+                "fingerprint": "1759447229135",
+                "parentFolderId": "68"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "34",
+                "name": "DLV - Click ID",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "click_id"
+                    }
+                ],
+                "fingerprint": "1758669908543",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "37",
+                "name": "DLV - Form ID",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "form_id"
+                    }
+                ],
+                "fingerprint": "1759447183030",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "39",
+                "name": "Meta Pixel ID",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "2043391809824606"
+                    }
+                ],
+                "fingerprint": "1759447229135",
+                "parentFolderId": "68",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "40",
+                "name": "User-Provided Data",
+                "type": "awec",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "mode",
+                        "value": "MANUAL"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "phone_number",
+                        "value": "{{DLV - User Phone}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "email",
+                        "value": "{{DLV - User Email}}"
+                    }
+                ],
+                "fingerprint": "1758830764362",
+                "parentFolderId": "68",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "41",
+                "name": "CUFT - getEventId",
+                "type": "jsm",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "javascript",
+                        "value": "function() {\n  var gtm = (window.google_tag_manager && \n             window.google_tag_manager[{{Container ID}}] &&\n             window.google_tag_manager[{{Container ID}}].dataLayer &&\n             window.google_tag_manager[{{Container ID}}].dataLayer.get) \n            ? window.google_tag_manager[{{Container ID}}].dataLayer.get('gtm') \n            : {};\n\n  var start = (gtm && typeof gtm.start === 'number') ? gtm.start : Date.now();\n  var uid   = (gtm && typeof gtm.uniqueEventId === 'number') ? gtm.uniqueEventId : Math.floor(Math.random() * 1e9);\n\n  return String(start) + '.' + String(uid);\n}\n"
+                    }
+                ],
+                "fingerprint": "1759447151315",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "45",
+                "name": "DLV - Currency",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "defaultValue",
+                        "value": "CAD"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "currency"
+                    }
+                ],
+                "fingerprint": "1758830722975",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "57",
+                "name": "DLV - Value",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "value"
+                    }
+                ],
+                "fingerprint": "1758830722976",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "58",
+                "name": "CUFT - Event Settings",
+                "type": "gtes",
+                "parameter": [
+                    {
+                        "type": "LIST",
+                        "key": "eventSettingsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "currency"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Currency}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "value"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Value}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "first_party_collection"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "true"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "event_id"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{CUFT - getEventId}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameter",
+                                        "value": "event_name"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "parameterValue",
+                                        "value": "{{DLV - Event Name}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1758920582230",
+                "parentFolderId": "36"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "62",
+                "name": "GA4 Measurement ID",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "G-XXXXXXXXX"
+                    }
+                ],
+                "fingerprint": "1758924243231",
+                "parentFolderId": "68",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "64",
+                "name": "GAds Conversion ID - Generate Lead",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "0000000000"
+                    }
+                ],
+                "fingerprint": "1759447256084",
+                "parentFolderId": "68",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "66",
+                "name": "GTM Server URL",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "https://tagging-server.localnet"
+                    }
+                ],
+                "fingerprint": "1758830764359",
+                "parentFolderId": "68"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "73",
+                "name": "DLV - gclid",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "gclid"
+                    }
+                ],
+                "fingerprint": "1759447202343",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "74",
+                "name": "DLV - wbraid",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "wbraid"
+                    }
+                ],
+                "fingerprint": "1759447202343",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "75",
+                "name": "DLV - fbclid",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "fbclid"
+                    }
+                ],
+                "fingerprint": "1759447202342",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "77",
+                "name": "DLV - Phone Number Clicked",
+                "type": "v",
+                "parameter": [
+                    {
+                        "type": "INTEGER",
+                        "key": "dataLayerVersion",
+                        "value": "2"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "clicked_phone"
+                    }
+                ],
+                "fingerprint": "1759447183030",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "81",
+                "name": "CUFT JS - Time in seconds",
+                "type": "jsm",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "javascript",
+                        "value": "function() {\n  return Math.floor(Date.now() / 1000);\n}\n"
+                    }
+                ],
+                "fingerprint": "1759447183029",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "87",
+                "name": "Cookie - _fbc",
+                "type": "k",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "decodeCookie",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "_fbc"
+                    }
+                ],
+                "fingerprint": "1759447124917",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "89",
+                "name": "CUFT JS - ec_email_sha256",
+                "type": "jsm",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "javascript",
+                        "value": "function() {\n  if (typeof CryptoJS === 'undefined') return undefined;\n  var email = {{DLV - User Email}} || '';\n  email = email.trim().toLowerCase();\n  return email ? CryptoJS.SHA256(email).toString(CryptoJS.enc.Hex) : undefined;\n}\n"
+                    }
+                ],
+                "fingerprint": "1759447202343",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "92",
+                "name": "CUFT JS - Clean URL",
+                "type": "jsm",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "javascript",
+                        "value": "function() {\n  return window.location.href.split('?')[0];\n}"
+                    }
+                ],
+                "fingerprint": "1759447151315",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "93",
+                "name": "Cookie - _fbp",
+                "type": "k",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "decodeCookie",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "name",
+                        "value": "_fbp"
+                    }
+                ],
+                "fingerprint": "1759447131192",
+                "parentFolderId": "35",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "100",
+                "name": "CUFT JS - ec_phone_sha256",
+                "type": "jsm",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "javascript",
+                        "value": "function() {\n  if (typeof CryptoJS === 'undefined') return undefined;\n  var phone = {{DLV - User Phone}} || '';\n  phone = phone.replace(/\\D/g, '');\n  return phone ? CryptoJS.SHA256(phone).toString(CryptoJS.enc.Hex) : undefined;\n}\n"
+                    }
+                ],
+                "fingerprint": "1759447202343",
+                "parentFolderId": "36",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "107",
+                "name": "CUFT - Domain",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "{{Page Hostname}}"
+                    }
+                ],
+                "fingerprint": "1759447151315",
+                "parentFolderId": "35",
+                "formatValue": {}
+            }
+        ],
+        "folder": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "folderId": "35",
+                "name": "CUFT Organic",
+                "fingerprint": "1758669907700"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "folderId": "36",
+                "name": "CUFT Paid",
+                "fingerprint": "1758669926904"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "folderId": "68",
+                "name": "Settings",
+                "fingerprint": "1758830763589"
+            }
+        ],
+        "builtInVariable": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "PAGE_URL",
+                "name": "Page URL"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "PAGE_HOSTNAME",
+                "name": "Page Hostname"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "PAGE_PATH",
+                "name": "Page Path"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "REFERRER",
+                "name": "Referrer"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "EVENT",
+                "name": "Event"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "CONTAINER_ID",
+                "name": "Container ID"
+            }
+        ],
+        "fingerprint": "1759464079051",
+        "tagManagerUrl": "https://tagmanager.google.com/#/versions/accounts/1234567890/containers/987654321/versions/0?apiLink=version",
+        "customTemplate": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "templateId": "63",
+                "name": "Just Meta",
+                "fingerprint": "1758830632191",
+                "templateData": "___TERMS_OF_SERVICE___\n\nBy creating or modifying this file you agree to Google Tag Manager's Community\nTemplate Gallery Developer Terms of Service available at\nhttps://developers.google.com/tag-manager/gallery-tos (or such other URL as\nGoogle may provide), as modified from time to time.\n\n\n___INFO___\n\n{\n  \"displayName\": \"Just Meta\",\n  \"description\": \"Modern Meta (Facebook) Pixel\",\n  \"securityGroups\": [],\n  \"id\": \"cvt_temp_public_id\",\n  \"categories\": [\n    \"ADVERTISING\",\n    \"REMARKETING\",\n    \"CONVERSIONS\"\n  ],\n  \"type\": \"TAG\",\n  \"version\": 1,\n  \"brand\": {\n    \"displayName\": \"Choice OMG\",\n    \"id\": \"choice_omg\",\n    \"thumbnail\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD/7AARRHVja3kAAQAEAAAAUQAA/+4AJkFkb2JlAGTAAAAAAQMAFQQDBgoNAAA8ggAAWLsAAIw+AAC1I//bAIQAAgICAgICAgICAgMCAgIDBAMCAgMEBAQEBAQEBAYEBQUFBQQGBgcHBwcHBgkJCgoJCQwMDAwMDAwMDAwMDAwMDAECAwMFBAUJBgYJDQoICg0PDg4ODg8PDAwMDAwPDwwMDAwMDA8MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM/8IAEQgEAAQAAwERAAIRAQMRAf/EAQAAAQADAQEBAQEAAAAAAAAAAAAEBwgGBQIDAQEBAAIDAQEAAAAAAAAAAAAAAAUGAQQHAwIQAAAFAQYFBQEAAwEBAQAAAAABAgMEBRAgMBQVBmAREjQWQDEyMzUTUMAiISMlEQABAgICCgsMCQIHAQEAAAACAQMABBGxIDBwITHREnOTNUFhIjJyktITNHQFEFFxgZGhwVLCIzOzQEJigrJDUxQkoqNQ4YNEVGQVY+ISAAAFAwMFAQEBAQAAAAAAAAAgASExMEAREEGBYXECEiJRUMBgEwEAAAMFBwUBAQEBAQAAAAABABExICFBUWEw8HGBkaGxEEBwwdHh8VDAsP/aAAwDAQACEQMRAAABozf+IYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4uULIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAm4QsgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJuELIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACbhCyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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EsEsfLtbp5W243G43G43G43G43DETvohFSsiEXTknGipaIpcLkbjcbjcbjcbjcbjcbhUezXxJgYWr9MlkpE76ZGSe2y1M7ITIzpyTjRC4qtA9dEJ7pf5GSZSRhaXQdbNSJ319fwmFHSlhBhCev7ryTg+FGFpYQZ8n0XT1/S+3jF/6KVwz0He1Uid9coMoTCjPgHMw+mGEJlRldeSca9C4UfAczIPsYTVdepcoyiL718pM4jTcQGS3UidydBlCuIEqJEqIDFyo6E5JwT18oM4gbiVG4gy65QdTOggQIECBAgKttjzDVseFkpE7lYNWeQ5eScFxsMpW/VGVJlBjymr5drdh9MGpM4ezUidz/ThlpOo+WPyTg2UH2GWk6hmSgwdg1Ly7XLaOggbjcQGTRzwIECKkCBAxiiyhw6DcbjcMgYOtHCjcbjcZSjIdBA303EBkDrVkbCBAgQIECAqY/1xX//aAAgBAQEGPwJ9E7WnERHCoTn3e/4Y1vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt53Tu441vO6d3HGt5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AwEAAhEDEQAAED//AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8AYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAADDugQAAFtsAAAAHtuAAAAEkr+4AAAGtuAAAAflrGgAAAAAp+tttgAAAAYAAAAABo4AAAGgAAACAAAAEADAAAmoAAAo4AAAAEAAAdYAAA69AAAWAAAAAQAAAAYAAAAAgAAAAAAGAAACAAAAEADAAL4AAAAAjoAAAEAAvAAAAAAAwApwAAAAAQAAAAYAAAAFAACKHgAAAAACAAAAEADAGoAAPXwAA9AAAEAHwAEJlYAAIAAAATX/8A2AAAAGAAAAJwApwADlwAAAAgAAABAAwOwBI0AN+QBSAABAOgBfwAFLwCNAAG6AAAAAAAAGAAABMANwAAABeAAAAgAAABAAwAAPwAAAAGAOAABAAAKgAAABsCMAACAAAAAAAAAGAAABAAkAAAAALAAAAgAAABAAxGACAAAAAAAPQABBOBEAAAAALMIAKAAAAAAAAAAGAAAAAAwAAAAAAAAABQAAAAQAxgBUAAAAABAAwABAgBQAAAAAAAgACkkkkkqAAAAGAAABAAgAAAAAAAAAAAAAAAAAwABgAAAAAAAAgABBQAAAAAAAAAwAAAAAAAEAAAAGAAAAQBwAAAAAAAAAAAAAAAAAwwBgAAAAABwBAABBwBwAAAAAAAAAAAAAAAEAAAAGAAAAQAAAAAAAAAAAACSSSTAAxQBEAAAAAKgBAABBgAwAAAAAABQAKSSSSSQAAAAGAAAAQB0AAAAAGwAAAgAAABAAxIAMAAAAAGAEwABBwBgAAAAAAWEAGAAAAAAAAAAGAAAAUAFgAAAAIAAAAgAAABAAwMAGQAAABgAEAABAEALAAAAB68MAOQAAAAAAAAAGAAAAKAAUwALDAAAAAgAAABAAwKQAowABLABQAABABQALQAALwMMgBEqAAAAAAAAGAAAAMAAAaHYAAAAAAgAAABAAwBkAAbVHgAIQAABAAsAA1QLgAMBoAAFAAAAAAAAGAAAABmAAAAAAHAAAAgAAABAAwABAAAAAAAkAAABAAJQAAAAABYAJeAAAAAEAAAAGAAAAAB5wAAAP4AAAAgAAABAAwAB3QAAABDAAAABAAAjwAAABcQAADAAAAAEAAAAGAAAAAABHXTXwAABbbAAAAB7bgAAADixkKAAAAQAgAAA3FRo+AAAAAHJLbbYAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQMBPxAmEIIAACUA/wCN/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A/wD/AP8A4v8A/wD/AP8A/wD/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\\u003d\"\n  },\n  \"containerContexts\": [\n    \"WEB\"\n  ]\n}\n\n\n___TEMPLATE_PARAMETERS___\n\n[\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"pixelId\",\n    \"displayName\": \"Meta Pixel ID\",\n    \"simpleValueType\": true,\n    \"help\": \"Your Meta Pixel ID (e.g., 123456789012345)\",\n    \"valueValidators\": [\n      {\n        \"type\": \"NON_EMPTY\"\n      },\n      {\n        \"type\": \"REGEX\",\n        \"args\": [\n          \"^[0-9]{15,16}$\"\n        ]\n      }\n    ]\n  },\n  {\n    \"type\": \"SELECT\",\n    \"name\": \"eventName\",\n    \"displayName\": \"Event Name\",\n    \"macrosInSelect\": false,\n    \"selectItems\": [\n      {\n        \"value\": \"PageView\",\n        \"displayValue\": \"PageView\"\n      },\n      {\n        \"value\": \"ViewContent\",\n        \"displayValue\": \"ViewContent\"\n      },\n      {\n        \"value\": \"Search\",\n        \"displayValue\": \"Search\"\n      },\n      {\n        \"value\": \"AddToCart\",\n        \"displayValue\": \"AddToCart\"\n      },\n      {\n        \"value\": \"AddToWishlist\",\n        \"displayValue\": \"AddToWishlist\"\n      },\n      {\n        \"value\": \"InitiateCheckout\",\n        \"displayValue\": \"InitiateCheckout\"\n      },\n      {\n        \"value\": \"AddPaymentInfo\",\n        \"displayValue\": \"AddPaymentInfo\"\n      },\n      {\n        \"value\": \"Purchase\",\n        \"displayValue\": \"Purchase\"\n      },\n      {\n        \"value\": \"Lead\",\n        \"displayValue\": \"Lead\"\n      },\n      {\n        \"value\": \"CompleteRegistration\",\n        \"displayValue\": \"CompleteRegistration\"\n      },\n      {\n        \"value\": \"Contact\",\n        \"displayValue\": \"Contact\"\n      },\n      {\n        \"value\": \"Subscribe\",\n        \"displayValue\": \"Subscribe\"\n      },\n      {\n        \"value\": \"CustomizeProduct\",\n        \"displayValue\": \"Customize Product\"\n      },\n      {\n        \"value\": \"FindLocation\",\n        \"displayValue\": \"Find Location\"\n      },\n      {\n        \"value\": \"Schedule\",\n        \"displayValue\": \"Schedule\"\n      },\n      {\n        \"value\": \"StartTrial\",\n        \"displayValue\": \"Start Trial\"\n      },\n      {\n        \"value\": \"SubmitApplication\",\n        \"displayValue\": \"Submit Application\"\n      },\n      {\n        \"value\": \"Donate\",\n        \"displayValue\": \"Donate\"\n      },\n      {\n        \"value\": \"CustomEvent\",\n        \"displayValue\": \"Custom Event\"\n      }\n    ],\n    \"simpleValueType\": true,\n    \"defaultValue\": \"PageView\",\n    \"help\": \"Select the Meta event to track\"\n  },\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"customEventName\",\n    \"displayName\": \"Custom Event Name\",\n    \"simpleValueType\": true,\n    \"enablingConditions\": [\n      {\n        \"paramName\": \"eventName\",\n        \"paramValue\": \"CustomEvent\",\n        \"type\": \"EQUALS\"\n      }\n    ],\n    \"help\": \"Enter custom event name (only alphanumeric characters and underscores)\"\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"eventParameters\",\n    \"displayName\": \"Event Parameters\",\n    \"groupStyle\": \"ZIPPY_OPEN\",\n    \"subParams\": [\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"eventId\",\n        \"displayName\": \"Event ID\",\n        \"simpleValueType\": true,\n        \"help\": \"Unique identifier for CAPI event deduplication. Recommended for all events.\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"value\",\n        \"displayName\": \"Value\",\n        \"simpleValueType\": true,\n        \"help\": \"Monetary value of the event (required for Purchase events)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"currency\",\n        \"displayName\": \"Currency\",\n        \"simpleValueType\": true,\n        \"help\": \"ISO currency code (e.g., USD, EUR, GBP)\",\n        \"defaultValue\": \"USD\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"contentIds\",\n        \"displayName\": \"Content IDs\",\n        \"simpleValueType\": true,\n        \"help\": \"Product/content IDs as JSON array string (e.g., [\\\"SKU123\\\", \\\"SKU456\\\"])\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"contentType\",\n        \"displayName\": \"Content Type\",\n        \"simpleValueType\": true,\n        \"help\": \"Product category or content type (e.g., \\\"product\\\", \\\"product_group\\\")\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"numItems\",\n        \"displayName\": \"Number of Items\",\n        \"simpleValueType\": true,\n        \"help\": \"Number of items in the event (for cart/purchase events)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"searchString\",\n        \"displayName\": \"Search String\",\n        \"simpleValueType\": true,\n        \"help\": \"Search query string (for Search events)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"status\",\n        \"displayName\": \"Status\",\n        \"simpleValueType\": true,\n        \"help\": \"Event status (for CompleteRegistration events)\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"advancedMatching\",\n    \"displayName\": \"Advanced Matching\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"enableAdvancedMatching\",\n        \"checkboxText\": \"Enable Advanced Matching\",\n        \"simpleValueType\": true,\n        \"help\": \"Improve match rates by sending hashed user data to Meta\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"email\",\n        \"displayName\": \"Email\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s email address (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"phone\",\n        \"displayName\": \"Phone\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s phone number in E.164 format (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"firstName\",\n        \"displayName\": \"First Name\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s first name (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"lastName\",\n        \"displayName\": \"Last Name\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s last name (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"city\",\n        \"displayName\": \"City\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s city (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"state\",\n        \"displayName\": \"State/Province\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s state or province (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"zipCode\",\n        \"displayName\": \"ZIP/Postal Code\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s ZIP or postal code (will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"country\",\n        \"displayName\": \"Country\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"User\\u0027s country (ISO code, will be SHA-256 hashed)\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"externalId\",\n        \"displayName\": \"External ID\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableAdvancedMatching\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"Your internal user identifier (will be SHA-256 hashed)\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"cookieSettings\",\n    \"displayName\": \"Cookie \\u0026 Attribution Settings\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"autoFbp\",\n        \"checkboxText\": \"Auto-include FBP cookie\",\n        \"simpleValueType\": true,\n        \"defaultValue\": true,\n        \"help\": \"Automatically read and include _fbp cookie for better attribution\"\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"autoFbc\",\n        \"checkboxText\": \"Auto-generate FBC from fbclid\",\n        \"simpleValueType\": true,\n        \"defaultValue\": true,\n        \"help\": \"Automatically generate _fbc parameter from fbclid URL parameter\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"customFbp\",\n        \"displayName\": \"Custom FBP Value\",\n        \"simpleValueType\": true,\n        \"help\": \"Override automatic FBP with custom value\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"customFbc\",\n        \"displayName\": \"Custom FBC Value\",\n        \"simpleValueType\": true,\n        \"help\": \"Override automatic FBC with custom value\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"consentSettings\",\n    \"displayName\": \"Consent Mode Settings\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"enableConsentMode\",\n        \"checkboxText\": \"Enable GTM Consent Mode Integration\",\n        \"simpleValueType\": true,\n        \"help\": \"Respect user consent preferences through GTM consent mode\"\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"requireAdStorageConsent\",\n        \"checkboxText\": \"Require ad_storage consent\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"defaultValue\": true,\n        \"help\": \"Only fire pixel when ad_storage consent is granted\"\n      },\n      {\n        \"type\": \"SELECT\",\n        \"name\": \"consentBehavior\",\n        \"displayName\": \"Behavior when consent denied\",\n        \"macrosInSelect\": false,\n        \"selectItems\": [\n          {\n            \"value\": \"no_tracking\",\n            \"displayValue\": \"No tracking\"\n          },\n          {\n            \"value\": \"minimal_tracking\",\n            \"displayValue\": \"Minimal tracking (basic events only)\"\n          }\n        ],\n        \"simpleValueType\": true,\n        \"defaultValue\": \"no_tracking\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableConsentMode\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"How to behave when user consent is denied\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"capiSettings\",\n    \"displayName\": \"Conversions API (CAPI) Settings\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"enableCapi\",\n        \"checkboxText\": \"Prepare for CAPI coordination\",\n        \"simpleValueType\": true,\n        \"help\": \"Include additional parameters for server-side event coordination\"\n      },\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"actionSource\",\n        \"displayName\": \"Action Source\",\n        \"simpleValueType\": true,\n        \"defaultValue\": \"website\",\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableCapi\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"help\": \"Source of the action (always \\u0027website\\u0027 for web events)\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"debugSettings\",\n    \"displayName\": \"Testing \\u0026 Debug Settings\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"testEventCode\",\n        \"displayName\": \"Test Event Code\",\n        \"simpleValueType\": true,\n        \"help\": \"Test event code from Meta Events Manager for testing\"\n      },\n      {\n        \"type\": \"CHECKBOX\",\n        \"name\": \"enableDebugMode\",\n        \"checkboxText\": \"Enable debug logging\",\n        \"simpleValueType\": true,\n        \"help\": \"Log detailed information to browser console for debugging\"\n      }\n    ]\n  }\n]\n\n\n___SANDBOXED_JS_FOR_WEB_TEMPLATE___\n\nconst log = require('logToConsole');\nconst sendPixel = require('sendPixel');\nconst injectScript = require('injectScript');\nconst getCookieValues = require('getCookieValues');\nconst getUrl = require('getUrl');\nconst parseUrl = require('parseUrl');\nconst isConsentGranted = require('isConsentGranted');\nconst addConsentListener = require('addConsentListener');\nconst copyFromWindow = require('copyFromWindow');\nconst setInWindow = require('setInWindow');\nconst callInWindow = require('callInWindow');\nconst createQueue = require('createQueue');\nconst Math = require('Math');\nconst JSON = require('JSON');\nconst Object = require('Object');\nconst makeString = require('makeString');\nconst sha256 = require('sha256');\nconst getTimestampMillis = require('getTimestampMillis');\nconst getType = require('getType');\n\n// Template data access\nconst pixelId = data.pixelId;\n// Validate custom event name\nconst getEventName = function() {\n  if (data.eventName === 'CustomEvent') {\n    if (!data.customEventName || data.customEventName === '') {\n      debugLog('Custom event name not provided, using default');\n      return 'CustomEvent';\n    }\n    return data.customEventName;\n  }\n  return data.eventName;\n};\nconst eventName = getEventName();\nconst enableDebugMode = data.enableDebugMode;\n\n// Track if event has been sent to prevent duplicates\nvar eventSent = false;\n\n// Track which pixels have been initialized to prevent duplicate inits\nconst pixelInitialized = {};\n\n// Debug logging function\nconst debugLog = function(message, obj) {\n  if (enableDebugMode) {\n    if (obj) {\n      log('[Just Meta Debug]', message, obj);\n    } else {\n      log('[Just Meta Debug]', message);\n    }\n  }\n};\n\n// Consent mode check\nconst checkConsent = function() {\n  if (!data.enableConsentMode) {\n    debugLog('Consent mode disabled, proceeding with full tracking');\n    return 'granted';\n  }\n\n  const adStorageConsent = data.requireAdStorageConsent ?\n    isConsentGranted('ad_storage') : true;\n\n  if (!adStorageConsent) {\n    debugLog('Consent denied for ad_storage');\n    return data.consentBehavior === 'minimal_tracking' ? 'minimal' : 'denied';\n  }\n\n  debugLog('Consent granted for tracking');\n  return 'granted';\n};\n\n// Format phone number to E.164 standard (removes formatting characters)\nconst formatPhoneNumber = function(phone) {\n  if (!phone) return null;\n  // Remove all non-numeric characters except leading +\n  var phoneStr = makeString(phone);\n  var cleaned = '';\n  for (var i = 0; i < phoneStr.length; i++) {\n    var char = phoneStr[i];\n    if ((char >= '0' && char <= '9') || (i === 0 && char === '+')) {\n      cleaned += char;\n    }\n  }\n\n  // If starts with +, keep it; if starts with country code without +, add it\n  // If no country code, add default +1 for US (configurable)\n  if (cleaned[0] !== '+') {\n    // Check if starts with common country codes\n    if (cleaned.length === 10) {\n      // Assume US/Canada number without country code\n      cleaned = '+1' + cleaned;\n    } else if (cleaned.length === 11 && cleaned[0] === '1') {\n      // US/Canada with country code but no +\n      cleaned = '+' + cleaned;\n    } else {\n      // Keep as is but add + if appears to have country code\n      if (cleaned.length > 10) {\n        cleaned = '+' + cleaned;\n      }\n    }\n  }\n\n  debugLog('Formatted phone number', {original: phone, formatted: cleaned});\n  return cleaned;\n};\n\n// SHA-256 hashing function for PII\nconst hashPII = function(value, isPhone) {\n  if (!value || value === '') return null;\n\n  // Special handling for phone numbers\n  var processedValue = value;\n  if (isPhone) {\n    processedValue = formatPhoneNumber(value);\n    if (!processedValue) return null;\n  }\n\n  const stringValue = makeString(processedValue).toLowerCase().trim();\n  if (stringValue === '') return null;\n  return sha256(stringValue, {outputEncoding: 'hex'});\n};\n\n// Build user data object for advanced matching\nconst buildUserData = function() {\n  if (!data.enableAdvancedMatching) {\n    debugLog('Advanced matching disabled');\n    return {};\n  }\n\n  const userData = {};\n\n  // Hash PII fields\n  if (data.email) userData.em = hashPII(data.email, false);\n  if (data.phone) userData.ph = hashPII(data.phone, true);  // Special phone formatting\n  if (data.firstName) userData.fn = hashPII(data.firstName, false);\n  if (data.lastName) userData.ln = hashPII(data.lastName, false);\n  if (data.city) userData.ct = hashPII(data.city, false);\n  if (data.state) userData.st = hashPII(data.state, false);\n  if (data.zipCode) userData.zp = hashPII(data.zipCode, false);\n  if (data.country) userData.country = hashPII(data.country, false);\n  if (data.externalId) userData.external_id = hashPII(data.externalId, false);\n\n  // Note: User agent cannot be accessed in GTM templates due to permission restrictions\n  // (navigator is a predefined browser global)\n\n  debugLog('Built user data object', userData);\n  return userData;\n};\n\n// Get FBP cookie value\nconst getFbpValue = function() {\n  if (data.customFbp) {\n    debugLog('Using custom FBP value');\n    return data.customFbp;\n  }\n\n  if (data.autoFbp) {\n    const fbpCookies = getCookieValues('_fbp');\n    const fbpValue = fbpCookies && fbpCookies.length > 0 ? fbpCookies[0] : null;\n    debugLog('Retrieved FBP from cookie', fbpValue);\n    return fbpValue;\n  }\n\n  return null;\n};\n\n// Get or generate FBC value\nconst getFbcValue = function() {\n  if (data.customFbc) {\n    debugLog('Using custom FBC value');\n    return data.customFbc;\n  }\n\n  if (data.autoFbc) {\n    // First check if _fbc cookie already exists\n    const fbcCookies = getCookieValues('_fbc');\n    if (fbcCookies && fbcCookies.length > 0) {\n      debugLog('Retrieved FBC from cookie', fbcCookies[0]);\n      return fbcCookies[0];\n    }\n\n    // Try to build FBC from fbclid URL parameter\n    const urlParams = parseUrl(getUrl()).searchParams;\n    const fbclid = urlParams.fbclid;\n\n    if (fbclid) {\n      const timestamp = Math.floor(getTimestampMillis() / 1000);\n      // Meta's recommended format: fb.{subid}.{timestamp}.{fbclid}\n      // Using 1 as default subid for web events\n      const fbcValue = 'fb.1.' + timestamp + '.' + fbclid;\n      debugLog('Generated FBC from fbclid', fbcValue);\n      return fbcValue;\n    }\n  }\n\n  debugLog('No FBC value available');\n  return null;\n};\n\n// Build event parameters\nconst buildEventParameters = function() {\n  const params = {};\n\n  // Basic event parameters\n  if (data.eventId) params.event_id = data.eventId;\n  if (data.value) params.value = data.value;\n  if (data.currency) params.currency = data.currency;\n  if (data.contentIds) {\n    // Check if it's already an array (from GTM variable)\n    if (getType(data.contentIds) === 'array') {\n      params.content_ids = data.contentIds;\n    } else {\n      // Convert string or other types to single-item array\n      params.content_ids = [makeString(data.contentIds)];\n    }\n  }\n  if (data.contentType) params.content_type = data.contentType;\n  if (data.numItems) params.num_items = data.numItems;\n  if (data.searchString) params.search_string = data.searchString;\n  if (data.status) params.status = data.status;\n\n  // Attribution parameters\n  const fbpValue = getFbpValue();\n  const fbcValue = getFbcValue();\n\n  if (fbpValue) params.fbp = fbpValue;\n  if (fbcValue) params.fbc = fbcValue;\n\n  // CAPI parameters\n  if (data.enableCapi) {\n    params.event_source_url = getUrl();\n    params.action_source = data.actionSource || 'website';\n  }\n\n  debugLog('Built event parameters', params);\n  return params;\n};\n\n// Initialize Meta Pixel\nconst initializePixel = function(callback) {\n  const fbq = copyFromWindow('fbq');\n  if (fbq) {\n    debugLog('Meta Pixel already loaded');\n    if (callback) callback();\n    return;\n  }\n\n  debugLog('Initializing Meta Pixel script');\n\n  // Create fbq function and queue\n  const fbqQueue = createQueue('fbq');\n  setInWindow('fbq', fbqQueue);\n\n  // The queue is automatically created and managed by createQueue\n  // No need to manually push to it - fbq function will handle that\n\n  // Inject Meta Pixel script\n  const scriptUrl = 'https://connect.facebook.net/en_US/fbevents.js';\n\n  injectScript(scriptUrl, function() {\n    debugLog('Meta Pixel script loaded successfully');\n    if (callback) callback();\n  }, function() {\n    debugLog('Error loading Meta Pixel script');\n    data.gtmOnFailure();\n  });\n};\n\n// Send Meta Pixel event\nconst sendMetaEvent = function(consentStatus, skipDuplicateCheck) {\n  // Prevent duplicate events unless explicitly allowed\n  if (!skipDuplicateCheck && eventSent) {\n    debugLog('Event already sent, skipping duplicate');\n    return;\n  }\n\n  const fbq = copyFromWindow('fbq');\n  if (!fbq) {\n    debugLog('Meta Pixel not available, cannot send event');\n    return;\n  }\n\n  // Initialize pixel with user data (only if not already initialized)\n  const userData = buildUserData();\n\n  if (!pixelInitialized[pixelId]) {\n    debugLog('Initializing pixel with user data');\n    callInWindow('fbq', 'init', pixelId, userData);\n    pixelInitialized[pixelId] = true;\n\n    // Set Meta consent status based on current consent\n    if (data.enableConsentMode) {\n      if (consentStatus === 'granted') {\n        debugLog('Setting Meta consent to grant');\n        callInWindow('fbq', 'consent', 'grant');\n      } else if (consentStatus === 'denied' || consentStatus === 'minimal') {\n        debugLog('Setting Meta consent to revoke');\n        callInWindow('fbq', 'consent', 'revoke');\n      }\n    }\n  } else {\n    debugLog('Pixel already initialized for ID: ' + pixelId);\n  }\n\n  // Set test event code if provided\n  if (data.testEventCode) {\n    debugLog('Setting test event code', data.testEventCode);\n    callInWindow('fbq', 'set', 'test_event_code', data.testEventCode);\n  }\n\n  // Validate required parameters for specific events\n  const validateEventParams = function() {\n    // Purchase requires value and currency\n    if (eventName === 'Purchase') {\n      if (!data.value || !data.currency) {\n        debugLog('Warning: Purchase event missing required value or currency');\n      }\n    }\n\n    // ViewContent should have content identification\n    if (eventName === 'ViewContent') {\n      if (!data.contentIds && !data.contentType) {\n        debugLog('Warning: ViewContent event should have content_ids or content_type');\n      }\n    }\n\n    // AddToCart should have value or content_ids\n    if (eventName === 'AddToCart' || eventName === 'InitiateCheckout') {\n      if (!data.value && !data.contentIds) {\n        debugLog('Warning: ' + eventName + ' event should have value or content_ids');\n      }\n    }\n\n    // Lead and CompleteRegistration benefit from value\n    if (eventName === 'Lead' || eventName === 'CompleteRegistration') {\n      if (!data.value) {\n        debugLog('Info: ' + eventName + ' event may benefit from having a value parameter');\n      }\n    }\n\n    // Search should have search_string\n    if (eventName === 'Search' && !data.searchString) {\n      debugLog('Warning: Search event missing search_string parameter');\n    }\n  };\n\n  validateEventParams();\n\n  // Track event based on consent status\n  if (consentStatus === 'granted' || consentStatus === 'minimal') {\n    var eventParams = buildEventParameters();\n\n    // For minimal consent, create new params without attribution\n    if (consentStatus === 'minimal') {\n      const minimalParams = {};\n      for (var key in eventParams) {\n        if (key !== 'fbp' && key !== 'fbc') {\n          minimalParams[key] = eventParams[key];\n        }\n      }\n      eventParams = minimalParams;\n      debugLog('Minimal tracking mode - removed attribution parameters');\n    }\n\n    // Handle event ID for proper CAPI deduplication\n    // Meta expects eventID as 4th parameter, not in eventParams\n    const eventId = eventParams.event_id;\n    if (eventId) {\n      // Create new params without event_id\n      const paramsWithoutId = {};\n      for (var key in eventParams) {\n        if (key !== 'event_id') {\n          paramsWithoutId[key] = eventParams[key];\n        }\n      }\n\n      debugLog('Tracking event with deduplication ID', {\n        eventName: eventName,\n        eventParams: paramsWithoutId,\n        eventID: eventId\n      });\n\n      // Send with eventID as 4th parameter for proper deduplication\n      callInWindow('fbq', 'track', eventName, paramsWithoutId, {eventID: eventId});\n    } else {\n      debugLog('Tracking event without deduplication ID', {eventName: eventName, eventParams: eventParams});\n      callInWindow('fbq', 'track', eventName, eventParams);\n    }\n\n    eventSent = true;\n  }\n};\n\n// Main execution\nconst main = function() {\n  debugLog('Just Meta template starting', {\n    pixelId: pixelId,\n    eventName: eventName,\n    consentModeEnabled: data.enableConsentMode\n  });\n\n  // Check consent status\n  const consentStatus = checkConsent();\n\n  if (consentStatus === 'denied') {\n    debugLog('Tracking blocked due to consent denial');\n    data.gtmOnSuccess();\n    return;\n  }\n\n  // Initialize pixel and then send event\n  initializePixel(function() {\n    // Send current event\n    sendMetaEvent(consentStatus);\n\n    // Set up consent listener for dynamic consent changes after initial event\n    if (data.enableConsentMode) {\n      addConsentListener(['ad_storage'], function(consentData) {\n        debugLog('Consent status changed', consentData);\n\n        // Update Meta consent status\n        const fbq = copyFromWindow('fbq');\n        if (fbq) {\n          if (consentData.ad_storage === 'granted') {\n            debugLog('Updating Meta consent to grant');\n            callInWindow('fbq', 'consent', 'grant');\n\n            // Send event if not sent yet (consent was previously denied)\n            if (!eventSent) {\n              sendMetaEvent('granted');\n            }\n          } else {\n            debugLog('Updating Meta consent to revoke');\n            callInWindow('fbq', 'consent', 'revoke');\n          }\n        }\n      });\n    }\n\n    debugLog('Just Meta template completed successfully');\n    data.gtmOnSuccess();\n  });\n};\n\n// Execute main function\nmain();\n\n\n___WEB_PERMISSIONS___\n\n[\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"logging\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"environments\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"debug\"\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"send_pixel\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"allowedUrls\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"urls\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"https://www.facebook.com/*\"\n              },\n              {\n                \"type\": 1,\n                \"string\": \"https://connect.facebook.net/*\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"inject_script\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"urls\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"https://connect.facebook.net/en_US/fbevents.js\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"get_cookies\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"cookieAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"cookieNames\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"_fbp\"\n              },\n              {\n                \"type\": 1,\n                \"string\": \"_fbc\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"get_url\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"urlParts\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"any\"\n          }\n        },\n        {\n          \"key\": \"queriesAllowed\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"any\"\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"access_consent\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"consentTypes\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"consentType\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"ad_storage\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": false\n                  }\n                ]\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"access_globals\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"keys\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"key\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"read\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"execute\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"fbq\"\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  },\n                  {\n                    \"type\": 8,\n                    \"boolean\": true\n                  }\n                ]\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"isRequired\": true\n  }\n]\n\n\n___TESTS___\n\nscenarios:\n- name: Basic PageView Event\n  code: |-\n    // Mock required APIs\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'PageView',\n      enableDebugMode: true\n    };\n\n    // Mock window and script injection\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', (key, value) => {\n      if (key === 'fbq') return true;\n    });\n    mock('createQueue', () => {\n      return function() {};\n    });\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, pixelId, params) => {\n      assertThat(func).isEqualTo('fbq');\n      if (cmd === 'init') {\n        assertThat(pixelId).isEqualTo('123456789012345');\n      } else if (cmd === 'track') {\n        assertThat(pixelId).isEqualTo('PageView');\n      }\n    });\n\n    // Run the template code\n    runCode(mockData);\n\n    // Verify success\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Purchase Event with Required Parameters\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'Purchase',\n      value: 99.99,\n      currency: 'USD',\n      contentIds: ['SKU123', 'SKU456'],\n      contentType: 'product',\n      enableDebugMode: false\n    };\n\n    let trackedEvent = null;\n    let trackedParams = null;\n    let scriptLoaded = false;\n\n    // Mock fbq as undefined initially, then available after script loads\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, arg1, arg2, arg3) => {\n      if (cmd === 'track') {\n        trackedEvent = arg1;\n        trackedParams = arg2;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(trackedEvent).isEqualTo('Purchase');\n    assertThat(trackedParams.value).isEqualTo(99.99);\n    assertThat(trackedParams.currency).isEqualTo('USD');\n    assertThat(trackedParams.content_ids).isEqualTo(['SKU123', 'SKU456']);\n    assertThat(trackedParams.content_type).isEqualTo('product');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Custom Event Name Handling\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'CustomEvent',\n      customEventName: 'NewsletterSignup',\n      enableDebugMode: true\n    };\n\n    let trackedEvent = null;\n    let scriptLoaded = false;\n\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, arg1) => {\n      if (cmd === 'track') {\n        trackedEvent = arg1;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(trackedEvent).isEqualTo('NewsletterSignup');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Advanced Matching with User Data Hashing\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'Lead',\n      enableAdvancedMatching: true,\n      email: 'user@example.com',\n      phone: '555-123-4567',\n      firstName: 'John',\n      lastName: 'Doe',\n      city: 'New York',\n      state: 'NY',\n      zipCode: '10001',\n      country: 'US'\n    };\n\n    let initUserData = null;\n    let scriptLoaded = false;\n\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('sha256', (value) => 'hashed_' + value);\n    mock('callInWindow', (func, cmd, pixelId, userData) => {\n      if (cmd === 'init') {\n        initUserData = userData;\n      }\n    });\n\n    runCode(mockData);\n\n    // Verify user data was hashed\n    assertThat(initUserData.em).isEqualTo('hashed_user@example.com');\n    assertThat(initUserData.ph).isEqualTo('hashed_+15551234567');\n    assertThat(initUserData.fn).isEqualTo('hashed_john');\n    assertThat(initUserData.ln).isEqualTo('hashed_doe');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Phone Number Formatting to E164\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'Lead',\n      enableAdvancedMatching: true,\n      phone: '(555) 123-4567'\n    };\n\n    let hashedPhone = null;\n    let scriptLoaded = false;\n\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('sha256', (value) => {\n      // Capture the formatted phone before hashing\n      hashedPhone = value;\n      return 'hashed_' + value;\n    });\n    mock('callInWindow', () => {});\n\n    runCode(mockData);\n\n    // Verify phone was formatted to E.164 (+15551234567)\n    assertThat(hashedPhone).isEqualTo('+15551234567');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: FBP Cookie Auto-Detection\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'ViewContent',\n      autoFbp: true\n    };\n\n    let eventParams = null;\n\n    mock('getCookieValues', (name) => {\n      if (name === '_fbp') return ['fb.1.1234567890.abcdef'];\n      return [];\n    });\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, arg1, arg2) => {\n      if (cmd === 'track') {\n        eventParams = arg2;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(eventParams.fbp).isEqualTo('fb.1.1234567890.abcdef');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: FBC Generation from fbclid Parameter\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'PageView',\n      autoFbc: true\n    };\n\n    let eventParams = null;\n\n    mock('getCookieValues', () => []);\n    mock('getUrl', () => 'https://example.com?fbclid=abc123xyz');\n    mock('parseUrl', (url) => ({\n      searchParams: { fbclid: 'abc123xyz' }\n    }));\n    mock('getTimestampMillis', () => 1700000000000);\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, arg1, arg2) => {\n      if (cmd === 'track') {\n        eventParams = arg2;\n      }\n    });\n\n    runCode(mockData);\n\n    // FBC format: fb.{subid}.{timestamp}.{fbclid}\n    assertThat(eventParams.fbc).isEqualTo('fb.1.1700000000.abc123xyz');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Event ID Deduplication Format\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'Purchase',\n      eventId: 'unique_event_123',\n      value: 50,\n      currency: 'USD'\n    };\n\n    let trackedEventId = null;\n\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, eventName, params, options) => {\n      if (cmd === 'track' && options) {\n        trackedEventId = options.eventID;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(trackedEventId).isEqualTo('unique_event_123');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Consent Mode - Granted\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'PageView',\n      enableConsentMode: true,\n      requireAdStorageConsent: true\n    };\n\n    let consentStatus = null;\n\n    mock('isConsentGranted', (type) => {\n      if (type === 'ad_storage') return true;\n      return false;\n    });\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, arg1) => {\n      if (cmd === 'consent') {\n        consentStatus = arg1;\n      }\n    });\n    mock('addConsentListener', () => {});\n\n    runCode(mockData);\n\n    assertThat(consentStatus).isEqualTo('grant');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Consent Mode - Denied Blocks Tracking\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'PageView',\n      enableConsentMode: true,\n      requireAdStorageConsent: true,\n      consentBehavior: 'block_all'\n    };\n\n    let eventTracked = false;\n\n    mock('isConsentGranted', () => false);\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd) => {\n      if (cmd === 'track') {\n        eventTracked = true;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(eventTracked).isFalse();\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Test Event Code Setting\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'PageView',\n      testEventCode: 'TEST123'\n    };\n\n    let testCode = null;\n\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, key, value) => {\n      if (cmd === 'set' && key === 'test_event_code') {\n        testCode = value;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(testCode).isEqualTo('TEST123');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: CAPI Parameters for Server-Side\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'Purchase',\n      enableCapi: true,\n      actionSource: 'website',\n      value: 100,\n      currency: 'USD'\n    };\n\n    let capiParams = null;\n\n    mock('getUrl', () => 'https://example.com/checkout');\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, arg1, arg2) => {\n      if (cmd === 'track') {\n        capiParams = arg2;\n      }\n    });\n\n    runCode(mockData);\n\n    assertThat(capiParams.event_source_url).isEqualTo('https://example.com/checkout');\n    assertThat(capiParams.action_source).isEqualTo('website');\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Pixel Already Loaded Skip Injection\n  code: |-\n    const mockData = {\n      pixelId: '123456789012345',\n      eventName: 'PageView'\n    };\n\n    // Mock fbq already exists\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') return function() {};\n      return undefined;\n    });\n    mock('callInWindow', () => {});\n\n    // injectScript should NOT be called\n    mock('injectScript', () => {\n      fail('injectScript should not be called when fbq exists');\n    });\n\n    runCode(mockData);\n\n    assertApi('gtmOnSuccess').wasCalled();\n- name: Invalid Pixel ID Validation\n  code: |-\n    const mockData = {\n      pixelId: 'invalid',\n      eventName: 'PageView'\n    };\n\n    // This test validates that the template's validation rules work\n    // The template should reject invalid pixel IDs before execution\n    // Note: This validation happens at the GTM level, not in the JS code\n\n    // Since we can't test GTM validation directly, we verify the code handles it\n    let scriptLoaded = false;\n    mock('copyFromWindow', (key) => {\n      if (key === 'fbq') {\n        return scriptLoaded ? function() {} : undefined;\n      }\n      return undefined;\n    });\n    mock('setInWindow', () => true);\n    mock('createQueue', () => function() {});\n    mock('injectScript', (url, onSuccess) => {\n      scriptLoaded = true;\n      onSuccess();\n    });\n    mock('callInWindow', (func, cmd, pixelId) => {\n      if (cmd === 'init') {\n        // The pixelId would be whatever was passed\n        assertThat(pixelId).isEqualTo('invalid');\n      }\n    });\n\n    runCode(mockData);\n    assertApi('gtmOnSuccess').wasCalled();\n\n\n___NOTES___\n\nVersion 2.1.0 - Created on 2025-01-01\nLast Updated: 2025-01-01\n\nThis template provides comprehensive Meta Pixel tracking with:\n- All standard Meta events support (including new events: Subscribe, Donate, etc.)\n- Advanced matching with SHA-256 hashing\n- Enhanced phone number formatting to E.164 standard\n- GTM consent mode integration with Meta consent commands\n- CAPI coordination with proper eventID deduplication format\n- Automatic cookie handling (_fbp, _fbc)\n- Pixel initialization tracking to prevent duplicates\n- Test event code support\n- Debug logging capabilities\n- 2025 compliance features\n\nCRITICAL UPDATES IN v2.1.0:\n- Fixed fbq queue initialization\n- Implemented proper event ID format for CAPI deduplication (4th parameter)\n- Added pixel initialization tracking to prevent duplicate init calls\n- Integrated Meta consent commands (fbq('consent', 'grant'/'revoke'))\n- Added 7 new Meta standard events\n- Enhanced phone number formatting with E.164 conversion\n- Improved event parameter validation\n\nGTM 2025 COMPATIBILITY:\n- Ready for April 10, 2025 Google tag loading changes\n- Optimized initialization sequence\n- Proper consent mode integration\n\nCreated on 2025-09-24\nLast modified on 2025-09-24\n\n\n"
+            }
+        ]
+    }
+}

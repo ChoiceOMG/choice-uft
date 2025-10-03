@@ -263,6 +263,59 @@ console.log(CUFT_Adapter_Factory::get_frameworks_info());
 
 ---
 
+## Google Tag Manager Container Templates
+
+### Pre-configured GTM Templates Available
+
+The plugin includes sanitized, ready-to-import GTM container templates with all necessary tracking configurations:
+
+#### 📥 GTM Server Container Template
+- **Location**: `gtm-server/CUFT - Server Defaults.json`
+- **Type**: Server-Side GTM Container
+- **Documentation**: `gtm-server/README.md`
+- **Includes**:
+  - GA4 Event Tag (server-side)
+  - Facebook Conversions API
+  - Conversion Linker
+  - Pre-configured variables and triggers
+  - UTM and click ID tracking
+
+#### 📥 GTM Web Container Template
+- **Location**: `gtm-web-client/CUFT - Web Defaults.json`
+- **Type**: Web GTM Container
+- **Documentation**: `gtm-web-client/README.md`
+- **Includes**:
+  - GA4 Configuration Tag
+  - Form Submit event tracking
+  - Generate Lead event tracking
+  - DataLayer variables
+  - UTM parameter variables
+  - Click ID variables
+
+### Important: Replace Placeholder IDs Before Publishing
+
+**These templates use sanitized placeholder IDs that MUST be replaced:**
+
+- `GTM-XXXXX1` → Your Server GTM Container ID
+- `GTM-XXXXX2` → Your Web GTM Container ID (server reference)
+- `GTM-XXXXX3` → Your Web GTM Container ID
+- `G-XXXXXXXXX` → Your GA4 Measurement ID
+- `1234567890` → Your GTM Account ID
+- `987654321` → Your Container ID (numeric)
+- `tagging-server.example.com` → Your actual server URL
+
+### Quick Start
+
+1. **Import Template**: GTM Admin → Import Container
+2. **Replace IDs**: Find and replace placeholder values
+3. **Configure Destinations**: Update GA4, Facebook Pixel, etc.
+4. **Test**: Use GTM Preview mode
+5. **Publish**: After testing
+
+**Full instructions available in each README.md file.**
+
+---
+
 ## Completed Migration: Click Tracking Events (v3.12.0) ✅
 
 ### Migration Overview

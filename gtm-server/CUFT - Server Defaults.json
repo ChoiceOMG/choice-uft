@@ -1,0 +1,1482 @@
+{
+    "exportFormatVersion": 2,
+    "exportTime": "2025-10-03 04:14:17",
+    "containerVersion": {
+        "path": "accounts/1234567890/containers/987654321/versions/0",
+        "accountId": "1234567890",
+        "containerId": "987654321",
+        "containerVersionId": "0",
+        "container": {
+            "path": "accounts/1234567890/containers/987654321",
+            "accountId": "1234567890",
+            "containerId": "987654321",
+            "name": "tagging-server.example.com",
+            "publicId": "GTM-XXXXX1",
+            "usageContext": [
+                "SERVER"
+            ],
+            "fingerprint": "1758993325263",
+            "tagManagerUrl": "https://tagmanager.google.com/#/container/accounts/1234567890/containers/987654321/workspaces?apiLink=container",
+            "features": {
+                "supportUserPermissions": true,
+                "supportEnvironments": true,
+                "supportWorkspaces": true,
+                "supportGtagConfigs": false,
+                "supportBuiltInVariables": true,
+                "supportClients": true,
+                "supportFolders": true,
+                "supportTags": true,
+                "supportTemplates": true,
+                "supportTriggers": true,
+                "supportVariables": true,
+                "supportVersions": true,
+                "supportZones": true,
+                "supportTransformations": true
+            },
+            "tagIds": [
+                "GTM-XXXXX1"
+            ],
+            "taggingServerUrls": [
+                "https://tagging-server.example.com"
+            ]
+        },
+        "tag": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "43",
+                "name": "Conversion Linker",
+                "type": "sgtmadscl",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableLinkerParams",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableCookieOverrides",
+                        "value": "false"
+                    }
+                ],
+                "fingerprint": "1759272168773",
+                "firingTriggerId": [
+                    "41"
+                ],
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "44",
+                "name": "GAds - User-provided Data Event",
+                "type": "sgtmawud",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "conversionId",
+                        "value": "{{CUFT - Google Ads Conversion ID}}"
+                    }
+                ],
+                "fingerprint": "1759464687114",
+                "firingTriggerId": [
+                    "39"
+                ],
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "45",
+                "name": "GAds - Conversion - New Lead",
+                "type": "sgtmadsct",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableNewCustomerReporting",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableConversionLinker",
+                        "value": "true"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableProductReporting",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "conversionValue",
+                        "value": "{{v_value}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "conversionId",
+                        "value": "{{CUFT - Google Ads Conversion ID}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "currencyCode",
+                        "value": "{{v_currency}}"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "conversionLabel",
+                        "value": "{{CUFT - Google Ads Conversion Label}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "rdp",
+                        "value": "false"
+                    }
+                ],
+                "fingerprint": "1759464626648",
+                "firingTriggerId": [
+                    "39"
+                ],
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "46",
+                "name": "Meta - Send Lead",
+                "type": "cvt_5TP8W",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "logType",
+                        "value": "debug"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "adStorageConsent",
+                        "value": "optional"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventNameStandard",
+                        "value": "Lead"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "generateFbp",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "overrideCookieDomain",
+                        "value": "false"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "userDataList",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "name",
+                                        "value": "em"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "value",
+                                        "value": "{{v_ec_email_sha256}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "name",
+                                        "value": "ph"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "value",
+                                        "value": "{{v_ec_phone_sha256}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "name",
+                                        "value": "client_ip_address"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "value",
+                                        "value": "{{v_ip_override}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "accessToken",
+                        "value": "{{CUFT - Meta - API Access Token}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "useAppSecretProof",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "inheritEventName",
+                        "value": "override"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "actionSource",
+                        "value": "website"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "pixelId",
+                        "value": "{{CUFT - Meta Dataset ID}}"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "useHttpOnlyCookie",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "itemIdKey"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "useOptimisticScenario",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "bigQueryLogType",
+                        "value": "no"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "eventName",
+                        "value": "standard"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "serverEventDataList",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "name",
+                                        "value": "event_id"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "value",
+                                        "value": "{{v_event_id}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "name",
+                                        "value": "event_time"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "value",
+                                        "value": "{{v_event_time_seconds}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableMultipixelSetup",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "enableEventEnhancement",
+                        "value": "false"
+                    }
+                ],
+                "fingerprint": "1759273058896",
+                "firingTriggerId": [
+                    "39"
+                ],
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "tagId": "47",
+                "name": "GA - Events",
+                "type": "sgtmgaaw",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "redactVisitorIp",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "epToIncludeDropdown",
+                        "value": "all"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "upToIncludeDropdown",
+                        "value": "none"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "measurementId",
+                        "value": "{{CUFT - Google Measurement ID}}"
+                    }
+                ],
+                "fingerprint": "1759464791287",
+                "firingTriggerId": [
+                    "41",
+                    "58",
+                    "60",
+                    "61"
+                ],
+                "tagFiringOption": "ONCE_PER_EVENT",
+                "monitoringMetadata": {
+                    "type": "MAP"
+                },
+                "consentSettings": {
+                    "consentStatus": "NOT_SET"
+                }
+            }
+        ],
+        "trigger": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "39",
+                "name": "Lead Detected",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^generate_lead$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759181248768"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "41",
+                "name": "Page View",
+                "type": "SERVER_PAGEVIEW",
+                "fingerprint": "1759272168706"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "58",
+                "name": "Phone Click",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^phone_click$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759272682356"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "60",
+                "name": "Form Started",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^form_start$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759464722809"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "triggerId": "61",
+                "name": "Form Submitted",
+                "type": "CUSTOM_EVENT",
+                "customEventFilter": [
+                    {
+                        "type": "MATCH_REGEX",
+                        "parameter": [
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg0",
+                                "value": "{{_event}}"
+                            },
+                            {
+                                "type": "TEMPLATE",
+                                "key": "arg1",
+                                "value": "^form_submit$"
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759464751091"
+            }
+        ],
+        "variable": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "5",
+                "name": "v_event_id",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "event_id"
+                    }
+                ],
+                "fingerprint": "1759101346103",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "6",
+                "name": "v_page_location",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "page_location"
+                    }
+                ],
+                "fingerprint": "1759101371662",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "7",
+                "name": "v_value",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "defaultValue",
+                        "value": "0"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "value"
+                    }
+                ],
+                "fingerprint": "1759101395048",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "8",
+                "name": "v_currency",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "defaultValue",
+                        "value": "CAD"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "currency"
+                    }
+                ],
+                "fingerprint": "1759101422527",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "10",
+                "name": "v_consent_npa",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "x-ga-npa"
+                    }
+                ],
+                "fingerprint": "1759108940809",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "14",
+                "name": "v_ec_email_sha256",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "ec_email_sha256"
+                    }
+                ],
+                "fingerprint": "1759108940809",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "19",
+                "name": "v_form_id",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "form_id"
+                    }
+                ],
+                "fingerprint": "1759108940809",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "20",
+                "name": "v_user_agent",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "user_agent"
+                    }
+                ],
+                "fingerprint": "1759108940809",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "23",
+                "name": "v_utm_campaign",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "utm_campaign"
+                    }
+                ],
+                "fingerprint": "1759108940810",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "29",
+                "name": "v_ip_override",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "ip_override"
+                    }
+                ],
+                "fingerprint": "1759108940810",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "31",
+                "name": "v_ec_phone_sha256",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "ec_phone_sha256"
+                    }
+                ],
+                "fingerprint": "1759108940810",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "33",
+                "name": "v_x_ga_npa",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "x-ga-npa"
+                    }
+                ],
+                "fingerprint": "1759109499444",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "36",
+                "name": "v_event_time_seconds",
+                "type": "ed",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "setDefaultValue",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "keyPath",
+                        "value": "event_time_seconds"
+                    }
+                ],
+                "fingerprint": "1759177107857",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "53",
+                "name": "CUFT - Meta - API Access Token",
+                "type": "c",
+                "notes": "This is the API Access Token for the test dataset (30 Sep 2025)",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "EAAEuIeqYHbsBPgf7ZAXVJLvFWyBvmJcwyemJxXiM9M9QdyQt6Lwve4rGqoG9eSj2rFXu3xJtMobOIAGXLjKlFW0ZCwa4Bv8Kt7nLHH7N3Gz7VS0JS85X6GxBsOAv7OkdWZAWFbyI6LHU5yqqbnfF8eL8GS5f7g61LZBZBjn0CUgWGmVLuFUHW5zVQHUPqLwZDZD"
+                    }
+                ],
+                "fingerprint": "1759273325833",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "54",
+                "name": "CUFT - Meta Dataset ID",
+                "type": "c",
+                "notes": "This \"2043391809824606\" is the test dataset in the Choice OMG Business portfolio.",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "2043391809824606"
+                    }
+                ],
+                "fingerprint": "1759273224008",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "55",
+                "name": "CUFT - Google Measurement ID",
+                "type": "c",
+                "notes": "test property stream",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "G-XXXXXXXXX"
+                    }
+                ],
+                "fingerprint": "1759273473853",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "56",
+                "name": "CUFT - Google Ads Conversion ID",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "11111111111"
+                    }
+                ],
+                "fingerprint": "1759273502609",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "57",
+                "name": "CUFT - Google Ads Conversion Label",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "AXXXXXXXA"
+                    }
+                ],
+                "fingerprint": "1759273492601",
+                "formatValue": {}
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "variableId": "59",
+                "name": "GTM - Web Container ID",
+                "type": "c",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "value",
+                        "value": "GTM-XXXXX2"
+                    }
+                ],
+                "fingerprint": "1759464431118",
+                "formatValue": {}
+            }
+        ],
+        "builtInVariable": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "type": "EVENT_NAME",
+                "name": "Event Name"
+            }
+        ],
+        "fingerprint": "1759464857035",
+        "tagManagerUrl": "https://tagmanager.google.com/#/versions/accounts/1234567890/containers/987654321/versions/0?apiLink=version",
+        "customTemplate": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "templateId": "42",
+                "name": "Facebook Conversion API",
+                "fingerprint": "1759272168707",
+                "templateData": "___TERMS_OF_SERVICE___\n\nBy creating or modifying this file you agree to Google Tag Manager's Community\nTemplate Gallery Developer Terms of Service available at\nhttps://developers.google.com/tag-manager/gallery-tos (or such other URL as\nGoogle may provide), as modified from time to time.\n\n\n___INFO___\n\n{\n  \"type\": \"TAG\",\n  \"id\": \"cvt_5TP8W\",\n  \"version\": 1,\n  \"displayName\": \"Facebook Conversion API\",\n  \"categories\": [\n    \"ADVERTISING\",\n    \"ANALYTICS\",\n    \"CONVERSIONS\",\n    \"MARKETING\",\n    \"REMARKETING\"\n  ],\n  \"brand\": {\n    \"id\": \"github.com_stape-io\",\n    \"displayName\": \"stape-io\",\n    \"thumbnail\": \"data:image/png;base64,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\\u003d\"\n  },\n  \"description\": \"Tag that send the event data from the GA4/Data clients to Facebook Conversion API.\",\n  \"containerContexts\": [\n    \"SERVER\"\n  ]\n}\n\n\n___TEMPLATE_PARAMETERS___\n\n[\n  {\n    \"type\": \"SELECT\",\n    \"name\": \"inheritEventName\",\n    \"displayName\": \"Event Name Setup Method\",\n    \"selectItems\": [\n      {\n        \"value\": \"inherit\",\n        \"displayValue\": \"Inherit from client\"\n      },\n      {\n        \"value\": \"override\",\n        \"displayValue\": \"Override\"\n      }\n    ],\n    \"simpleValueType\": true,\n    \"subParams\": [\n      {\n        \"type\": \"RADIO\",\n        \"name\": \"eventName\",\n        \"radioItems\": [\n          {\n            \"value\": \"standard\",\n            \"displayValue\": \"Standard\",\n            \"subParams\": [\n              {\n                \"type\": \"SELECT\",\n                \"name\": \"eventNameStandard\",\n                \"macrosInSelect\": false,\n                \"selectItems\": [\n                  {\n                    \"value\": \"PageView\",\n                    \"displayValue\": \"PageView\"\n                  },\n                  {\n                    \"value\": \"AddPaymentInfo\",\n                    \"displayValue\": \"AddPaymentInfo\"\n                  },\n                  {\n                    \"value\": \"AddToCart\",\n                    \"displayValue\": \"AddToCart\"\n                  },\n                  {\n                    \"value\": \"AddToWishlist\",\n                    \"displayValue\": \"AddToWishlist\"\n                  },\n                  {\n                    \"value\": \"AppendValue\",\n                    \"displayValue\": \"AppendValue\"\n                  },\n                  {\n                    \"value\": \"CompleteRegistration\",\n                    \"displayValue\": \"CompleteRegistration\"\n                  },\n                  {\n                    \"value\": \"Contact\",\n                    \"displayValue\": \"Contact\"\n                  },\n                  {\n                    \"value\": \"CustomizeProduct\",\n                    \"displayValue\": \"CustomizeProduct\"\n                  },\n                  {\n                    \"value\": \"Donate\",\n                    \"displayValue\": \"Donate\"\n                  },\n                  {\n                    \"value\": \"FindLocation\",\n                    \"displayValue\": \"FindLocation\"\n                  },\n                  {\n                    \"value\": \"InitiateCheckout\",\n                    \"displayValue\": \"InitiateCheckout\"\n                  },\n                  {\n                    \"value\": \"Lead\",\n                    \"displayValue\": \"Lead\"\n                  },\n                  {\n                    \"value\": \"Purchase\",\n                    \"displayValue\": \"Purchase\"\n                  },\n                  {\n                    \"value\": \"Schedule\",\n                    \"displayValue\": \"Schedule\"\n                  },\n                  {\n                    \"value\": \"Search\",\n                    \"displayValue\": \"Search\"\n                  },\n                  {\n                    \"value\": \"StartTrial\",\n                    \"displayValue\": \"StartTrial\"\n                  },\n                  {\n                    \"value\": \"SubmitApplication\",\n                    \"displayValue\": \"SubmitApplication\"\n                  },\n                  {\n                    \"value\": \"Subscribe\",\n                    \"displayValue\": \"Subscribe\"\n                  },\n                  {\n                    \"value\": \"ViewContent\",\n                    \"displayValue\": \"ViewContent\"\n                  }\n                ],\n                \"simpleValueType\": true\n              }\n            ]\n          },\n          {\n            \"value\": \"custom\",\n            \"displayValue\": \"Custom\",\n            \"subParams\": [\n              {\n                \"type\": \"TEXT\",\n                \"name\": \"eventNameCustom\",\n                \"simpleValueType\": true\n              }\n            ]\n          }\n        ],\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"inheritEventName\",\n            \"paramValue\": \"override\",\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"displayName\": \"Event Type\"\n      }\n    ]\n  },\n  {\n    \"type\": \"SELECT\",\n    \"name\": \"actionSource\",\n    \"displayName\": \"Action Source\",\n    \"selectItems\": [\n      {\n        \"value\": \"website\",\n        \"displayValue\": \"Website\"\n      },\n      {\n        \"value\": \"email\",\n        \"displayValue\": \"Email\"\n      },\n      {\n        \"value\": \"app\",\n        \"displayValue\": \"App\"\n      },\n      {\n        \"value\": \"phone_call\",\n        \"displayValue\": \"Phone Call\"\n      },\n      {\n        \"value\": \"chat\",\n        \"displayValue\": \"Chat\"\n      },\n      {\n        \"value\": \"physical_store\",\n        \"displayValue\": \"Physical Store\"\n      },\n      {\n        \"value\": \"system_generated\",\n        \"displayValue\": \"System Generated\"\n      },\n      {\n        \"value\": \"business_messaging\",\n        \"displayValue\": \"Business Messaging\"\n      },\n      {\n        \"value\": \"other\",\n        \"displayValue\": \"Other\"\n      }\n    ],\n    \"simpleValueType\": true,\n    \"valueValidators\": [\n      {\n        \"type\": \"NON_EMPTY\"\n      }\n    ],\n    \"defaultValue\": \"website\",\n    \"help\": \"\\u003cb\\u003eEmail\\u003c/b\\u003e — Conversion happened over email.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003eWebsite\\u003c/b\\u003e — Conversion was made on your website.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003eApp\\u003c/b\\u003e — Conversion was made on your mobile app.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003ePhone Call\\u003c/b\\u003e — Conversion was made over the phone.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003eChat\\u003c/b\\u003e — Conversion was made via a messaging app, SMS, or online messaging feature.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003ePhysical Store\\u003c/b\\u003e — Conversion was made in person at your physical store, helping to optimize your omni-channel marketing strategy.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003eSystem Generated\\u003c/b\\u003e — Conversion happened automatically, such as a subscription renewal set to auto-pay, often linked with CRM CAPI for Meta Lead Ads.\\n\\u003cbr/\\u003e\\n\\u003cb\\u003eBusiness Messaging\\u003c/b\\u003e — Conversion was made from ads that click to Messenger, Instagram or WhatsApp.\\n\\u003cbr/\\u003e \\n\\u003cb\\u003eOther\\u003c/b\\u003e — Conversion happened in a way that is not listed.\"\n  },\n  {\n    \"type\": \"SELECT\",\n    \"name\": \"messaging_channel\",\n    \"displayName\": \"Messaging Channel\",\n    \"macrosInSelect\": false,\n    \"selectItems\": [\n      {\n        \"value\": \"messenger\",\n        \"displayValue\": \"Messenger\"\n      },\n      {\n        \"value\": \"whatsapp\",\n        \"displayValue\": \"WhatsApp\"\n      }\n    ],\n    \"simpleValueType\": true,\n    \"defaultValue\": \"messenger\",\n    \"enablingConditions\": [\n      {\n        \"paramName\": \"actionSource\",\n        \"paramValue\": \"business_messaging\",\n        \"type\": \"EQUALS\"\n      }\n    ],\n    \"valueValidators\": [\n      {\n        \"type\": \"NON_EMPTY\"\n      }\n    ]\n  },\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"accessToken\",\n    \"displayName\": \"API Access Token\",\n    \"simpleValueType\": true,\n    \"help\": \"Set to your Facebook API Access Token. See \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/marketing-api/server-side-api/get-started#access-token\\\" target\\u003d\\\"_blank\\\"\\u003ehere\\u003c/a\\u003e for more information.\",\n    \"valueValidators\": [\n      {\n        \"type\": \"NON_EMPTY\"\n      }\n    ]\n  },\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"pixelId\",\n    \"displayName\": \"Facebook Pixel ID\",\n    \"simpleValueType\": true,\n    \"valueValidators\": [\n      {\n        \"type\": \"NON_EMPTY\"\n      }\n    ],\n    \"help\": \"Set to a valid Facebook Pixel ID.\"\n  },\n  {\n    \"type\": \"CHECKBOX\",\n    \"name\": \"enableMultipixelSetup\",\n    \"checkboxText\": \"Add Multiple Facebook Pixel IDs\",\n    \"simpleValueType\": true,\n    \"help\": \"Add one \\u003ci\\u003eFacebook Pixel ID\\u003c/i\\u003e and one \\u003ci\\u003eAccess Token\\u003c/i\\u003e per line.\",\n    \"subParams\": [\n      {\n        \"type\": \"SIMPLE_TABLE\",\n        \"name\": \"pixelIdAndAccessTokenTable\",\n        \"simpleTableColumns\": [\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Facebook Pixel ID\",\n            \"name\": \"pixelId\",\n            \"type\": \"TEXT\",\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ]\n          },\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"API Access Token\",\n            \"name\": \"accessToken\",\n            \"type\": \"TEXT\",\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ]\n          }\n        ],\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"enableMultipixelSetup\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ]\n      }\n    ],\n    \"enablingConditions\": [\n      {\n        \"paramName\": \"useAppSecretProof\",\n        \"paramValue\": true,\n        \"type\": \"NOT_EQUALS\"\n      }\n    ]\n  },\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"testId\",\n    \"displayName\": \"Test ID\",\n    \"simpleValueType\": true,\n    \"help\": \"Provide a Test ID if you want to test server-side events in the Test Events feature of Events Manager.\",\n    \"valueHint\": \"TEST123\"\n  },\n  {\n    \"type\": \"TEXT\",\n    \"name\": \"itemIdKey\",\n    \"displayName\": \"Custom Item Id Key\",\n    \"simpleValueType\": true,\n    \"help\": \"You can specify a custom key, which will be used to set the content item id, by default item_id will be used. This may be useful if you are using WooCommerce extensions.\",\n    \"canBeEmptyString\": true\n  },\n  {\n    \"type\": \"SELECT\",\n    \"name\": \"overrideCookieDomain\",\n    \"displayName\": \"Override the cookie domain\",\n    \"macrosInSelect\": true,\n    \"selectItems\": [\n      {\n        \"value\": false,\n        \"displayValue\": \"False\"\n      },\n      {\n        \"value\": true,\n        \"displayValue\": \"True\"\n      }\n    ],\n    \"simpleValueType\": true,\n    \"subParams\": [\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"overridenCookieDomain\",\n        \"displayName\": \"Cookie Domain\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"overrideCookieDomain\",\n            \"paramValue\": false,\n            \"type\": \"NOT_EQUALS\"\n          }\n        ],\n        \"help\": \"Enable this option to override the cookie domain.\\u003cbr\\u003eEnter your website\\u0027s top-level domain as a fixed value (e.g., example.com). \\u003cbr\\u003e If left as \\\"auto\\\", the top-level domain will be automatically determined using the following priority: \\u003cul\\u003e \\u003cli\\u003eTop-level domain of the \\u003ci\\u003eForwarded\\u003c/i\\u003e header (if present).\\u003c/li\\u003e \\u003cli\\u003eTop-level domain of the \\u003ci\\u003eX-Forwarded-Host\\u003c/i\\u003e header (if present).\\u003c/li\\u003e \\u003cli\\u003eTop-level domain of the \\u003ci\\u003eHost\\u003c/i\\u003e header.\\u003c/li\\u003e \\u003c/ul\\u003e\",\n        \"defaultValue\": \"auto\",\n        \"valueHint\": \"example.com\"\n      }\n    ],\n    \"defaultValue\": false\n  },\n  {\n    \"type\": \"CHECKBOX\",\n    \"name\": \"generateFbp\",\n    \"checkboxText\": \"Generate _fbp cookie if it not exist\",\n    \"simpleValueType\": true,\n    \"defaultValue\": true\n  },\n  {\n    \"type\": \"CHECKBOX\",\n    \"name\": \"useHttpOnlyCookie\",\n    \"checkboxText\": \"Use HttpOnly cookies\",\n    \"simpleValueType\": true,\n    \"help\": \"Forbids JavaScript from accessing the cookie if enabled.\"\n  },\n  {\n    \"type\": \"CHECKBOX\",\n    \"name\": \"enableEventEnhancement\",\n    \"checkboxText\": \"Enable Event Enhancement\",\n    \"simpleValueType\": true,\n    \"help\": \"Enable Use of HTTP Only Secure Cookie (gtmeec) to Enhance Event Data.\",\n    \"defaultValue\": true\n  },\n  {\n    \"type\": \"CHECKBOX\",\n    \"name\": \"useAppSecretProof\",\n    \"checkboxText\": \"Use App Secret Proof\",\n    \"simpleValueType\": true,\n    \"help\": \"Optional. \\u003cbr/\\u003e\\u003cbr/\\u003e Use this field only if your Business Manager’s Conversions API Application requires API calls to include the \\u003ci\\u003eapp secret proof\\u003c/i\\u003e.   \\u003cbr/\\u003e\\u003cbr/\\u003e You’ll encounter this requirement if event requests fail with the error:  \\u003ci\\u003e\\\"API calls from the server require an appsecret_proof argument\\\"\\u003c/i\\u003e. \\u003cbr/\\u003e\\u003cbr/\\u003e \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/graph-api/guides/secure-requests#appsecret_proof\\\"\\u003eLearn more\\u003c/a\\u003e about how to generate this value.\",\n    \"subParams\": [\n      {\n        \"type\": \"TEXT\",\n        \"name\": \"appSecretProof\",\n        \"displayName\": \"App Secret Proof\",\n        \"simpleValueType\": true,\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"useAppSecretProof\",\n            \"paramValue\": true,\n            \"type\": \"EQUALS\"\n          }\n        ],\n        \"valueValidators\": [\n          {\n            \"type\": \"NON_EMPTY\"\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"type\": \"CHECKBOX\",\n    \"name\": \"useOptimisticScenario\",\n    \"checkboxText\": \"Use Optimistic Scenario\",\n    \"simpleValueType\": true,\n    \"help\": \"The tag will call gtmOnSuccess() without waiting for a response from the API. This will speed up sGTM response time however your tag will always return the status fired successfully even in case it is not.\"\n  },\n  {\n    \"displayName\": \"Server Event Data Override\",\n    \"name\": \"serverEventDataListGroup\",\n    \"groupStyle\": \"ZIPPY_OPEN_ON_PARAM\",\n    \"type\": \"GROUP\",\n    \"subParams\": [\n      {\n        \"type\": \"LABEL\",\n        \"name\": \"serverEventDataLabel\",\n        \"displayName\": \"Check \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/server-event\\\"\\u003ethis documentation\\u003c/a\\u003e for more details on which parameters you can override.\\u003cbr/\\u003e\\u003cbr/\\u003e\"\n      },\n      {\n        \"name\": \"serverEventDataList\",\n        \"simpleTableColumns\": [\n          {\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ],\n            \"defaultValue\": \"event_id\",\n            \"displayName\": \"Property Name\",\n            \"name\": \"name\",\n            \"isUnique\": true,\n            \"type\": \"SELECT\",\n            \"selectItems\": [\n              {\n                \"value\": \"event_time\",\n                \"displayValue\": \"Event Time\"\n              },\n              {\n                \"value\": \"event_source_url\",\n                \"displayValue\": \"Source URL\"\n              },\n              {\n                \"value\": \"opt_out\",\n                \"displayValue\": \"Opt Out\"\n              },\n              {\n                \"value\": \"event_id\",\n                \"displayValue\": \"Event ID\"\n              },\n              {\n                \"value\": \"data_processing_options\",\n                \"displayValue\": \"Data Processing Options\"\n              },\n              {\n                \"value\": \"data_processing_options_country\",\n                \"displayValue\": \"Data Processing Options Country\"\n              },\n              {\n                \"value\": \"data_processing_options_state\",\n                \"displayValue\": \"Data Processing Options State\"\n              },\n              {\n                \"value\": \"referrer_url\",\n                \"displayValue\": \"Referrer URL\"\n              }\n            ]\n          },\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Value\",\n            \"name\": \"value\",\n            \"type\": \"TEXT\"\n          }\n        ],\n        \"type\": \"SIMPLE_TABLE\",\n        \"newRowButtonText\": \"Add property\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"originalEventDataListGroup\",\n    \"displayName\": \"Original Event Data\",\n    \"groupStyle\": \"ZIPPY_OPEN_ON_PARAM\",\n    \"subParams\": [\n      {\n        \"type\": \"LABEL\",\n        \"name\": \"originalEventDataLabel\",\n        \"displayName\": \"Check \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/original-event\\\"\\u003ethis documentation\\u003c/a\\u003e for more details on which parameters you can override.\\n\\u003cbr/\\u003e\\nUse these parameters to identify the Original Event that happened at an earlier time. Then, use the \\u003ci\\u003eAppendValue\\u003c/i\\u003e event and the other sections to supplement information the Original Event. This is useful for Value Optimization for Profit (using the \\u003ci\\u003enet_revenue\\u003c/i\\u003e parameter), allowing you to report the final profit margin after the initial sale has occurred.\\n\\u003cbr/\\u003e\\u003cbr/\\u003e\"\n      },\n      {\n        \"type\": \"SIMPLE_TABLE\",\n        \"name\": \"originalEventDataList\",\n        \"displayName\": \"\",\n        \"simpleTableColumns\": [\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Name\",\n            \"name\": \"name\",\n            \"type\": \"SELECT\",\n            \"isUnique\": true,\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ],\n            \"selectItems\": [\n              {\n                \"value\": \"event_name\",\n                \"displayValue\": \"Original Event Name\"\n              },\n              {\n                \"value\": \"event_time\",\n                \"displayValue\": \"Original Event Time\"\n              },\n              {\n                \"value\": \"order_id\",\n                \"displayValue\": \"Original Order ID\"\n              },\n              {\n                \"value\": \"event_id\",\n                \"displayValue\": \"Original Event ID\"\n              }\n            ]\n          },\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Value\",\n            \"name\": \"value\",\n            \"type\": \"TEXT\",\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ]\n          }\n        ],\n        \"valueValidators\": [\n          {\n            \"type\": \"NON_EMPTY\"\n          }\n        ],\n        \"newRowButtonText\": \"Add property\"\n      }\n    ],\n    \"enablingConditions\": [\n      {\n        \"paramName\": \"eventNameStandard\",\n        \"paramValue\": \"AppendValue\",\n        \"type\": \"EQUALS\"\n      },\n      {\n        \"paramName\": \"eventNameCustom\",\n        \"paramValue\": \"AppendValue\",\n        \"type\": \"EQUALS\"\n      }\n    ]\n  },\n  {\n    \"displayName\": \"User Data\",\n    \"name\": \"userDataListGroup\",\n    \"groupStyle\": \"ZIPPY_OPEN_ON_PARAM\",\n    \"type\": \"GROUP\",\n    \"subParams\": [\n      {\n        \"type\": \"LABEL\",\n        \"name\": \"userDataLabel\",\n        \"displayName\": \"User Data is your main \\u003ca href\\u003d\\\"https://www.facebook.com/business/help/765081237991954?id\\u003d818859032317965\\\"\\u003eEvent Match Quality (EMQ) contributor\\u003c/a\\u003e. Matched events improve ad targeting by connecting actions to Meta accounts. Events with better match quality can lead to lower costs per action.\\n\\u003cbr/\\u003e\\nCheck \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/marketing-api/server-side-api/parameters/user-data\\\"\\u003ethis documentation\\u003c/a\\u003e for more details on accepted User Data parameters.\\n\\u003cbr/\\u003e\\nThe tag will automatically hash parameters that need it, pre-hashed data is also accepted.\\n\\u003cbr/\\u003e\\u003cbr/\\u003e\"\n      },\n      {\n        \"type\": \"SELECT\",\n        \"name\": \"userDataObject\",\n        \"displayName\": \"User Data Properties Object\",\n        \"macrosInSelect\": true,\n        \"selectItems\": [],\n        \"simpleValueType\": true,\n        \"help\": \"Provide an object with User Data Properties to merge with the fields below. Any conflicting properties will be overwritten.\",\n        \"notSetText\": \"(not set)\"\n      },\n      {\n        \"name\": \"userDataList\",\n        \"simpleTableColumns\": [\n          {\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ],\n            \"defaultValue\": \"em\",\n            \"displayName\": \"Property Name\",\n            \"name\": \"name\",\n            \"isUnique\": true,\n            \"type\": \"SELECT\",\n            \"selectItems\": [\n              {\n                \"value\": \"em\",\n                \"displayValue\": \"Email\"\n              },\n              {\n                \"value\": \"ph\",\n                \"displayValue\": \"Phone\"\n              },\n              {\n                \"value\": \"ge\",\n                \"displayValue\": \"Gender\"\n              },\n              {\n                \"value\": \"db\",\n                \"displayValue\": \"Date of Birth\"\n              },\n              {\n                \"value\": \"ln\",\n                \"displayValue\": \"Last Name\"\n              },\n              {\n                \"value\": \"fn\",\n                \"displayValue\": \"First Name\"\n              },\n              {\n                \"value\": \"ct\",\n                \"displayValue\": \"City\"\n              },\n              {\n                \"value\": \"st\",\n                \"displayValue\": \"State\"\n              },\n              {\n                \"value\": \"zp\",\n                \"displayValue\": \"Zip\"\n              },\n              {\n                \"value\": \"country\",\n                \"displayValue\": \"Country\"\n              },\n              {\n                \"value\": \"external_id\",\n                \"displayValue\": \"External ID\"\n              },\n              {\n                \"value\": \"client_ip_address\",\n                \"displayValue\": \"Client IP Address\"\n              },\n              {\n                \"value\": \"client_user_agent\",\n                \"displayValue\": \"Client User Agent\"\n              },\n              {\n                \"value\": \"fbc\",\n                \"displayValue\": \"Click ID\"\n              },\n              {\n                \"value\": \"fbp\",\n                \"displayValue\": \"Browser ID\"\n              },\n              {\n                \"value\": \"subscription_id\",\n                \"displayValue\": \"Subscription ID\"\n              },\n              {\n                \"value\": \"lead_id\",\n                \"displayValue\": \"Lead ID\"\n              },\n              {\n                \"value\": \"fb_login_id\",\n                \"displayValue\": \"FB Login ID\"\n              },\n              {\n                \"value\": \"anon_id\",\n                \"displayValue\": \"Install ID\"\n              },\n              {\n                \"value\": \"madid\",\n                \"displayValue\": \"Mobile Advertiser ID\"\n              },\n              {\n                \"value\": \"page_id\",\n                \"displayValue\": \"Page ID\"\n              },\n              {\n                \"value\": \"page_scoped_user_id\",\n                \"displayValue\": \"Page Scoped User ID\"\n              },\n              {\n                \"value\": \"ctwa_clid\",\n                \"displayValue\": \"Click to WhatsApp ID\"\n              },\n              {\n                \"value\": \"ig_account_id\",\n                \"displayValue\": \"IG Account ID\"\n              },\n              {\n                \"value\": \"ig_sid\",\n                \"displayValue\": \"Click to Instagram ID\"\n              }\n            ]\n          },\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Value\",\n            \"name\": \"value\",\n            \"type\": \"TEXT\"\n          }\n        ],\n        \"type\": \"SIMPLE_TABLE\",\n        \"newRowButtonText\": \"Add property\"\n      }\n    ]\n  },\n  {\n    \"displayName\": \"App Data\",\n    \"name\": \"appDataListGroup\",\n    \"type\": \"GROUP\",\n    \"subParams\": [\n      {\n        \"type\": \"LABEL\",\n        \"name\": \"appDataLabel\",\n        \"displayName\": \"Check \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/app-data\\\"\\u003ethis documentation\\u003c/a\\u003e for more details on which parameters you can override.\\n\\u003cbr/\\u003e\\u003cbr/\\u003e\"\n      },\n      {\n        \"type\": \"SELECT\",\n        \"name\": \"appDataObject\",\n        \"displayName\": \"App Data Properties Object\",\n        \"macrosInSelect\": true,\n        \"selectItems\": [],\n        \"simpleValueType\": true,\n        \"help\": \"Provide an object with App Data Properties to merge with the fields below. Any conflicting properties will be overwritten.\",\n        \"notSetText\": \"(not set)\"\n      },\n      {\n        \"name\": \"appDataList\",\n        \"simpleTableColumns\": [\n          {\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ],\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Name\",\n            \"name\": \"name\",\n            \"isUnique\": true,\n            \"type\": \"SELECT\",\n            \"selectItems\": [\n              {\n                \"value\": \"advertiser_tracking_enabled\",\n                \"displayValue\": \"Advertiser Tracking Enabled\"\n              },\n              {\n                \"value\": \"application_tracking_enabled\",\n                \"displayValue\": \"Application Tracking Enabled\"\n              },\n              {\n                \"value\": \"extinfo\",\n                \"displayValue\": \"Ext Info\"\n              },\n              {\n                \"value\": \"campaign_ids\",\n                \"displayValue\": \"Campaign IDs\"\n              },\n              {\n                \"value\": \"install_referrer\",\n                \"displayValue\": \"Install Referrer\"\n              },\n              {\n                \"value\": \"installer_package\",\n                \"displayValue\": \"Installer Package\"\n              },\n              {\n                \"value\": \"url_schemes\",\n                \"displayValue\": \"URL Schemes\"\n              },\n              {\n                \"value\": \"vendor_id\",\n                \"displayValue\": \"Vendor ID\"\n              },\n              {\n                \"value\": \"windows_attribution_id\",\n                \"displayValue\": \"Windows Attribution ID\"\n              }\n            ]\n          },\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Value\",\n            \"name\": \"value\",\n            \"type\": \"TEXT\"\n          }\n        ],\n        \"type\": \"SIMPLE_TABLE\",\n        \"newRowButtonText\": \"Add property\"\n      }\n    ],\n    \"enablingConditions\": [\n      {\n        \"paramName\": \"actionSource\",\n        \"paramValue\": \"app\",\n        \"type\": \"EQUALS\"\n      }\n    ],\n    \"groupStyle\": \"ZIPPY_OPEN_ON_PARAM\"\n  },\n  {\n    \"displayName\": \"Custom Data\",\n    \"name\": \"customDataListGroup\",\n    \"groupStyle\": \"ZIPPY_OPEN_ON_PARAM\",\n    \"type\": \"GROUP\",\n    \"subParams\": [\n      {\n        \"type\": \"LABEL\",\n        \"name\": \"customDataLabel\",\n        \"displayName\": \"Check \\u003ca href\\u003d\\\"https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/custom-data\\\"\\u003ethis documentation\\u003c/a\\u003e for more details on which parameters you can override.\\n\\u003cbr/\\u003e\\u003cbr/\\u003e\"\n      },\n      {\n        \"type\": \"SELECT\",\n        \"name\": \"customDataObject\",\n        \"displayName\": \"Custom Data Properties Object\",\n        \"macrosInSelect\": true,\n        \"selectItems\": [],\n        \"simpleValueType\": true,\n        \"help\": \"Provide an object with Custom Data Properties to merge with the fields below. Any conflicting properties will be overwritten.\",\n        \"notSetText\": \"(not set)\"\n      },\n      {\n        \"name\": \"customDataList\",\n        \"simpleTableColumns\": [\n          {\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ],\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Name\",\n            \"name\": \"name\",\n            \"isUnique\": true,\n            \"type\": \"TEXT\"\n          },\n          {\n            \"defaultValue\": \"\",\n            \"displayName\": \"Property Value\",\n            \"name\": \"value\",\n            \"type\": \"TEXT\"\n          }\n        ],\n        \"type\": \"SIMPLE_TABLE\",\n        \"newRowButtonText\": \"Add property\"\n      }\n    ]\n  },\n  {\n    \"type\": \"GROUP\",\n    \"name\": \"consentSettingsGroup\",\n    \"displayName\": \"Consent Settings\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"subParams\": [\n      {\n        \"type\": \"RADIO\",\n        \"name\": \"adStorageConsent\",\n        \"displayName\": \"\",\n        \"radioItems\": [\n          {\n            \"value\": \"optional\",\n            \"displayValue\": \"Send data always\"\n          },\n          {\n            \"value\": \"required\",\n            \"displayValue\": \"Send data in case marketing consent given\"\n          }\n        ],\n        \"simpleValueType\": true,\n        \"defaultValue\": \"optional\"\n      }\n    ]\n  },\n  {\n    \"displayName\": \"Logs Settings\",\n    \"name\": \"logsGroup\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"type\": \"GROUP\",\n    \"subParams\": [\n      {\n        \"type\": \"RADIO\",\n        \"name\": \"logType\",\n        \"radioItems\": [\n          {\n            \"value\": \"no\",\n            \"displayValue\": \"Do not log\"\n          },\n          {\n            \"value\": \"debug\",\n            \"displayValue\": \"Log to console during debug and preview\"\n          },\n          {\n            \"value\": \"always\",\n            \"displayValue\": \"Always log to console\"\n          }\n        ],\n        \"simpleValueType\": true,\n        \"defaultValue\": \"debug\"\n      }\n    ]\n  },\n  {\n    \"displayName\": \"BigQuery Logs Settings\",\n    \"name\": \"bigQueryLogsGroup\",\n    \"groupStyle\": \"ZIPPY_CLOSED\",\n    \"type\": \"GROUP\",\n    \"subParams\": [\n      {\n        \"type\": \"RADIO\",\n        \"name\": \"bigQueryLogType\",\n        \"radioItems\": [\n          {\n            \"value\": \"no\",\n            \"displayValue\": \"Do not log to BigQuery\"\n          },\n          {\n            \"value\": \"always\",\n            \"displayValue\": \"Log to BigQuery\"\n          }\n        ],\n        \"simpleValueType\": true,\n        \"defaultValue\": \"no\"\n      },\n      {\n        \"type\": \"GROUP\",\n        \"name\": \"logsBigQueryConfigGroup\",\n        \"groupStyle\": \"NO_ZIPPY\",\n        \"subParams\": [\n          {\n            \"type\": \"TEXT\",\n            \"name\": \"logBigQueryProjectId\",\n            \"displayName\": \"BigQuery Project ID\",\n            \"simpleValueType\": true,\n            \"help\": \"Optional.  \\u003cbr\\u003e\\u003cbr\\u003e  If omitted, it will be retrieved from the environment variable \\u003cI\\u003eGOOGLE_CLOUD_PROJECT\\u003c/i\\u003e where the server container is running. If the server container is running on Google Cloud, \\u003cI\\u003eGOOGLE_CLOUD_PROJECT\\u003c/i\\u003e will already be set to the Google Cloud project\\u0027s ID.\"\n          },\n          {\n            \"type\": \"TEXT\",\n            \"name\": \"logBigQueryDatasetId\",\n            \"displayName\": \"BigQuery Dataset ID\",\n            \"simpleValueType\": true,\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ]\n          },\n          {\n            \"type\": \"TEXT\",\n            \"name\": \"logBigQueryTableId\",\n            \"displayName\": \"BigQuery Table ID\",\n            \"simpleValueType\": true,\n            \"valueValidators\": [\n              {\n                \"type\": \"NON_EMPTY\"\n              }\n            ]\n          }\n        ],\n        \"enablingConditions\": [\n          {\n            \"paramName\": \"bigQueryLogType\",\n            \"paramValue\": \"always\",\n            \"type\": \"EQUALS\"\n          }\n        ]\n      }\n    ]\n  }\n]\n\n\n___SANDBOXED_JS_FOR_SERVER___\n\nconst encodeUriComponent = require('encodeUriComponent');\nconst getAllEventData = require('getAllEventData');\nconst JSON = require('JSON');\nconst Math = require('Math');\nconst sendHttpRequest = require('sendHttpRequest');\nconst getTimestampMillis = require('getTimestampMillis');\nconst setCookie = require('setCookie');\nconst getCookieValues = require('getCookieValues');\nconst getContainerVersion = require('getContainerVersion');\nconst logToConsole = require('logToConsole');\nconst sha256Sync = require('sha256Sync');\nconst decodeUriComponent = require('decodeUriComponent');\nconst parseUrl = require('parseUrl');\nconst computeEffectiveTldPlusOne = require('computeEffectiveTldPlusOne');\nconst generateRandom = require('generateRandom');\nconst getRequestHeader = require('getRequestHeader');\nconst getType = require('getType');\nconst makeString = require('makeString');\nconst makeNumber = require('makeNumber');\nconst toBase64 = require('toBase64');\nconst fromBase64 = require('fromBase64');\nconst createRegex = require('createRegex');\nconst testRegex = require('testRegex');\nconst Promise = require('Promise');\nconst BigQuery = require('BigQuery');\n\n/*==============================================================================\n==============================================================================*/\n\nconst traceId = getRequestHeader('trace-id');\n\nconst eventData = getAllEventData();\n\nif (!isConsentGivenOrNotRequired()) {\n  return data.gtmOnSuccess();\n}\n\nconst url = eventData.page_location || getRequestHeader('referer');\nif (url && url.lastIndexOf('https://gtm-msr.appspot.com/', 0) === 0) {\n  return data.gtmOnSuccess();\n}\n\nconst commonCookie = eventData.common_cookie || {};\n\nlet fbc = getCookieValues('_fbc')[0] || commonCookie._fbc || eventData._fbc;\nlet fbp = getCookieValues('_fbp')[0] || commonCookie._fbp || eventData._fbp;\n\nconst subDomainIndex = url\n  ? computeEffectiveTldPlusOne(url).split('.').length - 1\n  : 1;\n\nif (url) {\n  const urlParsed = parseUrl(url);\n\n  if (urlParsed && urlParsed.searchParams.fbclid) {\n    if (\n      !fbc ||\n      (fbc &&\n        fbc.split('.')[fbc.split('.').length - 1] !==\n          decodeUriComponent(urlParsed.searchParams.fbclid))\n    ) {\n      fbc =\n        'fb.' +\n        subDomainIndex +\n        '.' +\n        getTimestampMillis() +\n        '.' +\n        decodeUriComponent(urlParsed.searchParams.fbclid);\n    }\n  }\n}\n\nif (!fbp && data.generateFbp) {\n  fbp =\n    'fb.' +\n    subDomainIndex +\n    '.' +\n    getTimestampMillis() +\n    '.' +\n    generateRandom(1000000000, 2147483647);\n}\n\nconst cookieOptions = {\n  domain: isUIFieldTrue(data.overrideCookieDomain)\n    ? data.overridenCookieDomain || 'auto'\n    : 'auto',\n  path: '/',\n  samesite: 'Lax',\n  secure: true,\n  'max-age': 7776000, // 90 days\n  HttpOnly: !!data.useHttpOnlyCookie\n};\n\nif (fbc) {\n  setCookie('_fbc', fbc, cookieOptions);\n}\n\nif (fbp) {\n  setCookie('_fbp', fbp, cookieOptions);\n}\n\nconst mappedEventData = mapEvent(eventData, data);\nconst postBody = {\n  data: [mappedEventData],\n  partner_agent:\n    'stape-gtmss-2.1.2' + (data.enableEventEnhancement ? '-ee' : '')\n};\n\nif (data.enableEventEnhancement) {\n  mappedEventData.user_data = enhanceEventData(mappedEventData.user_data);\n  setGtmEecCookie(mappedEventData.user_data);\n}\n\nif (eventData.test_event_code || data.testId) {\n  postBody.test_event_code = eventData.test_event_code\n    ? eventData.test_event_code\n    : data.testId;\n}\n\nlet pixelsConfig = [\n  {\n    pixelId: data.pixelId,\n    accessToken: data.accessToken,\n    appSecretProof: data.useAppSecretProof ? data.appSecretProof : undefined\n  }\n];\nif (data.enableMultipixelSetup) {\n  pixelsConfig = pixelsConfig.concat(data.pixelIdAndAccessTokenTable);\n}\n\nconst apiVersion = '23.0';\nconst requests = pixelsConfig.map((pixelConfig) => {\n  const pixelId = pixelConfig.pixelId;\n  const accessToken = pixelConfig.accessToken;\n  const appSecretProof = pixelConfig.appSecretProof;\n  const postUrl =\n    'https://graph.facebook.com/v' +\n    apiVersion +\n    '/' +\n    enc(pixelId) +\n    '/events?access_token=' +\n    enc(accessToken) +\n    (appSecretProof ? '&appsecret_proof=' + enc(appSecretProof) : '');\n\n  log({\n    Name: 'Facebook',\n    Type: 'Request',\n    TraceId: traceId,\n    EventName: mappedEventData.event_name,\n    RequestMethod: 'POST',\n    RequestUrl: postUrl,\n    RequestBody: postBody\n  });\n\n  return sendHttpRequest(\n    postUrl,\n    { headers: { 'content-type': 'application/json' }, method: 'POST' },\n    JSON.stringify(postBody)\n  );\n});\n\nPromise.all(requests)\n  .then((results) => {\n    let someRequestFailed = false;\n\n    results.forEach((result) => {\n      log({\n        Name: 'Facebook',\n        Type: 'Response',\n        TraceId: traceId,\n        EventName: mappedEventData.event_name,\n        ResponseStatusCode: result.statusCode,\n        ResponseHeaders: result.headers,\n        ResponseBody: result.body\n      });\n\n      if (result.statusCode < 200 || result.statusCode >= 300) {\n        someRequestFailed = true;\n      }\n    });\n\n    if (!data.useOptimisticScenario) {\n      if (someRequestFailed) data.gtmOnFailure();\n      else data.gtmOnSuccess();\n    }\n  })\n  .catch((result) => {\n    log({\n      Name: 'Facebook',\n      Type: 'Response',\n      TraceId: traceId,\n      EventName: mappedEventData.event_name,\n      Message: 'Some request failed or timed out.',\n      Reason: JSON.stringify(result)\n    });\n\n    if (!data.useOptimisticScenario) data.gtmOnFailure();\n  });\n\nif (data.useOptimisticScenario) {\n  data.gtmOnSuccess();\n}\n\n/*==============================================================================\n  Vendor related functions\n==============================================================================*/\n\nfunction getEventName(data) {\n  if (data.inheritEventName === 'inherit') {\n    const eventName = eventData.event_name;\n\n    const gaToFacebookEventName = {\n      page_view: 'PageView',\n      'gtm.dom': 'PageView',\n      add_payment_info: 'AddPaymentInfo',\n      add_to_cart: 'AddToCart',\n      add_to_wishlist: 'AddToWishlist',\n      sign_up: 'CompleteRegistration',\n      begin_checkout: 'InitiateCheckout',\n      generate_lead: 'Lead',\n      purchase: 'Purchase',\n      search: 'Search',\n      view_item: 'ViewContent',\n\n      contact: 'Contact',\n      customize_product: 'CustomizeProduct',\n      donate: 'Donate',\n      find_location: 'FindLocation',\n      schedule: 'Schedule',\n      start_trial: 'StartTrial',\n      submit_application: 'SubmitApplication',\n      subscribe: 'Subscribe',\n\n      'gtm4wp.addProductToCartEEC': 'AddToCart',\n      'gtm4wp.productClickEEC': 'ViewContent',\n      'gtm4wp.checkoutOptionEEC': 'InitiateCheckout',\n      'gtm4wp.checkoutStepEEC': 'AddPaymentInfo',\n      'gtm4wp.orderCompletedEEC': 'Purchase'\n    };\n\n    if (!gaToFacebookEventName[eventName]) {\n      return eventName;\n    }\n\n    return gaToFacebookEventName[eventName];\n  }\n\n  return data.eventName === 'standard'\n    ? data.eventNameStandard\n    : data.eventNameCustom;\n}\n\nfunction mapEvent(eventData, data) {\n  const eventName = getEventName(data);\n\n  let mappedData = {\n    event_name: eventName,\n    action_source: data.actionSource || 'website',\n    event_time: Math.round(getTimestampMillis() / 1000),\n    custom_data: {},\n    user_data: {}\n  };\n\n  if (mappedData.action_source === 'app') {\n    mappedData.app_data = {};\n  }\n\n  if (mappedData.action_source === 'business_messaging') {\n    mappedData.messaging_channel = data.messaging_channel;\n  }\n\n  if (eventData.page_location)\n    mappedData.event_source_url = eventData.page_location;\n  if (eventData.page_referrer)\n    mappedData.referrer_url = eventData.page_referrer;\n  if (eventData.user_agent)\n    mappedData.user_data.client_user_agent = eventData.user_agent;\n\n  if (eventData.ip_override) {\n    mappedData.user_data.client_ip_address = eventData.ip_override\n      .split(' ')\n      .join('')\n      .split(',')[0];\n  }\n\n  if (fbc) mappedData.user_data.fbc = fbc;\n  if (fbp) mappedData.user_data.fbp = fbp;\n\n  mappedData = addServerEventData(eventData, mappedData);\n  mappedData = addUserData(eventData, mappedData);\n  mappedData = addAppData(eventData, mappedData);\n  mappedData = addEcommerceData(eventData, mappedData);\n  mappedData = addOriginalEventData(mappedData);\n  mappedData = overrideDataIfNeeded(mappedData);\n  mappedData = cleanupData(mappedData);\n  mappedData = hashDataIfNeeded(mappedData);\n\n  return mappedData;\n}\n\nfunction hashData(key, value) {\n  if (!value) {\n    return value;\n  }\n\n  const type = getType(value);\n\n  if (type === 'undefined' || value === 'undefined') {\n    return undefined;\n  }\n\n  if (type === 'array') {\n    return value.map((val) => {\n      return hashData(key, val);\n    });\n  }\n\n  if (isHashed(value)) {\n    return value;\n  }\n\n  value = makeString(value).trim().toLowerCase();\n\n  if (key === 'ph') {\n    value = normalizePhoneNumber(value);\n  } else if (key === 'ct') {\n    value = value.split(' ').join('');\n  }\n\n  return sha256Sync(value, { outputEncoding: 'hex' });\n}\n\nfunction hashDataIfNeeded(mappedData) {\n  if (mappedData.user_data) {\n    const keysToHash = [\n      'em',\n      'ph',\n      'ge',\n      'db',\n      'ln',\n      'fn',\n      'ct',\n      'st',\n      'zp',\n      'country',\n      'external_id'\n    ];\n    for (let key in mappedData.user_data) {\n      if (keysToHash.indexOf(key) !== -1) {\n        mappedData.user_data[key] = hashData(key, mappedData.user_data[key]);\n      }\n    }\n  }\n\n  return mappedData;\n}\n\nfunction overrideDataIfNeeded(mappedData) {\n  if (getType(data.userDataObject) === 'object') {\n    mergeObj(mappedData.user_data, data.userDataObject);\n  }\n  if (data.userDataList) {\n    data.userDataList.forEach((d) => {\n      mappedData.user_data[d.name] = d.value;\n    });\n  }\n\n  if (getType(data.customDataObject) === 'object') {\n    mergeObj(mappedData.custom_data, data.customDataObject);\n  }\n  if (data.customDataList) {\n    data.customDataList.forEach((d) => {\n      mappedData.custom_data[d.name] = d.value;\n    });\n  }\n\n  if (mappedData.action_source === 'app') {\n    if (getType(data.appDataObject) === 'object') {\n      mergeObj(mappedData.app_data, data.appDataObject);\n    }\n    if (data.appDataList) {\n      data.appDataList.forEach((d) => {\n        mappedData.app_data[d.name] = d.value;\n      });\n    }\n  }\n\n  return mappedData;\n}\n\nfunction cleanupData(mappedData) {\n  if (mappedData.user_data) {\n    const userData = {};\n\n    for (let userDataKey in mappedData.user_data) {\n      if (isValidValue(mappedData.user_data[userDataKey])) {\n        userData[userDataKey] = mappedData.user_data[userDataKey];\n      }\n    }\n\n    mappedData.user_data = userData;\n  }\n\n  if (mappedData.custom_data) {\n    const customData = {};\n\n    for (let customDataKey in mappedData.custom_data) {\n      if (isValidValue(mappedData.custom_data[customDataKey])) {\n        customData[customDataKey] = mappedData.custom_data[customDataKey];\n      }\n    }\n\n    if (customData.value === 0 || customData.value === '0')\n      customData.value = '0.00';\n\n    mappedData.custom_data = customData;\n  }\n\n  if (mappedData.app_data) {\n    const appData = {};\n\n    for (let appDataKey in mappedData.app_data) {\n      if (isValidValue(mappedData.app_data[appDataKey])) {\n        appData[appDataKey] = mappedData.app_data[appDataKey];\n      }\n    }\n\n    mappedData.app_data = appData;\n  }\n\n  if (mappedData.original_event_data) {\n    const originalEventData = {};\n\n    for (let originalEventDataKey in mappedData.original_event_data) {\n      if (isValidValue(mappedData.original_event_data[originalEventDataKey])) {\n        originalEventData[originalEventDataKey] =\n          mappedData.original_event_data[originalEventDataKey];\n      }\n    }\n\n    mappedData.original_event_data = originalEventData;\n  }\n\n  return mappedData;\n}\n\nfunction addEcommerceData(eventData, mappedData) {\n  let currencyFromItems = '';\n  let valueFromItems = 0;\n\n  if (eventData.items && eventData.items[0]) {\n    mappedData.custom_data.contents = [];\n    mappedData.custom_data.content_type =\n      eventData['x-fb-cd-content_type'] || eventData.content_type || 'product';\n    currencyFromItems = eventData.items[0].currency;\n\n    if (!eventData.items[1]) {\n      if (eventData.items[0].item_name)\n        mappedData.custom_data.content_name = eventData.items[0].item_name;\n      if (eventData.items[0].item_category)\n        mappedData.custom_data.content_category =\n          eventData.items[0].item_category;\n\n      if (eventData.items[0].price) {\n        mappedData.custom_data.value = eventData.items[0].quantity\n          ? eventData.items[0].quantity * eventData.items[0].price\n          : eventData.items[0].price;\n      }\n    }\n\n    const itemIdKey = data.itemIdKey ? data.itemIdKey : 'item_id';\n    eventData.items.forEach((d, i) => {\n      const content = {};\n      if (d[itemIdKey]) content.id = d[itemIdKey];\n      if (d.item_name) content.title = d.item_name;\n      if (d.item_brand) content.brand = d.item_brand;\n      if (d.quantity) content.quantity = d.quantity;\n      if (d.item_category) content.category = d.item_category;\n\n      if (d.price) {\n        content.item_price = makeNumber(d.price);\n        valueFromItems += d.quantity\n          ? d.quantity * content.item_price\n          : content.item_price;\n      }\n\n      mappedData.custom_data.contents.push(content);\n    });\n  }\n\n  if (eventData['x-ga-mp1-ev'])\n    mappedData.custom_data.value = eventData['x-ga-mp1-ev'];\n  else if (eventData['x-ga-mp1-tr'])\n    mappedData.custom_data.value = eventData['x-ga-mp1-tr'];\n  else if (eventData.value) mappedData.custom_data.value = eventData.value;\n\n  if (eventData.currency) mappedData.custom_data.currency = eventData.currency;\n  else if (currencyFromItems)\n    mappedData.custom_data.currency = currencyFromItems;\n\n  if (eventData.search_term)\n    mappedData.custom_data.search_string = eventData.search_term;\n\n  if (eventData.transaction_id)\n    mappedData.custom_data.order_id = eventData.transaction_id;\n\n  if (mappedData.event_name === 'Purchase') {\n    if (!mappedData.custom_data.currency)\n      mappedData.custom_data.currency = 'USD';\n    if (!mappedData.custom_data.value)\n      mappedData.custom_data.value = valueFromItems ? valueFromItems : 0;\n  }\n\n  return mappedData;\n}\n\nfunction addUserData(eventData, mappedData) {\n  let address = {};\n  let user_data = {};\n  if (getType(eventData.user_data) === 'object') {\n    user_data = eventData.user_data;\n    const addressType = getType(user_data.address);\n    if (addressType === 'object' || addressType === 'array') {\n      address = user_data.address[0] || user_data.address;\n    }\n  }\n  if (eventData.fb_login_id)\n    mappedData.user_data.fb_login_id = eventData.fb_login_id;\n\n  if (eventData.anon_id) mappedData.user_data.anon_id = eventData.anon_id;\n\n  if (eventData.madid) mappedData.user_data.madid = eventData.madid;\n\n  if (eventData.external_id)\n    mappedData.user_data.external_id = eventData.external_id;\n  else if (eventData.user_id)\n    mappedData.user_data.external_id = eventData.user_id;\n  else if (eventData.userId)\n    mappedData.user_data.external_id = eventData.userId;\n\n  if (eventData.subscription_id)\n    mappedData.user_data.subscription_id = eventData.subscription_id;\n  else if (eventData.subscriptionId)\n    mappedData.user_data.subscription_id = eventData.subscriptionId;\n\n  if (eventData.lead_id) mappedData.user_data.lead_id = eventData.lead_id;\n  else if (eventData.leadId) mappedData.user_data.lead_id = eventData.leadId;\n\n  if (eventData.lastName) mappedData.user_data.ln = eventData.lastName;\n  else if (eventData.LastName) mappedData.user_data.ln = eventData.LastName;\n  else if (eventData.nameLast) mappedData.user_data.ln = eventData.nameLast;\n  else if (eventData.last_name) mappedData.user_data.ln = eventData.last_name;\n  else if (user_data.last_name) mappedData.user_data.ln = user_data.last_name;\n  else if (address.last_name) mappedData.user_data.ln = address.last_name;\n  else if (address.sha256_last_name)\n    mappedData.user_data.ln = address.sha256_last_name;\n\n  if (eventData.firstName) mappedData.user_data.fn = eventData.firstName;\n  else if (eventData.FirstName) mappedData.user_data.fn = eventData.FirstName;\n  else if (eventData.nameFirst) mappedData.user_data.fn = eventData.nameFirst;\n  else if (eventData.first_name) mappedData.user_data.fn = eventData.first_name;\n  else if (user_data.first_name) mappedData.user_data.fn = user_data.first_name;\n  else if (address.first_name) mappedData.user_data.fn = address.first_name;\n  else if (address.sha256_first_name)\n    mappedData.user_data.fn = address.sha256_first_name;\n\n  if (eventData.email) mappedData.user_data.em = eventData.email;\n  else if (user_data.email_address)\n    mappedData.user_data.em = user_data.email_address;\n  else if (user_data.email) mappedData.user_data.em = user_data.email;\n  else if (user_data.sha256_email_address)\n    mappedData.user_data.em = user_data.sha256_email_address;\n\n  if (eventData.phone) mappedData.user_data.ph = eventData.phone;\n  else if (user_data.phone_number)\n    mappedData.user_data.ph = user_data.phone_number;\n\n  if (eventData.city) mappedData.user_data.ct = eventData.city;\n  else if (address.city) mappedData.user_data.ct = address.city;\n\n  if (eventData.state) mappedData.user_data.st = eventData.state;\n  else if (eventData.region) mappedData.user_data.st = eventData.region;\n  else if (user_data.region) mappedData.user_data.st = user_data.region;\n  else if (address.region) mappedData.user_data.st = address.region;\n\n  if (eventData.zip) mappedData.user_data.zp = eventData.zip;\n  else if (eventData.postal_code)\n    mappedData.user_data.zp = eventData.postal_code;\n  else if (user_data.postal_code)\n    mappedData.user_data.zp = user_data.postal_code;\n  else if (address.postal_code) mappedData.user_data.zp = address.postal_code;\n\n  if (eventData.countryCode)\n    mappedData.user_data.country = eventData.countryCode;\n  else if (eventData.country) mappedData.user_data.country = eventData.country;\n  else if (user_data.country) mappedData.user_data.country = user_data.country;\n  else if (address.country) mappedData.user_data.country = address.country;\n\n  if (eventData.gender) mappedData.user_data.ge = eventData.gender;\n  if (eventData.db) mappedData.user_data.db = eventData.db;\n\n  return mappedData;\n}\n\nfunction addServerEventData(eventData, mappedData) {\n  const serverEventDataList = {};\n\n  if (eventData.event_id) mappedData.event_id = eventData.event_id;\n  else if (eventData.transaction_id)\n    mappedData.event_id = eventData.transaction_id;\n\n  if (data.serverEventDataList) {\n    data.serverEventDataList.forEach((d) => {\n      serverEventDataList[d.name] = d.value;\n    });\n  }\n\n  if (serverEventDataList) {\n    if (serverEventDataList.event_time)\n      mappedData.event_time = serverEventDataList.event_time;\n    if (serverEventDataList.event_source_url)\n      mappedData.event_source_url = serverEventDataList.event_source_url;\n    if (serverEventDataList.opt_out)\n      mappedData.opt_out = serverEventDataList.opt_out;\n    if (serverEventDataList.event_id)\n      mappedData.event_id = serverEventDataList.event_id;\n    if (serverEventDataList.referrer_url)\n      mappedData.referrer_url = serverEventDataList.referrer_url;\n\n    if (serverEventDataList.data_processing_options) {\n      mappedData.data_processing_options =\n        serverEventDataList.data_processing_options;\n\n      if (serverEventDataList.data_processing_options_country)\n        mappedData.data_processing_options_country =\n          serverEventDataList.data_processing_options_country;\n      if (serverEventDataList.data_processing_options_state)\n        mappedData.data_processing_options_state =\n          serverEventDataList.data_processing_options_state;\n    }\n  }\n\n  return mappedData;\n}\n\nfunction addAppData(eventData, mappedData) {\n  if (mappedData.action_source !== 'app') {\n    return mappedData;\n  }\n\n  if (getType(eventData.app_data) === 'object') {\n    mappedData.app_data = eventData.app_data;\n    return mappedData;\n  }\n\n  mappedData.app_data.advertiser_tracking_enabled =\n    eventData.advertiser_tracking_enabled ? 1 : 0; // Required\n  mappedData.app_data.application_tracking_enabled =\n    eventData.application_tracking_enabled ? 1 : 0; // Required\n  if (eventData.extinfo) {\n    mappedData.app_data.extinfo = eventData.extinfo;\n  } else {\n    const platform = makeString(eventData['x-ga-platform'] || '').toLowerCase();\n    const extinfoArray = [\n      platform === 'android' ? 'a2' : platform === 'ios' ? 'i2' : '', // Required\n      eventData.app_id || '',\n      eventData.app_version || '',\n      eventData.app_version ? 'Version ' + eventData.app_version : '',\n      makeString(eventData['x-ga-os_version'] || ''), // Required\n      eventData['x-ga-device_model'] || '',\n      eventData.language || '',\n      '',\n      '',\n      '',\n      '',\n      '',\n      '',\n      '',\n      '',\n      ''\n    ];\n    mappedData.app_data.extinfo = extinfoArray;\n  }\n  if (eventData.campaign_ids)\n    mappedData.app_data.campaign_ids = eventData.campaign_ids;\n  if (eventData.install_referrer)\n    mappedData.app_data.install_referrer = eventData.install_referrer;\n  if (eventData.installer_package)\n    mappedData.app_data.installer_package = eventData.installer_package;\n  if (eventData.url_schemes)\n    mappedData.app_data.url_schemes = eventData.url_schemes;\n  if (eventData.vendor_id) mappedData.app_data.vendor_id = eventData.vendor_id;\n  if (eventData.windows_attribution_id)\n    mappedData.app_data.windows_attribution_id =\n      eventData.windows_attribution_id;\n\n  return mappedData;\n}\n\nfunction addOriginalEventData(mappedData) {\n  if (mappedData.event_name !== 'AppendValue') {\n    return mappedData;\n  }\n\n  if (data.originalEventDataList) {\n    mappedData.action_source = undefined;\n\n    mappedData.original_event_data = {};\n    data.originalEventDataList.forEach((d) => {\n      mappedData.original_event_data[d.name] = d.value;\n    });\n  }\n\n  return mappedData;\n}\n\nfunction setGtmEecCookie(userData) {\n  const gtmeecCookie = {};\n\n  if (userData.em) gtmeecCookie.em = userData.em;\n  if (userData.ph) gtmeecCookie.ph = userData.ph;\n  if (userData.ln) gtmeecCookie.ln = userData.ln;\n  if (userData.fn) gtmeecCookie.fn = userData.fn;\n  if (userData.ct) gtmeecCookie.ct = userData.ct;\n  if (userData.st) gtmeecCookie.st = userData.st;\n  if (userData.zp) gtmeecCookie.zp = userData.zp;\n  if (userData.ge) gtmeecCookie.ge = userData.ge;\n  if (userData.db) gtmeecCookie.db = userData.db;\n  if (userData.country) gtmeecCookie.country = userData.country;\n  if (userData.external_id) gtmeecCookie.external_id = userData.external_id;\n  if (userData.fb_login_id) gtmeecCookie.fb_login_id = userData.fb_login_id;\n\n  setCookie('_gtmeec', toBase64(JSON.stringify(gtmeecCookie)), {\n    domain: isUIFieldTrue(data.overrideCookieDomain)\n      ? data.overridenCookieDomain || 'auto'\n      : 'auto',\n    path: '/',\n    samesite: 'strict',\n    secure: true,\n    'max-age': 7776000, // 90 days\n    HttpOnly: true\n  });\n}\n\nfunction enhanceEventData(userData) {\n  const cookieValues = getCookieValues('_gtmeec');\n  if ((!cookieValues || cookieValues.length === 0) && !commonCookie._gtmeec) {\n    return userData;\n  }\n\n  const encodedValue = cookieValues[0] || commonCookie._gtmeec;\n  if (!encodedValue) {\n    return userData;\n  }\n\n  const jsonStr = fromBase64(encodedValue);\n  if (!jsonStr) {\n    return userData;\n  }\n\n  const gtmeecData = JSON.parse(jsonStr);\n\n  if (gtmeecData) {\n    if (!userData.em && gtmeecData.em) userData.em = gtmeecData.em;\n    if (!userData.ph && gtmeecData.ph) userData.ph = gtmeecData.ph;\n    if (!userData.ln && gtmeecData.ph) userData.ln = gtmeecData.ln;\n    if (!userData.fn && gtmeecData.fn) userData.fn = gtmeecData.fn;\n    if (!userData.ct && gtmeecData.ct) userData.ct = gtmeecData.ct;\n    if (!userData.st && gtmeecData.st) userData.st = gtmeecData.st;\n    if (!userData.zp && gtmeecData.zp) userData.zp = gtmeecData.zp;\n    if (!userData.ge && gtmeecData.ge) userData.ge = gtmeecData.ge;\n    if (!userData.db && gtmeecData.db) userData.db = gtmeecData.db;\n    if (!userData.country && gtmeecData.country)\n      userData.country = gtmeecData.country;\n    if (!userData.external_id && gtmeecData.external_id)\n      userData.external_id = gtmeecData.external_id;\n    if (!userData.fb_login_id && gtmeecData.fb_login_id)\n      userData.fb_login_id = gtmeecData.fb_login_id;\n  }\n\n  return userData;\n}\n\n/*==============================================================================\n  Helpers\n==============================================================================*/\n\nfunction enc(data) {\n  return encodeUriComponent(data || '');\n}\n\nfunction isHashed(value) {\n  if (!value) return false;\n  return makeString(value).match('^[A-Fa-f0-9]{64}$') !== null;\n}\n\nfunction isValidValue(value) {\n  const valueType = getType(value);\n  return valueType !== 'null' && valueType !== 'undefined' && value !== '';\n}\n\nfunction normalizePhoneNumber(phoneNumber) {\n  if (!phoneNumber) return phoneNumber;\n  const itemRegex = createRegex('^[0-9]$');\n  return phoneNumber\n    .split('')\n    .filter((item) => testRegex(itemRegex, item))\n    .join('');\n}\n\nfunction isUIFieldTrue(field) {\n  return [true, 'true'].indexOf(field) !== -1;\n}\n\nfunction mergeObj(target, source) {\n  for (const key in source) {\n    if (source.hasOwnProperty(key)) target[key] = source[key];\n  }\n  return target;\n}\n\nfunction isConsentGivenOrNotRequired() {\n  if (data.adStorageConsent !== 'required') return true;\n  if (eventData.consent_state) return !!eventData.consent_state.ad_storage;\n  const xGaGcs = eventData['x-ga-gcs'] || ''; // x-ga-gcs is a string like \"G110\"\n  return xGaGcs[2] === '1';\n}\n\nfunction log(rawDataToLog) {\n  const logDestinationsHandlers = {};\n  if (determinateIsLoggingEnabled())\n    logDestinationsHandlers.console = logConsole;\n  if (determinateIsLoggingEnabledForBigQuery())\n    logDestinationsHandlers.bigQuery = logToBigQuery;\n\n  const keyMappings = {\n    // No transformation for Console is needed.\n    bigQuery: {\n      Name: 'tag_name',\n      Type: 'type',\n      TraceId: 'trace_id',\n      EventName: 'event_name',\n      RequestMethod: 'request_method',\n      RequestUrl: 'request_url',\n      RequestBody: 'request_body',\n      ResponseStatusCode: 'response_status_code',\n      ResponseHeaders: 'response_headers',\n      ResponseBody: 'response_body'\n    }\n  };\n\n  for (const logDestination in logDestinationsHandlers) {\n    const handler = logDestinationsHandlers[logDestination];\n    if (!handler) continue;\n\n    const mapping = keyMappings[logDestination];\n    const dataToLog = mapping ? {} : rawDataToLog;\n\n    if (mapping) {\n      for (const key in rawDataToLog) {\n        const mappedKey = mapping[key] || key;\n        dataToLog[mappedKey] = rawDataToLog[key];\n      }\n    }\n\n    handler(dataToLog);\n  }\n}\n\nfunction logConsole(dataToLog) {\n  logToConsole(JSON.stringify(dataToLog));\n}\n\nfunction logToBigQuery(dataToLog) {\n  const connectionInfo = {\n    projectId: data.logBigQueryProjectId,\n    datasetId: data.logBigQueryDatasetId,\n    tableId: data.logBigQueryTableId\n  };\n\n  dataToLog.timestamp = getTimestampMillis();\n\n  ['request_body', 'response_headers', 'response_body'].forEach((p) => {\n    dataToLog[p] = JSON.stringify(dataToLog[p]);\n  });\n\n  BigQuery.insert(connectionInfo, [dataToLog], { ignoreUnknownValues: true });\n}\n\nfunction determinateIsLoggingEnabled() {\n  const containerVersion = getContainerVersion();\n  const isDebug = !!(\n    containerVersion &&\n    (containerVersion.debugMode || containerVersion.previewMode)\n  );\n\n  if (!data.logType) {\n    return isDebug;\n  }\n\n  if (data.logType === 'no') {\n    return false;\n  }\n\n  if (data.logType === 'debug') {\n    return isDebug;\n  }\n\n  return data.logType === 'always';\n}\n\nfunction determinateIsLoggingEnabledForBigQuery() {\n  if (data.bigQueryLogType === 'no') return false;\n  return data.bigQueryLogType === 'always';\n}\n\n\n___SERVER_PERMISSIONS___\n\n[\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"read_event_data\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"eventDataAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"any\"\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"set_cookies\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"allowedCookies\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"name\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"domain\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"path\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"secure\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"session\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"_fbc\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"any\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"any\"\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"name\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"domain\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"path\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"secure\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"session\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"_fbp\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"any\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"any\"\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"name\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"domain\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"path\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"secure\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"session\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"_gtmeec\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"any\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"any\"\n                  }\n                ]\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"send_http\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"allowedUrls\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"urls\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"https://graph.facebook.com/\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"get_cookies\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"cookieAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"cookieNames\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 1,\n                \"string\": \"_fbc\"\n              },\n              {\n                \"type\": 1,\n                \"string\": \"_fbp\"\n              },\n              {\n                \"type\": 1,\n                \"string\": \"_gtmeec\"\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"logging\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"environments\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"all\"\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"read_container_data\",\n        \"versionId\": \"1\"\n      },\n      \"param\": []\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"read_request\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"headerWhitelist\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"headerName\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"trace-id\"\n                  }\n                ]\n              },\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"headerName\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"referer\"\n                  }\n                ]\n              }\n            ]\n          }\n        },\n        {\n          \"key\": \"headersAllowed\",\n          \"value\": {\n            \"type\": 8,\n            \"boolean\": true\n          }\n        },\n        {\n          \"key\": \"requestAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"headerAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"specific\"\n          }\n        },\n        {\n          \"key\": \"queryParameterAccess\",\n          \"value\": {\n            \"type\": 1,\n            \"string\": \"any\"\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  },\n  {\n    \"instance\": {\n      \"key\": {\n        \"publicId\": \"access_bigquery\",\n        \"versionId\": \"1\"\n      },\n      \"param\": [\n        {\n          \"key\": \"allowedTables\",\n          \"value\": {\n            \"type\": 2,\n            \"listItem\": [\n              {\n                \"type\": 3,\n                \"mapKey\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"projectId\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"datasetId\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"tableId\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"operation\"\n                  }\n                ],\n                \"mapValue\": [\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"*\"\n                  },\n                  {\n                    \"type\": 1,\n                    \"string\": \"write\"\n                  }\n                ]\n              }\n            ]\n          }\n        }\n      ]\n    },\n    \"clientAnnotations\": {\n      \"isEditedByUser\": true\n    },\n    \"isRequired\": true\n  }\n]\n\n\n___TESTS___\n\nscenarios:\n- name: Check semantical errors\n  code: \"mock('sendHttpRequest', (requestUrl, requestOptions, requestBody) => {\\n\\\n    \\  return {\\n    then: (callback) => { \\n      callback({ statusCode: 200 });\\n\\\n    \\      return {\\n        then: () => {},\\n        catch: () => {}\\n      };\\n\\\n    \\    },\\n    catch: (callback) => callback()\\n  };\\n});\\n\\nrunCode(mockData);\"\n- name: '[Cookie] Cookie domain is NOT overriden when option is NOT selected'\n  code: |-\n    mockData.overrideCookieDomain = false;\n    mockData.enableEventEnhancement = true;\n\n    const expectedFbp = 'expectedFbp';\n    const expectedFbc = 'expectedFbc';\n    mock('getAllEventData', {\n      _fbp: expectedFbp,\n      _fbc: expectedFbc\n    });\n\n    mock('setCookie', (cookieName, cookieValue, cookieOptions, noEncode) => {\n      switch (cookieName) {\n        case '_fbp':\n        case '_fbc':\n        case '_gtmeec':\n          if (cookieOptions.domain !== 'auto') fail('cookieDomain shouldn\\'t have been overriden');\n          break;\n      }\n    });\n\n    runCode(mockData);\n\n    callLater(() => {\n      assertApi('gtmOnSuccess').wasCalled();\n      assertApi('gtmOnFailure').wasNotCalled();\n    });\n- name: '[Cookie] Cookie domain is overriden when option is selected'\n  code: |-\n    mockData.overrideCookieDomain = true;\n    mockData.overridenCookieDomain = 'example.com';\n    mockData.enableEventEnhancement = true;\n\n    const expectedFbp = 'expectedFbp';\n    const expectedFbc = 'expectedFbc';\n    mock('getAllEventData', {\n      _fbp: expectedFbp,\n      _fbc: expectedFbc\n    });\n\n    mock('setCookie', (cookieName, cookieValue, cookieOptions, noEncode) => {\n      switch (cookieName) {\n        case '_fbp':\n        case '_fbc':\n        case '_gtmeec':\n          assertThat(cookieOptions.domain).isEqualTo(mockData.overridenCookieDomain);\n          break;\n      }\n    });\n\n    runCode(mockData);\n\n    callLater(() => {\n      assertApi('gtmOnSuccess').wasCalled();\n      assertApi('gtmOnFailure').wasNotCalled();\n    });\n- name: '[Action Source = App] Request is sent successfully when using Event Data\n    as source'\n  code: \"mockData.generateFbp = false;\\nmockData.actionSource = 'app';\\nmockData.appDataList\\\n    \\ = undefined;\\n\\nmock('getAllEventData', {\\n  app_data: {\\n    advertiser_tracking_enabled:\\\n    \\ 1,\\n    application_tracking_enabled: 0,\\n    extinfo: [\\n      'a2',\\n    \\\n    \\  'app_id',\\n      'app_version',\\n      'Version app_version',\\n      'os_version',\\n\\\n    \\      'device_model',\\n      'language',\\n      '',\\n      '',\\n      '',\\n \\\n    \\     '',\\n      '',\\n      '',\\n      '',\\n      '',\\n      ''\\n    ],\\n    campaign_ids:\\\n    \\ 'expected-campaign_ids',\\n    install_referrer: 'expected-install_referrer',\\n\\\n    \\    installer_package: 'expected-installer_package', \\n    url_schemes: ['foobar',\\\n    \\ 'abcdef'],\\n    vendor_id: 'expected-vendor_id',\\n    windows_attribution_id:\\\n    \\ 'expected-windows_attribution_id'\\n  }\\n});\\n\\nconst expectedRequestBody = {\\n\\\n    \\  data: [\\n    {\\n      event_name: 'test',\\n      action_source: 'app',\\n  \\\n    \\    event_time: 1747945830,\\n      custom_data: {},\\n      user_data: {},\\n \\\n    \\     app_data: {\\n        advertiser_tracking_enabled: 1,\\n        application_tracking_enabled:\\\n    \\ 0,\\n        extinfo: [\\n          'a2',\\n          'app_id',\\n          'app_version',\\n\\\n    \\          'Version app_version',\\n          'os_version',\\n          'device_model',\\n\\\n    \\          'language',\\n          '',\\n          '',\\n          '',\\n        \\\n    \\  '',\\n          '',\\n          '',\\n          '',\\n          '',\\n         \\\n    \\ ''\\n        ],\\n        campaign_ids: 'expected-campaign_ids',\\n        install_referrer:\\\n    \\ 'expected-install_referrer',\\n        installer_package: 'expected-installer_package',\\n\\\n    \\        url_schemes: ['foobar', 'abcdef'],\\n        vendor_id: 'expected-vendor_id',\\n\\\n    \\        windows_attribution_id: 'expected-windows_attribution_id'\\n      }\\n\\\n    \\    }\\n  ],\\n  partner_agent: expectedPartnerAgent\\n};\\n\\nmock('sendHttpRequest',\\\n    \\ (requestUrl, requestOptions, requestBody) => {\\n  const parsedBody = JSON.parse(requestBody);\\n\\\n    \\  assertThat(parsedBody).isEqualTo(expectedRequestBody);\\n  return Promise.create((resolve,\\\n    \\ reject) => {\\n    resolve({ statusCode: 200 });\\n  });    \\n});\\n\\nrunCode(mockData);\\n\\\n    \\ncallLater(() => {\\n  assertApi('gtmOnSuccess').wasCalled();\\n  assertApi('gtmOnFailure').wasNotCalled();\\n\\\n    });\"\n- name: '[Action Source = App] Request is sent successfully when using UI data as\n    source'\n  code: \"mockData.generateFbp = false;\\nmockData.actionSource = 'app';\\nmockData.appDataList\\\n    \\ = [\\n  { name: 'advertiser_tracking_enabled', value: '1' },\\n  { name: 'application_tracking_enabled',\\\n    \\ value: '0' },\\n  { \\n   name: 'extinfo',\\n   value: \\n     [\\n      'a2',\\n\\\n    \\      'app_id',\\n      'app_version',\\n      'Version app_version',\\n      'os_version',\\n\\\n    \\      'device_model',\\n      'language',\\n      '',\\n      '',\\n      '',\\n \\\n    \\     '',\\n      '',\\n      '',\\n      '',\\n      '',\\n      ''\\n    ]\\n  },\\n\\\n    \\  { name: 'campaign_ids', value: 'expected-campaign_ids' },\\n  { name: 'install_referrer',\\\n    \\ value: 'expected-install_referrer' },\\n  { name: 'installer_package', value:\\\n    \\ 'expected-installer_package' }, \\n  { name: 'url_schemes', value: ['foobar',\\\n    \\ 'abcdef'] },\\n  { name: 'vendor_id', value: 'expected-vendor_id' },\\n  { name:\\\n    \\ 'windows_attribution_id', value: 'expected-windows_attribution_id' }\\n];\\n\\n\\\n    mock('getAllEventData', {});\\n\\nconst expectedRequestBody = {\\n  data: [\\n   \\\n    \\ {\\n      event_name: 'test',\\n      action_source: 'app',\\n      event_time:\\\n    \\ 1747945830,\\n      custom_data: {},\\n      user_data: {},\\n      app_data: {\\n\\\n    \\        advertiser_tracking_enabled: '1',\\n        application_tracking_enabled:\\\n    \\ '0',\\n        extinfo: [\\n          'a2',\\n          'app_id',\\n          'app_version',\\n\\\n    \\          'Version app_version',\\n          'os_version',\\n          'device_model',\\n\\\n    \\          'language',\\n          '',\\n          '',\\n          '',\\n        \\\n    \\  '',\\n          '',\\n          '',\\n          '',\\n          '',\\n         \\\n    \\ ''\\n        ],\\n        campaign_ids: 'expected-campaign_ids',\\n        install_referrer:\\\n    \\ 'expected-install_referrer',\\n        installer_package: 'expected-installer_package',\\n\\\n    \\        url_schemes: ['foobar', 'abcdef'],\\n        vendor_id: 'expected-vendor_id',\\n\\\n    \\        windows_attribution_id: 'expected-windows_attribution_id'\\n      }\\n\\\n    \\    }\\n  ],\\n  partner_agent: expectedPartnerAgent\\n};\\n\\nmock('sendHttpRequest',\\\n    \\ (requestUrl, requestOptions, requestBody) => {\\n  const parsedBody = JSON.parse(requestBody);\\n\\\n    \\  assertThat(parsedBody).isEqualTo(expectedRequestBody);\\n  return Promise.create((resolve,\\\n    \\ reject) => {\\n    resolve({ statusCode: 200 });\\n  });    \\n});\\n\\nrunCode(mockData);\\n\\\n    \\ncallLater(() => {\\n  assertApi('gtmOnSuccess').wasCalled();\\n  assertApi('gtmOnFailure').wasNotCalled();\\n\\\n    });\"\n- name: '[Event = AppendValue] Request is sent successfully'\n  code: \"mockData.inheritEventName = 'override';\\nmockData.eventNameCustom = 'AppendValue';\\n\\\n    mockData.generateFbp = false;\\nmockData.actionSource = 'website';\\nmockData.userDataList\\\n    \\ = [\\n  { name: 'em', value: 'test' },\\n  { name: 'ph', value: 'test' }\\n];\\n\\\n    mockData.customDataList = [\\n  { name: 'currency', value: 'BRL' },\\n  { name:\\\n    \\ 'net_revenue', value: 123 }\\n];\\nmockData.originalEventDataList = [\\n  { name:\\\n    \\ 'event_name', value: 'Purchase' },\\n  { name: 'event_time', value: 17555555\\\n    \\ },\\n  { name: 'order_id', value: 'foobar123' },\\n  { name: 'event_id', value:\\\n    \\ '1747945830' }\\n];\\n\\nmock('getAllEventData', {});\\n\\nconst expectedRequestBody\\\n    \\ = {\\n  data: [\\n    {\\n      event_name: 'AppendValue',\\n      event_time: 1747945830,\\n\\\n    \\      custom_data: { currency: 'BRL', net_revenue: 123 },\\n      user_data: {\\n\\\n    \\        em: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',\\n\\\n    \\        ph: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\\n\\\n    \\      },\\n      original_event_data: {\\n        event_name: 'Purchase',\\n   \\\n    \\     event_time: 17555555,\\n        order_id: 'foobar123',\\n        event_id:\\\n    \\ '1747945830'\\n      }\\n    }\\n  ],\\n  partner_agent: expectedPartnerAgent\\n\\\n    };\\n\\nmock('sendHttpRequest', (requestUrl, requestOptions, requestBody) => {\\n\\\n    \\  const parsedBody = JSON.parse(requestBody);\\n  assertThat(parsedBody).isEqualTo(expectedRequestBody);\\n\\\n    \\  return Promise.create((resolve, reject) => {\\n    resolve({ statusCode: 200\\\n    \\ });\\n  });    \\n});\\n\\nrunCode(mockData);\\n\\ncallLater(() => {\\n  assertApi('gtmOnSuccess').wasCalled();\\n\\\n    \\  assertApi('gtmOnFailure').wasNotCalled();\\n});\"\n- name: '[Parameters from Object or List] Parameters are read and sent succesfullly'\n  code: \"mockData.actionSource = 'app'; // Using 'app' just to have access to the\\\n    \\ App Data section.\\n\\n[\\n  // Object empty, list empty\\n  {\\n    mockDataObj:\\\n    \\ {\\n      appDataObject: undefined,\\n      appDataList: undefined,\\n      userDataObject:\\\n    \\ undefined,\\n      userDataList: undefined,\\n      customDataObject: undefined,\\n\\\n    \\      customDataList: undefined\\n    },\\n    expectedRequestBody: {\\n      appData:\\\n    \\ {\\n        advertiser_tracking_enabled: 0,\\n        application_tracking_enabled:\\\n    \\ 0,\\n        extinfo: ['', '', '', '', '', '', '', '', '', '', '', '', '', '',\\\n    \\ '', '']\\n      },\\n      userData: {},\\n      customData: {}\\n    }\\n  },\\n\\\n    \\  \\n  // Object empty, list not-empty\\n  {\\n    mockDataObj: {\\n      appDataObject:\\\n    \\ undefined,\\n      appDataList: [\\n        { name: 'vendor_id', value: 'vendor_id'\\\n    \\ },\\n        { name: 'campaign_ids', value: 'campaign_ids' }\\n      ],\\n    \\\n    \\  userDataObject: undefined,\\n      userDataList: [{ name: 'fn', value: 'test'\\\n    \\ }],\\n      customDataObject: undefined,\\n      customDataList: [\\n        {\\\n    \\ name: 'currency', value: 'BRL' },\\n        { name: 'net_revenue', value: 123\\\n    \\ },\\n        { name: 'test', value: 'test' }\\n      ]\\n    },\\n    expectedRequestBody:\\\n    \\ {\\n      appData: {\\n        advertiser_tracking_enabled: 0,\\n        application_tracking_enabled:\\\n    \\ 0,\\n        extinfo: ['', '', '', '', '', '', '', '', '', '', '', '', '', '',\\\n    \\ '', ''],\\n        vendor_id: 'vendor_id',\\n        campaign_ids: 'campaign_ids'\\n\\\n    \\      },\\n      userData: { fn: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'\\\n    \\ },\\n      customData: { currency: 'BRL', net_revenue: 123, test: 'test' }\\n\\\n    \\    }\\n  },\\n  \\n  // Object not-empty, list empty\\n  {\\n    mockDataObj: {\\n\\\n    \\      appDataObject: { vendor_id: 'vendor_id_obj' },\\n      appDataList: undefined,\\n\\\n    \\      userDataObject: { em: 'test@example.com_obj' },\\n      userDataList: undefined,\\n\\\n    \\      customDataObject: { test: 'test_obj' },\\n      customDataList: undefined\\n\\\n    \\    },\\n    expectedRequestBody: {\\n      appData: {\\n        advertiser_tracking_enabled:\\\n    \\ 0,\\n        application_tracking_enabled: 0,\\n        extinfo: ['', '', '',\\\n    \\ '', '', '', '', '', '', '', '', '', '', '', '', ''],\\n        vendor_id: 'vendor_id_obj'\\n\\\n    \\      },\\n      userData: { em: '0217a86a7b92e2511273b0081bfc67f939b7f9a897d960849690056732795b3d'\\\n    \\ },\\n      customData: { test: 'test_obj' }\\n    }\\n  },\\n  \\n  // Object not-empty\\\n    \\ and list not-empty, with different values each.\\n  {\\n    mockDataObj: {\\n \\\n    \\     appDataObject: { vendor_id: 'vendor_id_obj' },\\n      appDataList: [\\n \\\n    \\       { name: 'campaign_ids', value: 'campaign_ids' }\\n      ],\\n      userDataObject:\\\n    \\ { em: 'test@example.com_obj' },\\n      userDataList: [{ name: 'fn', value: 'test'\\\n    \\ }],\\n      customDataObject: { test: 'test_obj' },\\n      customDataList: [\\n\\\n    \\        { name: 'currency', value: 'BRL' },\\n        { name: 'net_revenue', value:\\\n    \\ 123 }\\n      ],\\n    },\\n    expectedRequestBody: {\\n      appData: {\\n    \\\n    \\    advertiser_tracking_enabled: 0,\\n        application_tracking_enabled: 0,\\n\\\n    \\        extinfo: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '',\\\n    \\ ''],\\n        vendor_id: 'vendor_id_obj',\\n        campaign_ids: 'campaign_ids'\\n\\\n    \\      },\\n      userData: { em: '0217a86a7b92e2511273b0081bfc67f939b7f9a897d960849690056732795b3d',\\\n    \\ fn: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08' },\\n\\\n    \\      customData: { test: 'test_obj', currency: 'BRL', net_revenue: 123 }\\n \\\n    \\   }\\n  },\\n  \\n  // Object not-empty and list not-empty, with overlapping values.\\\n    \\ Should favor list.\\n  {\\n    mockDataObj: {\\n      appDataObject: { vendor_id:\\\n    \\ 'vendor_id_obj' },\\n      appDataList: [\\n        { name: 'vendor_id', value:\\\n    \\ 'vendor_id' },\\n        { name: 'campaign_ids', value: 'campaign_ids' }\\n  \\\n    \\    ],\\n      userDataObject: { em: 'test@example.com_obj' },\\n      userDataList:\\\n    \\ [{ name: 'fn', value: 'test' }, { name: 'em', value: 'test' }],\\n      customDataObject:\\\n    \\ { test: 'test_obj' },\\n      customDataList: [\\n        { name: 'currency',\\\n    \\ value: 'BRL' },\\n        { name: 'net_revenue', value: 123 },\\n        { name:\\\n    \\ 'test', value: 'test' }\\n      ],\\n    },\\n    expectedRequestBody: {\\n    \\\n    \\  appData: {\\n        advertiser_tracking_enabled: 0,\\n        application_tracking_enabled:\\\n    \\ 0,\\n        extinfo: ['', '', '', '', '', '', '', '', '', '', '', '', '', '',\\\n    \\ '', ''],\\n        vendor_id: 'vendor_id',\\n        campaign_ids: 'campaign_ids'\\n\\\n    \\      },\\n      userData: { em: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',\\\n    \\ fn: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08' },\\n\\\n    \\      customData: { test: 'test', currency: 'BRL', net_revenue: 123 }\\n    }\\n\\\n    \\  }\\n].forEach((scenario, index) => {\\n  const copyMockData = JSON.parse(JSON.stringify(mockData));\\n\\\n    \\  mergeObj(copyMockData, scenario.mockDataObj);\\n  \\n  mock('sendHttpRequest',\\\n    \\ (requestUrl, requestOptions, requestBody) => {\\n    const parsedBody = JSON.parse(requestBody);\\n\\\n    \\    assertThat(parsedBody.data[0].app_data).isEqualTo(scenario.expectedRequestBody.appData);\\n\\\n    \\    assertThat(parsedBody.data[0].user_data).isEqualTo(scenario.expectedRequestBody.userData);\\n\\\n    \\    assertThat(parsedBody.data[0].custom_data).isEqualTo(scenario.expectedRequestBody.customData);\\n\\\n    \\    return Promise.create((resolve, reject) => {\\n      resolve({ statusCode:\\\n    \\ 200 });\\n    });\\n  });\\n  \\n  runCode(copyMockData);\\n  \\n  callLater(() =>\\\n    \\ {\\n    assertApi('gtmOnSuccess').wasCalled();\\n    assertApi('gtmOnFailure').wasNotCalled();\\n\\\n    \\  });\\n});\"\n- name: '[App Secret Proof] App Secret Proof is handled and sent succesfully'\n  code: \"mockData.useAppSecretProof = true;\\nmockData.appSecretProof = 'appSecretProof1';\\n\\\n    \\nmock('sendHttpRequest', (requestUrl, requestOptions, requestBody) => {\\n  const\\\n    \\ pixelId = mockData.pixelId;\\n  const accessToken = mockData.accessToken;\\n \\\n    \\ const appSecretProof = mockData.appSecretProof;\\n  \\n  assertThat(requestUrl).isEqualTo(\\n\\\n    \\    'https://graph.facebook.com/v23.0/' + pixelId + \\n    '/events?access_token='\\\n    \\ + accessToken +\\n    '&appsecret_proof=' + appSecretProof\\n  );\\n\\n  return\\\n    \\ Promise.create((resolve, reject) => {\\n    resolve({ statusCode: 200 });\\n \\\n    \\ });  \\n});\\n\\nrunCode(mockData);\\n\\ncallLater(() => {\\n  assertApi('gtmOnSuccess').wasCalled();\\n\\\n    \\  assertApi('gtmOnFailure').wasNotCalled();\\n});\"\n- name: gtmOnFailure handler is called if some response fails with status code\n  code: \"mockData.enableMultipixelSetup = true;\\nmockData.pixelIdAndAccessTokenTable\\\n    \\ = [\\n  {\\n    pixelId: 'pixelId2',\\n    accessToken: 'accessToken2',\\n    appSecretProof:\\\n    \\ 'appSecretProof2'\\n  }\\n];\\n\\nconst lastRequestIndex = mockData.pixelIdAndAccessTokenTable.length\\\n    \\ + 1;\\n\\nlet requestCount = 0;\\nmock('sendHttpRequest', (requestUrl, requestOptions,\\\n    \\ requestBody) => {\\n  requestCount++;\\n  return Promise.create((resolve, reject)\\\n    \\ => {\\n    resolve({ statusCode: (requestCount === lastRequestIndex) ? 500 :\\\n    \\ 200 });\\n  });  \\n});\\n\\nrunCode(mockData);\\n\\ncallLater(() => {\\n  assertApi('gtmOnSuccess').wasNotCalled();\\n\\\n    \\  assertApi('gtmOnFailure').wasCalled();\\n});\"\n- name: gtmOnFailure handler is called if some response rejects\n  code: |-\n    mock('sendHttpRequest', (requestUrl, requestOptions, requestBody) => { });\n\n    mockObject('Promise', {\n      all: () => Promise.create((resolve, reject) => reject({ reason: 'failed' }))\n    });\n\n    runCode(mockData);\n\n    callLater(() => {\n      assertApi('gtmOnSuccess').wasNotCalled();\n      assertApi('gtmOnFailure').wasCalled();\n    });\n- name: '[Logs] Should log to console'\n  code: \"const originalMockData = mockData;\\n\\n[\\n  // if the 'Always log to console'\\\n    \\ option is selected\\n  { mockData: { logType: 'always' }, expectedDebugMode:\\\n    \\ true },\\n  // if the 'Log during debug and preview' option is selected AND is\\\n    \\ on preview mode\\n  { mockData: { logType: 'debug' }, expectedDebugMode: true\\\n    \\ },\\n].forEach(scenario => {\\n  const copyMockData = JSON.parse(JSON.stringify(originalMockData));\\n\\\n    \\  mergeObj(copyMockData, scenario.mockData);\\n  \\n  mock('getContainerVersion',\\\n    \\ () => {\\n    return {\\n      debugMode: scenario.expectedDebugMode\\n    };\\n\\\n    \\  }); \\n  \\n  mock('logToConsole', (logData) => {\\n    const parsedLogData =\\\n    \\ JSON.parse(logData);\\n    requiredConsoleKeys.forEach(p => assertThat(parsedLogData[p]).isDefined());\\n\\\n    \\  });\\n  \\n  runCode(copyMockData);\\n  \\n  callLater(() => {\\n    assertApi('logToConsole').wasCalled();\\n\\\n    \\    assertApi('gtmOnSuccess').wasCalled();\\n    assertApi('gtmOnFailure').wasNotCalled();\\n\\\n    \\  });\\n});\"\n- name: '[Logs] Should NOT log to console'\n  code: \"const originalMockData = mockData;\\n\\n[\\n  // if the 'Log during debug and\\\n    \\ preview' option is selected AND is NOT on preview mode\\n  { mockData: { logType:\\\n    \\ 'debug' }, expectedDebugMode: false },\\n  // if the 'Do not log' option is selected\\n\\\n    \\  { mockData: { logType: 'no' }, expectedDebugMode: undefined },\\n].forEach(scenario\\\n    \\ => {\\n  const copyMockData = JSON.parse(JSON.stringify(originalMockData));\\n\\\n    \\  mergeObj(copyMockData, scenario.mockData);\\n  \\n  mock('getContainerVersion',\\\n    \\ () => {\\n    return {\\n      debugMode: scenario.expectedDebugMode\\n    };\\n\\\n    \\  });\\n  \\n  runCode(copyMockData);\\n\\n  callLater(() => {\\n    assertApi('logToConsole').wasNotCalled();\\n\\\n    \\    assertApi('gtmOnSuccess').wasCalled();\\n    assertApi('gtmOnFailure').wasNotCalled();\\n\\\n    \\  });\\n});\"\n- name: '[Logs] Should log to BQ, if the ''Log to BigQuery'' option is selected'\n  code: \"mockData.bigQueryLogType = 'always';\\n\\nmockObject('BigQuery', {\\n  insert:\\\n    \\ (connectionInfo, rows, options) => { \\n    assertThat(connectionInfo).isDefined();\\n\\\n    \\    assertThat(rows).isArray();\\n    assertThat(rows).hasLength(1);\\n    requiredBqKeys.forEach(p\\\n    \\ => assertThat(rows[0][p]).isDefined());\\n    assertThat(options).isEqualTo(expectedBqOptions);\\n\\\n    \\    return Promise.create((resolve, reject) => {\\n      resolve();\\n    });\\n\\\n    \\  }\\n});\\n\\nrunCode(mockData);\\n\\ncallLater(() => {\\n  assertApi('gtmOnSuccess').wasCalled();\\n\\\n    \\  assertApi('gtmOnFailure').wasNotCalled();\\n});\"\n- name: '[Logs] Should NOT log to BQ, if the ''Do not log to BigQuery'' option is\n    selected'\n  code: \"mockData.bigQueryLogType = 'no';\\n\\n// assertApi doesn't work for 'BigQuery.insert()'.\\n\\\n    // Ref: https://gtm-gear.com/posts/gtm-templates-testing/\\nmockObject('BigQuery',\\\n    \\ {\\n  insert: (connectionInfo, rows, options) => { \\n    fail('BigQuery.insert\\\n    \\ should not have been called.');\\n    return Promise.create((resolve, reject)\\\n    \\ => {\\n      resolve();\\n    });\\n  }\\n});\\n\\nrunCode(mockData);\\n\\ncallLater(()\\\n    \\ => {\\n  assertApi('gtmOnSuccess').wasCalled();\\n  assertApi('gtmOnFailure').wasNotCalled();\\n\\\n    });\"\nsetup: \"const JSON = require('JSON');\\nconst Promise = require('Promise');\\nconst\\\n  \\ callLater = require('callLater');\\n\\nconst mergeObj = (target, source) => {\\n\\\n  \\  for (const key in source) {\\n    if (source.hasOwnProperty(key)) target[key]\\\n  \\ = source[key];\\n  }\\n  return target;\\n};\\n\\nconst expectedBigQuerySettings =\\\n  \\ {\\n  logBigQueryProjectId: 'logBigQueryProjectId',\\n  logBigQueryDatasetId: 'logBigQueryDatasetId',\\n\\\n  \\  logBigQueryTableId: 'logBigQueryTableId'\\n};\\n\\nconst requiredConsoleKeys = ['Type',\\\n  \\ 'TraceId', 'Name'];\\nconst requiredBqKeys = ['timestamp', 'type', 'trace_id',\\\n  \\ 'tag_name'];\\nconst expectedBqOptions = { ignoreUnknownValues: true };\\n\\nconst\\\n  \\ expectedValue = 'test';\\nconst expectedPixelId = '1111111111111';\\nconst expectedPartnerAgent\\\n  \\ = 'stape-gtmss-2.1.2';\\n\\nconst mockData = {\\n  pixelId: expectedPixelId,\\n  accessToken:\\\n  \\ expectedValue,\\n  inheritEventName: 'override',\\n  eventNameCustom: expectedValue,\\n\\\n  \\  logBigQueryProjectId: expectedBigQuerySettings.logBigQueryProjectId,\\n  logBigQueryDatasetId:\\\n  \\ expectedBigQuerySettings.logBigQueryDatasetId,\\n  logBigQueryTableId: expectedBigQuerySettings.logBigQueryTableId,\\n\\\n  };\\n\\nmock('sendHttpRequest', (requestUrl, callback, requestOptions, requestBody)\\\n  \\ => {\\n  if (typeof callback === 'function') {\\n    callback(200);\\n  } else {\\n\\\n  \\    requestBody = requestOptions;\\n    requestOptions = callback;\\n    return Promise.create((resolve,\\\n  \\ reject) => {\\n      resolve({ statusCode: 200 });\\n    });  \\n  }\\n});\\n\\nmock('getRequestHeader',\\\n  \\ (header) => {\\n  if (header === 'trace-id') return 'expectedTraceId';\\n});\\n\\n\\\n  mock('getTimestampMillis', 1747945830456);\"\n\n\n___NOTES___\n\nCreated on 10/11/2020, 18:14:02\n\n\n",
+                "galleryReference": {
+                    "host": "github.com",
+                    "owner": "stape-io",
+                    "repository": "facebook-tag",
+                    "version": "8093c373ed116395251221f85e50c5e71f830b16",
+                    "signature": "387e76bda99720cd09224f013fbf37ce9c54be66e31cbc01b4669a4ff272e6dd",
+                    "galleryTemplateId": "5TP8W"
+                }
+            }
+        ],
+        "client": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "clientId": "51",
+                "name": "Client to Receive GA4 Requests",
+                "type": "gaaw_client",
+                "parameter": [
+                    {
+                        "type": "TEMPLATE",
+                        "key": "cookieDomain",
+                        "value": "auto"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "cookieMaxAgeInSec",
+                        "value": "63072000"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "activateDefaultPaths",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "cookiePath",
+                        "value": "/"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "migrateFromJsClientId",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "cookieManagement",
+                        "value": "server"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "cookieName",
+                        "value": "FPID"
+                    }
+                ],
+                "fingerprint": "1759464375230"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "clientId": "52",
+                "name": "Client to Serve Google Scripts",
+                "type": "gtm_client",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "activateResponseCompression",
+                        "value": "true"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "activateGeoResolution",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "activateDependencyServing",
+                        "value": "true"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "allowedContainerIds",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "containerId",
+                                        "value": "{{GTM - Web Container ID}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "fingerprint": "1759464438243"
+            }
+        ],
+        "transformation": [
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "transformationId": "35",
+                "name": "99 - ALLOW – Lead essentials",
+                "type": "tf_allow_params",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "matchingConditionsEnabled",
+                        "value": "true"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "allowedParamsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "event_id"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "page_location"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "value"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "currency"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "form_id"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "utm_campaign"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "ec_email_sha256"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "ec_phone_sha256"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "_fbp"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "_fbc"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "x-ga-npa"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "user_agent"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "ip_override"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "allowedParams",
+                                        "value": "event_time_seconds"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "allTagsExcept",
+                        "value": "true"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "booleanExpressionString"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "affectedTags"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "affectedTagTypes"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "matchingConditionsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "variableName",
+                                        "value": "Event Name"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "variableReference",
+                                        "value": "{{Event Name}}"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "expressionType",
+                                        "value": "EQUALS"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "expressionValue",
+                                        "value": "generate_lead"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "priority",
+                        "value": "99"
+                    }
+                ],
+                "fingerprint": "1759183142596"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "transformationId": "48",
+                "name": "97 - EXCLUDE – PII when NPA",
+                "type": "tf_exclude_params",
+                "parameter": [
+                    {
+                        "type": "LIST",
+                        "key": "excludedParamsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "excludedParams",
+                                        "value": "ec_email_sha256"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "excludedParams",
+                                        "value": "ec_phone_sha256"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "excludedParams",
+                                        "value": "ip_override"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "excludedParams",
+                                        "value": "user_agent"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "excludedParams",
+                                        "value": "user_data.fbc"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "excludedParams",
+                                        "value": "user_data.fbc"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "matchingConditionsEnabled",
+                        "value": "true"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "allTagsExcept",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "booleanExpressionString"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "affectedTags",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TAG_REFERENCE",
+                                        "key": "tagReference",
+                                        "value": "GAds - Conversion - New Lead",
+                                        "isWeakReference": false
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TAG_REFERENCE",
+                                        "key": "tagReference",
+                                        "value": "Meta - Send Lead",
+                                        "isWeakReference": false
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TAG_REFERENCE",
+                                        "key": "tagReference",
+                                        "value": "GA - Events",
+                                        "isWeakReference": false
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TAG_REFERENCE",
+                                        "key": "tagReference",
+                                        "value": "Conversion Linker",
+                                        "isWeakReference": false
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "affectedTagTypes"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "matchingConditionsTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "variableName",
+                                        "value": "v_x_ga_npa"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "variableReference",
+                                        "value": "{{v_x_ga_npa}}"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "expressionType",
+                                        "value": "EQUALS"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "expressionValue",
+                                        "value": "1"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "priority",
+                        "value": "97"
+                    }
+                ],
+                "fingerprint": "1759272168774"
+            },
+            {
+                "accountId": "1234567890",
+                "containerId": "987654321",
+                "transformationId": "50",
+                "name": "98 - Google User Provided Data",
+                "type": "tf_augment_event",
+                "parameter": [
+                    {
+                        "type": "BOOLEAN",
+                        "key": "matchingConditionsEnabled",
+                        "value": "false"
+                    },
+                    {
+                        "type": "BOOLEAN",
+                        "key": "allTagsExcept",
+                        "value": "false"
+                    },
+                    {
+                        "type": "TEMPLATE",
+                        "key": "booleanExpressionString"
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "augmentEventTable",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "paramName",
+                                        "value": "user_data.sha256_email_address"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "paramValue",
+                                        "value": "{{v_ec_email_sha256}}"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "paramName",
+                                        "value": "user_data.sha256_phone_number"
+                                    },
+                                    {
+                                        "type": "TEMPLATE",
+                                        "key": "paramValue",
+                                        "value": "{{v_ec_phone_sha256}}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "affectedTags",
+                        "list": [
+                            {
+                                "type": "MAP",
+                                "map": [
+                                    {
+                                        "type": "TAG_REFERENCE",
+                                        "key": "tagReference",
+                                        "value": "GAds - User-provided Data Event",
+                                        "isWeakReference": false
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "LIST",
+                        "key": "affectedTagTypes"
+                    }
+                ],
+                "fingerprint": "1759272168775"
+            }
+        ]
+    }
+}
