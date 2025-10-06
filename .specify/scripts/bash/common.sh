@@ -72,9 +72,14 @@ check_feature_branch() {
         return 0
     fi
     
-    if [[ ! "$branch" =~ ^feat\/ ]]; then
-        echo "ERROR: Not on a feature branch. Current branch: $branch" >&2
-        echo "Feature branches should be named like: feat/feature-name" >&2
+    # Support multiple branch naming conventions used in this project:
+    # - Numbered format: 000-adopt-spec-tools, 001-update-the-ci, etc.
+    # - Feature prefixes: feat/, feature/, fix/, ref/, release/
+    if [[ ! "$branch" =~ ^([0-9]{3}-|feat/|feature/|fix/|ref/|release/) ]]; then
+        echo "ERROR: Not on a recognized feature branch. Current branch: $branch" >&2
+        echo "Supported branch formats:" >&2
+        echo "  - Numbered: 000-feature-name, 001-feature-name, etc." >&2
+        echo "  - Prefixed: feat/feature-name, feature/name, fix/name, ref/name, release/name" >&2
         return 1
     fi
     

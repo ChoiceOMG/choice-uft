@@ -101,8 +101,21 @@ class CUFT_Cron_Manager {
 			return;
 		}
 
+		// Calculate next run time based on frequency
+		$next_run = time();
+		if ( $frequency === 'twicedaily' ) {
+			// Schedule for next 12-hour interval (either noon or midnight)
+			$next_run = time() + ( 12 * HOUR_IN_SECONDS );
+		} elseif ( $frequency === 'daily' ) {
+			// Schedule for tomorrow at same time
+			$next_run = time() + DAY_IN_SECONDS;
+		} elseif ( $frequency === 'weekly' ) {
+			// Schedule for next week
+			$next_run = time() + WEEK_IN_SECONDS;
+		}
+
 		// Schedule event
-		wp_schedule_event( time(), $frequency, self::CRON_HOOK );
+		wp_schedule_event( $next_run, $frequency, self::CRON_HOOK );
 
 		// Log scheduling
 		CUFT_Update_Log::log( 'cron_scheduled', 'info', array(
@@ -235,7 +248,17 @@ class CUFT_Cron_Manager {
 			return null;
 		}
 
-		return human_time_diff( time(), $timestamp );
+		// If the scheduled time is in the past, return "due now"
+		if ( $timestamp < time() ) {
+			return __( 'due now', 'choice-uft' );
+		}
+
+		// Return time difference with "in" prefix
+		return sprintf(
+			/* translators: %s: human time difference */
+			__( 'in %s', 'choice-uft' ),
+			human_time_diff( time(), $timestamp )
+		);
 	}
 
 	/**

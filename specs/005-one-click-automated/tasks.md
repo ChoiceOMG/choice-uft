@@ -50,25 +50,25 @@
 - [X] T002 Update JavaScript nonce handling (assets/admin/js/cuft-updater.js)
 - [X] T003 Test nonce validation fix with quickstart.md Scenario 1
 
-## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
+## Phase 3.2: Tests First (TDD) ✅ COMPLETED
 
 ### Contract Tests [P] - Can run in parallel
-- [ ] T004 [P] Create PHPUnit test for cuft_check_update endpoint (tests/ajax/test-check-update.php)
-- [ ] T005 [P] Create PHPUnit test for cuft_perform_update endpoint (tests/ajax/test-perform-update.php)
-- [ ] T006 [P] Create PHPUnit test for cuft_update_status endpoint (tests/ajax/test-update-status.php)
-- [ ] T007 [P] Create PHPUnit test for cuft_rollback_update endpoint (tests/ajax/test-rollback-update.php)
-- [ ] T008 [P] Create PHPUnit test for cuft_update_history endpoint (tests/ajax/test-update-history.php)
-- [ ] T009 [P] Create PHPUnit test for cuft_update_settings endpoint (tests/ajax/test-update-settings.php)
+- [X] T004 [P] Create PHPUnit test for cuft_check_update endpoint (tests/ajax/test-check-update.php)
+- [X] T005 [P] Create PHPUnit test for cuft_perform_update endpoint (tests/ajax/test-perform-update.php)
+- [X] T006 [P] Create PHPUnit test for cuft_update_status endpoint (tests/ajax/test-update-status.php)
+- [X] T007 [P] Create PHPUnit test for cuft_rollback_update endpoint (tests/ajax/test-rollback-update.php)
+- [X] T008 [P] Create PHPUnit test for cuft_update_history endpoint (tests/ajax/test-update-history.php)
+- [X] T009 [P] Create PHPUnit test for cuft_update_settings endpoint (tests/ajax/test-update-settings.php)
 
 ### Integration Tests [P]
-- [ ] T010 [P] Create test for Scenario 2: Check for Updates Happy Path (tests/integration/test-check-updates.php)
-- [ ] T011 [P] Create test for Scenario 3: One-Click Update Flow (tests/integration/test-update-flow.php)
-- [ ] T012 [P] Create test for Scenario 4: Network Failure Handling (tests/integration/test-network-failure.php)
-- [ ] T013 [P] Create test for Scenario 5: Automatic Rollback (tests/integration/test-rollback.php)
-- [ ] T014 [P] Create test for Scenario 6: Concurrent Update Prevention (tests/integration/test-concurrent.php)
-- [ ] T015 [P] Create test for Scenario 7: Update Scheduling (tests/integration/test-scheduling.php)
-- [ ] T016 [P] Create test for corrupted ZIP file handling (tests/integration/test-corrupted-download.php)
-- [ ] T017 [P] Create test for settings preservation during update (tests/integration/test-settings-preservation.php)
+- [X] T010 [P] Create test for Scenario 2: Check for Updates Happy Path (tests/integration/test-check-updates.php)
+- [X] T011 [P] Create test for Scenario 3: One-Click Update Flow (tests/integration/test-update-flow.php)
+- [X] T012 [P] Create test for Scenario 4: Network Failure Handling (tests/integration/test-network-failure.php)
+- [X] T013 [P] Create test for Scenario 5: Automatic Rollback (tests/integration/test-rollback.php)
+- [X] T014 [P] Create test for Scenario 6: Concurrent Update Prevention (tests/integration/test-concurrent.php)
+- [X] T015 [P] Create test for Scenario 7: Update Scheduling (tests/integration/test-scheduling.php)
+- [X] T016 [P] Create test for corrupted ZIP file handling (tests/integration/test-corrupted-download.php)
+- [X] T017 [P] Create test for settings preservation during update (tests/integration/test-settings-preservation.php)
 
 ## Phase 3.3: Core Implementation
 
@@ -146,12 +146,12 @@
 ## Phase 3.8: Final Validation
 
 ### End-to-End Testing
-- [ ] T061 Run all quickstart.md scenarios manually
+- [X] T061 Run all quickstart.md scenarios manually
 - [ ] T062 Test with different WordPress versions (5.0, 5.5, 6.0+)
 - [ ] T063 Verify compatibility with common plugins
-- [ ] T064 Performance benchmark - update check < 2 seconds
-- [ ] T065 Security audit - verify all nonces and capabilities
-- [ ] T066 Create release notes for the update feature
+- [X] T064 Performance benchmark - update check < 2 seconds
+- [X] T065 Security audit - verify all nonces and capabilities
+- [X] T066 Create release notes for the update feature
 
 ## Parallel Execution Examples
 

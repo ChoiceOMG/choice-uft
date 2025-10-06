@@ -494,17 +494,14 @@ class CUFT_Admin {
                     </p>
                     
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #d4edda;">
-                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary cuft-check-updates" style="margin-right: 10px;">Check for Updates</button>
+                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="margin-right: 10px;">Check for Updates (AJAX)</button>
                         <button type="button" id="cuft-download-install" class="button button-primary" style="display: none;">
                             <span class="dashicons dashicons-download" style="vertical-align: middle;"></span> Download & Install Update
                         </button>
                         <button type="button" id="cuft-reinstall-current" class="button button-secondary" style="margin-right: 10px;">
                             <span class="dashicons dashicons-update" style="vertical-align: middle;"></span> Re-install Current Version
                         </button>
-                        <!-- New updater UI elements -->
-                        <div id="cuft-notices"></div>
-                        <div id="cuft-update-status"></div>
-                        <div id="cuft-update-history"></div>
+                        <!-- Update result display area -->
                         <div id="cuft-update-result" style="margin-top: 10px;"></div>
                         <div id="cuft-install-progress" style="margin-top: 10px; display: none;">
                             <div style="padding: 10px; background: #f0f0f1; border-radius: 4px;">
@@ -726,7 +723,7 @@ class CUFT_Admin {
      */
     public function manual_update_check() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -738,30 +735,33 @@ class CUFT_Admin {
             ) );
         }
 
-        // Get GitHub updater instance
-        global $cuft_updater;
-        if ( ! $cuft_updater || ! method_exists( $cuft_updater, 'force_check' ) ) {
-            wp_send_json_error( array(
-                'message' => 'GitHub updater not available.'
-            ) );
-        }
-
         try {
-            $remote_version = $cuft_updater->force_check();
+            // Use the new update checker system
+            CUFT_Update_Checker::check( true ); // Force check
+
             $current_version = CUFT_VERSION;
+            $update_status = CUFT_Update_Status::get();
+            $update_available = CUFT_Update_Checker::is_update_available();
 
             $response = array();
+            $latest_version = isset( $update_status['latest_version'] ) ? $update_status['latest_version'] : $current_version;
 
-            if ( version_compare( $current_version, $remote_version, '<' ) ) {
-                $response['message'] = "Update available! Current: {$current_version}, Latest: {$remote_version}";
+            if ( $update_available ) {
+                $response['message'] = "Update available! Current: {$current_version}, Latest: {$latest_version}";
                 $response['update_available'] = true;
                 $response['current_version'] = $current_version;
-                $response['latest_version'] = $remote_version;
+                $response['latest_version'] = $latest_version;
+                $response['changelog'] = isset( $update_status['changelog'] ) ? $update_status['changelog'] : '';
             } else {
                 $response['message'] = "Plugin is up to date. Current version: {$current_version}";
                 $response['update_available'] = false;
                 $response['current_version'] = $current_version;
+                $response['latest_version'] = $latest_version;
             }
+
+            // Add last checked time
+            $response['last_checked'] = isset( $update_status['last_check'] ) ? $update_status['last_check'] : current_time( 'c' );
+            update_option( 'cuft_last_manual_check', time() );
 
             wp_send_json_success( $response );
 
@@ -2105,13 +2105,19 @@ class CUFT_Admin {
 
         // Get update status
         $current_version = CUFT_VERSION;
-        $update_info = CUFT_Update_Checker::get_update_info();
-        $update_available = CUFT_Update_Checker::is_update_available();
-        $latest_version = '';
 
-        if ( $update_info && isset( $update_info['version'] ) ) {
-            $latest_version = $update_info['version'];
+        // Force check if status is empty (first time visiting page)
+        $update_status = CUFT_Update_Status::get();
+        if ( empty( $update_status['latest_version'] ) ) {
+            CUFT_Update_Checker::check( true );
+            $update_status = CUFT_Update_Status::get();
         }
+
+        $update_available = CUFT_Update_Checker::is_update_available();
+        $update_info = CUFT_Update_Checker::get_update_info();
+
+        // Get latest version from status (available whether update is needed or not)
+        $latest_version = isset( $update_status['latest_version'] ) ? $update_status['latest_version'] : '';
 
         // Get update settings
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
@@ -2181,11 +2187,19 @@ class CUFT_Admin {
                             <h3 style="margin-top: 0;"><?php _e( 'Update Available', 'choice-universal-form-tracker' ); ?></h3>
                             <p><?php _e( 'A new version of Choice Universal Form Tracker is available.', 'choice-universal-form-tracker' ); ?></p>
 
-                            <?php if ( $update_info && isset( $update_info['changelog'] ) ): ?>
+                            <?php
+                            $changelog = '';
+                            if ( $update_info && isset( $update_info['changelog'] ) ) {
+                                $changelog = $update_info['changelog'];
+                            } elseif ( isset( $update_status['changelog'] ) ) {
+                                $changelog = $update_status['changelog'];
+                            }
+                            if ( $changelog ):
+                            ?>
                                 <div style="margin: 20px 0;">
                                     <h4><?php _e( 'Release Notes:', 'choice-universal-form-tracker' ); ?></h4>
                                     <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #007cba;">
-                                        <?php echo wp_kses_post( nl2br( esc_html( $update_info['changelog'] ) ) ); ?>
+                                        <?php echo wp_kses_post( nl2br( esc_html( $changelog ) ) ); ?>
                                     </div>
                                 </div>
                             <?php endif; ?>

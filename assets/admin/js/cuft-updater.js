@@ -48,10 +48,8 @@
             // Bind event handlers
             this.bindEventHandlers();
 
-            // Check for updates on page load if on settings page
-            if (this.isSettingsPage()) {
-                this.checkForUpdates(false);
-            }
+            // Don't auto-check on page load - let user manually check
+            // This prevents duplicate notifications with cuft-admin.js
 
             this.log('CUFT Updater initialized');
         },
