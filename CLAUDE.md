@@ -35,6 +35,26 @@ Before committing any code changes, ALWAYS verify using [.specify/memory/review-
 - [ ] Performance requirements considered
 - [ ] Security requirements met (input sanitization)
 
+## Active Development: One-Click Automated Update Feature (005)
+
+### Current Issue: AJAX Security Validation
+**Problem**: Update check AJAX endpoints returning "⚠️ Security check failed"
+**Cause**: Recent nonce handling changes affecting admin endpoints
+**Priority**: Critical - blocking update functionality
+
+### Feature Specifications
+- **Specification**: [specs/005-one-click-automated/spec.md](specs/005-one-click-automated/spec.md)
+- **Implementation Plan**: [specs/005-one-click-automated/plan.md](specs/005-one-click-automated/plan.md)
+- **API Contracts**: [specs/005-one-click-automated/contracts/](specs/005-one-click-automated/contracts/)
+- **Quick Start Guide**: [specs/005-one-click-automated/quickstart.md](specs/005-one-click-automated/quickstart.md)
+
+### Key Implementation Points
+- WordPress nonce validation must use `cuft_updater_nonce` action
+- Integrate with WordPress Updates page via `pre_set_site_transient_update_plugins` filter
+- GitHub API endpoint: `https://api.github.com/repos/ChoiceOMG/choice-uft/releases/latest`
+- Automatic rollback on any failure using WP_Filesystem
+- Twice-daily update checks via WordPress Cron
+
 ## Phase 5: AI Agent Integration - COMPLETED ✅
 
 The AI development workflow has been successfully implemented with:

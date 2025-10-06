@@ -99,6 +99,8 @@ class CUFT_Admin {
                 <?php $this->render_debug_section(); ?>
             <?php elseif ( $current_tab === 'click-tracking' ): ?>
                 <?php $this->render_click_tracking_tab(); ?>
+            <?php elseif ( $current_tab === 'updates' ): ?>
+                <?php $this->render_updates_tab(); ?>
             <?php endif; ?>
         </div>
         <?php
@@ -492,13 +494,17 @@ class CUFT_Admin {
                     </p>
                     
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #d4edda;">
-                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="margin-right: 10px;">Check for Updates</button>
+                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary cuft-check-updates" style="margin-right: 10px;">Check for Updates</button>
                         <button type="button" id="cuft-download-install" class="button button-primary" style="display: none;">
                             <span class="dashicons dashicons-download" style="vertical-align: middle;"></span> Download & Install Update
                         </button>
                         <button type="button" id="cuft-reinstall-current" class="button button-secondary" style="margin-right: 10px;">
                             <span class="dashicons dashicons-update" style="vertical-align: middle;"></span> Re-install Current Version
                         </button>
+                        <!-- New updater UI elements -->
+                        <div id="cuft-notices"></div>
+                        <div id="cuft-update-status"></div>
+                        <div id="cuft-update-history"></div>
                         <div id="cuft-update-result" style="margin-top: 10px;"></div>
                         <div id="cuft-install-progress" style="margin-top: 10px; display: none;">
                             <div style="padding: 10px; background: #f0f0f1; border-radius: 4px;">
@@ -688,6 +694,30 @@ class CUFT_Admin {
             'plugin_url' => CUFT_URL,
             'admin_url' => admin_url( 'options-general.php?page=choice-universal-form-tracker' )
         ));
+
+        // Enqueue updater script
+        wp_enqueue_script(
+            'cuft-updater',
+            CUFT_URL . '/assets/admin/js/cuft-updater.js',
+            array(), // No dependencies, uses vanilla JS with jQuery fallback
+            CUFT_VERSION,
+            true
+        );
+
+        // Localize script for updater with proper nonce
+        wp_localize_script( 'cuft-updater', 'cuftUpdater', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( 'cuft_updater_nonce' ), // Must match CUFT_Updater_Ajax::NONCE_ACTION
+            'debug' => defined( 'WP_DEBUG' ) && WP_DEBUG
+        ));
+
+        // Enqueue updater styles
+        wp_enqueue_style(
+            'cuft-updater',
+            CUFT_URL . '/assets/admin/css/cuft-updater.css',
+            array(),
+            CUFT_VERSION
+        );
     }
     
     
@@ -1294,7 +1324,8 @@ class CUFT_Admin {
     private function render_admin_tabs( $current_tab ) {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
+            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' ),
+            'updates' => __( 'Updates', 'choice-universal-form-tracker' )
         );
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
@@ -2060,6 +2091,270 @@ class CUFT_Admin {
         } else {
             wp_send_json_error( array( 'message' => 'Click tracker not available' ) );
         }
+    }
+
+    /**
+     * Render updates tab
+     */
+    private function render_updates_tab() {
+        // Check user capabilities
+        if ( ! current_user_can( 'update_plugins' ) ) {
+            echo '<div class="notice notice-error"><p>' . __( 'You do not have permission to manage plugin updates.', 'choice-universal-form-tracker' ) . '</p></div>';
+            return;
+        }
+
+        // Get update status
+        $current_version = CUFT_VERSION;
+        $update_checker = new CUFT_Update_Checker();
+        $latest_release = $update_checker->get_cached_release_info();
+        $update_available = false;
+        $latest_version = '';
+
+        if ( $latest_release && isset( $latest_release['tag_name'] ) ) {
+            $latest_version = str_replace( 'v', '', $latest_release['tag_name'] );
+            $update_available = version_compare( $latest_version, $current_version, '>' );
+        }
+
+        // Get update settings
+        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
+        $auto_update_enabled = get_option( 'cuft_auto_update_enabled', false );
+        $update_channel = get_option( 'cuft_update_channel', 'stable' );
+
+        ?>
+        <div class="wrap">
+            <div class="cuft-updates-container" style="max-width: 1200px;">
+
+                <!-- Update Status Card -->
+                <div class="cuft-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                    <h2 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span class="dashicons dashicons-update" style="font-size: 30px;"></span>
+                        <?php _e( 'Update Status', 'choice-universal-form-tracker' ); ?>
+                    </h2>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                            <div style="color: #6c757d; font-size: 12px; text-transform: uppercase; margin-bottom: 5px;">
+                                <?php _e( 'Current Version', 'choice-universal-form-tracker' ); ?>
+                            </div>
+                            <div style="font-size: 24px; font-weight: bold; color: #333;">
+                                v<?php echo esc_html( $current_version ); ?>
+                            </div>
+                        </div>
+
+                        <div style="padding: 15px; background: <?php echo $update_available ? '#fff3cd' : '#d4edda'; ?>; border-radius: 6px;">
+                            <div style="color: #6c757d; font-size: 12px; text-transform: uppercase; margin-bottom: 5px;">
+                                <?php _e( 'Latest Version', 'choice-universal-form-tracker' ); ?>
+                            </div>
+                            <div style="font-size: 24px; font-weight: bold; color: <?php echo $update_available ? '#856404' : '#155724'; ?>;">
+                                <?php if ( $latest_version ): ?>
+                                    v<?php echo esc_html( $latest_version ); ?>
+                                <?php else: ?>
+                                    <?php _e( 'Checking...', 'choice-universal-form-tracker' ); ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                            <div style="color: #6c757d; font-size: 12px; text-transform: uppercase; margin-bottom: 5px;">
+                                <?php _e( 'Update Status', 'choice-universal-form-tracker' ); ?>
+                            </div>
+                            <div style="font-size: 18px; font-weight: bold;">
+                                <?php if ( $update_available ): ?>
+                                    <span style="color: #ffc107;">
+                                        <span class="dashicons dashicons-warning"></span>
+                                        <?php _e( 'Update Available', 'choice-universal-form-tracker' ); ?>
+                                    </span>
+                                <?php elseif ( $latest_version ): ?>
+                                    <span style="color: #28a745;">
+                                        <span class="dashicons dashicons-yes-alt"></span>
+                                        <?php _e( 'Up to Date', 'choice-universal-form-tracker' ); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #6c757d;">
+                                        <?php _e( 'Unknown', 'choice-universal-form-tracker' ); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php if ( $update_available ): ?>
+                        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 6px;">
+                            <h3 style="margin-top: 0;"><?php _e( 'Update Available', 'choice-universal-form-tracker' ); ?></h3>
+                            <p><?php _e( 'A new version of Choice Universal Form Tracker is available.', 'choice-universal-form-tracker' ); ?></p>
+
+                            <?php if ( $latest_release && isset( $latest_release['body'] ) ): ?>
+                                <div style="margin: 20px 0;">
+                                    <h4><?php _e( 'Release Notes:', 'choice-universal-form-tracker' ); ?></h4>
+                                    <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #007cba;">
+                                        <?php echo wp_kses_post( nl2br( esc_html( $latest_release['body'] ) ) ); ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <div style="margin-top: 20px;">
+                                <button id="cuft-update-now" class="button button-primary button-hero" <?php echo ! $github_updates_enabled ? 'disabled' : ''; ?>>
+                                    <span class="dashicons dashicons-update" style="margin-right: 5px;"></span>
+                                    <?php _e( 'Update Now', 'choice-universal-form-tracker' ); ?>
+                                </button>
+
+                                <?php if ( ! $github_updates_enabled ): ?>
+                                    <p class="description" style="margin-top: 10px; color: #d63638;">
+                                        <?php _e( 'GitHub updates are disabled. Enable them in the Settings tab to update the plugin.', 'choice-universal-form-tracker' ); ?>
+                                    </p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div style="margin-top: 30px;">
+                            <button id="cuft-check-updates" class="button button-secondary">
+                                <span class="dashicons dashicons-update" style="margin-right: 5px;"></span>
+                                <?php _e( 'Check for Updates', 'choice-universal-form-tracker' ); ?>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Update History Card -->
+                <div class="cuft-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h2 style="margin-top: 0;">
+                        <span class="dashicons dashicons-backup"></span>
+                        <?php _e( 'Update History', 'choice-universal-form-tracker' ); ?>
+                    </h2>
+
+                    <div id="cuft-update-history">
+                        <p style="color: #6c757d;">
+                            <?php _e( 'Loading update history...', 'choice-universal-form-tracker' ); ?>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Check for updates button
+            $('#cuft-check-updates').on('click', function(e) {
+                e.preventDefault();
+                var $button = $(this);
+                $button.prop('disabled', true).text('<?php _e( 'Checking...', 'choice-universal-form-tracker' ); ?>');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'cuft_check_update',
+                        nonce: '<?php echo wp_create_nonce( 'cuft_updater_nonce' ); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert(response.data.message || 'Failed to check for updates');
+                            $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Check for Updates', 'choice-universal-form-tracker' ); ?>');
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to check for updates');
+                        $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Check for Updates', 'choice-universal-form-tracker' ); ?>');
+                    }
+                });
+            });
+
+            // Update now button
+            $('#cuft-update-now').on('click', function(e) {
+                e.preventDefault();
+
+                if (!confirm('<?php _e( 'Are you sure you want to update the plugin? A backup will be created automatically.', 'choice-universal-form-tracker' ); ?>')) {
+                    return;
+                }
+
+                var $button = $(this);
+                $button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> <?php _e( 'Updating...', 'choice-universal-form-tracker' ); ?>');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'cuft_perform_update',
+                        nonce: '<?php echo wp_create_nonce( 'cuft_updater_nonce' ); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $button.html('<span class="dashicons dashicons-yes"></span> <?php _e( 'Update Complete!', 'choice-universal-form-tracker' ); ?>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            alert(response.data.message || 'Update failed');
+                            $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Update Now', 'choice-universal-form-tracker' ); ?>');
+                        }
+                    },
+                    error: function() {
+                        alert('Update failed');
+                        $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Update Now', 'choice-universal-form-tracker' ); ?>');
+                    }
+                });
+            });
+
+            // Load update history
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'cuft_update_history',
+                    nonce: '<?php echo wp_create_nonce( 'cuft_updater_nonce' ); ?>'
+                },
+                success: function(response) {
+                    if (response.success && response.data.history) {
+                        var html = '<table class="wp-list-table widefat fixed striped">';
+                        html += '<thead><tr>';
+                        html += '<th><?php _e( 'Version', 'choice-universal-form-tracker' ); ?></th>';
+                        html += '<th><?php _e( 'Date', 'choice-universal-form-tracker' ); ?></th>';
+                        html += '<th><?php _e( 'Status', 'choice-universal-form-tracker' ); ?></th>';
+                        html += '<th><?php _e( 'Details', 'choice-universal-form-tracker' ); ?></th>';
+                        html += '</tr></thead><tbody>';
+
+                        if (response.data.history.length > 0) {
+                            $.each(response.data.history, function(i, item) {
+                                html += '<tr>';
+                                html += '<td>' + item.version + '</td>';
+                                html += '<td>' + item.date + '</td>';
+                                html += '<td><span class="status-' + item.status + '">' + item.status + '</span></td>';
+                                html += '<td>' + (item.details || '-') + '</td>';
+                                html += '</tr>';
+                            });
+                        } else {
+                            html += '<tr><td colspan="4"><?php _e( 'No update history available', 'choice-universal-form-tracker' ); ?></td></tr>';
+                        }
+
+                        html += '</tbody></table>';
+                        $('#cuft-update-history').html(html);
+                    } else {
+                        $('#cuft-update-history').html('<p><?php _e( 'No update history available', 'choice-universal-form-tracker' ); ?></p>');
+                    }
+                },
+                error: function() {
+                    $('#cuft-update-history').html('<p style="color: #d63638;"><?php _e( 'Failed to load update history', 'choice-universal-form-tracker' ); ?></p>');
+                }
+            });
+        });
+        </script>
+
+        <style>
+        .dashicons.spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .status-success { color: #28a745; font-weight: bold; }
+        .status-failed { color: #d63638; font-weight: bold; }
+        .status-rolled-back { color: #ffc107; font-weight: bold; }
+        </style>
+        <?php
     }
 
 }
