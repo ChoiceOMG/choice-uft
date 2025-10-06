@@ -2105,14 +2105,12 @@ class CUFT_Admin {
 
         // Get update status
         $current_version = CUFT_VERSION;
-        $update_checker = new CUFT_Update_Checker();
-        $latest_release = $update_checker->get_cached_release_info();
-        $update_available = false;
+        $update_info = CUFT_Update_Checker::get_update_info();
+        $update_available = CUFT_Update_Checker::is_update_available();
         $latest_version = '';
 
-        if ( $latest_release && isset( $latest_release['tag_name'] ) ) {
-            $latest_version = str_replace( 'v', '', $latest_release['tag_name'] );
-            $update_available = version_compare( $latest_version, $current_version, '>' );
+        if ( $update_info && isset( $update_info['version'] ) ) {
+            $latest_version = $update_info['version'];
         }
 
         // Get update settings
@@ -2183,11 +2181,11 @@ class CUFT_Admin {
                             <h3 style="margin-top: 0;"><?php _e( 'Update Available', 'choice-universal-form-tracker' ); ?></h3>
                             <p><?php _e( 'A new version of Choice Universal Form Tracker is available.', 'choice-universal-form-tracker' ); ?></p>
 
-                            <?php if ( $latest_release && isset( $latest_release['body'] ) ): ?>
+                            <?php if ( $update_info && isset( $update_info['changelog'] ) ): ?>
                                 <div style="margin: 20px 0;">
                                     <h4><?php _e( 'Release Notes:', 'choice-universal-form-tracker' ); ?></h4>
                                     <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #007cba;">
-                                        <?php echo wp_kses_post( nl2br( esc_html( $latest_release['body'] ) ) ); ?>
+                                        <?php echo wp_kses_post( nl2br( esc_html( $update_info['changelog'] ) ) ); ?>
                                     </div>
                                 </div>
                             <?php endif; ?>

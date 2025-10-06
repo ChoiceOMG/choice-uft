@@ -200,7 +200,7 @@ class CUFT_Update_Configuration {
      *
      * @return array Default config
      */
-    private static function get_defaults() {
+    public static function get_defaults() {
         return array(
             'enabled' => true,
             'check_frequency' => 'twicedaily',
