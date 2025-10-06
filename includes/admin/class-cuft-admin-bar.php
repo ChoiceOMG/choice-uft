@@ -84,7 +84,7 @@ class CUFT_Admin_Bar {
 			'id' => 'cuft-update-settings',
 			'parent' => 'cuft-updates',
 			'title' => __( 'Update Settings', 'choice-uft' ),
-			'href' => admin_url( 'admin.php?page=cuft-settings&tab=updates' ),
+			'href' => admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=updates' ),
 		) );
 
 		// Update history submenu
@@ -92,7 +92,7 @@ class CUFT_Admin_Bar {
 			'id' => 'cuft-update-history',
 			'parent' => 'cuft-updates',
 			'title' => __( 'Update History', 'choice-uft' ),
-			'href' => admin_url( 'admin.php?page=cuft-settings&tab=update-history' ),
+			'href' => admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=updates' ),
 		) );
 
 		// Add next scheduled check info
