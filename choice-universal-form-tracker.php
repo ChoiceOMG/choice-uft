@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.13.3
+ * Version:           3.16.0
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,10 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.13.3' );
+define( 'CUFT_VERSION', '3.16.0' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
+define( 'CUFT_PLUGIN_FILE', __FILE__ );
 
 /**
  * Main plugin class
@@ -92,9 +93,36 @@ class Choice_Universal_Form_Tracker {
             'includes/ajax/class-cuft-test-form-builder.php',  // Test form builder AJAX
             'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
             'includes/ajax/class-cuft-form-builder-ajax.php',  // Form builder AJAX endpoints
+            'includes/ajax/class-cuft-updater-ajax.php',  // Updater AJAX endpoints
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
+            // Updater Models
+            'includes/models/class-cuft-update-status.php',  // Update status model
+            'includes/models/class-cuft-update-progress.php',  // Update progress model
+            'includes/models/class-cuft-github-release.php',  // GitHub release model
+            'includes/models/class-cuft-update-log.php',  // Update log model
+            'includes/models/class-cuft-update-configuration.php',  // Update configuration model
+            // Updater Services
+            'includes/class-cuft-github-api.php',  // GitHub API service
+            'includes/class-cuft-update-checker.php',  // Update checker service
+            'includes/class-cuft-filesystem-handler.php',  // Filesystem wrapper
+            'includes/class-cuft-backup-manager.php',  // Backup and rollback service
+            'includes/class-cuft-update-installer.php',  // Update installer service
+            'includes/class-cuft-wordpress-updater.php',  // WordPress update integration
+            'includes/class-cuft-cron-manager.php',  // Cron scheduling manager
+            // Updater Admin
+            'includes/admin/class-cuft-admin-notices.php',  // Admin update notices
+            'includes/admin/class-cuft-admin-bar.php',  // Admin bar integration
+            // Updater Performance
+            'includes/class-cuft-db-optimizer.php',  // Database query optimization
+            'includes/class-cuft-cache-warmer.php',  // Cache preloading
+            // Updater Security
+            'includes/class-cuft-rate-limiter.php',  // Rate limiting
+            'includes/class-cuft-download-verifier.php',  // Download verification
+            'includes/class-cuft-capabilities.php',  // Capability checks
+            'includes/class-cuft-input-validator.php',  // Input validation
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
+            'includes/migrations/create-update-log-table.php',  // Update log table migration
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',

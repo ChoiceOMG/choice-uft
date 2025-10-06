@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '3.14.0';
+    const CURRENT_VERSION = '3.15.0';
 
     /**
      * Option name for storing database version
@@ -39,6 +39,11 @@ class CUFT_DB_Migration {
         // Run 3.14.0 migration for indexes
         if ( version_compare( $current_version, '3.14.0', '<' ) ) {
             self::migrate_to_3_14_0();
+        }
+
+        // Run 3.15.0 migration for update log table
+        if ( version_compare( $current_version, '3.15.0', '<' ) ) {
+            self::migrate_to_3_15_0();
         }
 
         // Update version
@@ -324,5 +329,24 @@ class CUFT_DB_Migration {
 
         // Reset version
         update_option( self::VERSION_OPTION, '0.0.0' );
+    }
+
+    /**
+     * Migration to version 3.15.0
+     * Creates update log table
+     */
+    private static function migrate_to_3_15_0() {
+        // Create update log table
+        if ( class_exists( 'CUFT_Migration_Create_Update_Log_Table' ) ) {
+            CUFT_Migration_Create_Update_Log_Table::up();
+
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log(
+                    'info',
+                    'Created update log table',
+                    array( 'version' => '3.15.0' )
+                );
+            }
+        }
     }
 }

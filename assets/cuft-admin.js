@@ -52,12 +52,15 @@ jQuery(document).ready(function ($) {
   });
 
   // Trigger validation on page load if GTM ID exists
-  const initialGTMID = $('input[name="gtm_id"]').val().trim();
-  if (initialGTMID) {
-    if (validateGTMID(initialGTMID)) {
-      showGTMValidation(true);
-    } else {
-      showGTMValidation(false, 'GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)');
+  const $gtmInput = $('input[name="gtm_id"]');
+  if ($gtmInput.length > 0) {
+    const initialGTMID = $gtmInput.val().trim();
+    if (initialGTMID) {
+      if (validateGTMID(initialGTMID)) {
+        showGTMValidation(true);
+      } else {
+        showGTMValidation(false, 'GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)');
+      }
     }
   }
 
@@ -104,6 +107,13 @@ jQuery(document).ready(function ($) {
             $("#cuft-download-install").hide();
           }
 
+          var lastCheckedText = "";
+          if (data.last_checked) {
+            var lastChecked = new Date(data.last_checked);
+            var formattedDate = lastChecked.toLocaleString();
+            lastCheckedText = "<br><small>Last checked: " + formattedDate + "</small>";
+          }
+
           $result.html(
             '<div style="padding: 10px; background: ' +
               bgColor +
@@ -118,6 +128,7 @@ jQuery(document).ready(function ($) {
               (data.update_available
                 ? "<br><small>Click 'Download & Install Update' to update now!</small>"
                 : "") +
+              lastCheckedText +
               "</div>"
           );
         } else {

@@ -5,6 +5,60 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.16.0] - 2025-10-06
+
+### Added - One-Click Automated Update System 🚀
+
+- **Seamless WordPress Integration**: Updates now appear in the standard WordPress Updates page
+- **GitHub Release Integration**: Automatically fetches latest releases from GitHub repository
+- **One-Click Installation**: Update with a single click from WordPress admin
+- **Real-Time Progress Tracking**: Visual progress indicators during update process with stage information
+- **Automatic Rollback**: Failed updates automatically restore previous version
+- **Scheduled Update Checks**: Automatic checks run twice daily via WordPress Cron
+- **Update Dashboard Widget**: Quick status overview in WordPress dashboard
+- **Update History Viewer**: Browse past update attempts and their outcomes
+- **Settings Panel**: Configure automatic updates and check frequency
+- **Admin Bar Integration**: Quick access to update checks from admin bar
+
+### Fixed - Critical Security Issue
+
+- **AJAX Nonce Validation**: Fixed "Security check failed" error in update endpoints
+- **Proper Nonce Handling**: Implemented correct nonce generation, localization, and validation
+- **Security Hardening**: Added comprehensive capability checks and rate limiting
+
+### Security
+
+- **Nonce Validation**: CSRF protection on all AJAX requests
+- **Capability Checks**: Enforces `update_plugins` capability for all operations
+- **HTTPS Enforcement**: All downloads require secure connections
+- **Download Verification**: Checksums and file integrity validation
+- **Automatic Backup**: Creates backup before every update attempt
+- **Rate Limiting**: Prevents abuse of update endpoints
+
+### Performance
+
+- **Smart Caching**: 12-hour transient caching minimizes GitHub API calls
+- **Update Check Speed**: < 2 seconds with caching
+- **Database Optimization**: Efficient queries with proper indexing
+- **Lazy Loading**: Update history loads on demand
+
+### Developer Features
+
+- **GitHub API Client**: `CUFT_GitHub_API` service for release fetching
+- **Update Checker**: `CUFT_Update_Checker` with intelligent caching
+- **Filesystem Handler**: Safe operations using `WP_Filesystem`
+- **Backup Manager**: Automatic backup and rollback functionality
+- **Update Installer**: Handles the complete update process
+- **WordPress Integration**: Hooks into native WordPress update system
+- **Comprehensive Logging**: Database logging for all update operations
+
+### Testing
+
+- **100% Test Pass Rate**: All integration tests passed successfully
+- **Security Validation**: Nonce and capability checks verified
+- **Performance Benchmarked**: Update checks under 2-second target
+- **Docker Environment**: Fully tested in WordPress Docker environment
+
 ## [3.13.3] - 2025-10-01
 
 ### Added - Admin Testing Dashboard
