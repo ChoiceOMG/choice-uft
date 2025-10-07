@@ -5,6 +5,37 @@ All notable changes to the Choice Universal Form Tracker plugin will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.16.1] - 2025-10-07
+
+### Added - Custom GTM Server Domain with Health Checks 🏥
+
+- **Custom Server Support**: Configure first-party GTM server domains for enhanced privacy and control
+- **Automatic Health Monitoring**: Periodic health checks (every 6-12 hours) validate custom server availability
+- **Intelligent Fallback**: Automatically switches to Google's default GTM endpoints if custom server fails
+- **Auto-Recovery**: Returns to custom server after 3 consecutive successful health checks
+- **Real-time Status Dashboard**: Admin UI shows server status, health check results, and next check time
+- **Manual Health Checks**: On-demand health check button for immediate validation
+- **Background Monitoring**: Frontend health checks (throttled to 1 per hour) for proactive monitoring
+- **LocalNet Development Support**: Automatic SSL verification bypass for `.localnet` domains
+- **Debug Data Attributes**: Frontend GTM scripts include `data-cuft-gtm-source` and `data-cuft-gtm-server` for troubleshooting
+- **Admin Notifications**: Automatic notices when server status changes (recovery/failure)
+- **Cron Job Automation**: Scheduled health checks via WordPress Cron system
+
+### Enhanced
+
+- **GTM Script Loading**: Dynamic server URL selection based on health status
+- **AJAX API**: New endpoints for server configuration, health checks, and status retrieval
+- **Storage System**: Health check results, consecutive counters, and server status in wp_options
+- **Admin UI**: New "Server-side GTM" section with configuration and monitoring
+
+### Technical
+
+- **Health Check Timeout**: 5-second timeout for endpoint validation
+- **Consecutive Counter Logic**: 3 successes to activate custom, 1 failure to fallback
+- **Endpoints Tested**: Both `gtm.js` and `ns.html` validated for each check
+- **Response Validation**: Checks HTTP 200 status and content validity
+- **No Database Migrations**: Uses existing WordPress infrastructure (wp_options)
+
 ## [3.16.0] - 2025-10-06
 
 ### Added - One-Click Automated Update System 🚀

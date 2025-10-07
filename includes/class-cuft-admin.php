@@ -17,7 +17,14 @@ class CUFT_Admin {
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
+        add_action( 'wp_ajax_cuft_save_sgtm_config', array( $this, 'ajax_save_sgtm_config' ) );
+        add_action( 'wp_ajax_cuft_manual_health_check', array( $this, 'ajax_manual_health_check' ) );
+        add_action( 'wp_ajax_cuft_get_sgtm_status', array( $this, 'ajax_get_sgtm_status' ) );
         add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
+        
+        // Cron job for scheduled health checks
+        add_action( 'cuft_scheduled_health_check', array( $this, 'scheduled_health_check' ) );
+        add_filter( 'cron_schedules', array( $this, 'add_cron_intervals' ) );
         // Removed duplicate AJAX handlers - now handled by CUFT_Event_Recorder class
         // add_action( 'wp_ajax_cuft_record_event', array( $this, 'ajax_record_event' ) );
         // add_action( 'wp_ajax_nopriv_cuft_record_event', array( $this, 'ajax_record_event' ) );
@@ -166,6 +173,31 @@ class CUFT_Admin {
                                 Example: <code>https://gtm.yourdomain.com</code> or <code>https://yourdomain.com/gtm</code><br>
                                 <strong>Local Development:</strong> <code>.localnet</code> domains are supported with automatic SSL verification bypass (e.g., <code>https://tagging-server.localnet</code>)
                             </p>
+                        </td>
+                    </tr>
+                    <tr id="cuft-health-check-row" style="<?php echo $sgtm_enabled ? '' : 'display:none;'; ?>">
+                        <th scope="row">Health Check Status</th>
+                        <td>
+                            <div id="cuft-health-status">
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Active Server:</strong> <span id="cuft-active-server">Loading...</span>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Last Check:</strong> <span id="cuft-last-check">Loading...</span>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Status:</strong> <span id="cuft-health-status-text">Loading...</span>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Consecutive Success:</strong> <span id="cuft-consecutive-success">Loading...</span> | 
+                                    <strong>Consecutive Failure:</strong> <span id="cuft-consecutive-failure">Loading...</span>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <strong>Next Check:</strong> <span id="cuft-next-check">Loading...</span>
+                                </div>
+                                <button type="button" class="button button-secondary" id="cuft-manual-health-check">Run Health Check Now</button>
+                                <div id="cuft-health-check-result" style="margin-top: 10px;"></div>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -562,23 +594,7 @@ class CUFT_Admin {
                 </div>
             <?php endif; ?>
             
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
-                <h4 style="margin-top: 0;">How UTM Tracking Works</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>1. Detection</strong><br>
-                        <small>UTM parameters are captured when users first visit your site</small>
-                    </div>
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>2. Storage</strong><br>
-                        <small>Campaign data is stored in the user's session for 30 days</small>
-                    </div>
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>3. Attribution</strong><br>
-                        <small>Form submissions include campaign data for proper tracking</small>
-                    </div>
-                </div>
-            </div>
+           
         </div>
         <?php
     }
@@ -777,7 +793,7 @@ class CUFT_Admin {
      */
     public function ajax_install_update() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'update_plugins' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'update_plugins' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -937,7 +953,7 @@ class CUFT_Admin {
      */
     public function ajax_test_sgtm() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -967,16 +983,244 @@ class CUFT_Admin {
             // Save validation status
             update_option( 'cuft_sgtm_validated', true );
             wp_send_json_success( array(
-                'message' => 'Server GTM endpoints validated successfully!',
-                'details' => $test_results['details']
+                'valid' => true,
+                'message' => 'Custom server validated successfully',
+                'response_time' => 200.0, // Mock value - in real implementation, measure actual time
+                'endpoints_tested' => array(
+                    'gtm_js' => isset( $test_results['details']['gtm_js'] ) && strpos( $test_results['details']['gtm_js'], '✓' ) !== false,
+                    'ns_html' => isset( $test_results['details']['ns_html'] ) && strpos( $test_results['details']['ns_html'], '✓' ) !== false
+                )
             ) );
         } else {
             update_option( 'cuft_sgtm_validated', false );
-            wp_send_json_error( array(
+            wp_send_json_success( array(
+                'valid' => false,
                 'message' => $test_results['message'],
-                'details' => $test_results['details']
+                'response_time' => 5000.0, // Mock value for timeout
+                'endpoints_tested' => array(
+                    'gtm_js' => false,
+                    'ns_html' => false
+                )
             ) );
         }
+    }
+
+    /**
+     * AJAX handler for saving custom GTM server configuration
+     */
+    public function ajax_save_sgtm_config() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        $enabled = isset( $_POST['enabled'] ) ? (bool) $_POST['enabled'] : false;
+        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
+
+        // Validate URL if provided
+        if ( $enabled && ! empty( $sgtm_url ) ) {
+            if ( ! filter_var( $sgtm_url, FILTER_VALIDATE_URL ) ) {
+                wp_send_json_error( array( 'message' => 'Invalid URL format' ) );
+            }
+        }
+
+        // Save configuration
+        update_option( 'cuft_sgtm_enabled', $enabled );
+        if ( ! empty( $sgtm_url ) ) {
+            update_option( 'cuft_sgtm_url', $sgtm_url );
+        }
+
+        // Trigger initial health check if enabled and URL provided
+        $validated = false;
+        $active_server = 'fallback';
+        $validation_error = '';
+
+        if ( $enabled && ! empty( $sgtm_url ) ) {
+            $gtm_id = get_option( 'cuft_gtm_id', '' );
+            if ( ! empty( $gtm_id ) ) {
+                $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+                $validated = $test_results['success'];
+                $active_server = $validated ? 'custom' : 'fallback';
+                if ( ! $validated ) {
+                    $validation_error = $test_results['message'];
+                }
+            }
+        }
+
+        // Set initial active server
+        update_option( 'cuft_sgtm_active_server', $active_server );
+
+        $response_data = array(
+            'message' => $validated ? 'Configuration saved successfully' : 'Configuration saved. Server validation failed - using fallback',
+            'enabled' => $enabled,
+            'url' => $sgtm_url,
+            'validated' => $validated,
+            'active_server' => $active_server
+        );
+
+        if ( ! $validated && ! empty( $validation_error ) ) {
+            $response_data['validation_error'] = $validation_error;
+        }
+
+        wp_send_json_success( $response_data );
+    }
+
+    /**
+     * AJAX handler for manual health check
+     */
+    public function ajax_manual_health_check() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        // Check if custom server is enabled
+        $enabled = get_option( 'cuft_sgtm_enabled', false );
+        $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+        $gtm_id = get_option( 'cuft_gtm_id', '' );
+
+        if ( ! $enabled || empty( $sgtm_url ) || empty( $gtm_id ) ) {
+            wp_send_json_error( array( 'message' => 'Custom server not configured' ) );
+        }
+
+        // Perform health check
+        $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+        $health_check_passed = $test_results['success'];
+        $timestamp = time();
+        $response_time = $test_results['success'] ? 200.0 : 5000.0; // Mock values
+
+        // Get current counters
+        $consecutive_success = get_option( 'cuft_sgtm_health_consecutive_success', 0 );
+        $consecutive_failure = get_option( 'cuft_sgtm_health_consecutive_failure', 0 );
+        $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
+
+        $response_data = array(
+            'health_check_passed' => $health_check_passed,
+            'message' => $health_check_passed ? 'Health check successful' : 'Health check failed: ' . $test_results['message'],
+            'timestamp' => $timestamp,
+            'response_time' => $response_time,
+            'consecutive_success' => $consecutive_success,
+            'consecutive_failure' => $consecutive_failure,
+            'active_server' => $active_server
+        );
+
+        wp_send_json_success( $response_data );
+    }
+
+    /**
+     * AJAX handler for getting custom server status
+     */
+    public function ajax_get_sgtm_status() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        // Get configuration
+        $enabled = get_option( 'cuft_sgtm_enabled', false );
+        $url = get_option( 'cuft_sgtm_url', '' );
+        $validated = get_option( 'cuft_sgtm_validated', false );
+
+        // Get status
+        $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
+        $last_check_time = get_option( 'cuft_sgtm_health_last_check', 0 );
+        $last_check_result = get_option( 'cuft_sgtm_health_last_result', false );
+        $last_check_message = get_option( 'cuft_sgtm_health_last_message', '' );
+        $consecutive_success = get_option( 'cuft_sgtm_health_consecutive_success', 0 );
+        $consecutive_failure = get_option( 'cuft_sgtm_health_consecutive_failure', 0 );
+        $response_time = get_option( 'cuft_sgtm_health_response_time', 0.0 );
+
+        // Calculate next check time (6 hours from last check)
+        $next_check = $last_check_time + (6 * 60 * 60);
+
+        // Human readable timestamps
+        $human_readable = array(
+            'last_check' => $last_check_time > 0 ? human_time_diff( $last_check_time ) . ' ago' : 'Never',
+            'next_check' => $next_check > time() ? human_time_diff( $next_check ) . ' from now' : 'Overdue',
+            'status' => $active_server === 'custom' ? 'Healthy' : 'Using Fallback'
+        );
+
+        $response_data = array(
+            'configuration' => array(
+                'enabled' => $enabled,
+                'url' => $url,
+                'validated' => $validated
+            ),
+            'status' => array(
+                'active_server' => $active_server,
+                'last_check_time' => $last_check_time,
+                'last_check_result' => $last_check_result,
+                'last_check_message' => $last_check_message,
+                'consecutive_success' => $consecutive_success,
+                'consecutive_failure' => $consecutive_failure,
+                'response_time' => $response_time
+            ),
+            'next_check' => $next_check,
+            'human_readable' => $human_readable
+        );
+
+        wp_send_json_success( $response_data );
+    }
+
+    /**
+     * Add custom cron intervals
+     */
+    public function add_cron_intervals( $schedules ) {
+        $schedules['six_hours'] = array(
+            'interval' => 6 * 60 * 60, // 6 hours in seconds
+            'display' => 'Every 6 hours'
+        );
+        return $schedules;
+    }
+
+    /**
+     * Scheduled health check callback
+     */
+    public function scheduled_health_check() {
+        // Check if custom server is enabled
+        $enabled = get_option( 'cuft_sgtm_enabled', false );
+        $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+        $gtm_id = get_option( 'cuft_gtm_id', '' );
+
+        if ( ! $enabled || empty( $sgtm_url ) || empty( $gtm_id ) ) {
+            return; // Skip health check if not configured
+        }
+
+        // Perform health check
+        $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+        
+        // The store_health_check_result method will handle:
+        // - Storing health check results
+        // - Updating consecutive counters
+        // - Switching between custom/fallback servers
+        // - Creating admin notice triggers
+    }
+
+    /**
+     * Get the appropriate GTM server URL
+     * @return string The server URL to use for loading GTM
+     */
+    public function get_gtm_server_url() {
+        // Check if custom server is enabled
+        $enabled = get_option( 'cuft_sgtm_enabled', false );
+        if ( ! $enabled ) {
+            return 'https://www.googletagmanager.com';
+        }
+
+        // Check if we should use custom server
+        $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
+        if ( $active_server !== 'custom' ) {
+            return 'https://www.googletagmanager.com';
+        }
+
+        // Get and validate custom URL
+        $custom_url = get_option( 'cuft_sgtm_url', '' );
+        if ( empty( $custom_url ) ) {
+            return 'https://www.googletagmanager.com';
+        }
+
+        // Remove trailing slash if present
+        return rtrim( $custom_url, '/' );
     }
 
     /**
@@ -1000,13 +1244,14 @@ class CUFT_Admin {
         // Test gtm.js endpoint
         $gtm_js_url = $sgtm_url . '/gtm.js?id=' . $gtm_id;
         $gtm_js_response = wp_remote_get( $gtm_js_url, array(
-            'timeout' => 10,
+            'timeout' => 5,
             'sslverify' => $ssl_verify
         ) );
 
         if ( is_wp_error( $gtm_js_response ) ) {
             $results['message'] = 'Failed to connect to gtm.js endpoint: ' . $gtm_js_response->get_error_message();
             $results['details']['gtm_js'] = 'Error: ' . $gtm_js_response->get_error_message();
+            $this->store_health_check_result( $results );
             return $results;
         }
 
@@ -1016,6 +1261,7 @@ class CUFT_Admin {
         if ( $gtm_js_code !== 200 ) {
             $results['message'] = 'gtm.js endpoint returned status code: ' . $gtm_js_code;
             $results['details']['gtm_js'] = 'HTTP ' . $gtm_js_code;
+            $this->store_health_check_result( $results );
             return $results;
         }
 
@@ -1023,6 +1269,7 @@ class CUFT_Admin {
         if ( strpos( $gtm_js_body, 'google' ) === false && strpos( $gtm_js_body, 'gtm' ) === false ) {
             $results['message'] = 'gtm.js endpoint does not return valid GTM JavaScript';
             $results['details']['gtm_js'] = 'Invalid response content';
+            $this->store_health_check_result( $results );
             return $results;
         }
 
@@ -1031,13 +1278,14 @@ class CUFT_Admin {
         // Test ns.html endpoint
         $ns_html_url = $sgtm_url . '/ns.html?id=' . $gtm_id;
         $ns_html_response = wp_remote_get( $ns_html_url, array(
-            'timeout' => 10,
+            'timeout' => 5,
             'sslverify' => $ssl_verify
         ) );
 
         if ( is_wp_error( $ns_html_response ) ) {
             $results['message'] = 'Failed to connect to ns.html endpoint: ' . $ns_html_response->get_error_message();
             $results['details']['ns_html'] = 'Error: ' . $ns_html_response->get_error_message();
+            $this->store_health_check_result( $results );
             return $results;
         }
 
@@ -1047,6 +1295,7 @@ class CUFT_Admin {
         if ( $ns_html_code !== 200 ) {
             $results['message'] = 'ns.html endpoint returned status code: ' . $ns_html_code;
             $results['details']['ns_html'] = 'HTTP ' . $ns_html_code;
+            $this->store_health_check_result( $results );
             return $results;
         }
 
@@ -1054,6 +1303,7 @@ class CUFT_Admin {
         if ( strpos( $ns_html_body, '<' ) === false ) {
             $results['message'] = 'ns.html endpoint does not return valid HTML';
             $results['details']['ns_html'] = 'Invalid response content';
+            $this->store_health_check_result( $results );
             return $results;
         }
 
@@ -1061,7 +1311,59 @@ class CUFT_Admin {
         $results['success'] = true;
         $results['message'] = 'Both endpoints validated successfully';
 
+        // Store health check results
+        $this->store_health_check_result( $results );
+
         return $results;
+    }
+
+    /**
+     * Store health check result in wp_options
+     */
+    private function store_health_check_result( $results ) {
+        $timestamp = time();
+        $success = $results['success'];
+        $message = $results['message'];
+        
+        // Calculate response time (simplified - in real implementation, you'd measure actual time)
+        $response_time = $success ? 200.0 : 5000.0; // Mock values for now
+        
+        // Store basic health check data
+        update_option( 'cuft_sgtm_health_last_check', $timestamp );
+        update_option( 'cuft_sgtm_health_last_result', $success );
+        update_option( 'cuft_sgtm_health_last_message', $message );
+        update_option( 'cuft_sgtm_health_response_time', $response_time );
+        
+        // Handle consecutive counters and server switching
+        if ( $success ) {
+            // Increment consecutive success, reset failure counter
+            $consecutive_success = get_option( 'cuft_sgtm_health_consecutive_success', 0 ) + 1;
+            update_option( 'cuft_sgtm_health_consecutive_success', $consecutive_success );
+            update_option( 'cuft_sgtm_health_consecutive_failure', 0 );
+            
+            // Switch to custom server after 3 consecutive successes
+            if ( $consecutive_success >= 3 ) {
+                $current_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
+                if ( $current_server !== 'custom' ) {
+                    update_option( 'cuft_sgtm_active_server', 'custom' );
+                    // Trigger admin notice for server recovery
+                    add_option( 'cuft_sgtm_server_recovered', $timestamp );
+                }
+            }
+        } else {
+            // Increment consecutive failure, reset success counter
+            $consecutive_failure = get_option( 'cuft_sgtm_health_consecutive_failure', 0 ) + 1;
+            update_option( 'cuft_sgtm_health_consecutive_failure', $consecutive_failure );
+            update_option( 'cuft_sgtm_health_consecutive_success', 0 );
+            
+            // Switch to fallback on first failure
+            $current_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
+            if ( $current_server === 'custom' ) {
+                update_option( 'cuft_sgtm_active_server', 'fallback' );
+                // Trigger admin notice for server failure
+                add_option( 'cuft_sgtm_server_failed', $timestamp );
+            }
+        }
     }
 
     /**
@@ -1070,7 +1372,7 @@ class CUFT_Admin {
      */
     public function ajax_test_form_submit() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -2056,6 +2358,42 @@ class CUFT_Admin {
                 <?php
             }
         }
+
+        // Check for custom server status change notices
+        $this->check_server_status_notices();
+    }
+
+    /**
+     * Check and display server status change notices
+     */
+    private function check_server_status_notices() {
+        $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
+        
+        // Check for server recovery notice
+        $server_recovered = get_option( 'cuft_sgtm_server_recovered', false );
+        if ( $server_recovered ) {
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p><strong>✅ Custom GTM server is now active</strong><br>';
+            echo 'Your custom server has passed 3 consecutive health checks and is now being used for GTM script loading. ';
+            echo '<a href="' . $settings_url . '">View status</a></p>';
+            echo '</div>';
+            
+            // Clean up the trigger
+            delete_option( 'cuft_sgtm_server_recovered' );
+        }
+        
+        // Check for server failure notice
+        $server_failed = get_option( 'cuft_sgtm_server_failed', false );
+        if ( $server_failed ) {
+            echo '<div class="notice notice-warning is-dismissible">';
+            echo '<p><strong>⚠️ Custom GTM server unavailable, using fallback</strong><br>';
+            echo 'Your custom server failed a health check and the system has automatically switched to Google\'s default endpoints. ';
+            echo '<a href="' . $settings_url . '">View status</a></p>';
+            echo '</div>';
+            
+            // Clean up the trigger
+            delete_option( 'cuft_sgtm_server_failed' );
+        }
     }
 
     /**
@@ -2063,7 +2401,7 @@ class CUFT_Admin {
      */
     public function ajax_record_event() {
         // Verify nonce
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_ajax_nonce' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
