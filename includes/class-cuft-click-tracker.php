@@ -483,14 +483,22 @@ class CUFT_Click_Tracker {
             return false;
         }
 
+        // Clean any output buffers to prevent corruption
+        if ( ob_get_level() ) {
+            ob_end_clean();
+        }
+
         $filename = 'cuft-click-tracking-' . date( 'Y-m-d-H-i-s' ) . '.csv';
 
-        header( 'Content-Type: text/csv' );
+        header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'Pragma: no-cache' );
         header( 'Expires: 0' );
 
         $output = fopen( 'php://output', 'w' );
+
+        // Add UTF-8 BOM for Excel compatibility
+        fprintf( $output, "\xEF\xBB\xBF" );
 
         // CSV headers
         fputcsv( $output, array(

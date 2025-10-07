@@ -15,12 +15,14 @@ class CUFT_Admin {
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+        add_action( 'admin_init', array( $this, 'handle_export_actions' ) );
         add_action( 'wp_ajax_cuft_manual_update_check', array( $this, 'manual_update_check' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
         add_action( 'wp_ajax_cuft_save_sgtm_config', array( $this, 'ajax_save_sgtm_config' ) );
         add_action( 'wp_ajax_cuft_manual_health_check', array( $this, 'ajax_manual_health_check' ) );
         add_action( 'wp_ajax_cuft_get_sgtm_status', array( $this, 'ajax_get_sgtm_status' ) );
         add_action( 'wp_ajax_cuft_install_update', array( $this, 'ajax_install_update' ) );
+        add_action( 'wp_ajax_cuft_download_gtm_template', array( $this, 'ajax_download_gtm_template' ) );
         
         // Cron job for scheduled health checks
         add_action( 'cuft_scheduled_health_check', array( $this, 'scheduled_health_check' ) );
@@ -33,6 +35,34 @@ class CUFT_Admin {
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
+    /**
+     * Handle export actions early (before any output)
+     */
+    public function handle_export_actions() {
+        // Only run on our admin page
+        if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'choice-universal-form-tracker' ) {
+            return;
+        }
+
+        // Handle CSV export
+        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_csv' && isset( $_GET['nonce'] ) && wp_verify_nonce( $_GET['nonce'], 'cuft_export_csv' ) ) {
+            $this->handle_csv_export();
+            // handle_csv_export() will exit, so this won't be reached
+        }
+
+        // Handle Google Ads OCI export
+        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_google_ads_oci' && isset( $_GET['nonce'] ) && wp_verify_nonce( $_GET['nonce'], 'cuft_export_google_ads_oci' ) ) {
+            $this->handle_google_ads_oci_export();
+            // handle_google_ads_oci_export() will exit, so this won't be reached
+        }
+
+        // Handle webhook key regeneration
+        if ( isset( $_GET['action'] ) && $_GET['action'] === 'regenerate_webhook_key' && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'regenerate_webhook_key' ) ) {
+            $this->regenerate_webhook_key();
+            // This redirects, so won't be reached
+        }
+    }
+
     /**
      * Add admin menu page
      */
@@ -55,26 +85,12 @@ class CUFT_Admin {
             $this->save_settings();
         }
         
-        
         // Handle click tracking actions
         if ( isset( $_POST['cuft_click_action'] ) && wp_verify_nonce( $_POST['cuft_click_nonce'], 'cuft_click_tracking' ) ) {
             $this->handle_click_tracking_actions();
         }
         
-        // Handle CSV export
-        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_csv' && wp_verify_nonce( $_GET['nonce'], 'cuft_export_csv' ) ) {
-            $this->handle_csv_export();
-        }
-
-        // Handle Google Ads OCI export
-        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_google_ads_oci' && wp_verify_nonce( $_GET['nonce'], 'cuft_export_google_ads_oci' ) ) {
-            $this->handle_google_ads_oci_export();
-        }
-
-        // Handle webhook key regeneration
-        if ( isset( $_GET['action'] ) && $_GET['action'] === 'regenerate_webhook_key' && wp_verify_nonce( $_GET['_wpnonce'], 'regenerate_webhook_key' ) ) {
-            $this->regenerate_webhook_key();
-        }
+        // Note: Export actions and webhook regeneration are now handled in handle_export_actions() via admin_init hook
         
         $gtm_id = get_option( 'cuft_gtm_id', '' );
         $debug_enabled = get_option( 'cuft_debug_enabled', false );
@@ -124,7 +140,14 @@ class CUFT_Admin {
                 <?php wp_nonce_field( 'cuft_settings', 'cuft_nonce' ); ?>
                 <table class="form-table">
                     <tr>
-                        <th scope="row">Google Tag Manager ID</th>
+                        <th scope="row">
+                            Google Tag Manager ID
+                            <br><br>
+                            <button type="button" class="button button-secondary cuft-download-template" data-template="web" style="font-size: 12px;">
+                                <span class="dashicons dashicons-download" style="font-size: 14px; vertical-align: middle;"></span>
+                                Download Web GTM Template
+                            </button>
+                        </th>
                         <td>
                             <input type="text" name="gtm_id" value="<?php echo esc_attr( $gtm_id ); ?>" 
                                    placeholder="GTM-XXXX or GTM-XXXXXXX" class="regular-text" />
@@ -152,7 +175,14 @@ class CUFT_Admin {
                         </td>
                     </tr>
                     <tr id="cuft-sgtm-url-row" style="<?php echo $sgtm_enabled ? '' : 'display:none;'; ?>">
-                        <th scope="row">Server GTM URL</th>
+                        <th scope="row">
+                            Server GTM URL
+                            <br><br>
+                            <button type="button" class="button button-secondary cuft-download-template" data-template="server" style="font-size: 12px;">
+                                <span class="dashicons dashicons-download" style="font-size: 14px; vertical-align: middle;"></span>
+                                Download Server GTM Template
+                            </button>
+                        </th>
                         <td>
                             <?php
                             $sgtm_url = get_option( 'cuft_sgtm_url', '' );
@@ -296,6 +326,61 @@ class CUFT_Admin {
                 <?php submit_button( 'Save Settings', 'primary', 'cuft_save' ); ?>
             </form>
         </div>
+
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // GTM Template Download buttons
+            $('.cuft-download-template').on('click', function(e) {
+                e.preventDefault();
+                var $button = $(this);
+                var template = $button.data('template');
+                var originalText = $button.html();
+                
+                $button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Downloading...');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'cuft_download_gtm_template',
+                        template: template,
+                        nonce: '<?php echo wp_create_nonce( 'cuft_admin' ); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Decode base64 content
+                            var content = atob(response.data.content);
+                            var filename = response.data.filename;
+                            
+                            // Create blob and download
+                            var blob = new Blob([content], { type: 'application/json' });
+                            var url = window.URL.createObjectURL(blob);
+                            var a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                            
+                            // Show success feedback
+                            $button.html('<span class="dashicons dashicons-yes"></span> Downloaded!');
+                            setTimeout(function() {
+                                $button.prop('disabled', false).html(originalText);
+                            }, 2000);
+                        } else {
+                            alert(response.data.message || 'Download failed');
+                            $button.prop('disabled', false).html(originalText);
+                        }
+                    },
+                    error: function() {
+                        alert('Download failed');
+                        $button.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        });
+        </script>
         <?php
     }
     
@@ -1160,6 +1245,50 @@ class CUFT_Admin {
         );
 
         wp_send_json_success( $response_data );
+    }
+
+    /**
+     * AJAX handler for downloading GTM templates
+     */
+    public function ajax_download_gtm_template() {
+        // Verify nonce and permissions
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        }
+
+        // Get template type
+        $template_type = isset( $_POST['template'] ) ? sanitize_text_field( $_POST['template'] ) : '';
+        
+        if ( empty( $template_type ) || ! in_array( $template_type, array( 'web', 'server' ), true ) ) {
+            wp_send_json_error( array( 'message' => 'Invalid template type' ) );
+        }
+
+        // Determine file path based on template type
+        $plugin_dir = plugin_dir_path( dirname( __FILE__ ) );
+        if ( $template_type === 'web' ) {
+            $file_path = $plugin_dir . 'gtm-web-client/CUFT - Web Defaults.json';
+            $filename = 'CUFT-Web-Defaults.json';
+        } else {
+            $file_path = $plugin_dir . 'gtm-server/CUFT - Server Defaults.json';
+            $filename = 'CUFT-Server-Defaults.json';
+        }
+
+        // Check if file exists
+        if ( ! file_exists( $file_path ) ) {
+            wp_send_json_error( array( 'message' => 'Template file not found' ) );
+        }
+
+        // Read file content
+        $file_content = file_get_contents( $file_path );
+        if ( $file_content === false ) {
+            wp_send_json_error( array( 'message' => 'Failed to read template file' ) );
+        }
+
+        // Return file content as base64 to avoid JSON parsing issues
+        wp_send_json_success( array(
+            'content' => base64_encode( $file_content ),
+            'filename' => $filename
+        ) );
     }
 
     /**
@@ -2457,6 +2586,12 @@ class CUFT_Admin {
         // Get latest version from status (available whether update is needed or not)
         $latest_version = isset( $update_status['latest_version'] ) ? $update_status['latest_version'] : '';
 
+        // Check if current version is newer than latest (development/pre-release)
+        $is_dev_version = false;
+        if ( $latest_version && version_compare( $current_version, $latest_version, '>' ) ) {
+            $is_dev_version = true;
+        }
+
         // Get update settings
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
         $auto_update_enabled = get_option( 'cuft_auto_update_enabled', false );
@@ -2474,20 +2609,23 @@ class CUFT_Admin {
                     </h2>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
-                        <div style="padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                        <div style="padding: 15px; background: <?php echo $is_dev_version ? '#e7f3ff' : '#f8f9fa'; ?>; border-radius: 6px;">
                             <div style="color: #6c757d; font-size: 12px; text-transform: uppercase; margin-bottom: 5px;">
                                 <?php _e( 'Current Version', 'choice-universal-form-tracker' ); ?>
                             </div>
-                            <div style="font-size: 24px; font-weight: bold; color: #333;">
+                            <div style="font-size: 24px; font-weight: bold; color: <?php echo $is_dev_version ? '#0073aa' : '#333'; ?>;">
                                 v<?php echo esc_html( $current_version ); ?>
+                                <?php if ( $is_dev_version ): ?>
+                                    <div style="font-size: 11px; color: #0073aa; font-weight: normal; margin-top: 5px; text-transform: uppercase;">Development Build</div>
+                                <?php endif; ?>
                             </div>
                         </div>
 
-                        <div style="padding: 15px; background: <?php echo $update_available ? '#fff3cd' : '#d4edda'; ?>; border-radius: 6px;">
+                        <div style="padding: 15px; background: <?php echo $update_available ? '#fff3cd' : ( $is_dev_version ? '#f8f9fa' : '#d4edda' ); ?>; border-radius: 6px;">
                             <div style="color: #6c757d; font-size: 12px; text-transform: uppercase; margin-bottom: 5px;">
-                                <?php _e( 'Latest Version', 'choice-universal-form-tracker' ); ?>
+                                <?php _e( 'Latest Release', 'choice-universal-form-tracker' ); ?>
                             </div>
-                            <div style="font-size: 24px; font-weight: bold; color: <?php echo $update_available ? '#856404' : '#155724'; ?>;">
+                            <div style="font-size: 24px; font-weight: bold; color: <?php echo $update_available ? '#856404' : ( $is_dev_version ? '#6c757d' : '#155724' ); ?>;">
                                 <?php if ( $latest_version ): ?>
                                     v<?php echo esc_html( $latest_version ); ?>
                                 <?php else: ?>
@@ -2506,6 +2644,11 @@ class CUFT_Admin {
                                         <span class="dashicons dashicons-warning"></span>
                                         <?php _e( 'Update Available', 'choice-universal-form-tracker' ); ?>
                                     </span>
+                                <?php elseif ( $is_dev_version ): ?>
+                                    <span style="color: #0073aa;">
+                                        <span class="dashicons dashicons-editor-code"></span>
+                                        <?php _e( 'Development Version', 'choice-universal-form-tracker' ); ?>
+                                    </span>
                                 <?php elseif ( $latest_version ): ?>
                                     <span style="color: #28a745;">
                                         <span class="dashicons dashicons-yes-alt"></span>
@@ -2519,6 +2662,16 @@ class CUFT_Admin {
                             </div>
                         </div>
                     </div>
+
+                    <?php if ( $is_dev_version ): ?>
+                        <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-left: 4px solid #0073aa; border-radius: 4px;">
+                            <p style="margin: 0; color: #0073aa;">
+                                <span class="dashicons dashicons-info" style="vertical-align: middle;"></span>
+                                <strong><?php _e( 'Development Version:', 'choice-universal-form-tracker' ); ?></strong>
+                                <?php _e( 'Your current version is newer than the latest published release. This typically means you are running a pre-release or development build.', 'choice-universal-form-tracker' ); ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ( $update_available ): ?>
                         <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 6px;">

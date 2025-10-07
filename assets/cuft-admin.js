@@ -12,42 +12,47 @@ jQuery(document).ready(function ($) {
 
   function showGTMValidation(isValid, message) {
     const $input = $('input[name="gtm_id"]');
-    const $validation = $('#gtm-validation-status');
+    const $validation = $("#gtm-validation-status");
 
     // Create validation element if it doesn't exist
     if ($validation.length === 0) {
-      $input.after('<div id="gtm-validation-status" style="margin-top: 8px;"></div>');
+      $input.after(
+        '<div id="gtm-validation-status" style="margin-top: 8px;"></div>'
+      );
     }
 
     if (isValid) {
-      $('#gtm-validation-status').html(
+      $("#gtm-validation-status").html(
         '<span class="cuft-status-indicator success">✓ Valid GTM ID format</span>'
       );
-      $input.css('border-color', '#28a745');
+      $input.css("border-color", "#28a745");
     } else if (message) {
-      $('#gtm-validation-status').html(
-        '<span class="cuft-status-indicator error">✗ ' + message + '</span>'
+      $("#gtm-validation-status").html(
+        '<span class="cuft-status-indicator error">✗ ' + message + "</span>"
       );
-      $input.css('border-color', '#dc3545');
+      $input.css("border-color", "#dc3545");
     } else {
-      $('#gtm-validation-status').empty();
-      $input.css('border-color', '');
+      $("#gtm-validation-status").empty();
+      $input.css("border-color", "");
     }
   }
 
   // GTM ID validation on input
-  $('input[name="gtm_id"]').on('input', function() {
+  $('input[name="gtm_id"]').on("input", function () {
     const gtmId = $(this).val().trim();
 
-    if (gtmId === '') {
-      showGTMValidation(false, '');
+    if (gtmId === "") {
+      showGTMValidation(false, "");
       return;
     }
 
     if (validateGTMID(gtmId)) {
       showGTMValidation(true);
     } else {
-      showGTMValidation(false, 'GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)');
+      showGTMValidation(
+        false,
+        "GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)"
+      );
     }
   });
 
@@ -59,11 +64,13 @@ jQuery(document).ready(function ($) {
       if (validateGTMID(initialGTMID)) {
         showGTMValidation(true);
       } else {
-        showGTMValidation(false, 'GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)');
+        showGTMValidation(
+          false,
+          "GTM ID must be in format GTM-XXXX (e.g., GTM-ABC123)"
+        );
       }
     }
   }
-
 
   // Store latest version for install button
   var latestVersion = null;
@@ -111,7 +118,8 @@ jQuery(document).ready(function ($) {
           if (data.last_checked) {
             var lastChecked = new Date(data.last_checked);
             var formattedDate = lastChecked.toLocaleString();
-            lastCheckedText = "<br><small>Last checked: " + formattedDate + "</small>";
+            lastCheckedText =
+              "<br><small>Last checked: " + formattedDate + "</small>";
           }
 
           $result.html(
@@ -132,8 +140,12 @@ jQuery(document).ready(function ($) {
               "</div>"
           );
         } else {
-          var errorMessage = (response.data && response.data.message) ? response.data.message :
-                            (response.message ? response.message : "Unknown error occurred");
+          var errorMessage =
+            response.data && response.data.message
+              ? response.data.message
+              : response.message
+              ? response.message
+              : "Unknown error occurred";
           $result.html(
             '<div style="padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">' +
               "<strong>⚠️ " +
@@ -197,35 +209,40 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         if (response.success && response.data) {
           var data = response.data;
-          
+
           // Update status display
-          $("#cuft-active-server").text(data.status.active_server === 'custom' ? 'Custom Server' : 'Google Fallback');
+          $("#cuft-active-server").text(
+            data.status.active_server === "custom"
+              ? "Custom Server"
+              : "Google Fallback"
+          );
           $("#cuft-last-check").text(data.human_readable.last_check);
           $("#cuft-health-status-text").text(data.human_readable.status);
           $("#cuft-consecutive-success").text(data.status.consecutive_success);
           $("#cuft-consecutive-failure").text(data.status.consecutive_failure);
           $("#cuft-next-check").text(data.human_readable.next_check);
-          
+
           // Update status colors
-          var statusColor = data.status.active_server === 'custom' ? '#28a745' : '#ffc107';
-          $("#cuft-health-status-text").css('color', statusColor);
+          var statusColor =
+            data.status.active_server === "custom" ? "#28a745" : "#ffc107";
+          $("#cuft-health-status-text").css("color", statusColor);
         } else {
-          $("#cuft-active-server").text('Error loading status');
-          $("#cuft-last-check").text('Error');
-          $("#cuft-health-status-text").text('Error');
-          $("#cuft-consecutive-success").text('Error');
-          $("#cuft-consecutive-failure").text('Error');
-          $("#cuft-next-check").text('Error');
+          $("#cuft-active-server").text("Error loading status");
+          $("#cuft-last-check").text("Error");
+          $("#cuft-health-status-text").text("Error");
+          $("#cuft-consecutive-success").text("Error");
+          $("#cuft-consecutive-failure").text("Error");
+          $("#cuft-next-check").text("Error");
         }
       },
-      error: function() {
-        $("#cuft-active-server").text('Error loading status');
-        $("#cuft-last-check").text('Error');
-        $("#cuft-health-status-text").text('Error');
-        $("#cuft-consecutive-success").text('Error');
-        $("#cuft-consecutive-failure").text('Error');
-        $("#cuft-next-check").text('Error');
-      }
+      error: function () {
+        $("#cuft-active-server").text("Error loading status");
+        $("#cuft-last-check").text("Error");
+        $("#cuft-health-status-text").text("Error");
+        $("#cuft-consecutive-success").text("Error");
+        $("#cuft-consecutive-failure").text("Error");
+        $("#cuft-next-check").text("Error");
+      },
     });
   }
 
@@ -238,7 +255,9 @@ jQuery(document).ready(function ($) {
 
     // Disable button and show loading
     $button.prop("disabled", true).text("Running Health Check...");
-    $result.html('<span style="color: #666;">🔄 Running health check...</span>');
+    $result.html(
+      '<span style="color: #666;">🔄 Running health check...</span>'
+    );
 
     // Make AJAX request
     $.ajax({
@@ -253,22 +272,39 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         if (response.success && response.data) {
           var data = response.data;
-          var statusColor = data.health_check_passed ? '#28a745' : '#dc3545';
-          var statusIcon = data.health_check_passed ? '✅' : '❌';
-          
+          var statusColor = data.health_check_passed ? "#28a745" : "#dc3545";
+          var statusIcon = data.health_check_passed ? "✅" : "❌";
+
           $result.html(
-            '<span style="color: ' + statusColor + ';">' + statusIcon + ' ' + data.message + 
-            '<br><small>Response time: ' + data.response_time + 'ms | ' +
-            'Consecutive success: ' + data.consecutive_success + ' | ' +
-            'Active server: ' + data.active_server + '</small></span>'
+            '<span style="color: ' +
+              statusColor +
+              ';">' +
+              statusIcon +
+              " " +
+              data.message +
+              "<br><small>Response time: " +
+              data.response_time +
+              "ms | " +
+              "Consecutive success: " +
+              data.consecutive_success +
+              " | " +
+              "Active server: " +
+              data.active_server +
+              "</small></span>"
           );
-          
+
           // Reload status display
           loadHealthStatus();
         } else {
-          var errorMessage = (response.data && response.data.message) ? response.data.message :
-                           (response.message ? response.message : "Health check failed");
-          $result.html('<span style="color: #dc3545;">❌ ' + errorMessage + '</span>');
+          var errorMessage =
+            response.data && response.data.message
+              ? response.data.message
+              : response.message
+              ? response.message
+              : "Health check failed";
+          $result.html(
+            '<span style="color: #dc3545;">❌ ' + errorMessage + "</span>"
+          );
         }
       },
       error: function (xhr, status, error) {
@@ -284,7 +320,9 @@ jQuery(document).ready(function ($) {
           }
         }
 
-        $result.html('<span style="color: #dc3545;">❌ ' + errorMsg + '</span>');
+        $result.html(
+          '<span style="color: #dc3545;">❌ ' + errorMsg + "</span>"
+        );
       },
       complete: function () {
         // Re-enable button
@@ -294,7 +332,11 @@ jQuery(document).ready(function ($) {
   });
 
   // Load health status on page load if sGTM is enabled
-  if ($("#cuft-sgtm-enabled").is(":checked")) {
+  // Check if the health check row is visible (which means sGTM is enabled)
+  if (
+    $("#cuft-health-check-row").is(":visible") ||
+    $("#cuft-sgtm-enabled").is(":checked")
+  ) {
     loadHealthStatus();
   }
 
@@ -351,8 +393,12 @@ jQuery(document).ready(function ($) {
               "</span>"
           );
         } else {
-          var errorMessage = (response.data && response.data.message) ? response.data.message :
-                           (response.message ? response.message : "Connection test failed");
+          var errorMessage =
+            response.data && response.data.message
+              ? response.data.message
+              : response.message
+              ? response.message
+              : "Connection test failed";
           var errorHtml = '<span style="color: #dc3545;">✗ ' + errorMessage;
           if (response.data && response.data.details) {
             errorHtml += "<br><small>";
@@ -405,7 +451,13 @@ jQuery(document).ready(function ($) {
     var $status = $("#cuft-install-status");
 
     // Confirm the action
-    if (!confirm("Are you sure you want to update to version " + latestVersion + "?\n\nThe plugin will be updated automatically.")) {
+    if (
+      !confirm(
+        "Are you sure you want to update to version " +
+          latestVersion +
+          "?\n\nThe plugin will be updated automatically."
+      )
+    ) {
       return;
     }
 
@@ -420,7 +472,7 @@ jQuery(document).ready(function ($) {
       "Downloading update from GitHub...",
       "Extracting files...",
       "Installing update...",
-      "Cleaning up..."
+      "Cleaning up...",
     ];
     var messageIndex = 0;
 
@@ -449,9 +501,11 @@ jQuery(document).ready(function ($) {
           $progress.hide();
           $result.html(
             '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">' +
-              '<strong>✅ ' + response.data.message + '</strong>' +
-              '<br><small>Page will reload in 3 seconds...</small>' +
-              '</div>'
+              "<strong>✅ " +
+              response.data.message +
+              "</strong>" +
+              "<br><small>Page will reload in 3 seconds...</small>" +
+              "</div>"
           );
 
           // Hide the install button since update is complete
@@ -463,16 +517,27 @@ jQuery(document).ready(function ($) {
           }, 3000);
         } else {
           $progress.hide();
-          var errorMessage = (response.data && response.data.message) ? response.data.message :
-                            (response.message ? response.message : "Update installation failed");
-          var details = (response.data && response.data.details) ? response.data.details :
-                       (response.details ? response.details : null);
+          var errorMessage =
+            response.data && response.data.message
+              ? response.data.message
+              : response.message
+              ? response.message
+              : "Update installation failed";
+          var details =
+            response.data && response.data.details
+              ? response.data.details
+              : response.details
+              ? response.details
+              : null;
           $result.html(
             '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
-              '<strong>❌ ' + errorMessage + '</strong>' +
-              (details && details.length ?
-                '<br><small>' + details.join('<br>') + '</small>' : '') +
-              '</div>'
+              "<strong>❌ " +
+              errorMessage +
+              "</strong>" +
+              (details && details.length
+                ? "<br><small>" + details.join("<br>") + "</small>"
+                : "") +
+              "</div>"
           );
 
           // Re-enable buttons
@@ -498,8 +563,10 @@ jQuery(document).ready(function ($) {
 
         $result.html(
           '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
-            '<strong>❌ ' + errorMsg + '</strong>' +
-            '</div>'
+            "<strong>❌ " +
+            errorMsg +
+            "</strong>" +
+            "</div>"
         );
 
         // Re-enable buttons
@@ -522,7 +589,13 @@ jQuery(document).ready(function ($) {
     var currentVersion = cuftAdmin.current_version || "unknown";
 
     // Confirm the action
-    if (!confirm("Are you sure you want to re-install the current version (" + currentVersion + ")?\n\nThis will download and re-install the plugin to test the updater mechanism.")) {
+    if (
+      !confirm(
+        "Are you sure you want to re-install the current version (" +
+          currentVersion +
+          ")?\n\nThis will download and re-install the plugin to test the updater mechanism."
+      )
+    ) {
       return;
     }
 
@@ -538,7 +611,7 @@ jQuery(document).ready(function ($) {
       "Downloading current version from GitHub...",
       "Extracting files...",
       "Re-installing plugin...",
-      "Cleaning up..."
+      "Cleaning up...",
     ];
     var messageIndex = 0;
     $status.text(statusMessages[messageIndex]);
@@ -569,9 +642,11 @@ jQuery(document).ready(function ($) {
           $progress.hide();
           $result.html(
             '<div style="padding: 10px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">' +
-              '<strong>✅ ' + response.data.message + '</strong>' +
-              '<br><small>Re-installation completed successfully! Page will reload in 3 seconds...</small>' +
-              '</div>'
+              "<strong>✅ " +
+              response.data.message +
+              "</strong>" +
+              "<br><small>Re-installation completed successfully! Page will reload in 3 seconds...</small>" +
+              "</div>"
           );
 
           // Reload the page after 3 seconds
@@ -580,16 +655,27 @@ jQuery(document).ready(function ($) {
           }, 3000);
         } else {
           $progress.hide();
-          var errorMessage = (response.data && response.data.message) ? response.data.message :
-                            (response.message ? response.message : "Re-installation failed");
-          var details = (response.data && response.data.details) ? response.data.details :
-                       (response.details ? response.details : null);
+          var errorMessage =
+            response.data && response.data.message
+              ? response.data.message
+              : response.message
+              ? response.message
+              : "Re-installation failed";
+          var details =
+            response.data && response.data.details
+              ? response.data.details
+              : response.details
+              ? response.details
+              : null;
           $result.html(
             '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
-              '<strong>❌ ' + errorMessage + '</strong>' +
-              (details && details.length ?
-                '<br><small>' + details.join('<br>') + '</small>' : '') +
-              '</div>'
+              "<strong>❌ " +
+              errorMessage +
+              "</strong>" +
+              (details && details.length
+                ? "<br><small>" + details.join("<br>") + "</small>"
+                : "") +
+              "</div>"
           );
 
           // Re-enable buttons
@@ -616,8 +702,10 @@ jQuery(document).ready(function ($) {
 
         $result.html(
           '<div style="padding: 10px; background: #ffeaea; border-left: 4px solid #dc3545; border-radius: 4px;">' +
-            '<strong>❌ ' + errorMsg + '</strong>' +
-            '</div>'
+            "<strong>❌ " +
+            errorMsg +
+            "</strong>" +
+            "</div>"
         );
 
         // Re-enable buttons
@@ -662,36 +750,39 @@ jQuery(document).ready(function ($) {
           // Store tracking data in sessionStorage for production code
           var trackingData = {
             tracking: response.data.tracking_data,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
 
           try {
-            sessionStorage.setItem('cuft_tracking_data', JSON.stringify(trackingData));
-            console.log('[CUFT Test] Tracking data stored:', trackingData);
+            sessionStorage.setItem(
+              "cuft_tracking_data",
+              JSON.stringify(trackingData)
+            );
+            console.log("[CUFT Test] Tracking data stored:", trackingData);
           } catch (e) {
-            console.error('[CUFT Test] Error storing tracking data:', e);
+            console.error("[CUFT Test] Error storing tracking data:", e);
           }
 
           // Create a temporary form element with test data for production code to find
-          var tempForm = document.createElement('div');
-          tempForm.id = 'cuft-test-form-' + response.data.framework;
-          tempForm.className = 'elementor-form'; // Make it look like an Elementor form
-          tempForm.style.display = 'none';
+          var tempForm = document.createElement("div");
+          tempForm.id = "cuft-test-form-" + response.data.framework;
+          tempForm.className = "elementor-form"; // Make it look like an Elementor form
+          tempForm.style.display = "none";
 
           // Set data attributes that production code looks for
-          tempForm.setAttribute('data-cuft-email', response.data.test_email);
-          tempForm.setAttribute('data-cuft-phone', response.data.test_phone);
-          tempForm.setAttribute('data-cuft-tracking', 'pending');
+          tempForm.setAttribute("data-cuft-email", response.data.test_email);
+          tempForm.setAttribute("data-cuft-phone", response.data.test_phone);
+          tempForm.setAttribute("data-cuft-tracking", "pending");
 
           // Add email and phone inputs for production code to extract (fallback method)
-          var emailInput = document.createElement('input');
-          emailInput.type = 'email';
-          emailInput.name = 'email';
+          var emailInput = document.createElement("input");
+          emailInput.type = "email";
+          emailInput.name = "email";
           emailInput.value = response.data.test_email;
 
-          var phoneInput = document.createElement('input');
-          phoneInput.type = 'tel';
-          phoneInput.name = 'phone';
+          var phoneInput = document.createElement("input");
+          phoneInput.type = "tel";
+          phoneInput.name = "phone";
           phoneInput.value = response.data.test_phone;
 
           tempForm.appendChild(emailInput);
@@ -703,8 +794,8 @@ jQuery(document).ready(function ($) {
             success: true,
             data: {
               form_id: response.data.form_id,
-              response: 'success'
-            }
+              response: "success",
+            },
           };
 
           var eventType = getFrameworkEventType(response.data.framework);
@@ -712,7 +803,7 @@ jQuery(document).ready(function ($) {
           // Fire native event
           var nativeEvent = new CustomEvent(eventType, {
             detail: eventDetail,
-            bubbles: true
+            bubbles: true,
           });
 
           tempForm.dispatchEvent(nativeEvent);
@@ -724,10 +815,12 @@ jQuery(document).ready(function ($) {
             window.jQuery(document).trigger(eventType, [eventDetail]);
           }
 
-          console.log('[CUFT Test] Fired ' + eventType + ' event for production tracking');
+          console.log(
+            "[CUFT Test] Fired " + eventType + " event for production tracking"
+          );
 
           // Clean up temp form after a delay
-          setTimeout(function() {
+          setTimeout(function () {
             if (tempForm.parentNode) {
               tempForm.parentNode.removeChild(tempForm);
             }
@@ -746,38 +839,66 @@ jQuery(document).ready(function ($) {
           var detailsHtml =
             "<strong>Production Event Fired:</strong><br>" +
             '<div style="margin-top: 5px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 12px;">' +
-            "🎯 Event: <code>" + eventType + "</code><br>" +
+            "🎯 Event: <code>" +
+            eventType +
+            "</code><br>" +
             "📍 Target: Production tracking code will handle this event<br>" +
             "✅ Expected: <strong>form_submit</strong> with <code>cuft_tracked: true</code><br>" +
             "✅ Expected: <strong>generate_lead</strong> (if requirements met)<br>" +
             "</div>" +
             "<strong>Test Data:</strong><br>" +
             '<div style="margin-top: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; font-family: monospace;">' +
-            "📧 Email: " + response.data.test_email + "<br>" +
-            "📞 Phone: " + response.data.test_phone + "<br>" +
-            "🎯 Framework: " + response.data.framework_name + "<br>" +
-            "📝 Form ID: " + response.data.form_id + "<br>" +
-            "🔗 Click ID: " + (trackingDetails.click_id || "N/A") + "<br>" +
-            "🔗 GCLID: " + (trackingDetails.gclid || "N/A") + "<br>" +
-            "🏷️ Tracking ID: " + response.data.tracking_id + "<br>";
+            "📧 Email: " +
+            response.data.test_email +
+            "<br>" +
+            "📞 Phone: " +
+            response.data.test_phone +
+            "<br>" +
+            "🎯 Framework: " +
+            response.data.framework_name +
+            "<br>" +
+            "📝 Form ID: " +
+            response.data.form_id +
+            "<br>" +
+            "🔗 Click ID: " +
+            (trackingDetails.click_id || "N/A") +
+            "<br>" +
+            "🔗 GCLID: " +
+            (trackingDetails.gclid || "N/A") +
+            "<br>" +
+            "🏷️ Tracking ID: " +
+            response.data.tracking_id +
+            "<br>";
 
-          if (trackingDetails.utm_source || trackingDetails.utm_medium || trackingDetails.utm_campaign) {
+          if (
+            trackingDetails.utm_source ||
+            trackingDetails.utm_medium ||
+            trackingDetails.utm_campaign
+          ) {
             detailsHtml += "<strong>UTM Data:</strong><br>";
-            if (trackingDetails.utm_source) detailsHtml += "Source: " + trackingDetails.utm_source + "<br>";
-            if (trackingDetails.utm_medium) detailsHtml += "Medium: " + trackingDetails.utm_medium + "<br>";
-            if (trackingDetails.utm_campaign) detailsHtml += "Campaign: " + trackingDetails.utm_campaign + "<br>";
+            if (trackingDetails.utm_source)
+              detailsHtml += "Source: " + trackingDetails.utm_source + "<br>";
+            if (trackingDetails.utm_medium)
+              detailsHtml += "Medium: " + trackingDetails.utm_medium + "<br>";
+            if (trackingDetails.utm_campaign)
+              detailsHtml +=
+                "Campaign: " + trackingDetails.utm_campaign + "<br>";
           }
 
-          detailsHtml += "</div>" +
+          detailsHtml +=
+            "</div>" +
             '<div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 12px;">' +
             "📊 <strong>Check your browser's developer console and GTM Debug Mode to verify the events were pushed to dataLayer.</strong>" +
             "</div>";
 
           $result.html(
             '<div style="padding: 8px; background: #d4edda; border-left: 3px solid #28a745; border-radius: 4px; color: #155724;">' +
-              '<strong>✅ Test form submitted via production tracking!</strong><br>' +
+              "<strong>✅ Test form submitted via production tracking!</strong><br>" +
               '<div style="margin-top: 5px; font-size: 13px;">' +
-              emailStatus + " | " + gtmStatus + "<br>" +
+              emailStatus +
+              " | " +
+              gtmStatus +
+              "<br>" +
               detailsHtml +
               "</div>" +
               "</div>"
@@ -786,7 +907,9 @@ jQuery(document).ready(function ($) {
           $result.html(
             '<div style="padding: 8px; background: #ffeaea; border-left: 3px solid #dc3545; border-radius: 4px; color: #721c24;">' +
               "❌ " +
-              (response.data ? response.data.message : "Test submission failed") +
+              (response.data
+                ? response.data.message
+                : "Test submission failed") +
               "</div>"
           );
         }
@@ -827,20 +950,20 @@ jQuery(document).ready(function ($) {
   // Get the correct event type for each framework
   function getFrameworkEventType(framework) {
     var eventMap = {
-      'elementor': 'submit_success',
-      'contact_form_7': 'wpcf7mailsent',
-      'ninja_forms': 'nfFormSubmitResponse',
-      'gravity_forms': 'gform_confirmation_loaded',
-      'avada': 'fusion_form_submit_success'
+      elementor: "submit_success",
+      contact_form_7: "wpcf7mailsent",
+      ninja_forms: "nfFormSubmitResponse",
+      gravity_forms: "gform_confirmation_loaded",
+      avada: "fusion_form_submit_success",
     };
 
-    return eventMap[framework] || 'submit_success';
+    return eventMap[framework] || "submit_success";
   }
 
   // Handle Generate Lead settings show/hide
-  $('#cuft-generate-lead-enabled').on('change', function() {
-    var $leadSettings = $('#cuft-lead-settings');
-    if ($(this).is(':checked')) {
+  $("#cuft-generate-lead-enabled").on("change", function () {
+    var $leadSettings = $("#cuft-lead-settings");
+    if ($(this).is(":checked")) {
       $leadSettings.slideDown();
     } else {
       $leadSettings.slideUp();

@@ -143,8 +143,8 @@ class CUFT_Cache_Warmer {
         $config = get_option('cuft_update_config');
 
         if (false === $config && class_exists('CUFT_Update_Configuration')) {
-            // Get default configuration
-            $config = CUFT_Update_Configuration::get_defaults();
+            // Get default configuration using get() which internally calls get_defaults()
+            $config = CUFT_Update_Configuration::get();
             update_option('cuft_update_config', $config);
         }
 
