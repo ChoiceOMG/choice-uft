@@ -82,9 +82,10 @@ class CUFT_WordPress_Updater {
 		// Check if we have update information cached
 		$update_status = CUFT_Update_Status::get();
 
-		// If no recent check, perform one
+		// Perform check if no cache or cache older than 6 hours
+		// (Reduced from 12 hours to ensure WordPress updates page shows current state)
 		if ( empty( $update_status['last_check'] ) ||
-		     ( time() - strtotime( $update_status['last_check'] ) > 12 * HOUR_IN_SECONDS ) ) {
+		     ( time() - strtotime( $update_status['last_check'] ) > 6 * HOUR_IN_SECONDS ) ) {
 			CUFT_Update_Checker::check( false );
 			$update_status = CUFT_Update_Status::get();
 		}
