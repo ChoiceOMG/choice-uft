@@ -346,14 +346,25 @@ class Choice_Universal_Form_Tracker {
 
         // Flush rewrite rules to enable webhook endpoints
         flush_rewrite_rules();
+
+        // Schedule health check cron job (every 6 hours)
+        if ( ! wp_next_scheduled( 'cuft_scheduled_health_check' ) ) {
+            wp_schedule_event( time(), 'six_hours', 'cuft_scheduled_health_check' );
+        }
     }
-    
+
     /**
      * Plugin deactivation
      */
     public function deactivate() {
         // Cleanup debug logs older than 30 days
         delete_option( 'cuft_debug_logs' );
+
+        // Clear scheduled health check cron job
+        $timestamp = wp_next_scheduled( 'cuft_scheduled_health_check' );
+        if ( $timestamp ) {
+            wp_unschedule_event( $timestamp, 'cuft_scheduled_health_check' );
+        }
 
         // Flush rewrite rules
         flush_rewrite_rules();
@@ -363,16 +374,22 @@ class Choice_Universal_Form_Tracker {
      * Enqueue cuftConfig JavaScript object (v3.12.0)
      *
      * Provides AJAX URL and nonce for client-side event recording.
+     * Also enqueues frontend health check script when custom server is enabled.
      */
     public function enqueue_cuft_config() {
         // Create nonce for event recording
         $nonce = wp_create_nonce( 'cuft-event-recorder' );
+
+        // Check if custom server is enabled
+        $custom_server_enabled = get_option( 'cuft_sgtm_enabled', false ) && 
+                                get_option( 'cuft_sgtm_active_server', 'fallback' ) === 'custom';
 
         // Prepare config object
         $cuft_config = array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => $nonce,
             'debug' => defined( 'WP_DEBUG' ) && WP_DEBUG,
+            'custom_server_enabled' => $custom_server_enabled,
         );
 
         // Add inline script to make config globally available
@@ -381,6 +398,17 @@ class Choice_Universal_Form_Tracker {
             'var cuftConfig = ' . wp_json_encode( $cuft_config ) . ';',
             'before'
         );
+
+        // Enqueue frontend health check script when custom server is enabled
+        if ( $custom_server_enabled ) {
+            wp_enqueue_script(
+                'cuft-health-check',
+                CUFT_URL . '/assets/cuft-health-check.js',
+                array(),
+                CUFT_VERSION,
+                true
+            );
+        }
     }
 
     /**

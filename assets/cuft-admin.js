@@ -175,10 +175,128 @@ jQuery(document).ready(function ($) {
   $("#cuft-sgtm-enabled").on("change", function () {
     if ($(this).is(":checked")) {
       $("#cuft-sgtm-url-row").slideDown();
+      $("#cuft-health-check-row").slideDown();
+      loadHealthStatus(); // Load health status when enabled
     } else {
       $("#cuft-sgtm-url-row").slideUp();
+      $("#cuft-health-check-row").slideUp();
     }
   });
+
+  // Load health check status
+  function loadHealthStatus() {
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: "POST",
+      data: {
+        action: "cuft_get_sgtm_status",
+        nonce: cuftAdmin.nonce,
+      },
+      dataType: "json",
+      timeout: 10000,
+      success: function (response) {
+        if (response.success && response.data) {
+          var data = response.data;
+          
+          // Update status display
+          $("#cuft-active-server").text(data.status.active_server === 'custom' ? 'Custom Server' : 'Google Fallback');
+          $("#cuft-last-check").text(data.human_readable.last_check);
+          $("#cuft-health-status-text").text(data.human_readable.status);
+          $("#cuft-consecutive-success").text(data.status.consecutive_success);
+          $("#cuft-consecutive-failure").text(data.status.consecutive_failure);
+          $("#cuft-next-check").text(data.human_readable.next_check);
+          
+          // Update status colors
+          var statusColor = data.status.active_server === 'custom' ? '#28a745' : '#ffc107';
+          $("#cuft-health-status-text").css('color', statusColor);
+        } else {
+          $("#cuft-active-server").text('Error loading status');
+          $("#cuft-last-check").text('Error');
+          $("#cuft-health-status-text").text('Error');
+          $("#cuft-consecutive-success").text('Error');
+          $("#cuft-consecutive-failure").text('Error');
+          $("#cuft-next-check").text('Error');
+        }
+      },
+      error: function() {
+        $("#cuft-active-server").text('Error loading status');
+        $("#cuft-last-check").text('Error');
+        $("#cuft-health-status-text").text('Error');
+        $("#cuft-consecutive-success").text('Error');
+        $("#cuft-consecutive-failure").text('Error');
+        $("#cuft-next-check").text('Error');
+      }
+    });
+  }
+
+  // Manual health check handler
+  $("#cuft-manual-health-check").on("click", function (e) {
+    e.preventDefault();
+
+    var $button = $(this);
+    var $result = $("#cuft-health-check-result");
+
+    // Disable button and show loading
+    $button.prop("disabled", true).text("Running Health Check...");
+    $result.html('<span style="color: #666;">🔄 Running health check...</span>');
+
+    // Make AJAX request
+    $.ajax({
+      url: cuftAdmin.ajax_url,
+      type: "POST",
+      data: {
+        action: "cuft_manual_health_check",
+        nonce: cuftAdmin.nonce,
+      },
+      dataType: "json",
+      timeout: 15000,
+      success: function (response) {
+        if (response.success && response.data) {
+          var data = response.data;
+          var statusColor = data.health_check_passed ? '#28a745' : '#dc3545';
+          var statusIcon = data.health_check_passed ? '✅' : '❌';
+          
+          $result.html(
+            '<span style="color: ' + statusColor + ';">' + statusIcon + ' ' + data.message + 
+            '<br><small>Response time: ' + data.response_time + 'ms | ' +
+            'Consecutive success: ' + data.consecutive_success + ' | ' +
+            'Active server: ' + data.active_server + '</small></span>'
+          );
+          
+          // Reload status display
+          loadHealthStatus();
+        } else {
+          var errorMessage = (response.data && response.data.message) ? response.data.message :
+                           (response.message ? response.message : "Health check failed");
+          $result.html('<span style="color: #dc3545;">❌ ' + errorMessage + '</span>');
+        }
+      },
+      error: function (xhr, status, error) {
+        var errorMsg = "Network error occurred";
+        if (status === "timeout") {
+          errorMsg = "Health check timed out";
+        } else if (xhr.responseText) {
+          try {
+            var response = JSON.parse(xhr.responseText);
+            errorMsg = response.message || errorMsg;
+          } catch (e) {
+            // Keep default error message
+          }
+        }
+
+        $result.html('<span style="color: #dc3545;">❌ ' + errorMsg + '</span>');
+      },
+      complete: function () {
+        // Re-enable button
+        $button.prop("disabled", false).text("Run Health Check Now");
+      },
+    });
+  });
+
+  // Load health status on page load if sGTM is enabled
+  if ($("#cuft-sgtm-enabled").is(":checked")) {
+    loadHealthStatus();
+  }
 
   // Handle sGTM test button
   $("#cuft-test-sgtm").on("click", function (e) {

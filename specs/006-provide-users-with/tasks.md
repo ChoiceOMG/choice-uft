@@ -108,11 +108,11 @@
 ## Phase 3.4: Cron Automation
 **PREREQUISITE**: T002-T005 must be complete
 
-- [ ] **T010** Create cron job registration in `/includes/class-cuft-admin.php` or plugin main file
-  - Add custom interval: `six_hours` = 6 * 60 * 60 seconds
-  - Register cron event: `cuft_scheduled_health_check` on activation
-  - Hook: `add_action('cuft_scheduled_health_check', 'scheduled_health_check_callback')`
-  - Unregister cron on deactivation
+- [X] **T010** Create cron job registration in `/choice-universal-form-tracker.php` activation hook
+  - Add custom interval: `six_hours` = 6 * 60 * 60 seconds (already in class-cuft-admin.php:1168)
+  - Register cron event: `cuft_scheduled_health_check` on activation (added to activate() method)
+  - Hook: `add_action('cuft_scheduled_health_check', 'scheduled_health_check_callback')` (already exists)
+  - Unregister cron on deactivation (added to deactivate() method)
 
 - [ ] **T011** Implement scheduled health check callback in `/includes/class-cuft-admin.php`
   - Check if custom server is enabled
