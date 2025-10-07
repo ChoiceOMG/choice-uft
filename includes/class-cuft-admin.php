@@ -562,23 +562,7 @@ class CUFT_Admin {
                 </div>
             <?php endif; ?>
             
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
-                <h4 style="margin-top: 0;">How UTM Tracking Works</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>1. Detection</strong><br>
-                        <small>UTM parameters are captured when users first visit your site</small>
-                    </div>
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>2. Storage</strong><br>
-                        <small>Campaign data is stored in the user's session for 30 days</small>
-                    </div>
-                    <div style="padding: 12px; background: #f8f9fa; border-radius: 4px;">
-                        <strong>3. Attribution</strong><br>
-                        <small>Form submissions include campaign data for proper tracking</small>
-                    </div>
-                </div>
-            </div>
+           
         </div>
         <?php
     }
