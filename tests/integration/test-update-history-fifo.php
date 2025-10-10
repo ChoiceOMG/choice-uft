@@ -289,7 +289,7 @@ class Test_Update_History_FIFO extends WP_UnitTestCase {
         // Create entries alternating users
         for ($i = 1; $i <= 6; $i++) {
             wp_set_current_user(($i % 2 === 0) ? $user2_id : $this->admin_id);
-            $this->create_log_entry('update', 'success', "3.16.{$i}", "3.16." . ($i + 1)");
+            $this->create_log_entry('update', 'success', "3.16.{$i}", "3.16." . ($i + 1));
         }
 
         // Get entries with user info
