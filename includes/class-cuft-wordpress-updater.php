@@ -63,6 +63,9 @@ class CUFT_WordPress_Updater {
 
 		// After plugin row for update notices
 		add_action( "after_plugin_row_{$this->plugin_basename}", array( $this, 'plugin_row_notice' ), 10, 2 );
+
+		// Cache invalidation after updates
+		add_action( 'upgrader_process_complete', array( $this, 'invalidate_cache_after_update' ), 10, 2 );
 	}
 
 	/**
@@ -82,10 +85,10 @@ class CUFT_WordPress_Updater {
 		// Check if we have update information cached
 		$update_status = CUFT_Update_Status::get();
 
-		// Perform check if no cache or cache older than 6 hours
-		// (Reduced from 12 hours to ensure WordPress updates page shows current state)
+		// Perform check if no cache or cache expired based on context
+		$cache_timeout = $this->get_context_timeout();
 		if ( empty( $update_status['last_check'] ) ||
-		     ( time() - strtotime( $update_status['last_check'] ) > 6 * HOUR_IN_SECONDS ) ) {
+		     ( time() - strtotime( $update_status['last_check'] ) > $cache_timeout ) ) {
 			CUFT_Update_Checker::check( false );
 			$update_status = CUFT_Update_Status::get();
 		}
@@ -248,6 +251,22 @@ class CUFT_WordPress_Updater {
 			) );
 		} else {
 			CUFT_Update_Progress::set_complete( 'Update completed successfully' );
+			
+			// Clear all caches after successful update
+			if ( class_exists( 'CUFT_Update_Installer' ) ) {
+				// Use reflection to access private method
+				try {
+					$reflection = new ReflectionClass( 'CUFT_Update_Installer' );
+					$method = $reflection->getMethod( 'invalidate_all_caches' );
+					$method->setAccessible( true );
+					$method->invoke( null );
+				} catch ( Exception $e ) {
+					// Fallback to basic cache clearing
+					CUFT_Update_Status::clear();
+					delete_site_transient( 'update_plugins' );
+					wp_clean_plugins_cache();
+				}
+			}
 		}
 	}
 
@@ -286,6 +305,93 @@ class CUFT_WordPress_Updater {
 			</tr>
 			<?php
 		}
+	}
+
+	/**
+	 * Invalidate caches after plugin update completion
+	 *
+	 * Clears update-related caches when plugin updates complete to ensure
+	 * fresh data is displayed immediately after updates.
+	 *
+	 * @param WP_Upgrader $upgrader Upgrader instance
+	 * @param array $options Update options
+	 * @return void
+	 */
+	public function invalidate_cache_after_update( $upgrader, $options ) {
+		// Only process if this is a plugin update
+		if ( ! isset( $options['type'] ) || $options['type'] !== 'plugin' ) {
+			return;
+		}
+
+		// Check if our plugin was updated
+		$updated_plugins = isset( $options['plugins'] ) ? $options['plugins'] : array();
+		if ( ! in_array( $this->plugin_basename, $updated_plugins ) ) {
+			return;
+		}
+
+		// Clear CUFT update status cache
+		CUFT_Update_Status::clear();
+
+		// Clear WordPress update transient to force recheck
+		delete_site_transient( 'update_plugins' );
+
+		// Set completion transient for admin notices
+		set_site_transient( 'cuft_update_completed', array(
+			'timestamp' => time(),
+			'version' => CUFT_VERSION,
+			'message' => 'Update completed successfully'
+		), 5 * MINUTE_IN_SECONDS );
+
+		// Clear any GitHub-specific caches (coordinate with GitHub updater)
+		delete_transient( 'cuft_github_version' );
+		delete_transient( 'cuft_github_changelog' );
+
+		// Clear asset URL caches
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM $wpdb->options WHERE option_name LIKE %s OR option_name LIKE %s",
+			$wpdb->esc_like( '_transient_cuft_asset_url_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_cuft_asset_url_' ) . '%'
+		) );
+
+		// Schedule immediate recheck for updated status
+		if ( ! wp_next_scheduled( 'cuft_check_updates' ) ) {
+			wp_schedule_single_event( time() + 30, 'cuft_check_updates' );
+		}
+	}
+
+	/**
+	 * Get context-aware cache timeout
+	 *
+	 * Returns different timeout values based on the current WordPress context
+	 * to optimize API calls and improve user experience.
+	 *
+	 * @return int Timeout in seconds
+	 */
+	private function get_context_timeout() {
+		$filter = current_filter();
+		$action = current_action();
+
+		// Context-aware timeout map based on WordPress core patterns
+		$timeouts = array(
+			'upgrader_process_complete' => 0,                    // Immediate after update
+			'load-update-core.php' => MINUTE_IN_SECONDS,         // 1 minute on Updates page
+			'load-plugins.php' => HOUR_IN_SECONDS,               // 1 hour on Plugins page
+			'load-update.php' => HOUR_IN_SECONDS,                // 1 hour on Updates page
+		);
+
+		// Check current filter first
+		if ( isset( $timeouts[ $filter ] ) ) {
+			return $timeouts[ $filter ];
+		}
+
+		// Check current action
+		if ( isset( $timeouts[ $action ] ) ) {
+			return $timeouts[ $action ];
+		}
+
+		// Default timeout for all other contexts (6 hours)
+		return 6 * HOUR_IN_SECONDS;
 	}
 }
 

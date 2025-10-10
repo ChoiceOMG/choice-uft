@@ -38,9 +38,9 @@ class CUFT_Admin_Notices {
 			return;
 		}
 
-		// Don't show on plugin pages (WordPress handles it there)
+		// Don't show on WordPress core update pages (WordPress handles it there)
 		$screen = get_current_screen();
-		if ( $screen && in_array( $screen->id, array( 'plugins', 'update-core' ) ) ) {
+		if ( $screen && $screen->id === 'update-core' ) {
 			return;
 		}
 
