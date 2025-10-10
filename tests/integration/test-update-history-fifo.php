@@ -385,7 +385,7 @@ class Test_Update_History_FIFO extends WP_UnitTestCase {
     public function test_pagination_with_fifo_limit() {
         // Create exactly 5 entries
         for ($i = 1; $i <= 5; $i++) {
-            $this->create_log_entry('update', 'success', "3.16.{$i}", "3.16." . ($i + 1)");
+            $this->create_log_entry('update', 'success', "3.16.{$i}", "3.16." . ($i + 1));
         }
 
         // Test pagination
