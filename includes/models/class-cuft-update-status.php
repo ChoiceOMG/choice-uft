@@ -2,7 +2,8 @@
 /**
  * UpdateStatus Model
  *
- * Tracks the current update state of the plugin using WordPress transients.
+ * Tracks the current update state of the plugin using WordPress site transients.
+ * Uses site transients for multisite compatibility - all sites share update status.
  *
  * @package Choice_Universal_Form_Tracker
  * @since 3.16.0
@@ -21,12 +22,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CUFT_Update_Status {
 
     /**
-     * Transient key for storing update status
+     * Site transient key for storing update status
+     * Note: Uses site_transient for multisite compatibility
      */
     const TRANSIENT_KEY = 'cuft_update_status';
 
     /**
-     * Transient expiration time (12 hours in seconds)
+     * Default transient expiration time (12 hours in seconds)
+     * Note: Actual timeout determined by get_context_timeout() method
      */
     const TRANSIENT_EXPIRATION = 43200;
 
@@ -52,7 +55,7 @@ class CUFT_Update_Status {
      * @return array Update status data
      */
     public static function get() {
-        $status = get_transient( self::TRANSIENT_KEY );
+        $status = get_site_transient( self::TRANSIENT_KEY );
 
         if ( false === $status ) {
             $status = self::get_default_status();
@@ -74,7 +77,10 @@ class CUFT_Update_Status {
         // Add timestamp
         $status['last_updated'] = current_time( 'c' );
 
-        return set_transient( self::TRANSIENT_KEY, $status, self::TRANSIENT_EXPIRATION );
+        // Use context-aware timeout
+        $timeout = self::get_context_timeout();
+
+        return set_site_transient( self::TRANSIENT_KEY, $status, $timeout );
     }
 
     /**
@@ -99,7 +105,7 @@ class CUFT_Update_Status {
      * @return bool True on success
      */
     public static function clear() {
-        return delete_transient( self::TRANSIENT_KEY );
+        return delete_site_transient( self::TRANSIENT_KEY );
     }
 
     /**
@@ -302,5 +308,76 @@ class CUFT_Update_Status {
         }
 
         return $status;
+    }
+
+    /**
+     * Get context-aware timeout based on current WordPress context
+     *
+     * Implements WordPress core timing strategies for update checks:
+     * - After update completion: immediate (0s)
+     * - Update core page: 1 minute (users actively checking)
+     * - Plugins page: 1 hour (users viewing plugin list)
+     * - Updates page: 1 hour (users on Updates screen)
+     * - Default: 12 hours (background checks)
+     *
+     * @return int Timeout in seconds
+     */
+    public static function get_context_timeout() {
+        $filter = current_filter();
+        $action = current_action();
+
+        // Context-aware timeout map based on WordPress core patterns
+        $timeouts = array(
+            'upgrader_process_complete' => 0,                    // Immediate after update
+            'load-update-core.php' => MINUTE_IN_SECONDS,         // 1 minute on Updates page
+            'load-plugins.php' => HOUR_IN_SECONDS,               // 1 hour on Plugins page
+            'load-update.php' => HOUR_IN_SECONDS,                // 1 hour on Updates page
+        );
+
+        // Check current filter first
+        if ( isset( $timeouts[ $filter ] ) ) {
+            return $timeouts[ $filter ];
+        }
+
+        // Check current action
+        if ( isset( $timeouts[ $action ] ) ) {
+            return $timeouts[ $action ];
+        }
+
+        // Default timeout for all other contexts
+        return self::TRANSIENT_EXPIRATION;
+    }
+
+    /**
+     * Check for recent update completion
+     *
+     * Checks if an update has recently completed and returns the completion data.
+     * This helps synchronize status across different interfaces.
+     *
+     * @return array|null Completion data or null if no recent completion
+     */
+    public static function get_recent_completion() {
+        $completion = get_site_transient( 'cuft_update_completed' );
+        
+        if ( $completion && is_array( $completion ) ) {
+            // Check if completion is recent (within last 5 minutes)
+            $completion_time = isset( $completion['timestamp'] ) ? $completion['timestamp'] : 0;
+            if ( ( time() - $completion_time ) < 5 * MINUTE_IN_SECONDS ) {
+                return $completion;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Clear update completion transient
+     *
+     * Removes the update completion transient after it has been processed.
+     *
+     * @return bool True if cleared successfully
+     */
+    public static function clear_completion_transient() {
+        return delete_site_transient( 'cuft_update_completed' );
     }
 }

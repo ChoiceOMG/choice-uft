@@ -99,7 +99,8 @@ class CUFT_Update_Progress {
             'message' => $message,
             'started_at' => self::get_start_time(),
             'stage_started_at' => current_time( 'c' ),
-            'last_updated' => current_time( 'c' )
+            'last_updated' => current_time( 'c' ),
+            'user_id' => get_current_user_id()
         );
 
         return set_transient( self::TRANSIENT_KEY, $progress, self::TRANSIENT_EXPIRATION );
@@ -295,7 +296,8 @@ class CUFT_Update_Progress {
             'message' => 'No update in progress',
             'started_at' => null,
             'stage_started_at' => null,
-            'last_updated' => current_time( 'c' )
+            'last_updated' => current_time( 'c' ),
+            'user_id' => null
         );
     }
 
@@ -395,6 +397,14 @@ class CUFT_Update_Progress {
         if ( $remaining !== null ) {
             $progress['estimated_remaining'] = $remaining;
             $progress['remaining_human'] = human_time_diff( time(), time() + $remaining );
+        }
+
+        // Add user display name
+        if ( ! empty( $progress['user_id'] ) ) {
+            $user = get_user_by( 'id', $progress['user_id'] );
+            $progress['user_display_name'] = $user ? $user->display_name : 'Unknown User';
+        } else {
+            $progress['user_display_name'] = null;
         }
 
         // Add progress bar class

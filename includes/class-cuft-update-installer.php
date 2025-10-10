@@ -138,8 +138,11 @@ class CUFT_Update_Installer {
                 'version_to' => $this->target_version
             ) );
 
-            // Clear update status
-            CUFT_Update_Status::clear();
+            // Clear all update-related caches
+            self::invalidate_all_caches();
+
+            // Set update completion transient for synchronization
+            self::set_update_completion_transient($this->target_version);
 
             return array(
                 'success' => true,
@@ -455,6 +458,9 @@ class CUFT_Update_Installer {
             }
         }
 
+        // Clear caches even on failure to ensure fresh state
+        self::invalidate_all_caches();
+
         return $error;
     }
 
@@ -495,5 +501,79 @@ class CUFT_Update_Installer {
      */
     private function update_progress( $status, $percentage, $message ) {
         CUFT_Update_Progress::set( $status, $percentage, $message );
+    }
+
+    /**
+     * Invalidate all update-related caches
+     *
+     * Clears all caches that might contain stale update information
+     * after a successful update to ensure fresh data is displayed.
+     *
+     * @return void
+     */
+    private static function invalidate_all_caches() {
+        // Clear update status and progress
+        CUFT_Update_Status::clear();
+        CUFT_Update_Progress::clear();
+
+        // Clear GitHub API caches
+        if ( class_exists( 'CUFT_GitHub_API' ) ) {
+            CUFT_GitHub_API::clear_cache();
+        }
+
+        // Clear WordPress update transients
+        delete_site_transient( 'update_plugins' );
+        delete_site_transient( 'update_themes' );
+        delete_site_transient( 'update_core' );
+
+        // Clear plugin cache
+        wp_clean_plugins_cache();
+
+        // Clear any custom transients
+        global $wpdb;
+        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_cuft_%' OR option_name LIKE '_transient_timeout_cuft_%'" );
+        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_site_transient_cuft_%' OR option_name LIKE '_site_transient_timeout_cuft_%'" );
+
+        // Clear object cache if available
+        if ( function_exists( 'wp_cache_flush' ) ) {
+            wp_cache_flush();
+        }
+
+        // Log cache invalidation
+        if ( class_exists( 'CUFT_Update_Log' ) ) {
+            CUFT_Update_Log::log( 'cache_invalidated', 'info', array(
+                'details' => 'All update-related caches cleared after successful update'
+            ) );
+        }
+    }
+
+    /**
+     * Set update completion transient
+     *
+     * Creates a transient that indicates an update has just completed.
+     * This helps synchronize status across different interfaces.
+     *
+     * @param string $version The version that was updated to
+     * @return void
+     */
+    private static function set_update_completion_transient( $version ) {
+        $completion_data = array(
+            'completed_at' => current_time( 'c' ),
+            'version' => $version,
+            'user_id' => get_current_user_id(),
+            'timestamp' => time()
+        );
+
+        // Set transient for 1 hour to allow for interface synchronization
+        set_site_transient( 'cuft_update_completed', $completion_data, HOUR_IN_SECONDS );
+
+        // Log completion
+        if ( class_exists( 'CUFT_Update_Log' ) ) {
+            CUFT_Update_Log::log( 'update_completed', 'success', array(
+                'details' => "Update completed successfully to version {$version}",
+                'version_to' => $version,
+                'user_id' => get_current_user_id()
+            ) );
+        }
     }
 }

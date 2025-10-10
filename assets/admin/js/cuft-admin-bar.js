@@ -7,300 +7,417 @@
  * @since 3.16.0
  */
 
-(function() {
-	'use strict';
+(function () {
+  "use strict";
 
-	// Wait for DOM to be ready
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', init);
-	} else {
-		init();
-	}
+  // Wait for DOM to be ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 
-	/**
-	 * Initialize admin bar handlers
-	 */
-	function init() {
-		handleManualCheck();
-	}
+  /**
+   * Initialize admin bar handlers
+   */
+  function init() {
+    handleManualCheck();
+    startPeriodicPolling();
+  }
 
-	/**
-	 * Handle manual update check from admin bar
-	 */
-	function handleManualCheck() {
-		// Try jQuery first (WordPress standard)
-		if (window.jQuery) {
-			jQuery(document).on('click', '#wp-admin-bar-cuft-check-updates a', function(e) {
-				e.preventDefault();
-				triggerManualCheck(this);
-			});
-		}
+  /**
+   * Handle manual update check from admin bar
+   */
+  function handleManualCheck() {
+    // Try jQuery first (WordPress standard)
+    if (window.jQuery) {
+      jQuery(document).on(
+        "click",
+        "#wp-admin-bar-cuft-check-updates a",
+        function (e) {
+          e.preventDefault();
+          triggerManualCheck(this);
+        }
+      );
+    }
 
-		// Vanilla JavaScript fallback
-		document.addEventListener('click', function(e) {
-			var target = e.target;
+    // Vanilla JavaScript fallback
+    document.addEventListener("click", function (e) {
+      var target = e.target;
 
-			// Check if clicked element or parent is the manual check link
-			if (target.id === 'wp-admin-bar-cuft-check-updates' ||
-			    target.closest('#wp-admin-bar-cuft-check-updates')) {
-				e.preventDefault();
-				var link = target.tagName === 'A' ? target : target.querySelector('a');
-				if (link) {
-					triggerManualCheck(link);
-				}
-			}
-		});
-	}
+      // Check if clicked element or parent is the manual check link
+      if (
+        target.id === "wp-admin-bar-cuft-check-updates" ||
+        target.closest("#wp-admin-bar-cuft-check-updates")
+      ) {
+        e.preventDefault();
+        var link = target.tagName === "A" ? target : target.querySelector("a");
+        if (link) {
+          triggerManualCheck(link);
+        }
+      }
+    });
+  }
 
-	/**
-	 * Trigger manual update check
-	 *
-	 * @param {Element} link Link element that was clicked
-	 */
-	function triggerManualCheck(link) {
-		// Get parent menu item
-		var menuItem = link.closest ? link.closest('li') :
-		               (link.parentElement && link.parentElement.tagName === 'LI' ?
-		                link.parentElement : null);
+  /**
+   * Trigger manual update check
+   *
+   * @param {Element} link Link element that was clicked
+   */
+  function triggerManualCheck(link) {
+    // Get parent menu item
+    var menuItem = link.closest
+      ? link.closest("li")
+      : link.parentElement && link.parentElement.tagName === "LI"
+      ? link.parentElement
+      : null;
 
-		if (!menuItem) {
-			if (window.jQuery) {
-				menuItem = jQuery(link).closest('li')[0];
-			}
-		}
+    if (!menuItem) {
+      if (window.jQuery) {
+        menuItem = jQuery(link).closest("li")[0];
+      }
+    }
 
-		// Store original text
-		var originalText = link.textContent || link.innerText;
+    // Store original text
+    var originalText = link.textContent || link.innerText;
 
-		// Update text to show checking
-		if (link.querySelector) {
-			var textSpan = link.querySelector('.ab-item');
-			if (textSpan) {
-				textSpan.textContent = cuftAdminBar.checking;
-			} else {
-				link.textContent = cuftAdminBar.checking;
-			}
-		} else {
-			link.textContent = cuftAdminBar.checking;
-		}
+    // Update text to show checking
+    if (link.querySelector) {
+      var textSpan = link.querySelector(".ab-item");
+      if (textSpan) {
+        textSpan.textContent = cuftAdminBar.checking;
+      } else {
+        link.textContent = cuftAdminBar.checking;
+      }
+    } else {
+      link.textContent = cuftAdminBar.checking;
+    }
 
-		// Add checking class for animation
-		if (menuItem) {
-			menuItem.classList.add('cuft-checking');
-		}
+    // Add checking class for animation
+    if (menuItem) {
+      menuItem.classList.add("cuft-checking");
+    }
 
-		// Prepare request data
-		var data = {
-			action: 'cuft_check_update',
-			nonce: cuftAdminBar.nonce,
-			force: true
-		};
+    // Prepare request data
+    var data = {
+      action: "cuft_check_update",
+      nonce: cuftAdminBar.nonce,
+      force: true,
+    };
 
-		// Send AJAX request (try fetch first)
-		sendCheckRequest(data, function(success, result) {
-			// Remove checking class
-			if (menuItem) {
-				menuItem.classList.remove('cuft-checking');
-			}
+    // Send AJAX request (try fetch first)
+    sendCheckRequest(data, function (success, result) {
+      // Remove checking class
+      if (menuItem) {
+        menuItem.classList.remove("cuft-checking");
+      }
 
-			if (success) {
-				handleCheckSuccess(link, result, originalText);
-			} else {
-				handleCheckFailure(link, result, originalText);
-			}
-		});
-	}
+      if (success) {
+        handleCheckSuccess(link, result, originalText);
+      } else {
+        handleCheckFailure(link, result, originalText);
+      }
+    });
+  }
 
-	/**
-	 * Send check request via AJAX
-	 *
-	 * @param {Object} data Request data
-	 * @param {Function} callback Callback function
-	 */
-	function sendCheckRequest(data, callback) {
-		// Try fetch API
-		if (window.fetch) {
-			var formData = new FormData();
-			for (var key in data) {
-				formData.append(key, data[key]);
-			}
+  /**
+   * Send check request via AJAX
+   *
+   * @param {Object} data Request data
+   * @param {Function} callback Callback function
+   */
+  function sendCheckRequest(data, callback) {
+    // Try fetch API
+    if (window.fetch) {
+      var formData = new FormData();
+      for (var key in data) {
+        formData.append(key, data[key]);
+      }
 
-			fetch(cuftAdminBar.ajaxUrl, {
-				method: 'POST',
-				body: formData,
-				credentials: 'same-origin'
-			})
-			.then(function(response) {
-				return response.json();
-			})
-			.then(function(result) {
-				callback(result.success, result.data || result);
-			})
-			.catch(function(error) {
-				console.warn('CUFT: Update check failed', error);
-				callback(false, { message: error.message });
-			});
-			return;
-		}
+      fetch(cuftAdminBar.ajaxUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+      })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (result) {
+          callback(result.success, result.data || result);
+        })
+        .catch(function (error) {
+          console.warn("CUFT: Update check failed", error);
+          callback(false, { message: error.message });
+        });
+      return;
+    }
 
-		// Fallback to jQuery AJAX
-		if (window.jQuery) {
-			jQuery.post(cuftAdminBar.ajaxUrl, data, function(response) {
-				callback(response.success, response.data || response);
-			})
-			.fail(function() {
-				callback(false, { message: 'AJAX request failed' });
-			});
-			return;
-		}
+    // Fallback to jQuery AJAX
+    if (window.jQuery) {
+      jQuery
+        .post(cuftAdminBar.ajaxUrl, data, function (response) {
+          callback(response.success, response.data || response);
+        })
+        .fail(function () {
+          callback(false, { message: "AJAX request failed" });
+        });
+      return;
+    }
 
-		// Fallback to XMLHttpRequest
-		var xhr = new XMLHttpRequest();
-		xhr.open('POST', cuftAdminBar.ajaxUrl, true);
-		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-		xhr.onload = function() {
-			if (xhr.status === 200) {
-				try {
-					var response = JSON.parse(xhr.responseText);
-					callback(response.success, response.data || response);
-				} catch (e) {
-					callback(false, { message: 'Invalid response' });
-				}
-			} else {
-				callback(false, { message: 'Request failed: ' + xhr.status });
-			}
-		};
-		xhr.onerror = function() {
-			callback(false, { message: 'Network error' });
-		};
+    // Fallback to XMLHttpRequest
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", cuftAdminBar.ajaxUrl, true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        try {
+          var response = JSON.parse(xhr.responseText);
+          callback(response.success, response.data || response);
+        } catch (e) {
+          callback(false, { message: "Invalid response" });
+        }
+      } else {
+        callback(false, { message: "Request failed: " + xhr.status });
+      }
+    };
+    xhr.onerror = function () {
+      callback(false, { message: "Network error" });
+    };
 
-		var formData = [];
-		for (var key in data) {
-			formData.push(encodeURIComponent(key) + '=' + encodeURIComponent(data[key]));
-		}
-		xhr.send(formData.join('&'));
-	}
+    var formData = [];
+    for (var key in data) {
+      formData.push(
+        encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
+      );
+    }
+    xhr.send(formData.join("&"));
+  }
 
-	/**
-	 * Handle successful check
-	 *
-	 * @param {Element} link Link element
-	 * @param {Object} result Result data
-	 * @param {string} originalText Original link text
-	 */
-	function handleCheckSuccess(link, result, originalText) {
-		// Update link text
-		if (result.update_available) {
-			updateLinkText(link, cuftAdminBar.updateAvailable);
+  /**
+   * Handle successful check
+   *
+   * @param {Element} link Link element
+   * @param {Object} result Result data
+   * @param {string} originalText Original link text
+   */
+  function handleCheckSuccess(link, result, originalText) {
+    // Update link text
+    if (result.update_available) {
+      updateLinkText(link, cuftAdminBar.updateAvailable);
 
-			// Show notification
-			showNotification(
-				sprintf(cuftAdminBar.updateAvailable + ' Version %s is available.', result.latest_version),
-				'success'
-			);
+      // Show notification
+      showNotification(
+        sprintf(
+          cuftAdminBar.updateAvailable + " Version %s is available.",
+          result.latest_version
+        ),
+        "success"
+      );
 
-			// Reload page after 2 seconds to show update notice
-			setTimeout(function() {
-				window.location.reload();
-			}, 2000);
-		} else {
-			updateLinkText(link, cuftAdminBar.upToDate);
+      // Reload page after 2 seconds to show update notice
+      setTimeout(function () {
+        window.location.reload();
+      }, 2000);
+    } else {
+      updateLinkText(link, cuftAdminBar.upToDate);
 
-			// Show notification
-			showNotification(cuftAdminBar.upToDate, 'info');
+      // Show notification
+      showNotification(cuftAdminBar.upToDate, "info");
 
-			// Restore original text after 3 seconds
-			setTimeout(function() {
-				updateLinkText(link, originalText);
-			}, 3000);
-		}
-	}
+      // Restore original text after 3 seconds
+      setTimeout(function () {
+        updateLinkText(link, originalText);
+      }, 3000);
+    }
+  }
 
-	/**
-	 * Handle check failure
-	 *
-	 * @param {Element} link Link element
-	 * @param {Object} result Result data
-	 * @param {string} originalText Original link text
-	 */
-	function handleCheckFailure(link, result, originalText) {
-		// Update link text
-		updateLinkText(link, cuftAdminBar.checkFailed);
+  /**
+   * Handle check failure
+   *
+   * @param {Element} link Link element
+   * @param {Object} result Result data
+   * @param {string} originalText Original link text
+   */
+  function handleCheckFailure(link, result, originalText) {
+    // Update link text
+    updateLinkText(link, cuftAdminBar.checkFailed);
 
-		// Show error notification
-		var errorMsg = result.message || 'Unknown error';
-		showNotification(cuftAdminBar.checkFailed + ': ' + errorMsg, 'error');
+    // Show error notification
+    var errorMsg = result.message || "Unknown error";
+    showNotification(cuftAdminBar.checkFailed + ": " + errorMsg, "error");
 
-		// Restore original text after 3 seconds
-		setTimeout(function() {
-			updateLinkText(link, originalText);
-		}, 3000);
-	}
+    // Restore original text after 3 seconds
+    setTimeout(function () {
+      updateLinkText(link, originalText);
+    }, 3000);
+  }
 
-	/**
-	 * Update link text
-	 *
-	 * @param {Element} link Link element
-	 * @param {string} text New text
-	 */
-	function updateLinkText(link, text) {
-		if (link.querySelector) {
-			var textSpan = link.querySelector('.ab-item');
-			if (textSpan) {
-				textSpan.textContent = text;
-			} else {
-				link.textContent = text;
-			}
-		} else {
-			link.textContent = text;
-		}
-	}
+  /**
+   * Update link text
+   *
+   * @param {Element} link Link element
+   * @param {string} text New text
+   */
+  function updateLinkText(link, text) {
+    if (link.querySelector) {
+      var textSpan = link.querySelector(".ab-item");
+      if (textSpan) {
+        textSpan.textContent = text;
+      } else {
+        link.textContent = text;
+      }
+    } else {
+      link.textContent = text;
+    }
+  }
 
-	/**
-	 * Show notification
-	 *
-	 * @param {string} message Message to show
-	 * @param {string} type Notification type (success, error, info)
-	 */
-	function showNotification(message, type) {
-		// Try to use WordPress admin notices if available
-		if (window.wp && window.wp.data && window.wp.data.dispatch) {
-			try {
-				window.wp.data.dispatch('core/notices').createNotice(
-					type,
-					message,
-					{
-						isDismissible: true,
-						type: type === 'error' ? 'snackbar' : 'default'
-					}
-				);
-				return;
-			} catch (e) {
-				// Fall through to console
-			}
-		}
+  /**
+   * Show notification
+   *
+   * @param {string} message Message to show
+   * @param {string} type Notification type (success, error, info)
+   */
+  function showNotification(message, type) {
+    // Try to use WordPress admin notices if available
+    if (window.wp && window.wp.data && window.wp.data.dispatch) {
+      try {
+        window.wp.data.dispatch("core/notices").createNotice(type, message, {
+          isDismissible: true,
+          type: type === "error" ? "snackbar" : "default",
+        });
+        return;
+      } catch (e) {
+        // Fall through to console
+      }
+    }
 
-		// Fallback to console
-		if (type === 'error') {
-			console.error('CUFT: ' + message);
-		} else {
-			console.log('CUFT: ' + message);
-		}
-	}
+    // Fallback to console
+    if (type === "error") {
+      console.error("CUFT: " + message);
+    } else {
+      console.log("CUFT: " + message);
+    }
+  }
 
-	/**
-	 * Simple sprintf implementation
-	 *
-	 * @param {string} format Format string
-	 * @param {...*} args Arguments
-	 * @return {string} Formatted string
-	 */
-	function sprintf(format) {
-		var args = Array.prototype.slice.call(arguments, 1);
-		var i = 0;
-		return format.replace(/%s/g, function() {
-			return args[i++];
-		});
-	}
+  /**
+   * Simple sprintf implementation
+   *
+   * @param {string} format Format string
+   * @param {...*} args Arguments
+   * @return {string} Formatted string
+   */
+  function sprintf(format) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    var i = 0;
+    return format.replace(/%s/g, function () {
+      return args[i++];
+    });
+  }
 
+  /**
+   * Start periodic polling for update status
+   */
+  function startPeriodicPolling() {
+    // Only poll if we're in admin area and have the necessary data
+    if (!cuftAdminBar || !cuftAdminBar.ajaxUrl || !cuftAdminBar.nonce) {
+      return;
+    }
+
+    // Poll every 5 minutes (300000ms)
+    var pollInterval = 5 * 60 * 1000;
+
+    // Initial check after 30 seconds to avoid immediate load
+    setTimeout(function () {
+      performPeriodicCheck();
+    }, 30000);
+
+    // Set up recurring checks
+    setInterval(function () {
+      performPeriodicCheck();
+    }, pollInterval);
+  }
+
+  /**
+   * Perform periodic update check
+   */
+  function performPeriodicCheck() {
+    // Don't poll if user is actively interacting with the page
+    if (document.hidden || document.visibilityState === "hidden") {
+      return;
+    }
+
+    // Don't poll if there's already a manual check in progress
+    var checkingElement = document.querySelector(
+      "#wp-admin-bar-cuft-check-updates.cuft-checking"
+    );
+    if (checkingElement) {
+      return;
+    }
+
+    // Prepare request data for status check
+    var data = {
+      action: "cuft_update_status",
+      nonce: cuftAdminBar.nonce,
+    };
+
+    // Send AJAX request to get current status
+    sendCheckRequest(data, function (success, result) {
+      if (success && result) {
+        updateAdminBarStatus(result);
+      }
+    });
+  }
+
+  /**
+   * Update admin bar status based on periodic check
+   *
+   * @param {Object} status Update status data
+   */
+  function updateAdminBarStatus(status) {
+    var menuItem = document.querySelector("#wp-admin-bar-cuft-check-updates");
+    if (!menuItem) {
+      return;
+    }
+
+    var link = menuItem.querySelector("a");
+    if (!link) {
+      return;
+    }
+
+    // Update based on status
+    if (status.update_available) {
+      // Show update available indicator
+      updateLinkText(link, cuftAdminBar.updateAvailable);
+      menuItem.classList.add("cuft-update-available");
+
+      // Add badge if not already present
+      if (!menuItem.querySelector(".cuft-update-badge")) {
+        var badge = document.createElement("span");
+        badge.className = "cuft-update-badge";
+        badge.textContent = "!";
+        link.appendChild(badge);
+      }
+    } else if (status.is_in_progress) {
+      // Show update in progress
+      updateLinkText(link, cuftAdminBar.updating);
+      menuItem.classList.add("cuft-updating");
+      menuItem.classList.remove("cuft-update-available");
+
+      // Remove badge if present
+      var badge = menuItem.querySelector(".cuft-update-badge");
+      if (badge) {
+        badge.remove();
+      }
+    } else {
+      // Show up to date
+      updateLinkText(link, cuftAdminBar.upToDate);
+      menuItem.classList.remove("cuft-update-available", "cuft-updating");
+
+      // Remove badge if present
+      var badge = menuItem.querySelector(".cuft-update-badge");
+      if (badge) {
+        badge.remove();
+      }
+    }
+  }
 })();

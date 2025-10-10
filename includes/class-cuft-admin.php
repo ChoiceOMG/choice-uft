@@ -110,6 +110,7 @@ class CUFT_Admin {
                 </div>
                 <h1>Choice Universal Form Tracker</h1>
             </div>
+            <hr class="wp-header-end">
 
             <?php $this->render_setup_progress(); ?>
             <?php $this->render_admin_tabs( $current_tab ); ?>

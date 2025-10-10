@@ -262,19 +262,10 @@ class Choice_Universal_Form_Tracker {
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
             add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
 
-            // Initialize GitHub updater
-            if ( class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
-                global $cuft_updater;
-                $cuft_updater = new CUFT_GitHub_Updater(
-                    __FILE__,
-                    CUFT_VERSION,
-                    'ChoiceOMG',
-                    'choice-uft'
-                );
-
-                // Ensure the update filter is registered (workaround for timing issues)
-                add_filter( 'pre_set_site_transient_update_plugins', array( $cuft_updater, 'check_for_update' ) );
-            }
+            // Legacy GitHub updater disabled in favor of CUFT_WordPress_Updater (v3.16.0+)
+            // The new system uses CUFT_Update_Checker, CUFT_GitHub_API, and CUFT_WordPress_Updater
+            // for unified update management with WordPress native integration.
+            // See: includes/class-cuft-wordpress-updater.php (initialized automatically)
 
         } catch ( Exception $e ) {
             error_log( "CUFT Error during initialization: " . $e->getMessage() );
@@ -286,16 +277,12 @@ class Choice_Universal_Form_Tracker {
 
     /**
      * Ensure updater hooks are properly registered
+     *
+     * @deprecated 3.16.2 No longer needed - CUFT_WordPress_Updater handles all hooks
      */
     public function ensure_updater_hooks() {
-        global $cuft_updater;
-
-        if ( $cuft_updater && class_exists( 'CUFT_GitHub_Updater' ) && CUFT_GitHub_Updater::updates_enabled() ) {
-            // Ensure the critical update filter is registered
-            if ( ! has_filter( 'pre_set_site_transient_update_plugins', array( $cuft_updater, 'check_for_update' ) ) ) {
-                add_filter( 'pre_set_site_transient_update_plugins', array( $cuft_updater, 'check_for_update' ), 10 );
-            }
-        }
+        // No-op: CUFT_WordPress_Updater (v3.16.0+) handles all update hooks automatically
+        // See: includes/class-cuft-wordpress-updater.php:register_hooks()
     }
 
     /**

@@ -186,6 +186,16 @@ class CUFT_Admin_Bar {
 			#wpadminbar .cuft-checking .ab-icon:before {
 				animation: cuft-spin 1s linear infinite;
 			}
+			#wpadminbar .cuft-update-badge {
+				background: #d63638;
+				color: #fff;
+				border-radius: 10px;
+				padding: 2px 6px;
+				margin-left: 5px;
+				font-size: 11px;
+				font-weight: 600;
+				transition: all 0.3s ease;
+			}
 			@keyframes cuft-spin {
 				from { transform: rotate(0deg); }
 				to { transform: rotate(360deg); }

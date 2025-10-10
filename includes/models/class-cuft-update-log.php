@@ -101,7 +101,13 @@ class CUFT_Update_Log {
             array( '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
         );
 
-        return $result ? $wpdb->insert_id : false;
+        if ( $result ) {
+            // Enforce FIFO limit (keep only last 5 entries)
+            self::cleanup_old_entries();
+            return $wpdb->insert_id;
+        }
+
+        return false;
     }
 
     /**
@@ -462,5 +468,41 @@ class CUFT_Update_Log {
             'error_count' => intval( $error_count ),
             'total_count' => self::get_count( array( 'since' => $since ) )
         );
+    }
+
+    /**
+     * Clean up old entries to maintain FIFO limit (max 5 entries)
+     *
+     * @return int Number of entries deleted
+     */
+    private static function cleanup_old_entries() {
+        global $wpdb;
+
+        $table_name = self::get_table_name();
+        $max_entries = 5;
+
+        // Get ID of 6th most recent entry
+        $threshold_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM $table_name
+                 ORDER BY timestamp DESC
+                 LIMIT 1 OFFSET %d",
+                $max_entries
+            )
+        );
+
+        // Delete all older entries
+        if ( $threshold_id ) {
+            $deleted = $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM $table_name WHERE id < %d",
+                    $threshold_id
+                )
+            );
+
+            return $deleted !== false ? $deleted : 0;
+        }
+
+        return 0;
     }
 }
