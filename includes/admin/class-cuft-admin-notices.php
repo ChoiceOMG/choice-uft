@@ -44,6 +44,11 @@ class CUFT_Admin_Notices {
 			return;
 		}
 
+		// Don't show on plugin's own Updates tab - user is already there
+		if ( $screen && $screen->id === 'settings_page_choice-universal-form-tracker' && isset( $_GET['tab'] ) && $_GET['tab'] === 'updates' ) {
+			return;
+		}
+
 		// Check for update availability
 		$this->maybe_display_update_available_notice();
 
@@ -83,8 +88,8 @@ class CUFT_Admin_Notices {
 
 		$current_version = CUFT_VERSION;
 		$latest_version = $update_status['latest_version'];
-		// Link to plugin's own Updates tab instead of plugins page to avoid crashes
-		$plugin_page_url = admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=updates' );
+		// Link to WordPress plugins page for native update functionality
+		$plugins_page_url = admin_url( 'plugins.php' );
 
 		?>
 		<div class="notice notice-info is-dismissible cuft-update-notice" data-version="<?php echo esc_attr( $latest_version ); ?>">
@@ -102,8 +107,8 @@ class CUFT_Admin_Notices {
 				?>
 			</p>
 			<p>
-				<a href="<?php echo esc_url( $plugin_page_url ); ?>" class="button button-primary">
-					<?php esc_html_e( 'View Plugin Updates', 'choice-uft' ); ?>
+				<a href="<?php echo esc_url( $plugins_page_url ); ?>" class="button button-primary">
+					<?php esc_html_e( 'Update Plugin', 'choice-uft' ); ?>
 				</a>
 				<a href="#" class="button cuft-dismiss-notice" data-version="<?php echo esc_attr( $latest_version ); ?>">
 					<?php esc_html_e( 'Dismiss', 'choice-uft' ); ?>

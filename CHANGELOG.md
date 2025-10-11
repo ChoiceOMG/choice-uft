@@ -5,6 +5,38 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.16.5] - 2025-10-11
+
+### Changed
+- **Update System Simplification** - Removed custom update buttons and simplified to use WordPress native update system only
+  - Removed "Update Now" button from Updates tab (was causing "git url could not be constructed" errors)
+  - Removed "Check for Updates" button from Updates tab
+  - All update notifications now direct users to WordPress plugins page (`/wp-admin/plugins.php`)
+  - Update process now exclusively uses WordPress core update mechanism
+  - **Impact**: Cleaner UX, fewer failure points, leverages WordPress native update reliability
+
+### Fixed
+- **Update Notification on Updates Tab** - Notification no longer appears when user is already viewing the Updates tab
+- **Update Link Redirect** - Changed "View Plugin Updates" button to "Update Plugin" and redirected to WordPress plugins page
+- **Custom Update Failures** - Eliminated "git url could not be constructed" errors by removing problematic custom update implementation
+
+### Removed
+- Custom "Update Now" AJAX button and associated handlers
+- Custom "Check for Updates" button
+- Direct update functionality from plugin's Settings/Updates pages
+
+### Technical Details
+- Modified 2 files (admin notices and admin page rendering)
+- Preserved all backend update infrastructure (version detection, GitHub release fetching, update history)
+- WordPress native update system continues to work correctly via `pre_set_site_transient_update_plugins` hook
+- Zero breaking changes to backend functionality
+
+### Migration Notes
+- Users will now update via **Plugins → Choice Universal Form Tracker → Update Now** (WordPress native)
+- Admin bar "CUFT Update" menu still shows update availability and links to plugins page
+- Update history and status display remain functional on plugin's Updates tab
+- All automated update checks and version detection continue to work
+
 ## [3.16.4] - 2025-10-10
 
 ### Fixed

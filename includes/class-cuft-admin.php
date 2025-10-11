@@ -2696,25 +2696,26 @@ class CUFT_Admin {
                                 </div>
                             <?php endif; ?>
 
-                            <div style="margin-top: 20px;">
-                                <button id="cuft-update-now" class="button button-primary button-hero" <?php echo ! $github_updates_enabled ? 'disabled' : ''; ?>>
-                                    <span class="dashicons dashicons-update" style="margin-right: 5px;"></span>
-                                    <?php _e( 'Update Now', 'choice-universal-form-tracker' ); ?>
-                                </button>
-
-                                <?php if ( ! $github_updates_enabled ): ?>
-                                    <p class="description" style="margin-top: 10px; color: #d63638;">
-                                        <?php _e( 'GitHub updates are disabled. Enable them in the Settings tab to update the plugin.', 'choice-universal-form-tracker' ); ?>
-                                    </p>
-                                <?php endif; ?>
+                            <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-left: 4px solid #0073aa; border-radius: 4px;">
+                                <p style="margin: 0 0 10px 0;">
+                                    <span class="dashicons dashicons-info" style="vertical-align: middle;"></span>
+                                    <strong><?php _e( 'To update this plugin:', 'choice-universal-form-tracker' ); ?></strong>
+                                </p>
+                                <p style="margin: 0 0 15px 0;">
+                                    <?php _e( 'Please use the WordPress native update system on the Plugins page.', 'choice-universal-form-tracker' ); ?>
+                                </p>
+                                <a href="<?php echo admin_url( 'plugins.php' ); ?>" class="button button-primary">
+                                    <span class="dashicons dashicons-plugins-checked" style="margin-right: 5px;"></span>
+                                    <?php _e( 'Go to Plugins Page', 'choice-universal-form-tracker' ); ?>
+                                </a>
                             </div>
                         </div>
                     <?php else: ?>
-                        <div style="margin-top: 30px;">
-                            <button id="cuft-check-updates" class="button button-secondary">
-                                <span class="dashicons dashicons-update" style="margin-right: 5px;"></span>
-                                <?php _e( 'Check for Updates', 'choice-universal-form-tracker' ); ?>
-                            </button>
+                        <div style="margin-top: 30px; padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">
+                            <p style="margin: 0;">
+                                <span class="dashicons dashicons-yes-alt" style="vertical-align: middle; color: #28a745;"></span>
+                                <strong><?php _e( 'You are running the latest version.', 'choice-universal-form-tracker' ); ?></strong>
+                            </p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -2738,70 +2739,6 @@ class CUFT_Admin {
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            // Check for updates button
-            $('#cuft-check-updates').on('click', function(e) {
-                e.preventDefault();
-                var $button = $(this);
-                $button.prop('disabled', true).text('<?php _e( 'Checking...', 'choice-universal-form-tracker' ); ?>');
-
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'cuft_check_update',
-                        nonce: '<?php echo wp_create_nonce( 'cuft_updater_nonce' ); ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            location.reload();
-                        } else {
-                            alert(response.data.message || 'Failed to check for updates');
-                            $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Check for Updates', 'choice-universal-form-tracker' ); ?>');
-                        }
-                    },
-                    error: function() {
-                        alert('Failed to check for updates');
-                        $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Check for Updates', 'choice-universal-form-tracker' ); ?>');
-                    }
-                });
-            });
-
-            // Update now button
-            $('#cuft-update-now').on('click', function(e) {
-                e.preventDefault();
-
-                if (!confirm('<?php _e( 'Are you sure you want to update the plugin? A backup will be created automatically.', 'choice-universal-form-tracker' ); ?>')) {
-                    return;
-                }
-
-                var $button = $(this);
-                $button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> <?php _e( 'Updating...', 'choice-universal-form-tracker' ); ?>');
-
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'cuft_perform_update',
-                        nonce: '<?php echo wp_create_nonce( 'cuft_updater_nonce' ); ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            $button.html('<span class="dashicons dashicons-yes"></span> <?php _e( 'Update Complete!', 'choice-universal-form-tracker' ); ?>');
-                            setTimeout(function() {
-                                location.reload();
-                            }, 2000);
-                        } else {
-                            alert(response.data.message || 'Update failed');
-                            $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Update Now', 'choice-universal-form-tracker' ); ?>');
-                        }
-                    },
-                    error: function() {
-                        alert('Update failed');
-                        $button.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> <?php _e( 'Update Now', 'choice-universal-form-tracker' ); ?>');
-                    }
-                });
-            });
-
             // Load update history
             $.ajax({
                 url: ajaxurl,
