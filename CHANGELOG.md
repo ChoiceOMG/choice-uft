@@ -5,6 +5,33 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.16.4] - 2025-10-10
+
+### Fixed
+- **Type Mismatch Errors** - Fixed fatal PHP errors caused by accessing `CUFT_GitHub_Release` objects as arrays
+  - Fixed `check_for_updates()` - Now uses `$release->get_download_url()` instead of `$release['download_url']`
+  - Fixed `process_update()` - Now uses `$release->get_version()` instead of `$release['version']`
+  - Fixed `plugin_information()` - Now uses all object methods correctly
+  - **Impact**: Plugins page (`/wp-admin/plugins.php`) now loads without fatal errors
+  - **Impact**: "Download and Install Update" and "Re-install" features now work correctly
+- **Notification Dismissal UX** - Admin notices now fade out over 500ms and are removed from DOM after dismissal (no page reload required)
+- **View Plugin Updates Link** - Changed to redirect to plugin's own Updates tab instead of plugins page to avoid crashes
+- **Progress Polling** - "Update Now" button now shows real-time progress with 2-second polling intervals instead of showing "Complete" then resetting
+
+### Added
+- **WP_DEBUG Error Enhancement** - Detailed error messages now shown when `WP_DEBUG` is enabled
+  - Added debug context to all AJAX error responses (exception details, file, line, trace)
+  - Added error logging to PHP error_log for update failures
+  - Enhanced error data includes memory usage, PHP version, WordPress version
+  - Debug info only visible when `define('WP_DEBUG', true)` in wp-config.php
+- **Enhanced Error Context** - Update installer now provides detailed error data including update ID, version info, backup status
+
+### Technical Details
+- Modified 5 files with type mismatch fixes
+- Added WP_DEBUG-conditional error reporting across 3 files
+- All existing functionality preserved, only error handling enhanced
+- Zero breaking changes - backward compatible
+
 ## [3.16.3] - 2025-10-08
 
 ### Fixed

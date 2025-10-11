@@ -120,10 +120,31 @@
 				})
 				.then(function(result) {
 					if (result.success) {
+						// Update button text
 						if (button && button.jquery) {
 							button.text(cuftNotices.dismissed);
 						} else if (button) {
 							button.textContent = cuftNotices.dismissed;
+						}
+
+						// Fade out and remove the notice
+						var noticeElement = button ?
+							(button.jquery ? button.closest('.notice') : button.closest('.notice')) :
+							document.querySelector('.cuft-update-notice[data-version="' + version + '"]');
+
+						if (noticeElement) {
+							// Add fade-out animation
+							if (noticeElement.jquery) {
+								noticeElement.fadeOut(500, function() {
+									noticeElement.remove();
+								});
+							} else {
+								noticeElement.style.transition = 'opacity 0.5s';
+								noticeElement.style.opacity = '0';
+								setTimeout(function() {
+									noticeElement.remove();
+								}, 500);
+							}
 						}
 					}
 				})
@@ -136,10 +157,22 @@
 			if (window.jQuery) {
 				jQuery.post(cuftNotices.ajaxUrl, data, function(response) {
 					if (response.success) {
+						// Update button text
 						if (button && button.jquery) {
 							button.text(cuftNotices.dismissed);
 						} else if (button) {
 							button.textContent = cuftNotices.dismissed;
+						}
+
+						// Fade out and remove the notice
+						var $notice = button && button.jquery ?
+							button.closest('.notice') :
+							jQuery('.cuft-update-notice[data-version="' + version + '"]');
+
+						if ($notice.length) {
+							$notice.fadeOut(500, function() {
+								$notice.remove();
+							});
 						}
 					}
 				}).fail(function() {
@@ -157,8 +190,22 @@
 					try {
 						var response = JSON.parse(xhr.responseText);
 						if (response.success) {
+							// Update button text
 							if (button) {
 								button.textContent = cuftNotices.dismissed;
+							}
+
+							// Fade out and remove the notice
+							var noticeElement = button ?
+								button.closest('.notice') :
+								document.querySelector('.cuft-update-notice[data-version="' + version + '"]');
+
+							if (noticeElement) {
+								noticeElement.style.transition = 'opacity 0.5s';
+								noticeElement.style.opacity = '0';
+								setTimeout(function() {
+									noticeElement.remove();
+								}, 500);
 							}
 						}
 					} catch (e) {

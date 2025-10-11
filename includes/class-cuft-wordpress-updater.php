@@ -100,13 +100,13 @@ class CUFT_WordPress_Updater {
 			// Get release information
 			$release = CUFT_GitHub_Release::fetch_version( $update_status['latest_version'] );
 
-			if ( $release && ! empty( $release['download_url'] ) ) {
+			if ( $release && $release->get_download_url() ) {
 				$plugin_data = array(
 					'slug' => $this->plugin_slug,
 					'plugin' => $this->plugin_basename,
 					'new_version' => $update_status['latest_version'],
 					'url' => 'https://github.com/ChoiceOMG/choice-uft',
-					'package' => $release['download_url'],
+					'package' => $release->get_download_url(),
 					'tested' => '6.4',
 					'requires_php' => '7.0',
 					'compatibility' => new stdClass(),
@@ -149,24 +149,21 @@ class CUFT_WordPress_Updater {
 		$plugin_info = new stdClass();
 		$plugin_info->name = 'Choice Universal Form Tracker';
 		$plugin_info->slug = $this->plugin_slug;
-		$plugin_info->version = $release['version'];
+		$plugin_info->version = $release->get_version();
 		$plugin_info->author = '<a href="https://github.com/ChoiceOMG">ChoiceOMG</a>';
 		$plugin_info->homepage = 'https://github.com/ChoiceOMG/choice-uft';
 		$plugin_info->requires = '5.0';
 		$plugin_info->tested = '6.4';
 		$plugin_info->requires_php = '7.0';
-		$plugin_info->download_link = $release['download_url'];
-		$plugin_info->trunk = $release['download_url'];
-		$plugin_info->last_updated = $release['published_at'];
+		$plugin_info->download_link = $release->get_download_url();
+		$plugin_info->trunk = $release->get_download_url();
+		$plugin_info->last_updated = $release->get_published_date();
 		$plugin_info->sections = array(
 			'description' => 'Universal form tracking plugin for WordPress with GTM integration.',
-			'changelog' => ! empty( $release['changelog'] ) ? $release['changelog'] : 'See GitHub releases for changelog.',
+			'changelog' => $release->get_changelog() ?: 'See GitHub releases for changelog.',
 		);
 
-		// Add download stats if available
-		if ( ! empty( $release['download_count'] ) ) {
-			$plugin_info->downloaded = $release['download_count'];
-		}
+		// Note: download_count not available in CUFT_GitHub_Release model
 
 		return $plugin_info;
 	}
@@ -233,7 +230,7 @@ class CUFT_WordPress_Updater {
 				CUFT_Update_Progress::set_failed( 'Failed to fetch latest version' );
 				return;
 			}
-			$version = $release['version'];
+			$version = $release->get_version();
 		}
 
 		// Create installer instance

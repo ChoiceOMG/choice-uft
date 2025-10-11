@@ -83,7 +83,8 @@ class CUFT_Admin_Notices {
 
 		$current_version = CUFT_VERSION;
 		$latest_version = $update_status['latest_version'];
-		$plugin_page_url = admin_url( 'plugins.php' );
+		// Link to plugin's own Updates tab instead of plugins page to avoid crashes
+		$plugin_page_url = admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=updates' );
 
 		?>
 		<div class="notice notice-info is-dismissible cuft-update-notice" data-version="<?php echo esc_attr( $latest_version ); ?>">

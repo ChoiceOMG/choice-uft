@@ -198,12 +198,22 @@ class CUFT_Update_Installer {
         $url = CUFT_GitHub_API::get_download_url( $this->target_version );
 
         if ( ! $url ) {
-            return new WP_Error( 'download_url_failed', 'Failed to get download URL' );
+            $error_msg = sprintf(
+                'Failed to get download URL for version %s. GitHub API may be unavailable or version does not exist.',
+                $this->target_version
+            );
+            error_log( 'CUFT Update Error: ' . $error_msg );
+            return new WP_Error( 'download_url_failed', $error_msg );
         }
 
         // Verify URL is accessible
         if ( ! CUFT_GitHub_API::verify_download_url( $url ) ) {
-            return new WP_Error( 'url_not_accessible', 'Download URL is not accessible' );
+            $error_msg = sprintf(
+                'Download URL is not accessible: %s. Please check GitHub release assets.',
+                $url
+            );
+            error_log( 'CUFT Update Error: ' . $error_msg );
+            return new WP_Error( 'url_not_accessible', $error_msg );
         }
 
         return $url;
@@ -435,13 +445,31 @@ class CUFT_Update_Installer {
      * @return WP_Error Error with rollback status
      */
     private function handle_failure( $error ) {
-        // Set failed progress
-        CUFT_Update_Progress::set_failed( $error->get_error_message() );
+        // Build detailed error message
+        $error_code = $error->get_error_code();
+        $error_message = $error->get_error_message();
+        $detailed_message = sprintf(
+            '[%s] %s (Update ID: %s, Target: %s)',
+            $error_code,
+            $error_message,
+            $this->update_id,
+            $this->target_version
+        );
 
-        // Log error
-        CUFT_Update_Log::log_error( $error->get_error_message(), array(
-            'version_to' => $this->target_version
+        // Set failed progress with detailed message
+        CUFT_Update_Progress::set_failed( $detailed_message );
+
+        // Log detailed error
+        CUFT_Update_Log::log_error( $error_message, array(
+            'error_code' => $error_code,
+            'update_id' => $this->update_id,
+            'version_to' => $this->target_version,
+            'timestamp' => current_time( 'mysql' ),
+            'user_id' => get_current_user_id()
         ) );
+
+        // Log to PHP error log for debugging
+        error_log( 'CUFT Update Failed: ' . $detailed_message );
 
         // Attempt rollback if backup exists
         if ( $this->backup ) {
