@@ -48,7 +48,12 @@
 
 ---
 
-## Phase 3.0: Feature 007 Migration (CRITICAL - Must Complete First)
+## Phase 3.0: Migration (Remove Feature 007 Custom UI)
+
+**Phase Objective**: Remove all custom update UI from Feature 007 to fully align with WordPress conventions
+
+**Status**: In Progress (60% complete - 3 of 5 tasks done)
+
 **GATE**: These tasks establish a clean foundation. Feature 008 implementation cannot begin until all are complete.
 
 - [x] **T000** [P] Audit Feature 007 for custom update execution logic and UI
@@ -75,29 +80,30 @@
   - **Success Criteria**: No custom download/install code remains, WordPress Plugin_Upgrader handles all updates
   - **COMPLETED**: Deleted installer, admin bar classes; removed perform_update/rollback_update endpoints; commit 1bf5361
 
-- [ ] **T000b** Remove custom update UI from Feature 007 (WordPress convention alignment)
-  - Remove admin bar "CUFT Update" menu item (`admin_bar_menu` hook registration)
-  - Remove Settings page "Updates" tab (tab registration and content rendering)
-  - Remove Settings page "GitHub Auto-Updates" section
-  - Remove all AJAX handlers for Settings page update triggers
-  - Remove related JavaScript files (e.g., `assets/admin/js/cuft-update-progress.js`)
-  - Remove related CSS for update UI (e.g., `assets/admin/css/cuft-update.css`)
-  - Commit changes with message: "fix: Remove custom update UI, align with WordPress conventions (Feature 007 cleanup)"
-  - **Depends on**: T000
-  - **Estimated**: 2-3 hours
-  - **Success Criteria**: No admin bar indicator, no Settings page update UI, WordPress Plugins page is sole update interface
+- [x] **T000b** Remove custom update UI from Feature 007 [COMPLETED ✅]
+  - Removed "Updates" tab from Settings page tabs array
+  - Removed `render_updates_tab()` function (233 lines)
+  - Removed "GitHub Auto-Updates" settings section from Settings tab
+  - Removed AJAX handlers: `cuft_manual_update_check`, `cuft_install_update`
+  - Deleted JavaScript files:
+    - `assets/admin/js/cuft-updater.js`
+    - `assets/admin/js/cuft-update-widget.js`
+    - `assets/admin/js/cuft-update-settings.js`
+    - `assets/admin/js/cuft-update-history.js`
+  - Deleted CSS file: `assets/admin/css/cuft-updater.css`
+  - Removed enqueue code for deleted assets
+  - WordPress Plugins page is now the sole update interface
+  - **Commit**: `a588a8a` - "fix: Remove custom update UI, align with WordPress conventions (Feature 007 cleanup)"
 
-- [ ] **T000c** Modify admin notice behavior (align with WordPress conventions)
-  - Update admin notice to be dismissible per version (add dismiss button)
-  - Change link from Settings page to Plugins page (`/wp-admin/plugins.php`)
-  - Update message text to: "There is a new version of Choice Universal Form Tracker available."
-  - Update button text to: "View Plugin Updates" (links to Plugins page)
-  - Implement version-specific dismissal state storage (user meta: `cuft_notice_dismissed_v{VERSION}`)
-  - Test notice appears for new versions after dismissing older version
-  - Commit changes with message: "fix: Update admin notice behavior to WordPress standards (Feature 007 cleanup)"
-  - **Depends on**: T000
-  - **Estimated**: 1-2 hours
-  - **Success Criteria**: Notice is dismissible, links to Plugins page, respects per-version dismissal
+- [x] **T000c** Modify admin notice behavior [COMPLETED ✅]
+  - Updated admin notice to be dismissible per version
+  - Changed link from Settings page to Plugins page (`/wp-admin/plugins.php`)
+  - Updated message text to: "There is a new version of Choice Universal Form Tracker available."
+  - Updated button text to: "View Plugin Updates" (links to Plugins page)
+  - Implemented version-specific dismissal state storage (user meta: `cuft_notice_dismissed_v{VERSION}`)
+  - Implemented AJAX handler `cuft_dismiss_update_notice` with nonce validation
+  - Notice reappears for new versions after dismissing older version
+  - **Commit**: `413dbe4` - "feat: Implement WordPress-standard update notices with per-version dismissal"
 
 - [ ] **T000d** Test WordPress native update flow without Feature 007 interference
   - Verify `wp plugin update choice-uft` works correctly
