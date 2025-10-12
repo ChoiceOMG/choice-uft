@@ -117,7 +117,7 @@ class CUFT_Admin {
             <?php if ( $current_tab === 'settings' ): ?>
                 <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled ); ?>
                 <?php $this->render_framework_status(); ?>
-                <?php $this->render_github_status(); ?>
+                <?php // render_github_status() removed in Feature 008 - using WordPress native updates ?>
                 <?php $this->render_utm_status(); ?>
                 <?php $this->render_debug_section(); ?>
             <?php elseif ( $current_tab === 'click-tracking' ): ?>
@@ -556,69 +556,16 @@ class CUFT_Admin {
     }
     
     /**
-     * Render GitHub update status
+     * DEPRECATED: render_github_status() - Removed in Feature 008
+     *
+     * The GitHub Auto-Updates UI has been removed as part of Feature 008.
+     * Plugin now uses WordPress native update system via plugins_api filter.
+     *
+     * @deprecated 3.17.1 Use WordPress native update UI (Plugins page) instead
      */
     private function render_github_status() {
-        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
-        $current_version = CUFT_VERSION;
-        
-        ?>
-        <div class="cuft-github-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
-            <h2 style="margin-top: 0;">
-                <span style="margin-right: 8px;">🔄</span>
-                GitHub Auto-Updates
-            </h2>
-            
-            <?php if ( $github_updates_enabled ): ?>
-                <div style="padding: 15px; background: #e8f5e8; border-radius: 6px; border-left: 4px solid #28a745;">
-                    <h4 style="margin-top: 0; color: #155724;">GitHub Updates Enabled</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                        <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d4edda;">
-                            <strong style="color: #495057; font-size: 12px; text-transform: uppercase;">Current Version</strong><br>
-                            <span style="color: #155724;"><?php echo esc_html( $current_version ); ?></span>
-                        </div>
-                        <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d4edda;">
-                            <strong style="color: #495057; font-size: 12px; text-transform: uppercase;">Repository</strong><br>
-                            <span style="color: #155724;">ChoiceOMG/choice-uft</span>
-                        </div>
-                        <div style="background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #d4edda;">
-                            <strong style="color: #495057; font-size: 12px; text-transform: uppercase;">Access Type</strong><br>
-                            <span style="color: #155724;">Public Repository</span>
-                        </div>
-                    </div>
-                    <p style="margin-bottom: 0; color: #155724; font-size: 14px; margin-top: 10px;">
-                        <strong>✓</strong> Plugin will automatically check for updates from GitHub twice daily.
-                    </p>
-                    
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #d4edda;">
-                        <button type="button" id="cuft-ajax-update-check" class="button button-secondary" style="margin-right: 10px;">Check for Updates (AJAX)</button>
-                        <button type="button" id="cuft-download-install" class="button button-primary" style="display: none;">
-                            <span class="dashicons dashicons-download" style="vertical-align: middle;"></span> Download & Install Update
-                        </button>
-                        <button type="button" id="cuft-reinstall-current" class="button button-secondary" style="margin-right: 10px;">
-                            <span class="dashicons dashicons-update" style="vertical-align: middle;"></span> Re-install Current Version
-                        </button>
-                        <!-- Update result display area -->
-                        <div id="cuft-update-result" style="margin-top: 10px;"></div>
-                        <div id="cuft-install-progress" style="margin-top: 10px; display: none;">
-                            <div style="padding: 10px; background: #f0f0f1; border-radius: 4px;">
-                                <span class="spinner is-active" style="float: none; vertical-align: middle;"></span>
-                                <span id="cuft-install-status">Preparing update...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div style="padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
-                    <h4 style="margin-top: 0; color: #856404;">GitHub Updates Disabled</h4>
-                    <p style="margin-bottom: 0; color: #856404;">
-                        GitHub updates are currently disabled. The plugin will use WordPress.org for updates instead. 
-                        Enable GitHub updates in the settings above to get the latest features directly from the public repository.
-                    </p>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php
+        // Method deprecated - no longer renders UI
+        // Updates now handled by WordPress native system in Feature 008
     }
     
     /**
