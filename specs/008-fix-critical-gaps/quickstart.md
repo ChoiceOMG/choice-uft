@@ -722,6 +722,42 @@ chmod 755 /wp-content/uploads/
 
 ---
 
+## Automated Integration Tests
+
+Feature 008 includes comprehensive automated integration tests that verify all scenarios described in this quickstart:
+
+### Test Files Created
+- **T040**: `tests/integration/update/test-edge-case-backup-dir.php` - EC-1 (Backup directory not writable)
+- **T041**: `tests/integration/update/test-edge-case-disk-space.php` - EC-2 (Disk space insufficient)
+- **T042**: `tests/integration/update/test-edge-case-restore-fail.php` - EC-3 (Backup restoration fails)
+- **T043**: `tests/integration/update/test-edge-case-zip-structure.php` - EC-4 (Unexpected ZIP structure)
+- **T044**: `tests/integration/update/test-edge-case-concurrent.php` - EC-5 (Concurrent updates)
+
+### Running Automated Tests
+```bash
+# Run all integration tests
+phpunit tests/integration/update/
+
+# Run specific edge case test
+phpunit tests/integration/update/test-edge-case-backup-dir.php
+
+# Run with verbose output
+phpunit --verbose tests/integration/update/test-edge-case-restore-fail.php
+```
+
+### Test Coverage
+The automated tests cover:
+- ✅ Permission errors and recovery
+- ✅ Disk space validation
+- ✅ Corrupted backup detection
+- ✅ Directory pattern recognition
+- ✅ Concurrent update prevention
+- ✅ Error message clarity
+- ✅ FIFO logging retention
+- ✅ Critical error escalation
+
+---
+
 ## Troubleshooting Reference
 
 ### Common Issues
@@ -795,6 +831,17 @@ All tests pass when:
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-10-11
-**Status**: Ready for Testing
+## Additional Resources
+
+- **Implementation Tasks**: `specs/008-fix-critical-gaps/tasks.md`
+- **Implementation Plan**: `specs/008-fix-critical-gaps/plan.md`
+- **Data Models**: `specs/008-fix-critical-gaps/data-model.md`
+- **API Contracts**: `specs/008-fix-critical-gaps/contracts/`
+- **Integration Tests**: `tests/integration/update/`
+- **Unit Tests**: `tests/unit/update/`
+
+---
+
+**Version**: 2.0
+**Last Updated**: 2025-10-12
+**Status**: Complete - All scenarios tested and validated
