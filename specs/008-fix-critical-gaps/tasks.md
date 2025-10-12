@@ -146,11 +146,20 @@
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/plugins-api-filter.md`
   - **Estimated**: 1 hour
 
-- [ ] **T003** [P] Contract test: upgrader_source_selection filter in `/home/r11/dev/choice-uft/tests/unit/update/test-directory-fixer-contract.php`
-  - Test directory renamed from `choice-uft-v3.17.0` to `choice-uft`
-  - Test returns WP_Error when source directory not found
-  - Test pass-through for non-CUFT plugins
-  - Test WP_Error when rename operation fails
+- [x] **T003** [P] Contract test: upgrader_source_selection filter in `/home/r11/dev/choice-uft/tests/unit/update/test-directory-fixer-contract.php` [COMPLETED ✅]
+  - ✅ Test directory renamed from `choice-uft-v3.17.0` to `choice-uft` (TC-001)
+  - ✅ Test already correct directory (TC-002)
+  - ✅ Test pass-through for non-CUFT plugins (TC-003)
+  - ✅ Test theme update pass-through (TC-004)
+  - ✅ Test GitHub commit format (ChoiceOMG-choice-uft-abc1234) (TC-005)
+  - ✅ Test branch format (choice-uft-master) (TC-006)
+  - ✅ Test unrecognized directory pattern returns WP_Error (TC-007)
+  - ✅ Test returns WP_Error when source directory not found (TC-008)
+  - ✅ Test WP_Error when rename operation fails (TC-009)
+  - ✅ Test WP_Error when main plugin file missing (TC-010)
+  - ✅ Test overwrite existing directory (TC-011)
+  - ✅ Additional validations: trailing slash, numeric version format
+  - **Total Test Cases**: 14 (all contract requirements covered)
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/upgrader-source-selection-filter.md`
   - **Estimated**: 1 hour
 
