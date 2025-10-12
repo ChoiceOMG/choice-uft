@@ -312,24 +312,43 @@
   - **Depends on**: T015
   - **Estimated**: 1.5 hours
 
-- [ ] **T017** [P] Integration test: Update from Plugins page in `/home/r11/dev/choice-uft/tests/integration/update/test-plugins-page-update.php`
-  - Simulate clicking "Update Now" on Plugins page
-  - Verify update completes successfully
-  - Verify update history logged
+- [x] **T017** [P] Integration test: Update from Plugins page in `/home/r11/dev/choice-uft/tests/integration/update/test-plugins-page-update.php` [COMPLETED ✅]
+  - ✅ Created comprehensive integration test with 7 test methods
+  - ✅ Verifies WordPress Plugin_Upgrader integration (hooks registered)
+  - ✅ Tests update history logging with trigger_location='plugins_page'
+  - ✅ Validates plugin info modal accessibility before update
+  - ✅ Confirms directory naming works with Plugins page updates
+  - ✅ Tests hook firing order: plugins_api → upgrader_source_selection → upgrader_process_complete
+  - ✅ Validates user capabilities required (update_plugins)
+  - ✅ Confirms plugin remains active after update
   - **Reference**: quickstart.md QS-2
   - **Estimated**: 1 hour
 
-- [ ] **T018** [P] Integration test: Update via WP-CLI in `/home/r11/dev/choice-uft/tests/integration/update/test-wp-cli-update.php`
-  - Execute `wp plugin update choice-uft` via WP-CLI
-  - Verify exit code 0 on success
-  - Verify version updated
+- [x] **T018** [P] Integration test: Update via WP-CLI in `/home/r11/dev/choice-uft/tests/integration/update/test-wp-cli-update.php` [COMPLETED ✅]
+  - ✅ Created comprehensive integration test with 9 test methods
+  - ✅ Verifies WP-CLI uses same WordPress hooks as Plugins page
+  - ✅ Tests update history logging with trigger_location='wp_cli'
+  - ✅ Validates success condition (no WP_Error, exit code 0)
+  - ✅ Tests failure handling (WP_Error returned, exit code 1)
+  - ✅ Confirms version information available via plugins_api
+  - ✅ Validates directory naming works with WP-CLI updates
+  - ✅ Tests user context captured in update history
+  - ✅ Confirms plugin remains active after WP-CLI update
+  - ✅ Tests multiple update attempts logged separately
   - **Reference**: quickstart.md QS-3
   - **Estimated**: 1 hour
 
-- [ ] **T019** [P] Integration test: Bulk update in `/home/r11/dev/choice-uft/tests/integration/update/test-bulk-update.php`
-  - Select CUFT + another plugin for bulk update
-  - Verify both updates succeed
-  - Verify no interference
+- [x] **T019** [P] Integration test: Bulk update in `/home/r11/dev/choice-uft/tests/integration/update/test-bulk-update.php` [COMPLETED ✅]
+  - ✅ Created comprehensive integration test with 9 test methods
+  - ✅ Verifies bulk update uses Plugin_Upgrader::bulk_upgrade()
+  - ✅ Tests update history logging with trigger_location='bulk_update'
+  - ✅ Validates no interference with other plugins in bulk update
+  - ✅ Confirms directory naming works in bulk update context
+  - ✅ Tests plugin info available for each plugin independently
+  - ✅ Validates partial failure handling (one fails, others continue)
+  - ✅ Tests user capabilities required for bulk updates
+  - ✅ Confirms only CUFT logged in our update history
+  - ✅ Validates hooks fire in correct order for each plugin
   - **Reference**: quickstart.md QS-4
   - **Estimated**: 1 hour
 
