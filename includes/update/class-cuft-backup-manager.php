@@ -94,6 +94,11 @@ class CUFT_Backup_Manager {
 	private function initialize_backup_directory() {
 		global $wp_filesystem;
 
+		// Load WordPress filesystem API
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
 		// Initialize filesystem
 		if ( empty( $wp_filesystem ) ) {
 			WP_Filesystem();
@@ -203,6 +208,11 @@ class CUFT_Backup_Manager {
 	 */
 	public function create_backup( $version ) {
 		global $wp_filesystem;
+
+		// Load WordPress filesystem API
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
 
 		// Initialize filesystem
 		if ( empty( $wp_filesystem ) ) {
@@ -420,6 +430,11 @@ class CUFT_Backup_Manager {
 	public function restore_backup( $backup_path ) {
 		global $wp_filesystem;
 
+		// Load WordPress filesystem API
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
 		// Initialize filesystem
 		if ( empty( $wp_filesystem ) ) {
 			WP_Filesystem();
@@ -623,6 +638,11 @@ class CUFT_Backup_Manager {
 		}
 
 		global $wp_filesystem;
+
+		// Load WordPress filesystem API
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
 
 		if ( empty( $wp_filesystem ) ) {
 			WP_Filesystem();
