@@ -129,7 +129,7 @@
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-**Status**: 🟡 IN PROGRESS - 4 of 6 tests complete (67%)
+**Status**: ✅ COMPLETE - All 6 tests complete (100%)
 
 - [x] **T002** [P] Contract test: plugins_api filter (Plugin Metadata) in `/home/r11/dev/choice-uft/tests/unit/update/test-plugin-info-contract.php` [COMPLETED ✅]
   - ✅ Test `plugins_api` filter returns complete Plugin Metadata object (TC-001)
@@ -190,18 +190,39 @@
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/download-validation.md`
   - **Estimated**: 1 hour
 
-- [ ] **T006** [P] Integration test: Plugin information modal in `/home/r11/dev/choice-uft/tests/integration/update/test-plugins-page-modal.php`
-  - Test modal displays when clicking "View Details" on Plugins page
-  - Test all plugin metadata present (name, author, versions, changelog, compatibility)
-  - Test "Update Now" button present and functional
-  - Test graceful degradation when GitHub API fails (no changelog section)
+- [x] **T006** [P] Integration test: Plugin information modal in `/home/r11/dev/choice-uft/tests/integration/update/test-plugins-page-modal.php` [COMPLETED ✅]
+  - ✅ Test modal displays when clicking "View Details" on Plugins page (test_modal_displays_plugin_information)
+  - ✅ Test all plugin metadata present (test_all_plugin_metadata_present)
+  - ✅ Test modal tabs properly structured (test_modal_tabs_present)
+  - ✅ Test "Update Now" button present and functional (test_update_now_button_present)
+  - ✅ Test graceful degradation when GitHub API fails (test_graceful_degradation_on_github_api_failure)
+  - ✅ Test pass-through for non-CUFT plugins (test_pass_through_for_other_plugins)
+  - ✅ Test pass-through for wrong action (test_pass_through_for_wrong_action)
+  - ✅ Test HTML sanitization in sections (test_html_sanitization)
+  - ✅ Test caching behavior (test_caching_behavior)
+  - ✅ Test last updated date format (test_last_updated_date_format)
+  - ✅ Test compatibility version formats (test_compatibility_version_formats)
+  - **Total Test Cases**: 11 (all quickstart QS-1 scenarios covered)
   - **Reference**: quickstart.md QS-1
   - **Estimated**: 1 hour
 
-- [ ] **T007** [P] Integration test: Directory naming correction in `/home/r11/dev/choice-uft/tests/integration/update/test-directory-naming.php`
-  - Test directory renamed from GitHub format to WordPress format during update
-  - Test WordPress installs to `/wp-content/plugins/choice-uft/`
-  - Test no "directory mismatch" errors occur
+- [x] **T007** [P] Integration test: Directory naming correction in `/home/r11/dev/choice-uft/tests/integration/update/test-directory-naming.php` [COMPLETED ✅]
+  - ✅ Test directory renamed from GitHub format (test_directory_renamed_from_github_format)
+  - ✅ Test WordPress installs to correct location (test_wordpress_installs_to_correct_location)
+  - ✅ Test no directory mismatch errors (test_no_directory_mismatch_errors)
+  - ✅ Test already correct directory name (test_already_correct_directory_name)
+  - ✅ Test GitHub commit ZIP format (test_github_commit_zip_format)
+  - ✅ Test branch ZIP format (test_branch_zip_format)
+  - ✅ Test version without 'v' prefix (test_version_without_v_prefix)
+  - ✅ Test pass-through for non-CUFT plugins (test_pass_through_for_other_plugins)
+  - ✅ Test pass-through for theme updates (test_pass_through_for_theme_updates)
+  - ✅ Test error when source directory missing (test_error_when_source_directory_missing)
+  - ✅ Test error when plugin file missing (test_error_when_plugin_file_missing)
+  - ✅ Test error when unrecognized pattern (test_error_when_unrecognized_directory_pattern)
+  - ✅ Test overwrite existing directory (test_overwrite_existing_directory)
+  - ✅ Test trailing slash handling (test_trailing_slash_handling)
+  - ✅ Test numeric version format variations (test_numeric_version_format_variations)
+  - **Total Test Cases**: 15 (all quickstart QS-7 scenarios and edge cases covered)
   - **Reference**: quickstart.md QS-7
   - **Estimated**: 45 minutes
 
@@ -211,25 +232,29 @@
 
 ### FR-102: Plugin Information Modal
 
-- [ ] **T008** Implement CUFT_Plugin_Info class in `/home/r11/dev/choice-uft/includes/update/class-cuft-plugin-info.php`
-  - Create class with `plugins_api` filter hook registration
-  - Implement slug detection (`choice-uft`)
-  - Return false for non-CUFT plugins (pass-through)
-  - Include hardcoded Plugin Metadata fields (name, author, homepage, requires, tested, requires_php)
+- [x] **T008** Implement CUFT_Plugin_Info class in `/home/r11/dev/choice-uft/includes/update/class-cuft-plugin-info.php` [COMPLETED ✅]
+  - ✅ Created class with `plugins_api` filter hook registration
+  - ✅ Implemented slug detection (`choice-uft`)
+  - ✅ Return false for non-CUFT plugins (pass-through)
+  - ✅ Included hardcoded Plugin Metadata fields (name, author, homepage, requires, tested, requires_php)
+  - ✅ Full class implementation with all required functionality
   - **Depends on**: T002 failing
   - **Estimated**: 1.5 hours
 
-- [ ] **T009** Implement GitHub API changelog fetcher with caching in `/home/r11/dev/choice-uft/includes/update/class-cuft-plugin-info.php`
-  - Fetch release notes from GitHub Releases API
-  - Cache in WordPress transient (1-hour TTL)
-  - Use ETag headers for conditional requests
+- [x] **T009** Implement GitHub API changelog fetcher with caching in `/home/r11/dev/choice-uft/includes/update/class-cuft-plugin-info.php` [COMPLETED ✅]
+  - ✅ Fetch release notes from GitHub Releases API
+  - ✅ Cache in WordPress transient (12-hour TTL)
+  - ✅ Use ETag headers for conditional requests (304 handling)
+  - ✅ Implemented in `fetch_from_github()` method
   - **Depends on**: T008
   - **Estimated**: 2 hours
 
-- [ ] **T010** Implement graceful degradation for GitHub API failure in `/home/r11/dev/choice-uft/includes/update/class-cuft-plugin-info.php`
-  - Detect API unavailable (timeout, rate limit, 404)
-  - Return plugin metadata without changelog section
-  - Log error to PHP error_log
+- [x] **T010** Implement graceful degradation for GitHub API failure in `/home/r11/dev/choice-uft/includes/update/class-cuft-plugin-info.php` [COMPLETED ✅]
+  - ✅ Detect API unavailable (timeout, rate limit, 404)
+  - ✅ Return plugin metadata without changelog section
+  - ✅ Log errors to PHP error_log
+  - ✅ Implemented hardcoded fallback in `get_hardcoded_plugin_info()`
+  - ✅ Omits changelog when GitHub unavailable
   - **Depends on**: T009
   - **Estimated**: 1 hour
 
@@ -241,19 +266,21 @@
 
 ### FR-103: Directory Naming Fix
 
-- [ ] **T012** Implement CUFT_Directory_Fixer class in `/home/r11/dev/choice-uft/includes/update/class-cuft-directory-fixer.php`
-  - Create class with `upgrader_source_selection` filter hook registration
-  - Detect extracted directory name pattern (`choice-uft-v*`)
-  - Rename to `choice-uft` using WP_Filesystem
-  - Return WP_Error on rename failure
+- [x] **T012** Implement CUFT_Directory_Fixer class in `/home/r11/dev/choice-uft/includes/update/class-cuft-directory-fixer.php` [COMPLETED ✅]
+  - ✅ Created class with `upgrader_source_selection` filter hook registration
+  - ✅ Detect extracted directory name patterns (`choice-uft-v*`, `choice-uft-master`, `ChoiceOMG-choice-uft-abc1234`)
+  - ✅ Rename to `choice-uft` using WP_Filesystem
+  - ✅ Return WP_Error on rename failure
+  - ✅ Full implementation with error handling
   - **Depends on**: T003 failing
   - **Estimated**: 2 hours
 
-- [ ] **T013** Implement directory name detection and validation in `/home/r11/dev/choice-uft/includes/update/class-cuft-directory-fixer.php`
-  - Verify source directory exists before rename
-  - Check if plugin basename matches CUFT
-  - Pass-through for non-CUFT plugins
-  - Return WP_Error with clear message for unrecognized structure
+- [x] **T013** Implement directory name detection and validation in `/home/r11/dev/choice-uft/includes/update/class-cuft-directory-fixer.php` [COMPLETED ✅]
+  - ✅ Verify source directory exists before rename
+  - ✅ Check if plugin basename matches CUFT
+  - ✅ Pass-through for non-CUFT plugins
+  - ✅ Return WP_Error with clear messages for unrecognized structure
+  - ✅ Implemented in `is_valid_pattern()` method
   - **Depends on**: T012
   - **Estimated**: 1.5 hours
 
