@@ -58,9 +58,6 @@ class CUFT_WordPress_Updater {
 		// Hook into update source selection
 		add_filter( 'upgrader_source_selection', array( $this, 'upgrader_source_selection' ), 10, 3 );
 
-		// Hook into actual update process
-		add_action( 'cuft_process_update', array( $this, 'process_update' ), 10, 3 );
-
 		// After plugin row for update notices
 		add_action( "after_plugin_row_{$this->plugin_basename}", array( $this, 'plugin_row_notice' ), 10, 2 );
 
@@ -212,60 +209,6 @@ class CUFT_WordPress_Updater {
 		return new WP_Error( 'rename_failed', 'Failed to rename source directory' );
 	}
 
-	/**
-	 * Process update asynchronously
-	 *
-	 * This is called via cron hook 'cuft_process_update'
-	 *
-	 * @param string $update_id Update ID
-	 * @param string $version Target version
-	 * @param bool $backup Whether to create backup
-	 * @return void
-	 */
-	public function process_update( $update_id, $version, $backup = true ) {
-		// Get target version
-		if ( $version === 'latest' || empty( $version ) ) {
-			$release = CUFT_GitHub_Release::fetch_latest();
-			if ( ! $release ) {
-				CUFT_Update_Progress::set_failed( 'Failed to fetch latest version' );
-				return;
-			}
-			$version = $release->get_version();
-		}
-
-		// Create installer instance
-		$installer = new CUFT_Update_Installer( $update_id, $version );
-
-		// Execute update
-		$result = $installer->execute( $backup );
-
-		// Handle result
-		if ( is_wp_error( $result ) ) {
-			CUFT_Update_Progress::set_failed( $result->get_error_message() );
-			CUFT_Update_Log::log_error( $result->get_error_message(), array(
-				'update_id' => $update_id,
-				'version_to' => $version,
-			) );
-		} else {
-			CUFT_Update_Progress::set_complete( 'Update completed successfully' );
-			
-			// Clear all caches after successful update
-			if ( class_exists( 'CUFT_Update_Installer' ) ) {
-				// Use reflection to access private method
-				try {
-					$reflection = new ReflectionClass( 'CUFT_Update_Installer' );
-					$method = $reflection->getMethod( 'invalidate_all_caches' );
-					$method->setAccessible( true );
-					$method->invoke( null );
-				} catch ( Exception $e ) {
-					// Fallback to basic cache clearing
-					CUFT_Update_Status::clear();
-					delete_site_transient( 'update_plugins' );
-					wp_clean_plugins_cache();
-				}
-			}
-		}
-	}
 
 	/**
 	 * Display custom update notice in plugin row

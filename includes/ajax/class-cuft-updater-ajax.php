@@ -38,14 +38,8 @@ class CUFT_Updater_Ajax {
         // Check for updates
         add_action( 'wp_ajax_cuft_check_update', array( $this, 'check_update' ) );
 
-        // Perform update
-        add_action( 'wp_ajax_cuft_perform_update', array( $this, 'perform_update' ) );
-
         // Get update status
         add_action( 'wp_ajax_cuft_update_status', array( $this, 'update_status' ) );
-
-        // Rollback update
-        add_action( 'wp_ajax_cuft_rollback_update', array( $this, 'rollback_update' ) );
 
         // Get update history
         add_action( 'wp_ajax_cuft_update_history', array( $this, 'update_history' ) );
@@ -125,53 +119,6 @@ class CUFT_Updater_Ajax {
         }
     }
 
-    /**
-     * Perform plugin update
-     *
-     * AJAX Handler: cuft_perform_update
-     */
-    public function perform_update() {
-        if ( ! $this->verify_request() ) {
-            return;
-        }
-
-        try {
-            // Check if update is already in progress
-            if ( CUFT_Update_Progress::is_in_progress() ) {
-                wp_send_json_error( array(
-                    'message' => 'Update already in progress',
-                    'code' => 'update_in_progress',
-                    'current_status' => CUFT_Update_Progress::get()
-                ), 409 );
-                return;
-            }
-
-            // Get target version
-            $version = isset( $_POST['version'] ) ? sanitize_text_field( $_POST['version'] ) : 'latest';
-            $backup = ! isset( $_POST['backup'] ) || filter_var( $_POST['backup'], FILTER_VALIDATE_BOOLEAN );
-
-            // Generate update ID
-            $update_id = 'update_' . time();
-
-            // Start update process asynchronously
-            wp_schedule_single_event( time() + 1, 'cuft_process_update', array( $update_id, $version, $backup ) );
-
-            wp_send_json_success( array(
-                'status' => 'started',
-                'update_id' => $update_id,
-                'message' => 'Update process started'
-            ) );
-
-        } catch ( Exception $e ) {
-            delete_transient( 'cuft_update_in_progress' );
-
-            wp_send_json_error( array(
-                'message' => 'Failed to start update',
-                'code' => 'update_failed',
-                'details' => $e->getMessage()
-            ), 500 );
-        }
-    }
 
     /**
      * Get update status
@@ -201,56 +148,6 @@ class CUFT_Updater_Ajax {
         }
     }
 
-    /**
-     * Rollback update
-     *
-     * AJAX Handler: cuft_rollback_update
-     */
-    public function rollback_update() {
-        if ( ! $this->verify_request() ) {
-            return;
-        }
-
-        try {
-            // Get update ID
-            $update_id = isset( $_POST['update_id'] ) ? sanitize_text_field( $_POST['update_id'] ) : '';
-            $reason = isset( $_POST['reason'] ) ? sanitize_text_field( $_POST['reason'] ) : 'User requested';
-
-            // Log rollback attempt
-            CUFT_Update_Log::log( 'rollback_started', 'info', array(
-                'details' => 'Manual rollback requested: ' . $reason
-            ) );
-
-            // Perform automatic rollback to latest backup
-            $result = CUFT_Backup_Manager::auto_rollback();
-
-            if ( is_wp_error( $result ) ) {
-                CUFT_Update_Log::log_error( 'Rollback failed: ' . $result->get_error_message() );
-
-                wp_send_json_error( array(
-                    'message' => $result->get_error_message(),
-                    'code' => 'rollback_failed'
-                ), 500 );
-                return;
-            }
-
-            // Clear update progress
-            CUFT_Update_Progress::clear();
-
-            wp_send_json_success( array(
-                'status' => 'rolled_back',
-                'message' => 'Previous version has been restored',
-                'restored_version' => CUFT_VERSION
-            ) );
-
-        } catch ( Exception $e ) {
-            wp_send_json_error( array(
-                'message' => 'Failed to rollback update',
-                'code' => 'rollback_failed',
-                'details' => $e->getMessage()
-            ), 500 );
-        }
-    }
 
     /**
      * Get update history

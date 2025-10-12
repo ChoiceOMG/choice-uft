@@ -123,6 +123,12 @@ class Choice_Universal_Form_Tracker {
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
             'includes/migrations/create-update-log-table.php',  // Update log table migration
+            // Update System (Feature 008 - v3.17.0)
+            'includes/update/class-cuft-plugin-info.php',  // plugins_api filter for update modal
+            'includes/update/class-cuft-directory-fixer.php',  // upgrader_source_selection filter
+            'includes/update/class-cuft-update-logger.php',  // upgrader_process_complete hook for history
+            'includes/update/class-cuft-update-validator.php',  // Download validation (FR-401)
+            'includes/update/class-cuft-backup-manager.php',  // Backup/restore (FR-402)
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
@@ -259,6 +265,14 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Test_Events_Ajax();
             }
 
+            // Initialize Update System (Feature 008 - v3.17.0)
+            if ( class_exists( 'CUFT_Update_Validator' ) ) {
+                new CUFT_Update_Validator();
+            }
+            if ( class_exists( 'CUFT_Backup_Manager' ) ) {
+                new CUFT_Backup_Manager();
+            }
+
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
             add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
 
@@ -351,6 +365,11 @@ class Choice_Universal_Form_Tracker {
         $timestamp = wp_next_scheduled( 'cuft_scheduled_health_check' );
         if ( $timestamp ) {
             wp_unschedule_event( $timestamp, 'cuft_scheduled_health_check' );
+        }
+
+        // Clear update validator orphaned downloads cleanup cron job (v3.17.0)
+        if ( class_exists( 'CUFT_Update_Validator' ) ) {
+            CUFT_Update_Validator::deactivate();
         }
 
         // Flush rewrite rules
