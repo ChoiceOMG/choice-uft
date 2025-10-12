@@ -63,7 +63,7 @@
   - **Success Criteria**: Complete inventory of conflicting code with line numbers and file paths
   - **COMPLETED**: Audit results documented with 7 files to delete, 2 to modify, detailed removal plan
 
-- [ ] **T000a** Remove custom download/install logic from Feature 007
+- [x] **T000a** Remove custom download/install logic from Feature 007
   - Remove any custom download functions identified in T000 audit
   - Remove any custom install/extraction functions
   - Remove AJAX endpoints that trigger updates (keep status-only endpoints)
@@ -73,6 +73,7 @@
   - **Depends on**: T000
   - **Estimated**: 3-4 hours
   - **Success Criteria**: No custom download/install code remains, WordPress Plugin_Upgrader handles all updates
+  - **COMPLETED**: Deleted installer, admin bar classes; removed perform_update/rollback_update endpoints; commit 1bf5361
 
 - [ ] **T000b** Remove custom update UI from Feature 007 (WordPress convention alignment)
   - Remove admin bar "CUFT Update" menu item (`admin_bar_menu` hook registration)
