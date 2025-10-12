@@ -126,6 +126,7 @@ class Choice_Universal_Form_Tracker {
             // Update System (Feature 008 - v3.17.0)
             'includes/update/class-cuft-plugin-info.php',  // plugins_api filter for update modal
             'includes/update/class-cuft-directory-fixer.php',  // upgrader_source_selection filter
+            'includes/update/class-cuft-update-logger.php',  // upgrader_process_complete hook for history
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
