@@ -105,13 +105,13 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-github-api.php',  // GitHub API service
             'includes/class-cuft-update-checker.php',  // Update checker service
             'includes/class-cuft-filesystem-handler.php',  // Filesystem wrapper
-            'includes/class-cuft-backup-manager.php',  // Backup and rollback service
-            'includes/class-cuft-update-installer.php',  // Update installer service
+            // 'includes/class-cuft-backup-manager.php',  // DEPRECATED: Replaced by includes/update/class-cuft-backup-manager.php in Feature 008
+            // 'includes/class-cuft-update-installer.php',  // DEPRECATED: Removed in Feature 007/008 refactor
             'includes/class-cuft-wordpress-updater.php',  // WordPress update integration
             'includes/class-cuft-cron-manager.php',  // Cron scheduling manager
             // Updater Admin
             'includes/admin/class-cuft-admin-notices.php',  // Admin update notices
-            'includes/admin/class-cuft-admin-bar.php',  // Admin bar integration
+            // 'includes/admin/class-cuft-admin-bar.php',  // DEPRECATED: Removed in Feature 007 refactor
             // Updater Performance
             'includes/class-cuft-db-optimizer.php',  // Database query optimization
             'includes/class-cuft-cache-warmer.php',  // Cache preloading
