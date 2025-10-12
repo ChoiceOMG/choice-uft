@@ -354,145 +354,175 @@
 
 ### FR-401: Download Validation
 
-- [ ] **T020** Implement CUFT_Update_Validator class in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php`
-  - Create class with validation methods
-  - Hook into `upgrader_pre_install` filter
+- [x] **T020** Implement CUFT_Update_Validator class in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php` [COMPLETED ✅]
+  - ✅ Created class with validation methods
+  - ✅ Hooked into `upgrader_pre_install` filter
+  - ✅ Implemented file size validation with ±5% tolerance (T021)
+  - ✅ Implemented ZIP format validation using WordPress methods (T022)
+  - ✅ Implemented immediate cleanup on validation failure (T023)
+  - ✅ Implemented daily cron job for orphaned file cleanup (T024)
   - **Depends on**: T005 failing
   - **Estimated**: 1 hour
 
-- [ ] **T021** Implement file size validation with ±5% tolerance in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php`
-  - Compare downloaded file size with expected size from GitHub API
-  - Allow ±5% variance for compression differences
-  - Return WP_Error with message: "Download verification failed: File size mismatch. Expected X MB, got Y MB."
+- [x] **T021** Implement file size validation with ±5% tolerance in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php` [COMPLETED ✅]
+  - ✅ Compare downloaded file size with expected size from GitHub API
+  - ✅ Allow ±5% variance for compression differences
+  - ✅ Return WP_Error with message: "Download verification failed: File size mismatch. Expected X MB, got Y MB."
   - **Depends on**: T020
   - **Estimated**: 1.5 hours
 
-- [ ] **T022** Implement ZIP format validation using WordPress methods in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php`
-  - Use WordPress's built-in ZIP validation (WP_Filesystem::is_file_writable check pattern)
-  - Return WP_Error: "Downloaded file is not a valid ZIP archive."
-  - Log validation failures to PHP error_log with details
+- [x] **T022** Implement ZIP format validation using WordPress methods in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php` [COMPLETED ✅]
+  - ✅ Use WordPress's built-in ZIP validation (WP_Filesystem::is_file_writable check pattern)
+  - ✅ Return WP_Error: "Downloaded file is not a valid ZIP archive."
+  - ✅ Log validation failures to PHP error_log with details
   - **Depends on**: T021
   - **Estimated**: 1 hour
 
-- [ ] **T023** Implement immediate cleanup on validation failure in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php`
-  - Delete invalid/incomplete downloads immediately after detection
-  - Use WP_Filesystem for safe file deletion
+- [x] **T023** Implement immediate cleanup on validation failure in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php` [COMPLETED ✅]
+  - ✅ Delete invalid/incomplete downloads immediately after detection
+  - ✅ Use WP_Filesystem for safe file deletion
   - **Depends on**: T022
   - **Estimated**: 45 minutes
 
-- [ ] **T024** Implement daily cron job for orphaned file cleanup in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php`
-  - Register WordPress cron event (daily)
-  - Scan temp directory for orphaned CUFT download files
-  - Delete files older than 24 hours
+- [x] **T024** Implement daily cron job for orphaned file cleanup in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-validator.php` [COMPLETED ✅]
+  - ✅ Register WordPress cron event (daily)
+  - ✅ Scan temp directory for orphaned CUFT download files
+  - ✅ Delete files older than 24 hours
   - **Depends on**: T023
   - **Estimated**: 1.5 hours
 
-- [ ] **T025** Integration test: Download validation in `/home/r11/dev/choice-uft/tests/integration/update/test-download-validation.php`
-  - Simulate partial download (size mismatch)
-  - Verify error message shown
-  - Verify partial file deleted
+- [x] **T025** Integration test: Download validation in `/home/r11/dev/choice-uft/tests/integration/update/test-download-validation.php` [COMPLETED ✅]
+  - ✅ Simulate partial download (size mismatch)
+  - ✅ Verify error message shown
+  - ✅ Verify partial file deleted
+  - ✅ Test file size tolerance boundaries
+  - ✅ Test invalid ZIP format detection
+  - ✅ Test empty and corrupted ZIP files
+  - ✅ Test orphaned file cleanup
+  - ✅ Test full validation workflow
   - **Reference**: quickstart.md QS-5
   - **Estimated**: 1 hour
 
 ### FR-402: Automatic Backup and Rollback
 
-- [ ] **T026** Implement CUFT_Backup_Manager class in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php`
-  - Create class with backup/restore/delete methods
-  - Use WordPress ZIP filesystem methods
+- [x] **T026** Implement CUFT_Backup_Manager class in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php` [COMPLETED ✅]
+  - ✅ Created class with backup/restore/delete methods
+  - ✅ Use WordPress ZIP filesystem methods
+  - ✅ Implemented all T027-T031 functionality in single class
   - **Depends on**: T004 failing
   - **Estimated**: 1.5 hours
 
-- [ ] **T027** Implement backup creation with WordPress ZIP methods in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php`
-  - Create backup ZIP: `/wp-content/uploads/cuft-backups/choice-uft-{VERSION}-backup.zip`
-  - Include current version number in filename
-  - Return WP_Error on disk space insufficient or permissions denied
-  - Check available disk space before creating backup
+- [x] **T027** Implement backup creation with WordPress ZIP methods in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php` [COMPLETED ✅]
+  - ✅ Create backup ZIP: `/wp-content/uploads/cuft-backups/choice-uft-{VERSION}-backup.zip`
+  - ✅ Include current version number in filename
+  - ✅ Return WP_Error on disk space insufficient or permissions denied
+  - ✅ Check available disk space before creating backup
   - **Depends on**: T026
   - **Estimated**: 2 hours
 
-- [ ] **T028** Implement pre-update backup hook integration in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php`
-  - Hook into `upgrader_pre_install` filter
-  - Create backup before update starts
-  - Abort update if backup creation fails
+- [x] **T028** Implement pre-update backup hook integration in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php` [COMPLETED ✅]
+  - ✅ Hook into `upgrader_pre_install` filter
+  - ✅ Create backup before update starts
+  - ✅ Abort update if backup creation fails
   - **Depends on**: T027
   - **Estimated**: 1 hour
 
-- [ ] **T029** Implement restore on update failure with 10s timeout in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php`
-  - Hook into `upgrader_install_package_result` filter (detect failures)
-  - Extract backup ZIP to `/wp-content/plugins/choice-uft/`
-  - Implement 10-second hard timeout using `set_time_limit()` or timer check
+- [x] **T029** Implement restore on update failure with 10s timeout in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php` [COMPLETED ✅]
+  - ✅ Hook into `upgrader_install_package_result` filter (detect failures)
+  - ✅ Extract backup ZIP to `/wp-content/plugins/choice-uft/`
+  - ✅ Implement 10-second hard timeout using timer check
   - **Depends on**: T028
   - **Estimated**: 2 hours
 
-- [ ] **T030** Implement timeout abort with manual reinstall message in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php`
-  - Detect timeout exceeded (>10 seconds)
-  - Abort restoration process
-  - Display error: "Update failed and automatic restoration timed out. Please reinstall plugin manually from GitHub: [URL]"
-  - Log CRITICAL error to PHP error_log
+- [x] **T030** Implement timeout abort with manual reinstall message in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php` [COMPLETED ✅]
+  - ✅ Detect timeout exceeded (>10 seconds)
+  - ✅ Abort restoration process
+  - ✅ Display error: "Update failed and automatic restoration timed out. Please reinstall plugin manually from GitHub: [URL]"
+  - ✅ Log CRITICAL error to PHP error_log
   - **Depends on**: T029
   - **Estimated**: 1.5 hours
 
-- [ ] **T031** Implement post-success backup deletion in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php`
-  - Hook into `upgrader_process_complete` action
-  - Delete backup immediately after successful update (standard WordPress pattern)
-  - Verify backup deleted, log warning if deletion fails
+- [x] **T031** Implement post-success backup deletion in `/home/r11/dev/choice-uft/includes/update/class-cuft-backup-manager.php` [COMPLETED ✅]
+  - ✅ Hook into `upgrader_process_complete` action
+  - ✅ Delete backup immediately after successful update (standard WordPress pattern)
+  - ✅ Verify backup deleted, log warning if deletion fails
   - **Depends on**: T030
   - **Estimated**: 1 hour
 
-- [ ] **T032** Integration test: Full backup/restore workflow in `/home/r11/dev/choice-uft/tests/integration/update/test-backup-restore.php`
-  - Simulate update failure (corrupted ZIP)
-  - Verify backup created before update
-  - Verify automatic restoration triggered
-  - Verify previous version restored
-  - Verify error message shown
+- [x] **T032** Integration test: Full backup/restore workflow in `/home/r11/dev/choice-uft/tests/integration/update/test-backup-restore.php` [COMPLETED ✅]
+  - ✅ Created comprehensive integration test with 7 test methods
+  - ✅ Tests complete success workflow (backup → update → delete backup)
+  - ✅ Tests update failure with successful rollback
+  - ✅ Tests backup creation failure (aborts update)
+  - ✅ Tests restoration failure (manual reinstall message)
+  - ✅ Verifies backup deleted after successful update
+  - ✅ Verifies error messages displayed to user
+  - ✅ Verifies previous version restored correctly
   - **Reference**: quickstart.md QS-6
   - **Estimated**: 1.5 hours
 
 ### FR-403: Error Message Clarity
 
-- [ ] **T033** Implement error message templates in `/home/r11/dev/choice-uft/includes/update/class-cuft-error-messages.php`
-  - Create constants for all error scenarios from spec.md FR-403
-  - Include: download failure, extraction failure, permission error, disk space error, backup failure, restoration timeout, version mismatch
-  - Each message includes: what went wrong + corrective action + relevant context
+- [x] **T033** Implement error message templates in `/home/r11/dev/choice-uft/includes/update/class-cuft-error-messages.php` [COMPLETED ✅]
+  - ✅ Created comprehensive CUFT_Error_Messages class with constants for all error scenarios
+  - ✅ Included all error types: download failure, extraction failure, permission errors, disk space errors, backup errors, restoration errors, version errors, security errors
+  - ✅ Each message includes: what went wrong + corrective action + relevant context
+  - ✅ All messages user-friendly and translatable
+  - ✅ GitHub URLs included for manual reinstall instructions
   - **Estimated**: 1.5 hours
 
-- [ ] **T034** Implement error message logging to update history in `/home/r11/dev/choice-uft/includes/update/class-cuft-error-messages.php`
-  - Log all error messages to Feature 007's update history log
-  - Include error context: version, user, timestamp, error code
-  - Never expose server paths to non-administrators (PII protection)
+- [x] **T034** Implement error message logging to update history in `/home/r11/dev/choice-uft/includes/update/class-cuft-error-messages.php` [COMPLETED ✅]
+  - ✅ Implemented log_error() method for Feature 007's update history log
+  - ✅ FIFO retention (last 5 entries)
+  - ✅ Includes error context: version, user, timestamp, error code, trigger location
+  - ✅ PII protection: server paths only shown to administrators
+  - ✅ Severity levels: CRITICAL, ERROR, WARNING
+  - ✅ PHP error_log integration for server-side debugging
+  - ✅ Helper methods: create_error(), display_admin_notice()
   - **Depends on**: T033
   - **Estimated**: 1 hour
 
 ### FR-404: Security Validation
 
-- [ ] **T035** Implement nonce validation wrapper in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php`
-  - Validate WordPress nonces for update actions (action: `update-plugin`)
-  - Return WP_Error on nonce validation failure
+- [x] **T035** Implement nonce validation wrapper in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php` [COMPLETED ✅]
+  - ✅ Created CUFT_Update_Security class with comprehensive security validation
+  - ✅ Implemented validate_nonce() method for update actions
+  - ✅ Returns WP_Error on nonce validation failure with user-friendly message
+  - ✅ Checks $_REQUEST for nonce if not provided
   - **Estimated**: 1 hour
 
-- [ ] **T036** Implement capability check wrapper in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php`
-  - Verify user has `update_plugins` capability
-  - Return WP_Error: "You do not have permission to update plugins"
+- [x] **T036** Implement capability check wrapper in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php` [COMPLETED ✅]
+  - ✅ Implemented check_capability() method
+  - ✅ Verifies user has `update_plugins` capability
+  - ✅ Returns WP_Error: "You do not have permission to update plugins"
+  - ✅ Supports checking for specific user ID or current user
   - **Depends on**: T035
   - **Estimated**: 45 minutes
 
-- [ ] **T037** Implement URL validation (GitHub CDN only) in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php`
-  - Validate download URLs match pattern: `https://github.com/ChoiceOMG/choice-uft/releases/download/*`
-  - Reject URLs not matching pattern
-  - Return WP_Error: "Invalid download URL. Security check failed."
+- [x] **T037** Implement URL validation (GitHub CDN only) in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php` [COMPLETED ✅]
+  - ✅ Implemented validate_download_url() method with regex patterns
+  - ✅ Validates URLs match GitHub patterns: releases/download/* and zipball/*
+  - ✅ Checks HTTPS protocol, allowed hosts (github.com, api.github.com)
+  - ✅ Rejects query parameters and fragments
+  - ✅ Returns WP_Error: "Invalid download URL. Security check failed."
   - **Depends on**: T036
   - **Estimated**: 1 hour
 
-- [ ] **T038** Implement DISALLOW_FILE_MODS check in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php`
-  - Check if `DISALLOW_FILE_MODS` constant is set to true
-  - Return WP_Error: "File modifications are disabled on this site (DISALLOW_FILE_MODS)"
+- [x] **T038** Implement DISALLOW_FILE_MODS check in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php` [COMPLETED ✅]
+  - ✅ Implemented check_file_mods() method
+  - ✅ Checks if `DISALLOW_FILE_MODS` constant is set to true
+  - ✅ Returns WP_Error: "File modifications are disabled on this site (DISALLOW_FILE_MODS)"
   - **Depends on**: T037
   - **Estimated**: 30 minutes
 
-- [ ] **T039** Implement filesystem permission check in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php`
-  - Check write permissions on `/wp-content/plugins/choice-uft/` before update
-  - Check write permissions on `/wp-content/uploads/cuft-backups/` before backup
-  - Return WP_Error with specific path and recommended permissions (755)
+- [x] **T039** Implement filesystem permission check in `/home/r11/dev/choice-uft/includes/update/class-cuft-update-security.php` [COMPLETED ✅]
+  - ✅ Implemented check_filesystem_permissions() method
+  - ✅ Checks write permissions on plugin directory and parent directory
+  - ✅ Checks write permissions on uploads and backup directories
+  - ✅ Returns WP_Error with specific path and corrective action
+  - ✅ Integrated with WordPress hooks (upgrader_pre_download, upgrader_pre_install)
+  - ✅ Added validate_complete() for comprehensive security validation
+  - ✅ Added sanitize_context() for safe data logging
   - **Depends on**: T038
   - **Estimated**: 1 hour
 
