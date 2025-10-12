@@ -129,6 +129,7 @@
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
+**Status**: 🟡 IN PROGRESS - 4 of 6 tests complete (67%)
 
 - [x] **T002** [P] Contract test: plugins_api filter (Plugin Metadata) in `/home/r11/dev/choice-uft/tests/unit/update/test-plugin-info-contract.php` [COMPLETED ✅]
   - ✅ Test `plugins_api` filter returns complete Plugin Metadata object (TC-001)
@@ -163,21 +164,29 @@
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/upgrader-source-selection-filter.md`
   - **Estimated**: 1 hour
 
-- [ ] **T004** [P] Contract test: backup/restore workflow in `/home/r11/dev/choice-uft/tests/unit/update/test-backup-manager-contract.php`
-  - Test `create_backup()` creates ZIP in `/wp-content/uploads/cuft-backups/`
-  - Test `restore_backup()` extracts to correct location within 10s timeout
-  - Test `delete_backup()` removes backup file
-  - Test WP_Error on disk space insufficient
-  - Test WP_Error on permissions denied
-  - Test timeout abort at 10 seconds with manual reinstall message
+- [x] **T004** [P] Contract test: backup/restore workflow in `/home/r11/dev/choice-uft/tests/unit/update/test-backup-manager-contract.php` [COMPLETED ✅]
+  - ✅ Test `create_backup()` creates ZIP in `/wp-content/uploads/cuft-backups/` (TC-001)
+  - ✅ Test `restore_backup()` extracts to correct location within 10s timeout (TC-004, TC-005)
+  - ✅ Test `delete_backup()` removes backup file (TC-008, TC-009)
+  - ✅ Test WP_Error on disk space insufficient (TC-002)
+  - ✅ Test WP_Error on permissions denied (TC-003)
+  - ✅ Test timeout abort at 10 seconds with manual reinstall message (TC-005)
+  - ✅ Test backup file missing (TC-006)
+  - ✅ Test backup file corrupted (TC-007)
+  - ✅ Test full workflow - update success (TC-010)
+  - ✅ Test full workflow - update failure with rollback (TC-011)
+  - ✅ Test full workflow - update and rollback both fail (TC-012)
+  - **Total Test Cases**: 12 (all contract requirements covered)
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/backup-restore-workflow.md`
   - **Estimated**: 1.5 hours
 
-- [ ] **T005** [P] Contract test: download validation in `/home/r11/dev/choice-uft/tests/unit/update/test-update-validator-contract.php`
-  - Test `validate_file_size()` with ±5% tolerance
-  - Test `validate_zip_format()` using WordPress ZIP validation
-  - Test `cleanup_invalid_download()` immediate deletion after failure
-  - Test scheduled daily cleanup via WordPress cron
+- [x] **T005** [P] Contract test: download validation in `/home/r11/dev/choice-uft/tests/unit/update/test-update-validator-contract.php` [COMPLETED ✅]
+  - ✅ Test `validate_file_size()` with ±5% tolerance (TC-001, TC-002, TC-003, TC-004)
+  - ✅ Test `validate_zip_format()` using WordPress ZIP validation (TC-005, TC-006, TC-007, TC-008, TC-009)
+  - ✅ Test `cleanup_invalid_download()` immediate deletion after failure (TC-010, TC-011)
+  - ✅ Test scheduled daily cleanup via WordPress cron (TC-012, TC-013)
+  - ✅ Test full validation workflow (TC-014)
+  - **Total Test Cases**: 14 (all contract requirements covered)
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/download-validation.md`
   - **Estimated**: 1 hour
 
