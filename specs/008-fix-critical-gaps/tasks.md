@@ -130,12 +130,19 @@
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
 
-- [ ] **T002** [P] Contract test: plugins_api filter (Plugin Metadata) in `/home/r11/dev/choice-uft/tests/unit/update/test-plugin-info-contract.php`
-  - Test `plugins_api` filter returns complete Plugin Metadata object
-  - Test returns false for non-CUFT plugins (pass-through)
-  - Test changelog section omitted when GitHub API unavailable
-  - Test all required fields present: name, slug, version, author, requires, tested, download_link
-  - Verify response structure matches WordPress's `plugins_api` expected format
+- [x] **T002** [P] Contract test: plugins_api filter (Plugin Metadata) in `/home/r11/dev/choice-uft/tests/unit/update/test-plugin-info-contract.php` [COMPLETED ✅]
+  - ✅ Test `plugins_api` filter returns complete Plugin Metadata object (TC-001)
+  - ✅ Test returns false for non-CUFT plugins (pass-through) (TC-002, TC-003)
+  - ✅ Test changelog section omitted when GitHub API unavailable (TC-008)
+  - ✅ Test all required fields present: name, slug, version, author, requires, tested, download_link (TC-001)
+  - ✅ Verify response structure matches WordPress's `plugins_api` expected format (TC-001)
+  - ✅ Test cache hit/miss scenarios (TC-004, TC-005)
+  - ✅ Test GitHub API unavailable fallback (TC-006)
+  - ✅ Test rate limit handling (TC-007)
+  - ✅ Test invalid JSON response (TC-009)
+  - ✅ Test HTML sanitization (TC-010)
+  - ✅ Test ETag conditional requests (TC-011)
+  - **Total Test Cases**: 11 (all contract requirements covered)
   - **Reference**: `/home/r11/dev/choice-uft/specs/008-fix-critical-gaps/contracts/plugins-api-filter.md`
   - **Estimated**: 1 hour
 
