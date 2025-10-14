@@ -1,0 +1,298 @@
+/**
+ * Force Update CSS Stylesheet
+ *
+ * Styles for force update UI components (buttons, status, progress bar, history table).
+ *
+ * @package    Choice_Universal_Form_Tracker
+ * @subpackage Assets/Admin
+ * @since      3.19.0
+ */
+
+/* Main Section Container */
+.cuft-force-update-section {
+	max-width: 900px;
+	padding: 20px;
+	background: white;
+	border: 1px solid #ccd0d4;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	margin-top: 20px;
+}
+
+.cuft-force-update-section h2 {
+	margin-top: 0;
+	margin-bottom: 10px;
+	font-size: 23px;
+	font-weight: 400;
+	line-height: 29px;
+}
+
+.cuft-force-update-section .description {
+	margin-bottom: 20px;
+	color: #646970;
+}
+
+/* Current Version Display */
+.cuft-current-version {
+	margin-bottom: 20px;
+	padding: 12px;
+	background: #f0f0f1;
+	border-left: 4px solid #2271b1;
+	border-radius: 4px;
+	font-size: 14px;
+}
+
+.cuft-current-version code {
+	background: white;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 13px;
+	margin-left: 8px;
+}
+
+/* Update Controls */
+.cuft-update-controls {
+	margin: 20px 0;
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.cuft-update-controls .button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cuft-update-controls .button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.cuft-update-controls .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+}
+
+.cuft-update-controls .dashicons-spin {
+	animation: rotation 1s infinite linear;
+}
+
+@keyframes rotation {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(359deg);
+	}
+}
+
+/* Status Display */
+.cuft-update-status {
+	margin: 15px 0;
+	padding: 12px;
+	border-left: 4px solid #2271b1;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.cuft-update-status.notice-success {
+	border-left-color: #00a32a;
+	background: #f0f6fc;
+}
+
+.cuft-update-status.notice-error {
+	border-left-color: #d63638;
+	background: #fcf0f1;
+}
+
+.cuft-update-status.notice-info {
+	border-left-color: #2271b1;
+	background: #f0f6fc;
+}
+
+.cuft-update-status p {
+	margin: 0;
+	line-height: 1.6;
+}
+
+/* Progress Indicator */
+.cuft-update-progress {
+	margin: 20px 0;
+}
+
+.cuft-progress-bar {
+	width: 100%;
+	height: 20px;
+	background: #ddd;
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: inset 0 1px 2px rgba(0,0,0,.1);
+}
+
+.cuft-progress-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #2271b1, #135e96);
+	transition: width 0.3s ease;
+	position: relative;
+}
+
+.cuft-progress-fill::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255,255,255,0.3),
+		transparent
+	);
+	animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+.cuft-progress-message {
+	font-size: 13px;
+	color: #646970;
+	margin-top: 8px;
+	margin-bottom: 0;
+}
+
+/* Update History */
+.cuft-update-history {
+	margin-top: 30px;
+}
+
+.cuft-update-history h3 {
+	margin-top: 0;
+	margin-bottom: 15px;
+	font-size: 18px;
+	font-weight: 600;
+}
+
+#cuft-history-table {
+	border: 1px solid #ccd0d4;
+	border-collapse: collapse;
+	width: 100%;
+}
+
+#cuft-history-table th,
+#cuft-history-table td {
+	padding: 10px;
+	text-align: left;
+	border-bottom: 1px solid #e0e0e0;
+	font-size: 13px;
+}
+
+#cuft-history-table thead th {
+	background: #f6f7f7;
+	font-weight: 600;
+	color: #1d2327;
+	border-bottom: 2px solid #c3c4c7;
+}
+
+#cuft-history-table tbody tr:hover {
+	background: #f6f7f7;
+}
+
+#cuft-history-table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+#cuft-history-table td {
+	vertical-align: top;
+}
+
+/* Notice Styles */
+.cuft-force-update-section .notice {
+	margin-top: 20px;
+	padding: 12px;
+	border-left: 4px solid #72aee6;
+}
+
+.cuft-force-update-section .notice.inline {
+	display: block;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 782px) {
+	.cuft-force-update-section {
+		padding: 15px;
+	}
+
+	.cuft-update-controls {
+		flex-direction: column;
+	}
+
+	.cuft-update-controls .button {
+		width: 100%;
+		justify-content: center;
+	}
+
+	#cuft-history-table {
+		font-size: 12px;
+	}
+
+	#cuft-history-table th,
+	#cuft-history-table td {
+		padding: 8px;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	/* Stack table on mobile */
+	#cuft-history-table,
+	#cuft-history-table thead,
+	#cuft-history-table tbody,
+	#cuft-history-table th,
+	#cuft-history-table td,
+	#cuft-history-table tr {
+		display: block;
+	}
+
+	#cuft-history-table thead tr {
+		position: absolute;
+		top: -9999px;
+		left: -9999px;
+	}
+
+	#cuft-history-table tr {
+		border: 1px solid #ccd0d4;
+		margin-bottom: 10px;
+	}
+
+	#cuft-history-table td {
+		border: none;
+		position: relative;
+		padding-left: 50%;
+	}
+
+	#cuft-history-table td:before {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		width: 45%;
+		padding-right: 10px;
+		white-space: nowrap;
+		font-weight: 600;
+	}
+
+	#cuft-history-table td:nth-of-type(1):before { content: "Operation:"; }
+	#cuft-history-table td:nth-of-type(2):before { content: "User:"; }
+	#cuft-history-table td:nth-of-type(3):before { content: "Date/Time:"; }
+	#cuft-history-table td:nth-of-type(4):before { content: "Status:"; }
+	#cuft-history-table td:nth-of-type(5):before { content: "Details:"; }
+}

@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.8.12
+Stable tag: 3.19.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,18 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.19.0 =
+* Feature: Manual update control with "Check for Updates" button (Feature 009)
+* Feature: Force reinstall latest version from GitHub (Feature 009)
+* Feature: Update history tracking with 7-day retention (Feature 009)
+* Enhancement: WordPress plugin cache clearing for immediate version recognition
+* Enhancement: Transient-based operation locking prevents concurrent updates
+* Enhancement: Disk space validation (3x plugin size) before force reinstall
+* Enhancement: Automatic backup/restore on reinstall failures
+* Security: Capability checks (update_plugins) for all manual update operations
+* Security: DISALLOW_FILE_MODS constant support
+* UI: New "Force Update" tab in Settings → Universal Form Tracker
 
 = 3.8.0 =
 * Added mock form submission testing capability for debugging and verification

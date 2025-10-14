@@ -25,6 +25,11 @@ class CUFT_Cron_Manager {
 	const CRON_HOOK = 'cuft_check_updates';
 
 	/**
+	 * Cron hook name for history cleanup (Feature 009 - v3.19.0)
+	 */
+	const CLEANUP_HOOK = 'cuft_daily_cleanup';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -39,6 +44,9 @@ class CUFT_Cron_Manager {
 	private function register_hooks() {
 		// Register cron callback
 		add_action( self::CRON_HOOK, array( $this, 'check_updates' ) );
+
+		// Register history cleanup callback (Feature 009 - v3.19.0)
+		add_action( self::CLEANUP_HOOK, array( $this, 'cleanup_old_history' ) );
 
 		// Add custom cron schedules
 		add_filter( 'cron_schedules', array( $this, 'add_cron_schedules' ) );
@@ -283,6 +291,56 @@ class CUFT_Cron_Manager {
 
 		// Spawn cron to execute immediately
 		spawn_cron();
+	}
+
+	/**
+	 * Schedule daily history cleanup (Feature 009 - v3.19.0)
+	 *
+	 * Called on plugin activation.
+	 *
+	 * @return void
+	 */
+	public static function schedule_history_cleanup() {
+		// Don't schedule if already scheduled
+		if ( wp_next_scheduled( self::CLEANUP_HOOK ) ) {
+			return;
+		}
+
+		// Schedule daily cleanup
+		wp_schedule_event( time(), 'daily', self::CLEANUP_HOOK );
+	}
+
+	/**
+	 * Cleanup old history entries (Feature 009 - v3.19.0)
+	 *
+	 * Cron callback: Remove history entries older than 7 days.
+	 *
+	 * @return void
+	 */
+	public static function cleanup_old_history() {
+		// Get update history
+		$history = get_option( CUFT_Update_History_Entry::OPTION_KEY, array() );
+
+		if ( ! is_array( $history ) || empty( $history ) ) {
+			return;
+		}
+
+		// Filter entries: keep only those newer than 7 days
+		$seven_days_ago = time() - ( 7 * DAY_IN_SECONDS );
+		$filtered_history = array_filter( $history, function( $entry ) use ( $seven_days_ago ) {
+			return isset( $entry['timestamp'] ) && $entry['timestamp'] > $seven_days_ago;
+		} );
+
+		// Update option if any entries were removed
+		if ( count( $filtered_history ) < count( $history ) ) {
+			update_option( CUFT_Update_History_Entry::OPTION_KEY, array_values( $filtered_history ), false );
+
+			// Log cleanup action if debug mode enabled
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				$removed_count = count( $history ) - count( $filtered_history );
+				error_log( sprintf( 'CUFT: Cleaned up %d old history entries (older than 7 days)', $removed_count ) );
+			}
+		}
 	}
 }
 

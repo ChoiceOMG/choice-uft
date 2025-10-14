@@ -122,6 +122,8 @@ class CUFT_Admin {
                 <?php $this->render_debug_section(); ?>
             <?php elseif ( $current_tab === 'click-tracking' ): ?>
                 <?php $this->render_click_tracking_tab(); ?>
+            <?php elseif ( $current_tab === 'force-update' ): ?>
+                <?php include CUFT_PATH . 'includes/admin/views/force-update-tab.php'; ?>
             <?php endif; ?>
         </div>
         <?php
@@ -719,6 +721,27 @@ class CUFT_Admin {
             'plugin_url' => CUFT_URL,
             'admin_url' => admin_url( 'options-general.php?page=choice-universal-form-tracker' )
         ));
+
+        // Enqueue Force Update assets (Feature 009 - v3.19.0)
+        wp_enqueue_script(
+            'cuft-force-update',
+            CUFT_URL . '/assets/admin/cuft-force-update.js',
+            array( 'jquery' ),
+            CUFT_VERSION,
+            true
+        );
+
+        wp_localize_script( 'cuft-force-update', 'cuftForceUpdate', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( 'cuft_force_update' ),
+        ) );
+
+        wp_enqueue_style(
+            'cuft-force-update',
+            CUFT_URL . '/assets/admin/cuft-force-update.css',
+            array(),
+            CUFT_VERSION
+        );
 
     }
 
@@ -1444,7 +1467,8 @@ class CUFT_Admin {
     private function render_admin_tabs( $current_tab ) {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' )
+            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' ),
+            'force-update' => __( 'Force Update', 'choice-universal-form-tracker' )
         );
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';

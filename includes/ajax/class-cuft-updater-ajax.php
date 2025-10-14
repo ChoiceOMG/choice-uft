@@ -49,6 +49,11 @@ class CUFT_Updater_Ajax {
 
         // Dismiss update notice
         add_action( 'wp_ajax_cuft_dismiss_update_notice', array( $this, 'dismiss_update_notice' ) );
+
+        // Force Update Feature (Feature 009)
+        add_action( 'wp_ajax_cuft_check_updates', array( $this, 'handle_check_updates_ajax' ) );
+        add_action( 'wp_ajax_cuft_force_reinstall', array( $this, 'handle_force_reinstall_ajax' ) );
+        add_action( 'wp_ajax_cuft_get_update_history', array( $this, 'handle_get_update_history_ajax' ) );
     }
 
     /**
@@ -525,6 +530,220 @@ class CUFT_Updater_Ajax {
                 'code' => 'dismiss_failed',
                 'details' => $e->getMessage()
             ), 500 );
+        }
+    }
+
+    /**
+     * Handle manual update check AJAX request
+     *
+     * AJAX Handler: cuft_check_updates (Feature 009)
+     *
+     * @since 3.19.0
+     */
+    public function handle_check_updates_ajax() {
+        // Validate nonce with force update nonce action
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_force_update' ) ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'invalid_nonce',
+                    'message'    => __( 'Security check failed. Please refresh the page and try again.', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        // Check capability
+        if ( ! current_user_can( 'update_plugins' ) ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'insufficient_permissions',
+                    'message'    => __( 'You do not have permission to check for updates.', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        // Call Force Update Handler
+        $result = CUFT_Force_Update_Handler::handle_check_updates();
+
+        // Send appropriate response
+        if ( $result['success'] ) {
+            wp_send_json_success( $result, 200 );
+        } else {
+            // Determine HTTP status code based on error
+            $status_code = 500; // Default to server error
+
+            if ( isset( $result['error_code'] ) ) {
+                switch ( $result['error_code'] ) {
+                    case 'invalid_nonce':
+                    case 'insufficient_permissions':
+                        $status_code = 403;
+                        break;
+                    case 'operation_in_progress':
+                        $status_code = 409;
+                        break;
+                    case 'github_timeout':
+                        $status_code = 504;
+                        break;
+                    case 'rate_limited':
+                        $status_code = 429;
+                        break;
+                }
+            }
+
+            wp_send_json_error( $result, $status_code );
+        }
+    }
+
+    /**
+     * Handle force reinstall AJAX request
+     *
+     * AJAX Handler: cuft_force_reinstall (Feature 009)
+     *
+     * @since 3.19.0
+     */
+    public function handle_force_reinstall_ajax() {
+        // Validate nonce with force update nonce action
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_force_update' ) ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'invalid_nonce',
+                    'message'    => __( 'Security check failed. Please refresh the page and try again.', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        // Check capability
+        if ( ! current_user_can( 'update_plugins' ) ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'insufficient_permissions',
+                    'message'    => __( 'You do not have permission to reinstall plugins.', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        // Check DISALLOW_FILE_MODS constant
+        if ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'file_mods_disabled',
+                    'message'    => __( 'File modifications are disabled on this site (DISALLOW_FILE_MODS constant).', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        // Call Force Update Handler
+        $result = CUFT_Force_Update_Handler::handle_force_reinstall();
+
+        // Send appropriate response
+        if ( $result['success'] ) {
+            wp_send_json_success( $result, 200 );
+        } else {
+            // Determine HTTP status code based on error
+            $status_code = 500; // Default to server error
+
+            if ( isset( $result['error_code'] ) ) {
+                switch ( $result['error_code'] ) {
+                    case 'invalid_nonce':
+                    case 'insufficient_permissions':
+                    case 'file_mods_disabled':
+                        $status_code = 403;
+                        break;
+                    case 'operation_in_progress':
+                        $status_code = 409;
+                        break;
+                    case 'validation_failed':
+                        $status_code = 422;
+                        break;
+                    case 'download_failed':
+                        $status_code = 502;
+                        break;
+                    case 'operation_timeout':
+                        $status_code = 504;
+                        break;
+                    case 'insufficient_disk_space':
+                        $status_code = 507;
+                        break;
+                }
+            }
+
+            wp_send_json_error( $result, $status_code );
+        }
+    }
+
+    /**
+     * Handle get update history AJAX request
+     *
+     * AJAX Handler: cuft_get_update_history (Feature 009)
+     *
+     * @since 3.19.0
+     */
+    public function handle_get_update_history_ajax() {
+        // Validate nonce with force update nonce action
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_force_update' ) ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'invalid_nonce',
+                    'message'    => __( 'Security check failed. Please refresh the page and try again.', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        // Check capability
+        if ( ! current_user_can( 'update_plugins' ) ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'insufficient_permissions',
+                    'message'    => __( 'You do not have permission to view update history.', 'choice-universal-form-tracker' ),
+                ),
+                403
+            );
+            return;
+        }
+
+        try {
+            // Get history from model
+            $history = CUFT_Update_History_Entry::get_history( 5 );
+
+            // Format timestamps for display
+            $formatted_history = array();
+            foreach ( $history as $entry ) {
+                $entry['timestamp_formatted'] = date_i18n( 'Y-m-d H:i:s', $entry['timestamp'] );
+                $formatted_history[] = $entry;
+            }
+
+            $response = array(
+                'history'     => $formatted_history,
+                'count'       => count( $formatted_history ),
+                'max_entries' => 5,
+            );
+
+            // Add message if no history
+            if ( empty( $formatted_history ) ) {
+                $response['message'] = __( 'No update operations in history yet.', 'choice-universal-form-tracker' );
+            }
+
+            wp_send_json_success( $response, 200 );
+
+        } catch ( Exception $e ) {
+            wp_send_json_error(
+                array(
+                    'error_code' => 'history_failed',
+                    'message'    => __( 'Failed to retrieve update history.', 'choice-universal-form-tracker' ),
+                ),
+                500
+            );
         }
     }
 }

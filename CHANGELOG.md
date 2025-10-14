@@ -5,6 +5,71 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.0] - 2025-10-14
+
+### Added
+- **Force Install Update Feature (Feature 009)** - Manual update control system with comprehensive safety mechanisms
+  - Manual "Check for Updates" button bypasses automatic WordPress update schedule
+  - "Force Reinstall" button downloads and reinstalls latest version from GitHub
+  - Update history tracking with 7-day retention and FIFO limit (5 entries)
+  - New "Force Update" tab in Settings → Universal Form Tracker
+  - Real-time progress indicator during force reinstall operations
+  - Operation locking prevents concurrent updates (transient-based, 120-second TTL)
+  - Disk space validation (3x plugin size) before force reinstall
+  - Automatic backup/restore on reinstall failures
+  - WordPress plugin cache clearing for immediate version recognition
+
+### Security
+- **Capability Checks** - All manual update operations require `update_plugins` capability
+- **Nonce Validation** - CSRF protection on all AJAX endpoints
+- **DISALLOW_FILE_MODS Support** - Respects WordPress file modification lockdown constant
+- **Input Validation** - All user inputs validated and sanitized
+- **Directory Traversal Protection** - Backup paths validated to prevent attacks
+
+### Performance
+- **Timeout Enforcement** - Update checks timeout at 5 seconds, force reinstalls at 60 seconds
+- **Transient Caching** - Installation state cached for 5 minutes to reduce GitHub API calls
+- **History Cleanup** - Daily WP-Cron job removes entries older than 7 days
+- **Efficient FIFO** - Update history maintains max 5 entries with O(1) operations
+
+### Technical Details
+- **Branch**: `009-force-install-update`
+- **Specification**: `specs/009-force-install-update/`
+- **Files Added**: 21 new files (3 infrastructure, 4 models, 1 service handler, 1 admin view, 1 JS module, 1 CSS stylesheet)
+- **Files Modified**: 4 files (main plugin, admin class, AJAX handler, cron manager)
+- **Lines of Code**: ~2,500 lines (PHP: ~1,800, JavaScript: ~280, CSS: ~300)
+
+### Infrastructure
+- `CUFT_Update_Lock_Manager` - Transient-based operation locking
+- `CUFT_Disk_Space_Validator` - 3x plugin size validation
+- `CUFT_Cache_Clearer` - WordPress cache clearing utility
+
+### Data Models
+- `CUFT_Force_Reinstall_Operation` - Reinstall operation state tracking
+- `CUFT_Plugin_Installation_State` - Transient-cached installation state
+- `CUFT_Update_History_Entry` - FIFO history with 7-day retention
+- `CUFT_Update_Check_Request` - Ephemeral request lifecycle tracking
+
+### Services
+- `CUFT_Force_Update_Handler` - Main orchestrator for update operations
+- Enhanced `CUFT_Updater_Ajax` with 3 new endpoints:
+  - `cuft_check_updates` - Manual update check
+  - `cuft_force_reinstall` - Force reinstall operation
+  - `cuft_get_update_history` - History retrieval
+
+### Admin UI
+- Force Update tab with modern WordPress admin design
+- Progress bar with shimmer animation
+- History table with responsive mobile design
+- AJAX-powered button state management
+- Real-time status updates and error messages
+
+### Integration
+- Plugin activation schedules daily history cleanup cron
+- Plugin deactivation cleans up transients and cron jobs
+- Update history preserved across activation cycles
+- All new classes loaded in plugin bootstrap
+
 ## [3.16.5] - 2025-10-11
 
 ### Changed

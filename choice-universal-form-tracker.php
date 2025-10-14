@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.18.0
+ * Version:           3.19.0
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.18.0' );
+define( 'CUFT_VERSION', '3.19.0' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -101,6 +101,17 @@ class Choice_Universal_Form_Tracker {
             'includes/models/class-cuft-github-release.php',  // GitHub release model
             'includes/models/class-cuft-update-log.php',  // Update log model
             'includes/models/class-cuft-update-configuration.php',  // Update configuration model
+            // Force Update Infrastructure (Feature 009 - v3.19.0)
+            'includes/class-cuft-update-lock-manager.php',  // Transient-based operation locking
+            'includes/class-cuft-disk-space-validator.php',  // Disk space validation
+            'includes/class-cuft-cache-clearer.php',  // WordPress cache clearing
+            // Force Update Models (Feature 009 - v3.19.0)
+            'includes/models/class-cuft-force-reinstall-operation.php',  // Force reinstall operation model
+            'includes/models/class-cuft-plugin-installation-state.php',  // Plugin installation state model
+            'includes/models/class-cuft-update-history-entry.php',  // Update history entry model
+            'includes/models/class-cuft-update-check-request.php',  // Update check request model
+            // Force Update Service (Feature 009 - v3.19.0)
+            'includes/class-cuft-force-update-handler.php',  // Force update orchestrator
             // Updater Services
             'includes/class-cuft-github-api.php',  // GitHub API service
             'includes/class-cuft-update-checker.php',  // Update checker service
@@ -352,6 +363,11 @@ class Choice_Universal_Form_Tracker {
         if ( ! wp_next_scheduled( 'cuft_scheduled_health_check' ) ) {
             wp_schedule_event( time(), 'six_hours', 'cuft_scheduled_health_check' );
         }
+
+        // Schedule force update history cleanup cron (Feature 009 - v3.19.0)
+        if ( class_exists( 'CUFT_Cron_Manager' ) ) {
+            CUFT_Cron_Manager::schedule_history_cleanup();
+        }
     }
 
     /**
@@ -371,6 +387,18 @@ class Choice_Universal_Form_Tracker {
         if ( class_exists( 'CUFT_Update_Validator' ) ) {
             CUFT_Update_Validator::deactivate();
         }
+
+        // Clear force update transients and cron job (Feature 009 - v3.19.0)
+        delete_transient( 'cuft_force_update_lock' );
+        delete_transient( 'cuft_plugin_installation_state' );
+
+        // Unschedule force update history cleanup cron
+        $cleanup_timestamp = wp_next_scheduled( 'cuft_daily_cleanup' );
+        if ( $cleanup_timestamp ) {
+            wp_unschedule_event( $cleanup_timestamp, 'cuft_daily_cleanup' );
+        }
+
+        // Note: cuft_update_history is intentionally preserved on deactivation
 
         // Flush rewrite rules
         flush_rewrite_rules();
