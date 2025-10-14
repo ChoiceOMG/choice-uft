@@ -33,17 +33,26 @@ git tag -a vX.Y.Z -m "Release vX.Y.Z - Short Description"
 git push origin master
 git push origin vX.Y.Z
 
-# 3. Create release ZIP with CORRECT directory structure
-git checkout vX.Y.Z
-git archive --format=zip --prefix=choice-uft-vX.Y.Z/ -o /tmp/choice-uft-vX.Y.Z.zip HEAD
-git checkout master
+# 3. Create release ZIP with CORRECT structure
+cd /home/r11/dev
+zip -r choice-uft-vX.Y.Z.zip choice-uft \
+  -x "choice-uft/.git/*" \
+  -x "choice-uft/.gitignore" \
+  -x "choice-uft/node_modules/*" \
+  -x "choice-uft/.DS_Store"
 
-# 4. Create GitHub release
-gh release create vX.Y.Z /tmp/choice-uft-vX.Y.Z.zip \
+# 4. Verify ZIP structure (CRITICAL!)
+unzip -l choice-uft-vX.Y.Z.zip | head -10
+# MUST show: choice-uft/choice-universal-form-tracker.php
+#            choice-uft/includes/
+#            choice-uft/assets/
+
+# 5. Create GitHub release
+gh release create vX.Y.Z choice-uft-vX.Y.Z.zip \
   --title "vX.Y.Z - Release Title" \
   --notes-file /path/to/release-notes.md
 
-# 5. Verify release
+# 6. Verify release
 gh release view vX.Y.Z --json assets --jq '.assets[].name'
 # Should show: choice-uft-vX.Y.Z.zip
 ```
@@ -52,15 +61,15 @@ gh release view vX.Y.Z --json assets --jq '.assets[].name'
 
 ## ZIP File Structure Requirements
 
-### ⚠️ CRITICAL: Directory Naming Convention
+### ⚠️ CRITICAL: WordPress Plugin Directory Structure
 
-**The ZIP file MUST contain a versioned directory name**, not the final plugin slug.
+**WordPress plugins MUST extract to a directory matching the plugin slug.**
 
-### ✅ Correct Structure
+### ✅ CORRECT Structure
 
 ```
 choice-uft-v3.19.2.zip
-└── choice-uft-v3.19.2/          ← Versioned directory (CORRECT)
+└── choice-uft/                  ← Plugin slug (CORRECT!)
     ├── choice-universal-form-tracker.php
     ├── includes/
     ├── assets/
@@ -68,69 +77,68 @@ choice-uft-v3.19.2.zip
     └── readme.txt
 ```
 
-**Command**:
+**Command (from parent directory)**:
 ```bash
-git archive --format=zip --prefix=choice-uft-v3.19.2/ -o /tmp/choice-uft-v3.19.2.zip v3.19.2
-#                                  ^^^^^^^^^^^^^^^^^^
-#                                  Must include version number!
+cd /home/r11/dev
+zip -r choice-uft-v3.19.2.zip choice-uft \
+  -x "choice-uft/.git/*" \
+  -x "choice-uft/.gitignore"
+#      ^^^^^^^^^^
+#      Plugin folder name (NOT versioned!)
 ```
 
-### ❌ Incorrect Structure
+### ❌ INCORRECT Structure
 
 ```
 choice-uft-v3.19.2.zip
-└── choice-uft/                   ← Non-versioned directory (WRONG!)
+└── choice-uft-v3.19.2/          ← Versioned directory (WRONG!)
     ├── choice-universal-form-tracker.php
     ├── includes/
     └── ...
 ```
 
-**Wrong Command**:
+**Wrong Command - DO NOT USE**:
 ```bash
-git archive --format=zip --prefix=choice-uft/ ...  # DON'T DO THIS
+git archive --format=zip --prefix=choice-uft-v3.19.2/ ...  # ❌ WRONG!
 ```
 
 ---
 
 ## Why This Matters
 
-### WordPress Update System Integration
+### WordPress Plugin Installation Process
 
-The plugin uses WordPress's native `Plugin_Upgrader` system with custom filters to handle GitHub releases:
+1. **User downloads**: `choice-uft-v3.19.2.zip` from GitHub
+2. **WordPress extracts** to `/wp-content/upgrade/choice-uft/` (temp location)
+3. **WordPress moves** to `/wp-content/plugins/choice-uft/` (final location)
+4. **WordPress activates** plugin from `/wp-content/plugins/choice-uft/choice-universal-form-tracker.php`
 
-1. **WordPress extracts the ZIP** to `/wp-content/upgrade/choice-uft-v3.19.2/`
-2. **Our `upgrader_source_selection` filter detects** the versioned directory
-3. **Filter renames** `choice-uft-v3.19.2/` → `choice-uft/`
-4. **WordPress copies** renamed directory to `/wp-content/plugins/choice-uft/`
+### What Happens With Wrong Structure
 
-### The Filter (CUFT_Directory_Fixer)
+If ZIP contains `choice-uft-v3.19.2/`:
+- ❌ WordPress extracts to `/wp-content/upgrade/choice-uft-v3.19.2/`
+- ❌ WordPress tries to move to `/wp-content/plugins/choice-uft-v3.19.2/`
+- ❌ Plugin slug mismatch: expects `choice-uft` but got `choice-uft-v3.19.2`
+- ❌ WordPress cannot find original plugin at `/wp-content/plugins/choice-uft/`
+- ❌ Update fails or creates duplicate plugin directory
 
-Located in: `includes/update/class-cuft-directory-fixer.php`
+### Plugin Slug Definition
 
-```php
-add_filter('upgrader_source_selection', [$this, 'fix_plugin_directory_name'], 10, 4);
+The plugin slug is determined by the **directory name** in `/wp-content/plugins/`:
 
-public function fix_plugin_directory_name($source, $remote_source, $upgrader, $hook_extra) {
-    // Detects patterns like:
-    // - choice-uft-v3.19.2/
-    // - choice-uft-3.19.2/
-    // - choice-uft-master/
-    // - ChoiceOMG-choice-uft-abc1234/
-
-    // Renames to: choice-uft/
-}
+```
+/wp-content/plugins/choice-uft/choice-universal-form-tracker.php
+                    ^^^^^^^^^^
+                    This is the plugin slug (must match ZIP contents)
 ```
 
-### What Happens Without Versioned Directory
+WordPress uses this slug for:
+- Plugin identification in database
+- Update detection
+- Activation/deactivation
+- Plugin file paths
 
-If the ZIP contains `choice-uft/` (non-versioned):
-- ✅ Update might succeed (directory already correct)
-- ❌ Filter is bypassed (no validation happens)
-- ❌ Breaks documented contract (Feature 008 specs)
-- ❌ Inconsistent with GitHub's default ZIP structure
-- ❌ Future maintainers may be confused
-
-**Reference**: [specs/008-fix-critical-gaps/contracts/upgrader-source-selection-filter.md](specs/008-fix-critical-gaps/contracts/upgrader-source-selection-filter.md)
+**The ZIP contents MUST match this directory name.**
 
 ---
 
@@ -179,32 +187,48 @@ git push origin v3.19.2
 
 ### Phase 3: Create Release ZIP
 
-**⚠️ CRITICAL STEP - Use Correct Prefix**
+**⚠️ CRITICAL STEP - Use Correct Method**
 
 ```bash
-# Checkout the tag
-git checkout v3.19.2
+# Navigate to PARENT directory of plugin
+cd /home/r11/dev
 
-# Create ZIP with VERSIONED directory prefix
-git archive --format=zip --prefix=choice-uft-v3.19.2/ -o /tmp/choice-uft-v3.19.2.zip HEAD
-#                                   ^^^^^^^^^^^^^^^^^^
-#                                   MUST match tag version!
+# Create ZIP with plugin folder (NOT versioned directory!)
+zip -r choice-uft-v3.19.2.zip choice-uft \
+  -x "choice-uft/.git/*" \
+  -x "choice-uft/.gitignore" \
+  -x "choice-uft/node_modules/*" \
+  -x "choice-uft/.DS_Store" \
+  -x "choice-uft/.env" \
+  -x "choice-uft/*.log"
 
-# Return to master
-git checkout master
+# Verify ZIP structure (MANDATORY!)
+unzip -l choice-uft-v3.19.2.zip | head -20
 
-# Verify ZIP structure
-unzip -l /tmp/choice-uft-v3.19.2.zip | head -20
-# Should show: choice-uft-v3.19.2/choice-universal-form-tracker.php
-#             choice-uft-v3.19.2/includes/
-#             choice-uft-v3.19.2/assets/
+# Expected output:
+# Archive:  choice-uft-v3.19.2.zip
+#   Length      Date    Time    Name
+# ---------  ---------- -----   ----
+#         0  2025-10-14 15:42   choice-uft/
+#      9999  2025-10-14 15:42   choice-uft/choice-universal-form-tracker.php
+#         0  2025-10-14 15:42   choice-uft/includes/
+#         0  2025-10-14 15:42   choice-uft/assets/
+```
+
+**Alternative: Using git archive (also correct)**:
+
+```bash
+# If you prefer git archive, use this:
+git archive --format=zip --prefix=choice-uft/ -o choice-uft-v3.19.2.zip v3.19.2
+#                                   ^^^^^^^^^^^
+#                                   Plugin slug (NO version number!)
 ```
 
 ### Phase 4: GitHub Release
 
 ```bash
 # Option 1: Using GitHub CLI (recommended)
-gh release create v3.19.2 /tmp/choice-uft-v3.19.2.zip \
+gh release create v3.19.2 choice-uft-v3.19.2.zip \
   --title "v3.19.2 - Release Title" \
   --notes "$(cat <<'EOF'
 # v3.19.2 - Release Title
@@ -221,7 +245,7 @@ EOF
 # Option 2: Using web interface
 # 1. Go to https://github.com/ChoiceOMG/choice-uft/releases/new
 # 2. Choose tag: v3.19.2
-# 3. Upload: /tmp/choice-uft-v3.19.2.zip
+# 3. Upload: choice-uft-v3.19.2.zip
 # 4. Add release notes
 # 5. Publish release
 ```
@@ -233,16 +257,43 @@ EOF
 gh release view v3.19.2 --json assets --jq '.assets[].name'
 # Expected output: choice-uft-v3.19.2.zip
 
-# Verify ZIP structure
+# Verify ZIP structure (CRITICAL!)
 gh release download v3.19.2 --pattern "*.zip" --output /tmp/verify.zip
-unzip -l /tmp/verify.zip | head -5
-# Expected: choice-uft-v3.19.2/choice-universal-form-tracker.php
+unzip -l /tmp/verify.zip | head -10
+# MUST show: choice-uft/choice-universal-form-tracker.php
+#            choice-uft/includes/
+#            choice-uft/assets/
 
-# Test update on staging
-docker exec cuft-choice-zone-cli wp plugin update choice-uft
+# Test installation on staging
+docker exec cuft-choice-zone-cli wp plugin install /tmp/verify.zip --force
 docker exec cuft-choice-zone-cli wp plugin list --name=choice-uft --fields=version
 # Expected: 3.19.2
 ```
+
+---
+
+## Files to Exclude from ZIP
+
+Always exclude these development files:
+
+```bash
+-x "choice-uft/.git/*"           # Git repository
+-x "choice-uft/.gitignore"       # Git ignore file
+-x "choice-uft/node_modules/*"   # Node dependencies (if any)
+-x "choice-uft/.DS_Store"        # macOS system file
+-x "choice-uft/.env"             # Environment variables
+-x "choice-uft/*.log"            # Log files
+-x "choice-uft/tests/*"          # Test files (optional)
+-x "choice-uft/docs/*"           # Documentation (optional)
+```
+
+**Include these files**:
+- ✅ `choice-universal-form-tracker.php` (main plugin file)
+- ✅ `readme.txt` (WordPress.org readme)
+- ✅ `CHANGELOG.md` (changelog)
+- ✅ `includes/` (all PHP classes)
+- ✅ `assets/` (JavaScript, CSS, images)
+- ✅ `specs/` (feature specifications - optional but recommended)
 
 ---
 
@@ -271,14 +322,7 @@ Ensure version matches across:
 5. Git tag - `vX.Y.Z`
 6. GitHub release - `vX.Y.Z`
 7. ZIP filename - `choice-uft-vX.Y.Z.zip`
-8. ZIP directory - `choice-uft-vX.Y.Z/`
-
-### Pre-Release Versions
-
-For testing releases:
-- Format: `X.Y.Z-beta.N` or `X.Y.Z-rc.N`
-- Example: `3.20.0-beta.1`
-- Should NOT be pushed to production sites
+8. **ZIP contents** - `choice-uft/` (NOT versioned!)
 
 ---
 
@@ -292,31 +336,35 @@ For testing releases:
 - [ ] Version numbers synchronized across all files
 - [ ] CHANGELOG.md updated with release notes
 - [ ] No uncommitted changes in git
+- [ ] ZIP file created from parent directory
+- [ ] ZIP structure verified (contains `choice-uft/` not `choice-uft-vX.Y.Z/`)
 
 ### Post-Release Testing
 
 - [ ] GitHub release created successfully
 - [ ] ZIP file uploaded and accessible
-- [ ] ZIP structure verified (versioned directory)
-- [ ] Download ZIP and inspect contents
-- [ ] Test update on staging environment
-- [ ] Verify WordPress recognizes new version
+- [ ] **ZIP structure verified** (CRITICAL - check with `unzip -l`)
+- [ ] Test installation on fresh WordPress site
+- [ ] Test update from previous version
+- [ ] Verify WordPress recognizes plugin after installation
 - [ ] Test Force Update UI (if applicable)
 - [ ] Verify update history tracked correctly
 
 ### WordPress Update System Testing
 
 ```bash
-# Test WP-CLI update
+# Test fresh installation
+docker exec cuft-choice-zone-cli wp plugin install https://github.com/ChoiceOMG/choice-uft/releases/download/v3.19.2/choice-uft-v3.19.2.zip --activate
+
+# Test update from older version
 docker exec cuft-choice-zone-cli wp plugin update choice-uft
 
-# Test WordPress admin update
-# Navigate to: /wp-admin/plugins.php
-# Click "Update Now" for Choice Universal Form Tracker
+# Verify plugin is in correct location
+docker exec cuft-choice-zone-cli ls -la /var/www/html/wp-content/plugins/ | grep choice
+# Should show: choice-uft (NOT choice-uft-v3.19.2)
 
-# Test Force Reinstall (Feature 009)
-# Navigate to: Settings → Universal Form Tracker → Force Update
-# Click "Force Reinstall"
+# Verify plugin activates correctly
+docker exec cuft-choice-zone-cli wp plugin list --name=choice-uft
 ```
 
 ---
@@ -325,126 +373,138 @@ docker exec cuft-choice-zone-cli wp plugin update choice-uft
 
 ### Issue 1: ZIP Has Wrong Directory Structure
 
-**Symptom**: ZIP contains `choice-uft/` instead of `choice-uft-vX.Y.Z/`
+**Symptom**: ZIP contains `choice-uft-vX.Y.Z/` instead of `choice-uft/`
 
-**Cause**: Wrong `--prefix` argument to `git archive`
+**Cause**: Used `git archive` with versioned prefix or wrong zip command
 
 **Fix**:
 ```bash
 # Wrong:
-git archive --format=zip --prefix=choice-uft/ ...
+git archive --format=zip --prefix=choice-uft-v3.19.2/ ...  # ❌ WRONG!
 
-# Correct:
-git archive --format=zip --prefix=choice-uft-v3.19.2/ -o /tmp/choice-uft-v3.19.2.zip v3.19.2
+# Correct (Option 1 - using zip):
+cd /home/r11/dev
+zip -r choice-uft-v3.19.2.zip choice-uft -x "choice-uft/.git/*"
+
+# Correct (Option 2 - using git archive):
+git archive --format=zip --prefix=choice-uft/ -o choice-uft-v3.19.2.zip v3.19.2
 ```
 
-### Issue 2: WordPress Doesn't Detect Update
-
-**Symptom**: WordPress shows "Plugin already updated" or doesn't show update available
-
-**Cause**:
-- GitHub updates disabled in settings
-- Version cache not cleared
-- GitHub release not published correctly
-
-**Fix**:
+**Verification**:
 ```bash
-# Enable GitHub updates
-docker exec cuft-choice-zone-cli wp option update cuft_github_updates_enabled 1
-
-# Clear update cache
-docker exec cuft-choice-zone-cli wp option delete _site_transient_update_plugins
-docker exec cuft-choice-zone-cli wp cron event run wp_update_plugins
-
-# Verify GitHub release
-gh release view vX.Y.Z --json assets
+unzip -l choice-uft-v3.19.2.zip | head -5
+# MUST show: choice-uft/choice-universal-form-tracker.php
+# NOT: choice-uft-v3.19.2/choice-universal-form-tracker.php
 ```
 
-### Issue 3: Update Fails with "Directory Not Found"
+### Issue 2: Plugin Installs to Wrong Directory
 
-**Symptom**: Update aborts with error about missing plugin directory
+**Symptom**: After installation, plugin is at `/wp-content/plugins/choice-uft-v3.19.2/`
 
-**Cause**: ZIP structure doesn't match expected pattern or filter failed
+**Cause**: ZIP has versioned directory structure
 
-**Fix**:
-1. Verify ZIP has versioned directory: `unzip -l choice-uft-vX.Y.Z.zip | head`
-2. Check filter logs: `docker exec cuft-choice-zone-cli wp eval "echo get_option('cuft_debug_logs');"`
-3. Verify `class-cuft-directory-fixer.php` is loaded
+**Fix**: Recreate ZIP with correct structure (see Issue 1)
 
-### Issue 4: Version Mismatch After Update
+### Issue 3: WordPress Shows "Plugin file does not exist"
 
-**Symptom**: WordPress shows old version after update completes
+**Symptom**: After update, WordPress says plugin file doesn't exist
 
-**Cause**:
-- Cache not cleared
-- Plugin not reloaded
-- Version constant not updated in code
+**Cause**: Plugin directory name mismatch
 
 **Fix**:
+1. Verify ZIP structure: `unzip -l choice-uft-vX.Y.Z.zip | head`
+2. Ensure ZIP contains `choice-uft/` not `choice-uft-vX.Y.Z/`
+3. Recreate ZIP if necessary
+4. Upload corrected ZIP to GitHub release
+
+### Issue 4: Update Creates Duplicate Plugin Directory
+
+**Symptom**: Both `/wp-content/plugins/choice-uft/` and `/wp-content/plugins/choice-uft-v3.19.2/` exist
+
+**Cause**: ZIP has versioned directory structure
+
+**Fix**:
+1. Delete versioned directory: `rm -rf /wp-content/plugins/choice-uft-v3.19.2/`
+2. Recreate ZIP with correct structure
+3. Update GitHub release
+4. Test update again
+
+---
+
+## The Role of CUFT_Directory_Fixer
+
+**Important Note**: The `upgrader_source_selection` filter (`CUFT_Directory_Fixer`) is designed for:
+
+- GitHub's auto-generated source archives (when downloading code via "Download ZIP" button)
+- These archives have names like `ChoiceOMG-choice-uft-abc1234.zip`
+- They extract to `ChoiceOMG-choice-uft-abc1234/` or `choice-uft-master/`
+
+**Our release ZIPs do NOT need this filter** because:
+- We manually create proper WordPress plugin ZIPs
+- They already extract to `choice-uft/` (correct structure)
+- The filter is a safety net, not required for proper releases
+
+---
+
+## Quick Verification Checklist
+
+Before uploading ZIP to GitHub release:
+
 ```bash
-# Clear all caches
-docker exec cuft-choice-zone-cli wp cache flush
-docker exec cuft-choice-zone-cli wp plugin deactivate choice-uft
-docker exec cuft-choice-zone-cli wp plugin activate choice-uft
+# 1. Check ZIP filename
+ls -lh choice-uft-v3.19.2.zip
+# ✅ Should be: choice-uft-vX.Y.Z.zip
 
-# Verify version in code
-docker exec cuft-choice-zone-cli wp eval "echo CUFT_VERSION;"
+# 2. Check ZIP contents (CRITICAL!)
+unzip -l choice-uft-v3.19.2.zip | head -10
+# ✅ MUST show: choice-uft/choice-universal-form-tracker.php
+# ❌ NOT: choice-uft-v3.19.2/choice-universal-form-tracker.php
+
+# 3. Extract and verify
+unzip -q choice-uft-v3.19.2.zip -d /tmp/verify
+ls /tmp/verify/
+# ✅ Should show: choice-uft/
+# ❌ NOT: choice-uft-v3.19.2/
+
+# 4. Check main plugin file
+cat /tmp/verify/choice-uft/choice-universal-form-tracker.php | grep "Version:"
+# ✅ Should match: 3.19.2
 ```
 
 ---
 
 ## Emergency Rollback
 
-If a release has critical issues:
+If a release has the wrong ZIP structure:
 
-### Option 1: Fix Forward (Preferred)
-
-```bash
-# Create hotfix version
-# Example: 3.19.2 → 3.19.3
-
-# Follow standard release process with fix
-```
-
-### Option 2: Delete Release (Not Recommended)
+### Fix Without Deleting Release
 
 ```bash
-# Delete GitHub release
-gh release delete vX.Y.Z --yes
+# 1. Create corrected ZIP
+cd /home/r11/dev
+zip -r choice-uft-vX.Y.Z.zip choice-uft -x "choice-uft/.git/*"
 
-# Delete git tag locally and remotely
-git tag -d vX.Y.Z
-git push origin :refs/tags/vX.Y.Z
+# 2. Verify structure
+unzip -l choice-uft-vX.Y.Z.zip | head -10
+
+# 3. Delete bad ZIP from release
+gh release delete-asset vX.Y.Z choice-uft-vX.Y.Z.zip --yes
+
+# 4. Upload corrected ZIP
+gh release upload vX.Y.Z choice-uft-vX.Y.Z.zip
+
+# 5. Verify
+gh release download vX.Y.Z --pattern "*.zip" --output /tmp/verify.zip
+unzip -l /tmp/verify.zip | head -10
 ```
-
-**⚠️ Warning**: Deleting releases can break installations that already downloaded that version.
-
----
-
-## Automation Opportunities
-
-### Future Improvements
-
-1. **Release Script**: Create `scripts/release.sh` to automate version bumping and ZIP creation
-2. **GitHub Actions**: Automate ZIP creation on tag push
-3. **Version Validation**: Pre-commit hook to ensure version sync
-4. **Changelog Generation**: Auto-generate from git commits
-
----
-
-## References
-
-- [Feature 008 Specification](specs/008-fix-critical-gaps/spec.md)
-- [Upgrader Source Selection Contract](specs/008-fix-critical-gaps/contracts/upgrader-source-selection-filter.md)
-- [WordPress Plugin_Upgrader Verification](specs/008-fix-critical-gaps/PLUGIN-UPGRADER-VERIFICATION.md)
-- [Semantic Versioning 2.0.0](https://semver.org/)
-- [WordPress Plugin Handbook](https://developer.wordpress.org/plugins/)
 
 ---
 
 ## Version History of This Document
 
-- **v1.0** (2025-10-14): Initial documentation
-  - Documented correct ZIP structure requirement
-  - Added release workflow
-  - Added common issues and solutions
+- **v1.0** (2025-10-14): Initial documentation (INCORRECT - had versioned directories)
+- **v2.0** (2025-10-14): **CORRECTED** - WordPress plugins MUST extract to plugin slug directory
+  - Fixed ZIP creation command
+  - Removed incorrect `git archive` with versioned prefix
+  - Added clear explanation of WordPress plugin directory requirements
+  - Added verification steps
