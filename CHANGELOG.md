@@ -5,6 +5,30 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.3] - 2025-10-14
+
+### Fixed
+- **Update Notification UX** - Removed redundant update notices to improve user experience
+  - Removed simple one-line notice ("There is a new version...View Plugin Updates")
+  - Kept robust notice with title, description, and action buttons
+  - Update notices no longer shown on plugins page (redundant with WordPress native update row)
+  - **Impact**: Eliminates duplicate notifications, reduces visual clutter
+  - **Affected Files**:
+    - `includes/class-cuft-admin.php` - Deprecated `check_update_notices()` method
+    - `includes/admin/class-cuft-admin-notices.php` - Added plugins page check
+
+### Changed
+- **Notice Visibility** - Update notices now show on dashboard and other admin pages but NOT on plugins page
+  - WordPress native update row on plugins page is sufficient
+  - Consistent with WordPress UX best practices
+  - Reduces user confusion from duplicate notifications
+
+### Technical Details
+- **Trigger**: User feedback on redundant update notifications on plugins page
+- **Files Modified**: 2 files (admin class, admin notices class)
+- **Lines Changed**: ~45 lines removed, 5 lines added
+- **Backward Compatible**: Deprecated method kept as no-op for compatibility
+
 ## [3.19.2] - 2025-10-14
 
 ### Testing

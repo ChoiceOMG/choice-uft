@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.19.2
+Stable tag: 3.19.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,12 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.19.3 =
+* Fix: Removed redundant update notice on plugins page
+* Fix: Eliminated duplicate notifications (kept robust notice only)
+* UX: Update notices no longer shown on plugins page (WordPress native row sufficient)
+* Technical: Deprecated check_update_notices() method for backward compatibility
 
 = 3.19.2 =
 * Testing: Validation release to test end-to-end update system functionality
