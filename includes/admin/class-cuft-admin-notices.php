@@ -44,6 +44,11 @@ class CUFT_Admin_Notices {
 			return;
 		}
 
+		// Don't show on plugins page - redundant with WordPress native update row
+		if ( $screen && $screen->id === 'plugins' ) {
+			return;
+		}
+
 		// Don't show on plugin's own Updates tab - user is already there
 		if ( $screen && $screen->id === 'settings_page_choice-universal-form-tracker' && isset( $_GET['tab'] ) && $_GET['tab'] === 'updates' ) {
 			return;
