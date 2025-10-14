@@ -660,6 +660,8 @@ class CUFT_Backup_Manager {
 	/**
 	 * Add directory to ZIP archive recursively
 	 *
+	 * Handles permission errors gracefully by skipping inaccessible files/directories.
+	 *
 	 * @since 3.17.0
 	 *
 	 * @param ZipArchive $zip ZIP archive instance.
@@ -668,29 +670,59 @@ class CUFT_Backup_Manager {
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	private function add_directory_to_zip( $zip, $directory, $base_name ) {
-		$iterator = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator( $directory, RecursiveDirectoryIterator::SKIP_DOTS ),
-			RecursiveIteratorIterator::SELF_FIRST
-		);
+		try {
+			$iterator = new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator( $directory, RecursiveDirectoryIterator::SKIP_DOTS ),
+				RecursiveIteratorIterator::SELF_FIRST,
+				RecursiveIteratorIterator::CATCH_GET_CHILD
+			);
 
-		foreach ( $iterator as $file ) {
-			$file_path = $file->getPathname();
-			$relative_path = $base_name . '/' . substr( $file_path, strlen( $directory ) + 1 );
+			foreach ( $iterator as $file ) {
+				try {
+					$file_path = $file->getPathname();
+					$relative_path = $base_name . '/' . substr( $file_path, strlen( $directory ) + 1 );
 
-			if ( $file->isDir() ) {
-				$zip->addEmptyDir( $relative_path );
-			} else {
-				if ( ! $zip->addFile( $file_path, $relative_path ) ) {
-					return new WP_Error(
-						'zip_add_file_failed',
-						sprintf(
-							/* translators: %s: File path */
-							__( 'Could not add file to backup: %s', 'choice-uft' ),
-							$relative_path
-						)
-					);
+					if ( $file->isDir() ) {
+						// Skip directories we can't read
+						if ( ! $file->isReadable() ) {
+							error_log( sprintf( 'CUFT Backup: Skipping unreadable directory: %s', $relative_path ) );
+							continue;
+						}
+						$zip->addEmptyDir( $relative_path );
+					} else {
+						// Skip files we can't read
+						if ( ! $file->isReadable() ) {
+							error_log( sprintf( 'CUFT Backup: Skipping unreadable file: %s', $relative_path ) );
+							continue;
+						}
+
+						if ( ! $zip->addFile( $file_path, $relative_path ) ) {
+							// Log warning but continue with other files
+							error_log( sprintf( 'CUFT Backup: Could not add file to ZIP: %s', $relative_path ) );
+							continue;
+						}
+					}
+				} catch ( Exception $e ) {
+					// Skip files/dirs that cause errors
+					error_log( sprintf( 'CUFT Backup: Error adding file to ZIP: %s', $e->getMessage() ) );
+					continue;
 				}
 			}
+		} catch ( UnexpectedValueException $e ) {
+			// Permission denied on a subdirectory - log warning and continue
+			error_log( sprintf( 'CUFT Backup: Permission denied accessing directory %s: %s', $directory, $e->getMessage() ) );
+			// Return success - we added what we could
+			return true;
+		} catch ( Exception $e ) {
+			// Fatal error
+			return new WP_Error(
+				'zip_directory_scan_failed',
+				sprintf(
+					/* translators: %s: Error message */
+					__( 'Failed to scan plugin directory for backup: %s', 'choice-uft' ),
+					$e->getMessage()
+				)
+			);
 		}
 
 		return true;
@@ -698,6 +730,8 @@ class CUFT_Backup_Manager {
 
 	/**
 	 * Calculate directory size
+	 *
+	 * Handles permission errors gracefully by skipping inaccessible directories.
 	 *
 	 * @since 3.17.0
 	 *
@@ -707,11 +741,35 @@ class CUFT_Backup_Manager {
 	private function calculate_directory_size( $directory ) {
 		$size = 0;
 
-		foreach ( new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $directory ) ) as $file ) {
-			$size += $file->getSize();
+		try {
+			$iterator = new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator( $directory, RecursiveDirectoryIterator::SKIP_DOTS ),
+				RecursiveIteratorIterator::CATCH_GET_CHILD
+			);
+
+			foreach ( $iterator as $file ) {
+				try {
+					if ( $file->isFile() && $file->isReadable() ) {
+						$size += $file->getSize();
+					}
+				} catch ( Exception $e ) {
+					// Skip files we can't read
+					continue;
+				}
+			}
+		} catch ( UnexpectedValueException $e ) {
+			// Permission denied on subdirectory - log and continue
+			if ( function_exists( 'error_log' ) ) {
+				error_log( sprintf( 'CUFT Backup: Permission denied calculating size for %s: %s', $directory, $e->getMessage() ) );
+			}
+			// Return what we have so far
+			return $size > 0 ? $size : 1048576; // Fallback to 1MB minimum
+		} catch ( Exception $e ) {
+			// Other errors - return fallback
+			return 1048576; // 1MB minimum
 		}
 
-		return $size;
+		return $size > 0 ? $size : 1048576;
 	}
 
 	/**

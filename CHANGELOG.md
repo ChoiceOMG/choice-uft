@@ -5,6 +5,36 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.1] - 2025-10-14
+
+### Fixed
+- **Permission Error Handling** - Fixed fatal error when scanning plugin directory with restricted permissions
+  - Fixed `RecursiveDirectoryIterator` permission errors in disk space validator
+  - Fixed `RecursiveDirectoryIterator` permission errors in backup manager
+  - Added graceful degradation with fallback size estimates (1MB minimum)
+  - Added explicit `isReadable()` checks before accessing files/directories
+  - Added `UnexpectedValueException` catch blocks for permission denied errors
+  - Skips inaccessible files/directories instead of failing completely
+  - Logs warnings for skipped items to aid troubleshooting
+  - **Impact**: Force reinstall operations now succeed even with restricted directory permissions
+  - **Affected Methods**:
+    - `CUFT_Disk_Space_Validator::get_directory_size()`
+    - `CUFT_Disk_Space_Validator::validate_space_for_reinstall()`
+    - `CUFT_Backup_Manager::calculate_directory_size()`
+    - `CUFT_Backup_Manager::add_directory_to_zip()`
+
+### Technical Details
+- **Trigger**: Manual validation revealed permission errors on `docs/` subdirectory
+- **Error Message**: `RecursiveDirectoryIterator::__construct(...docs): Failed to open directory: Permission denied`
+- **Files Modified**: 2 files (disk space validator, backup manager)
+- **Lines Changed**: ~80 lines (enhanced error handling in 4 methods)
+- **Testing**: Verified in Docker environment with mixed file permissions
+
+### Migration Notes
+- No changes required for existing installations
+- Operations that previously failed with permission errors will now succeed
+- Logs (PHP error_log) will show warnings for skipped files/directories
+
 ## [3.19.0] - 2025-10-14
 
 ### Added

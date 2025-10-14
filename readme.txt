@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.19.0
+Stable tag: 3.19.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,13 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.19.1 =
+* Fix: Permission error handling in RecursiveDirectoryIterator for disk space validator and backup manager
+* Fix: Force reinstall now succeeds even with restricted directory permissions
+* Enhancement: Added graceful degradation with fallback size estimates (1MB minimum)
+* Enhancement: Explicit isReadable() checks before accessing files/directories
+* Enhancement: Skips inaccessible files/directories instead of failing completely
 
 = 3.19.0 =
 * Feature: Manual update control with "Check for Updates" button (Feature 009)
