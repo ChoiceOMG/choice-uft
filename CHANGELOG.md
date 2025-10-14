@@ -5,6 +5,23 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.2] - 2025-10-14
+
+### Testing
+- **Validation Release** - Test release to validate end-to-end update system functionality
+  - Confirms GitHub release ZIP upload workflow
+  - Validates Force Update UI "Check for Updates" button
+  - Tests Force Reinstall operation from GitHub download
+  - Verifies update history tracking and FIFO cleanup
+  - Confirms permission error fixes from v3.19.1 work correctly
+  - **Purpose**: End-to-end validation of Feature 009 on staging environment
+
+### Technical Details
+- **Purpose**: Validation release (no code changes)
+- **Validates**: Complete update workflow from detection → download → installation
+- **Environment**: cuft-choice-zone staging (Docker)
+- **Previous Version**: 3.19.1
+
 ## [3.19.1] - 2025-10-14
 
 ### Fixed
