@@ -433,16 +433,22 @@ unzip -l choice-uft-v3.19.2.zip | head -5
 
 ## The Role of CUFT_Directory_Fixer
 
-**Important Note**: The `upgrader_source_selection` filter (`CUFT_Directory_Fixer`) is designed for:
+**CRITICAL CLARIFICATION**: The `upgrader_source_selection` filter (`CUFT_Directory_Fixer`) has the CAPABILITY to rename incorrectly structured plugin directories, but this does NOT mean we should create incorrectly structured release ZIPs!
 
-- GitHub's auto-generated source archives (when downloading code via "Download ZIP" button)
-- These archives have names like `ChoiceOMG-choice-uft-abc1234.zip`
-- They extract to `ChoiceOMG-choice-uft-abc1234/` or `choice-uft-master/`
+### What The Filter Does
+- **Capability**: CAN rename extracted directories from wrong names to `choice-uft/`
+- **Purpose**: Handles GitHub's auto-generated source archives (e.g., `ChoiceOMG-choice-uft-abc1234/` or `choice-uft-master/`)
+- **When It Activates**: ONLY when extracted directory name doesn't match `choice-uft/`
 
-**Our release ZIPs do NOT need this filter** because:
+### What We Must Do
+- **✅ CORRECT**: Create release ZIPs that extract to `choice-uft/` (no renaming needed)
+- **❌ WRONG**: Create release ZIPs that rely on the filter to fix them
+
+### For Our Official Releases
 - We manually create proper WordPress plugin ZIPs
-- They already extract to `choice-uft/` (correct structure)
-- The filter is a safety net, not required for proper releases
+- They MUST extract to `choice-uft/` (correct structure)
+- The filter sees the directory is already correct and returns early (no action)
+- **If the filter needs to rename your release ZIP, you created it WRONG**
 
 ---
 
