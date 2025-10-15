@@ -2224,63 +2224,19 @@ class CUFT_Admin {
             }
         }
 
-        // Check for plugin updates and show notice
-        $this->check_update_notices();
-
         // Check for custom server status change notices
         $this->check_server_status_notices();
     }
 
     /**
      * Check and display plugin update notices
+     *
+     * @deprecated 3.19.3 Removed redundant simple notice. Robust notice handled by CUFT_Admin_Notices.
      */
     private function check_update_notices() {
-        // Check if update is available
-        $update_available = CUFT_Update_Checker::is_update_available();
-
-        if ( ! $update_available ) {
-            return;
-        }
-
-        // Get latest version
-        $update_status = CUFT_Update_Status::get();
-        $latest_version = isset( $update_status['latest_version'] ) ? $update_status['latest_version'] : '';
-
-        if ( empty( $latest_version ) ) {
-            return;
-        }
-
-        // Check if user has dismissed notice for this version
-        $user_id = get_current_user_id();
-        $dismissed_version_key = 'cuft_notice_dismissed_v' . str_replace( '.', '_', $latest_version );
-        $dismissed = get_user_meta( $user_id, $dismissed_version_key, true );
-
-        if ( $dismissed ) {
-            return;
-        }
-
-        // Show dismissible update notice
-        $plugins_url = admin_url( 'plugins.php' );
-        echo '<div class="notice notice-info is-dismissible" data-dismiss-action="cuft-dismiss-update-notice" data-version="' . esc_attr( $latest_version ) . '">';
-        echo '<p><strong>Choice Universal Form Tracker:</strong> There is a new version of Choice Universal Form Tracker available. ';
-        echo '<a href="' . esc_url( $plugins_url ) . '"><strong>View Plugin Updates</strong></a></p>';
-        echo '</div>';
-
-        // Add inline script to handle dismiss
-        ?>
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            $(document).on('click', '.notice[data-dismiss-action="cuft-dismiss-update-notice"] .notice-dismiss', function() {
-                var version = $(this).closest('.notice').data('version');
-                $.post(ajaxurl, {
-                    action: 'cuft_dismiss_update_notice',
-                    version: version,
-                    nonce: '<?php echo wp_create_nonce( 'cuft_dismiss_update_notice' ); ?>'
-                });
-            });
-        });
-        </script>
-        <?php
+        // Notice display now handled by CUFT_Admin_Notices class
+        // This method is kept for backward compatibility but does nothing
+        return;
     }
 
     /**

@@ -5,6 +5,30 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.3] - 2025-10-14
+
+### Fixed
+- **Update Notification UX** - Removed redundant update notices to improve user experience
+  - Removed simple one-line notice ("There is a new version...View Plugin Updates")
+  - Kept robust notice with title, description, and action buttons
+  - Update notices no longer shown on plugins page (redundant with WordPress native update row)
+  - **Impact**: Eliminates duplicate notifications, reduces visual clutter
+  - **Affected Files**:
+    - `includes/class-cuft-admin.php` - Deprecated `check_update_notices()` method
+    - `includes/admin/class-cuft-admin-notices.php` - Added plugins page check
+
+### Changed
+- **Notice Visibility** - Update notices now show on dashboard and other admin pages but NOT on plugins page
+  - WordPress native update row on plugins page is sufficient
+  - Consistent with WordPress UX best practices
+  - Reduces user confusion from duplicate notifications
+
+### Technical Details
+- **Trigger**: User feedback on redundant update notifications on plugins page
+- **Files Modified**: 2 files (admin class, admin notices class)
+- **Lines Changed**: ~45 lines removed, 5 lines added
+- **Backward Compatible**: Deprecated method kept as no-op for compatibility
+
 ## [3.19.2] - 2025-10-14
 
 ### Testing
@@ -119,6 +143,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.16.5] - 2025-10-11
 
+**⚠️ NOTE: This version's changes were superseded by v3.19.0, which reintroduced manual update controls with proper implementation.**
+
 ### Changed
 - **Update System Simplification** - Removed custom update buttons and simplified to use WordPress native update system only
   - Removed "Update Now" button from Updates tab (was causing "git url could not be constructed" errors)
@@ -137,17 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom "Check for Updates" button
 - Direct update functionality from plugin's Settings/Updates pages
 
-### Technical Details
-- Modified 2 files (admin notices and admin page rendering)
-- Preserved all backend update infrastructure (version detection, GitHub release fetching, update history)
-- WordPress native update system continues to work correctly via `pre_set_site_transient_update_plugins` hook
-- Zero breaking changes to backend functionality
-
-### Migration Notes
-- Users will now update via **Plugins → Choice Universal Form Tracker → Update Now** (WordPress native)
-- Admin bar "CUFT Update" menu still shows update availability and links to plugins page
-- Update history and status display remain functional on plugin's Updates tab
-- All automated update checks and version detection continue to work
+**These features were re-implemented properly in v3.19.0 as the "Force Update" feature.**
 
 ## [3.16.4] - 2025-10-10
 
@@ -250,7 +266,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
-- **3.16.x** - Update System Improvements
+- **3.19.x** - Manual Update Controls, Force Reinstall, UX Improvements
+- **3.18.x** - (Reserved)
+- **3.17.x** - Critical Update System Fixes
+- **3.16.x** - Update System Improvements (superseded by 3.19.x)
 - **3.15.x** - AI Development Workflow
 - **3.14.x** - Testing Dashboard
 - **3.13.x** - Form Tracking Enhancements
