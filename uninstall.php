@@ -103,3 +103,4 @@ if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
     error_log( 'Choice Universal Form Tracker: Plugin uninstalled and data cleaned up.' );
 }
 
+
