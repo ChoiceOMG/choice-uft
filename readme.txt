@@ -54,13 +54,13 @@ Choice Universal Form Tracker is a comprehensive solution for tracking form subm
 
 * **GitHub Auto-Updates**
   * Automatic updates from GitHub repository
+  * Manual update controls with "Force Reinstall" feature
   * No authentication required for public repos
   * Seamless WordPress integration
-  * Fallback to WordPress.org if needed
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/choice-universal-form-tracker` directory, or install the plugin through the WordPress plugins screen directly.
+1. Upload the plugin files to the `/wp-content/plugins/choice-uft` directory, or install the plugin through the WordPress plugins screen directly.
 2. Activate the plugin through the 'Plugins' screen in WordPress.
 3. Navigate to Settings > Universal Form Tracker to configure the plugin.
 4. Enter your Google Tag Manager container ID (optional but recommended).
@@ -69,13 +69,13 @@ Choice Universal Form Tracker is a comprehensive solution for tracking form subm
 
 == GitHub Auto-Updates ==
 
-The plugin now includes automatic updates from the GitHub repository:
+The plugin includes automatic updates from the GitHub repository:
 
 * **Easy Setup**: Simply check "Enable automatic updates from GitHub repository" in the plugin settings
 * **No Authentication**: Public repository access requires no tokens or login
 * **WordPress Native**: Updates appear in the standard WordPress admin update notifications
 * **Automatic**: Checks for updates twice daily and notifies you when new versions are available
-* **Fallback**: If GitHub updates are disabled, falls back to WordPress.org update system
+* **Manual Controls**: Force Update tab allows manual update checks and force reinstall operations
 
 This ensures you always have the latest features, bug fixes, and improvements directly from the development repository.
 
@@ -134,138 +134,55 @@ The plugin now supports automatic updates from GitHub:
 
 = 3.19.3 =
 * Fix: Removed redundant update notice on plugins page
-* Fix: Eliminated duplicate notifications (kept robust notice only)
 * UX: Update notices no longer shown on plugins page (WordPress native row sufficient)
-* Technical: Deprecated check_update_notices() method for backward compatibility
-
-= 3.19.2 =
-* Testing: Validation release to test end-to-end update system functionality
-* Testing: Confirms Force Update UI and Force Reinstall operation work correctly
-* Testing: Validates permission error fixes from v3.19.1
-
-= 3.19.1 =
-* Fix: Permission error handling in RecursiveDirectoryIterator for disk space validator and backup manager
-* Fix: Force reinstall now succeeds even with restricted directory permissions
-* Enhancement: Added graceful degradation with fallback size estimates (1MB minimum)
-* Enhancement: Explicit isReadable() checks before accessing files/directories
-* Enhancement: Skips inaccessible files/directories instead of failing completely
 
 = 3.19.0 =
-* Feature: Manual update control with "Check for Updates" button (Feature 009)
-* Feature: Force reinstall latest version from GitHub (Feature 009)
-* Feature: Update history tracking with 7-day retention (Feature 009)
-* Enhancement: WordPress plugin cache clearing for immediate version recognition
-* Enhancement: Transient-based operation locking prevents concurrent updates
+* Feature: Manual update control with "Check for Updates" button
+* Feature: Force reinstall latest version from GitHub
+* Feature: Update history tracking with 7-day retention
 * Enhancement: Disk space validation (3x plugin size) before force reinstall
 * Enhancement: Automatic backup/restore on reinstall failures
 * Security: Capability checks (update_plugins) for all manual update operations
-* Security: DISALLOW_FILE_MODS constant support
 * UI: New "Force Update" tab in Settings → Universal Form Tracker
 
 = 3.8.0 =
 * Added mock form submission testing capability for debugging and verification
 * New test form submission buttons in admin panel for each detected framework
 * Created frontend test page generation with actual form elements
-* Added email notifications for test submissions to verify tracking pipeline
-* Fixed CI/CD workflow dependency and validation issues
-* Improved security checks to reduce false positives
 * Enhanced WordPress coding standards compliance
-
-= 3.7.0 =
-* Fixed WordPress coding standards compliance issues
-* Replaced all wp_die(json_encode()) with proper wp_send_json_error/success functions
-* Enhanced security checks for nonce validation in AJAX handlers
-* Improved CI/CD workflows with more comprehensive checks
-* Added automated detection for WordPress coding violations
-* Fixed missing isset() checks before nonce validation
-* Standardized AJAX response handling across all endpoints
-* Enhanced error reporting in CI workflows
-
-= 3.6.1 =
-* Fixed fatal error caused by class declaration inside method
-* Moved CUFT_Ajax_Upgrader_Skin to separate file for proper PHP compatibility
-* Added GitHub CI workflows for automated testing
-* Added PHP syntax checking for pull requests
-* Added JavaScript syntax validation
-* Added WordPress coding standards checks
-
-= 3.6.0 =
-* Added one-click update installation directly from admin settings page
-* New "Download & Install Update" button appears when updates are available
-* AJAX-powered update process with real-time progress indicators
-* Automatic page reload after successful update
-* No need to navigate to plugins page for GitHub updates
-* Improved user experience with confirmation dialogs and status messages
-
-= 3.5.2 =
-* Fixed sGTM validation persistence when saving settings
-* Improved validation state handling to prevent losing validated status
-* Added debug output for administrators to troubleshoot sGTM configuration
-* Fixed URL comparison logic to properly detect changes
-
-= 3.5.1 =
-* Fixed GitHub updater one-click update functionality
-* Corrected update transient object structure for WordPress compatibility
-* Fixed plugin info API response format
-* Improved update notification display on plugins page
 
 = 3.5.0 =
 * Added Server-Side GTM (sGTM) support for first-party tracking
 * Enable custom server URLs for GTM script delivery via your own domain
 * Built-in endpoint validation with real-time connection testing
-* Support for both standard and server-side GTM modes
 * AJAX-powered configuration testing in admin panel
-* Maintains full backward compatibility (disabled by default)
-* Helps avoid third-party cookie restrictions and ad blockers
 * Improves tracking reliability and privacy compliance
 
 = 3.4.0 =
 * Added GitHub auto-update feature for seamless plugin updates
 * Introduced automatic update checking from GitHub releases
 * Enhanced admin interface with update status display
-* Added manual update check functionality
-* Improved error handling and update notifications
 * No authentication required for public repository access
 
 = 3.3.0 =
 * Major Avada form tracking bug fixes and improvements
 * Fixed form submission detection reliability issues
 * Enhanced AJAX form support with improved success state detection
-* Resolved duplicate form submission tracking
-* Fixed email field validation preventing false positives
-* Improved error handling and debug logging for Avada forms
 * Enhanced compatibility with latest Avada/Fusion theme versions
-* Fixed timing issues with form initialization
-* Improved form selector specificity to prevent conflicts
 
 = 3.1.0 =
 * Added UTM campaign tracking for marketing attribution
 * Enhanced admin interface with campaign status display
-* Improved session and cookie-based UTM storage
 * Added comprehensive UTM parameter support
-* Enhanced debug logging for UTM tracking
 
 = 3.0.0 =
 * Complete rewrite with modular architecture
 * Universal form framework support
 * Vanilla JavaScript implementation (removed jQuery dependency)
 * Advanced framework detection system
-* Comprehensive debug logging
 * Beautiful admin interface
 
-= 2.0.0 =
-* Refactored into object-oriented structure
-* Added separate classes for each component
-* Improved code organization and maintainability
-
-= 1.2.0 =
-* Added Google Tag Manager integration
-* Introduced admin settings page
-* Enhanced form tracking capabilities
-
-= 1.0.0 =
-* Initial release
-* Basic form and link tracking functionality
+For complete version history, see CHANGELOG.md in the plugin repository.
 
 == Upgrade Notice ==
 
