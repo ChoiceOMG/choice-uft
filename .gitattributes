@@ -8,6 +8,7 @@
 /.specify export-ignore
 /tests export-ignore
 /docs export-ignore
+/specs export-ignore
 
 # Development files
 /.gitignore export-ignore
