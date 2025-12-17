@@ -2,7 +2,44 @@
 /**
  * Email Interceptor
  *
- * Intercepts WordPress emails via wp_mail filter and adds BCC header.
+ * Intercepts WordPress emails via `wp_mail` filter and intelligently adds BCC headers
+ * to form submission notifications. Includes duplicate detection, rate limiting, and
+ * email type filtering.
+ *
+ * ## Features
+ *
+ * - **Smart Detection**: Only BCCs form submission emails (configurable types)
+ * - **Duplicate Prevention**: Skips BCC if address is already in TO/CC
+ * - **Rate Limiting**: Enforces hourly limits with configurable actions
+ * - **Graceful Degradation**: Logs errors but never blocks primary email
+ *
+ * ## Usage
+ *
+ * ```php
+ * // Initialize email interceptor
+ * $interceptor = new CUFT_Email_Interceptor();
+ * $interceptor->init();
+ *
+ * // The interceptor automatically processes all emails sent via wp_mail()
+ * // No additional code needed - just configure via CUFT_Auto_BCC_Config
+ * ```
+ *
+ * ## Filter Priority
+ *
+ * Runs at priority 10 on `wp_mail` filter:
+ * - **Before SMTP plugins** (usually priority 20+)
+ * - **Before tracking injector** (priority 15)
+ *
+ * This ensures BCC headers are added before SMTP plugins process the email.
+ *
+ * ## Configuration
+ *
+ * Controlled via CUFT_Auto_BCC_Config:
+ * - `enabled`: Feature on/off
+ * - `bcc_email`: Target BCC address
+ * - `selected_email_types`: Array of email types to BCC
+ * - `rate_limit_threshold`: Max emails per hour
+ * - `rate_limit_action`: 'pause_until_next_period' or 'log_only'
  *
  * @package Choice_Universal_Form_Tracker
  * @since 3.20.0
@@ -52,9 +89,7 @@ class CUFT_Email_Interceptor {
 
 			// Check for duplicate (BCC address already in TO/CC)
 			if ( $this->is_bcc_duplicate( $bcc_email, $args ) ) {
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( 'CUFT Auto-BCC: Skipping BCC (address already a recipient)' );
-				}
+				self::log_debug( 'Skipping BCC (address already a recipient)' );
 				return $args;
 			}
 
@@ -64,13 +99,11 @@ class CUFT_Email_Interceptor {
 
 			if ( ! CUFT_BCC_Rate_Limiter::check_rate_limit( $threshold ) ) {
 				// Rate limit exceeded
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( sprintf(
-						'CUFT Auto-BCC: Rate limit exceeded (%d emails/hour). Action: %s',
-						$threshold,
-						$action
-					) );
-				}
+				self::log_debug( sprintf(
+					'Rate limit exceeded (%d emails/hour). Action: %s',
+					$threshold,
+					$action
+				) );
 
 				// If action is pause, skip BCC
 				if ( 'pause_until_next_period' === $action ) {
@@ -83,17 +116,15 @@ class CUFT_Email_Interceptor {
 			// Add BCC header
 			$args = $this->add_bcc_header( $args, $bcc_email );
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf(
-					'CUFT Auto-BCC: BCC added to %s email (subject: %s)',
-					$email_type,
-					isset( $args['subject'] ) ? $args['subject'] : 'unknown'
-				) );
-			}
+			self::log_debug( sprintf(
+				'BCC added to %s email (subject: %s)',
+				$email_type,
+				isset( $args['subject'] ) ? $args['subject'] : 'unknown'
+			) );
 
 		} catch ( Exception $e ) {
 			// Graceful degradation: Log error but don't block primary email
-			error_log( 'CUFT Auto-BCC Error: ' . $e->getMessage() );
+			self::log_error( 'Email interception failed: ' . $e->getMessage() );
 		}
 
 		return $args;
@@ -145,25 +176,25 @@ class CUFT_Email_Interceptor {
 			}
 		}
 
-		// Check CC in headers
+		// Check CC and BCC in headers
 		if ( isset( $args['headers'] ) ) {
 			$headers = is_array( $args['headers'] ) ? $args['headers'] : array( $args['headers'] );
 
 			foreach ( $headers as $header ) {
 				$header_lower = strtolower( $header );
 
-				// Check for CC header
+				// Check for CC header (may contain multiple addresses)
 				if ( strpos( $header_lower, 'cc:' ) === 0 ) {
-					$cc_email = strtolower( trim( substr( $header, 3 ) ) );
-					if ( $cc_email === $bcc_email_lower ) {
+					$cc_addresses = substr( $header, 3 );
+					if ( $this->email_list_contains( $cc_addresses, $bcc_email_lower ) ) {
 						return true;
 					}
 				}
 
-				// Also check if BCC already exists (shouldn't happen, but safety check)
+				// Also check if BCC already exists (may contain multiple addresses)
 				if ( strpos( $header_lower, 'bcc:' ) === 0 ) {
-					$existing_bcc = strtolower( trim( substr( $header, 4 ) ) );
-					if ( $existing_bcc === $bcc_email_lower ) {
+					$bcc_addresses = substr( $header, 4 );
+					if ( $this->email_list_contains( $bcc_addresses, $bcc_email_lower ) ) {
 						return true;
 					}
 				}
@@ -171,5 +202,54 @@ class CUFT_Email_Interceptor {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Check if email list contains specific address
+	 *
+	 * Handles comma-separated email lists and extracts addresses from "Name <email>" format.
+	 *
+	 * @param string $email_list Comma-separated email addresses
+	 * @param string $search_email Email to search for (lowercase)
+	 * @return bool True if found, false otherwise
+	 */
+	private function email_list_contains( $email_list, $search_email ) {
+		// Split by comma
+		$addresses = explode( ',', $email_list );
+
+		foreach ( $addresses as $address ) {
+			// Extract email from "Name <email@example.com>" format
+			if ( preg_match( '/<([^>]+)>/', $address, $matches ) ) {
+				$email = strtolower( trim( $matches[1] ) );
+			} else {
+				$email = strtolower( trim( $address ) );
+			}
+
+			if ( $email === $search_email ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Log error message with consistent formatting
+	 *
+	 * @param string $message Error message
+	 */
+	private static function log_error( $message ) {
+		error_log( 'CUFT Auto-BCC [ERROR]: ' . $message );
+	}
+
+	/**
+	 * Log debug message (only if WP_DEBUG enabled)
+	 *
+	 * @param string $message Debug message
+	 */
+	private static function log_debug( $message ) {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'CUFT Auto-BCC [DEBUG]: ' . $message );
+		}
 	}
 }

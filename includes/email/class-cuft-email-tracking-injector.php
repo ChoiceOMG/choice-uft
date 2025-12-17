@@ -2,7 +2,38 @@
 /**
  * Email Tracking Parameter Injector
  *
- * Injects UTM parameters and click IDs into form submission email messages.
+ * Automatically injects UTM parameters and platform click IDs into form submission
+ * email messages. Supports both HTML and plain text email formats with appropriate
+ * formatting for each.
+ *
+ * ## Supported Parameters
+ *
+ * - **UTM Parameters**: utm_source, utm_medium, utm_campaign, utm_term, utm_content, utm_id
+ * - **Click IDs**: gclid, gbraid, wbraid, fbclid, msclkid, ttclid, li_fat_id, twclid, snap_click_id, pclid
+ *
+ * ## Usage
+ *
+ * The injector hooks into `wp_mail` filter at priority 15 (after Auto-BCC at priority 10).
+ * It automatically processes form submission emails when tracking data is available.
+ *
+ * ```php
+ * // Initialize tracking injector
+ * $tracking_injector = new CUFT_Email_Tracking_Injector();
+ * $tracking_injector->init();
+ * ```
+ *
+ * ## How It Works
+ *
+ * 1. Detects form submission emails by subject patterns and headers
+ * 2. Retrieves tracking data from CUFT_UTM_Tracker (session/cookie storage)
+ * 3. Detects email format (HTML or plain text)
+ * 4. Formats tracking section appropriately for the email type
+ * 5. Appends tracking information to email message
+ *
+ * ## HTML vs Plain Text
+ *
+ * - **Plain Text**: Adds formatted text section with separators
+ * - **HTML**: Adds styled HTML div with lists and headings
  *
  * @package Choice_Universal_Form_Tracker
  * @since 3.20.0
@@ -13,6 +44,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CUFT_Email_Tracking_Injector {
+
+	/**
+	 * Separator line length for plain text tracking section
+	 */
+	const SEPARATOR_LENGTH = 60;
 
 	/**
 	 * Initialize tracking injector
@@ -43,19 +79,20 @@ class CUFT_Email_Tracking_Injector {
 				return $args;
 			}
 
-			// Append tracking parameters to message
-			$args['message'] = $this->append_tracking_to_message( $args['message'], $tracking_data );
+			// Detect if email is HTML or plain text
+			$is_html = $this->is_html_email( $args );
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( sprintf(
-					'CUFT Tracking Injector: Added tracking parameters to email (subject: %s)',
-					isset( $args['subject'] ) ? $args['subject'] : 'unknown'
-				) );
-			}
+			// Append tracking parameters to message
+			$args['message'] = $this->append_tracking_to_message( $args['message'], $tracking_data, $is_html );
+
+			self::log_debug( sprintf(
+				'Added tracking parameters to email (subject: %s)',
+				isset( $args['subject'] ) ? $args['subject'] : 'unknown'
+			) );
 
 		} catch ( Exception $e ) {
 			// Graceful degradation: Log error but don't block email
-			error_log( 'CUFT Tracking Injector Error: ' . $e->getMessage() );
+			self::log_error( 'Tracking injection failed: ' . $e->getMessage() );
 		}
 
 		return $args;
@@ -110,13 +147,43 @@ class CUFT_Email_Tracking_Injector {
 	}
 
 	/**
+	 * Detect if email is HTML format
+	 *
+	 * @param array $args Email arguments
+	 * @return bool True if HTML email, false if plain text
+	 */
+	private function is_html_email( $args ) {
+		// Check headers for Content-Type: text/html
+		if ( isset( $args['headers'] ) ) {
+			$headers = is_array( $args['headers'] ) ? $args['headers'] : array( $args['headers'] );
+
+			foreach ( $headers as $header ) {
+				if ( stripos( $header, 'Content-Type:' ) === 0 && stripos( $header, 'text/html' ) !== false ) {
+					return true;
+				}
+			}
+		}
+
+		// Check if message contains HTML tags
+		if ( isset( $args['message'] ) ) {
+			// Look for common HTML tags
+			if ( preg_match( '/<(html|body|head|div|p|table|br)[\s>]/i', $args['message'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Append tracking parameters to email message
 	 *
 	 * @param string $message Original email message
 	 * @param array  $tracking_data Tracking parameters
+	 * @param bool   $is_html Whether email is HTML format
 	 * @return string Modified email message
 	 */
-	private function append_tracking_to_message( $message, $tracking_data ) {
+	private function append_tracking_to_message( $message, $tracking_data, $is_html = false ) {
 		// Separate UTM parameters from click IDs
 		$utm_params = array();
 		$click_ids = array();
@@ -132,35 +199,94 @@ class CUFT_Email_Tracking_Injector {
 			}
 		}
 
-		// Build tracking information section
-		$tracking_section = "\n\n" . str_repeat( '-', 60 ) . "\n";
-		$tracking_section .= "TRACKING INFORMATION\n";
-		$tracking_section .= str_repeat( '-', 60 ) . "\n\n";
+		// Build tracking information section based on format
+		if ( $is_html ) {
+			$tracking_section = $this->build_html_tracking_section( $utm_params, $click_ids );
+		} else {
+			$tracking_section = $this->build_text_tracking_section( $utm_params, $click_ids );
+		}
+
+		// Append to message
+		return $message . $tracking_section;
+	}
+
+	/**
+	 * Build plain text tracking section
+	 *
+	 * @param array $utm_params UTM parameters
+	 * @param array $click_ids Click ID parameters
+	 * @return string Plain text tracking section
+	 */
+	private function build_text_tracking_section( $utm_params, $click_ids ) {
+		$section = "\n\n" . str_repeat( '-', self::SEPARATOR_LENGTH ) . "\n";
+		$section .= "TRACKING INFORMATION\n";
+		$section .= str_repeat( '-', self::SEPARATOR_LENGTH ) . "\n\n";
 
 		// Add UTM parameters if present
 		if ( ! empty( $utm_params ) ) {
-			$tracking_section .= "UTM Parameters:\n";
+			$section .= "UTM Parameters:\n";
 			foreach ( $utm_params as $key => $value ) {
 				$label = $this->format_param_label( $key );
-				$tracking_section .= sprintf( "  %s: %s\n", $label, $value );
+				$safe_value = sanitize_text_field( $value );
+				$section .= sprintf( "  %s: %s\n", $label, $safe_value );
 			}
-			$tracking_section .= "\n";
+			$section .= "\n";
 		}
 
 		// Add click IDs if present
 		if ( ! empty( $click_ids ) ) {
-			$tracking_section .= "Click IDs:\n";
+			$section .= "Click IDs:\n";
 			foreach ( $click_ids as $key => $value ) {
 				$label = $this->format_param_label( $key );
-				$tracking_section .= sprintf( "  %s: %s\n", $label, $value );
+				$safe_value = sanitize_text_field( $value );
+				$section .= sprintf( "  %s: %s\n", $label, $safe_value );
 			}
-			$tracking_section .= "\n";
+			$section .= "\n";
 		}
 
-		$tracking_section .= str_repeat( '-', 60 );
+		$section .= str_repeat( '-', self::SEPARATOR_LENGTH );
 
-		// Append to message
-		return $message . $tracking_section;
+		return $section;
+	}
+
+	/**
+	 * Build HTML tracking section
+	 *
+	 * @param array $utm_params UTM parameters
+	 * @param array $click_ids Click ID parameters
+	 * @return string HTML tracking section
+	 */
+	private function build_html_tracking_section( $utm_params, $click_ids ) {
+		$section = '<div style="margin-top: 30px; padding: 20px; background-color: #f5f5f5; border: 1px solid #ddd;">';
+		$section .= '<h3 style="margin: 0 0 15px 0; color: #333;">Tracking Information</h3>';
+
+		// Add UTM parameters if present
+		if ( ! empty( $utm_params ) ) {
+			$section .= '<h4 style="margin: 10px 0 5px 0; color: #666;">UTM Parameters:</h4>';
+			$section .= '<ul style="margin: 5px 0; padding-left: 20px;">';
+			foreach ( $utm_params as $key => $value ) {
+				$label = $this->format_param_label( $key );
+				$safe_value = esc_html( $value );
+				$section .= sprintf( '<li><strong>%s:</strong> %s</li>', esc_html( $label ), $safe_value );
+			}
+			$section .= '</ul>';
+		}
+
+		// Add click IDs if present
+		if ( ! empty( $click_ids ) ) {
+			$section .= '<h4 style="margin: 10px 0 5px 0; color: #666;">Click IDs:</h4>';
+			$section .= '<ul style="margin: 5px 0; padding-left: 20px;">';
+			foreach ( $click_ids as $key => $value ) {
+				$label = $this->format_param_label( $key );
+				$safe_value = esc_html( $value );
+				$section .= sprintf( '<li><strong>%s:</strong> %s</li>', esc_html( $label ), $safe_value );
+			}
+			$section .= '</ul>';
+		}
+
+		$section .= '</div>';
+
+		return $section;
 	}
 
 	/**
@@ -191,5 +317,25 @@ class CUFT_Email_Tracking_Injector {
 		);
 
 		return isset( $labels[ $key ] ) ? $labels[ $key ] : ucwords( str_replace( '_', ' ', $key ) );
+	}
+
+	/**
+	 * Log error message with consistent formatting
+	 *
+	 * @param string $message Error message
+	 */
+	private static function log_error( $message ) {
+		error_log( 'CUFT Tracking Injector [ERROR]: ' . $message );
+	}
+
+	/**
+	 * Log debug message (only if WP_DEBUG enabled)
+	 *
+	 * @param string $message Debug message
+	 */
+	private static function log_debug( $message ) {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'CUFT Tracking Injector [DEBUG]: ' . $message );
+		}
 	}
 }

@@ -99,7 +99,7 @@ class Choice_Universal_Form_Tracker {
             'includes/email/class-cuft-auto-bcc-config.php',  // Auto-BCC configuration model
             'includes/email/class-cuft-auto-bcc-validator.php',  // Auto-BCC validation
             'includes/email/class-cuft-email-type-detector.php',  // Email type detection
-            'includes/email/class-cuft-rate-limiter.php',  // BCC rate limiting (note: different from update rate limiter)
+            'includes/email/class-cuft-bcc-rate-limiter.php',  // BCC rate limiting (note: different from update rate limiter)
             'includes/email/class-cuft-email-interceptor.php',  // wp_mail filter hook
             'includes/email/class-cuft-auto-bcc-manager.php',  // Auto-BCC orchestrator
             'includes/email/class-cuft-email-tracking-injector.php',  // Tracking parameter injection

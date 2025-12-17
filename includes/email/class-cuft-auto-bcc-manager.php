@@ -57,6 +57,33 @@ class CUFT_Auto_BCC_Manager {
 		// Initialize email interceptor
 		$this->interceptor = new CUFT_Email_Interceptor();
 		$this->interceptor->init();
+
+		// Schedule transient cleanup (runs once per day max via transient check)
+		$this->schedule_transient_cleanup();
+	}
+
+	/**
+	 * Schedule rate limiter transient cleanup
+	 *
+	 * Runs cleanup once per day maximum using a transient lock.
+	 */
+	private function schedule_transient_cleanup() {
+		$cleanup_lock = 'cuft_bcc_cleanup_lock';
+
+		// Check if cleanup ran recently (within last 24 hours)
+		if ( false !== get_transient( $cleanup_lock ) ) {
+			return; // Cleanup already ran recently
+		}
+
+		// Run cleanup
+		$deleted = CUFT_BCC_Rate_Limiter::cleanup_old_transients();
+
+		// Set lock to prevent cleanup from running again for 24 hours
+		set_transient( $cleanup_lock, true, DAY_IN_SECONDS );
+
+		if ( $deleted > 0 && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( sprintf( 'CUFT Auto-BCC: Cleaned up %d old rate limiter transients', $deleted ) );
+		}
 	}
 
 	/**

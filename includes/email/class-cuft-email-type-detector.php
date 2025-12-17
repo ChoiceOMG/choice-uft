@@ -60,40 +60,60 @@ class CUFT_Email_Type_Detector {
 	/**
 	 * Check if email is a form submission
 	 *
+	 * Uses specific patterns and plugin-specific headers to avoid false positives.
+	 *
 	 * @param string $subject Lowercase subject line
 	 * @param string $headers Lowercase headers string
 	 * @return bool True if form submission, false otherwise
 	 */
 	private static function is_form_submission( $subject, $headers ) {
-		// Subject patterns
-		$subject_patterns = array(
-			'form',
-			'submission',
-			'contact',
-			'enquiry',
-			'inquiry',
-			'feedback',
-		);
-
-		foreach ( $subject_patterns as $pattern ) {
-			if ( strpos( $subject, $pattern ) !== false ) {
-				return true;
-			}
-		}
-
-		// Header patterns
+		// Check for form plugin-specific headers first (most reliable)
 		$header_patterns = array(
 			'x-form-type',
 			'x-contact-form',
 			'x-elementor-form',
 			'x-gravity-form',
 			'x-ninja-form',
+			'x-cf7-',
+			'x-formidable',
+			'x-wpforms',
 		);
 
 		foreach ( $header_patterns as $pattern ) {
 			if ( strpos( $headers, $pattern ) !== false ) {
 				return true;
 			}
+		}
+
+		// More specific subject patterns (require "form" + another keyword)
+		$specific_patterns = array(
+			'contact form',
+			'form submission',
+			'new form',
+			'form entry',
+			'form inquiry',
+			'form enquiry',
+			'feedback form',
+			'quote form',
+			'registration form',
+			'application form',
+			'cf7',           // Contact Form 7
+			'gravity',       // Gravity Forms
+			'ninja forms',
+			'elementor form',
+			'avada form',
+		);
+
+		foreach ( $specific_patterns as $pattern ) {
+			if ( strpos( $subject, $pattern ) !== false ) {
+				return true;
+			}
+		}
+
+		// Check for submission-related keywords in subject
+		if ( strpos( $subject, 'submission' ) !== false &&
+		     ( strpos( $subject, 'new' ) !== false || strpos( $subject, 'form' ) !== false ) ) {
+			return true;
 		}
 
 		return false;
