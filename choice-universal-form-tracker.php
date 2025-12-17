@@ -102,6 +102,7 @@ class Choice_Universal_Form_Tracker {
             'includes/email/class-cuft-rate-limiter.php',  // BCC rate limiting (note: different from update rate limiter)
             'includes/email/class-cuft-email-interceptor.php',  // wp_mail filter hook
             'includes/email/class-cuft-auto-bcc-manager.php',  // Auto-BCC orchestrator
+            'includes/email/class-cuft-email-tracking-injector.php',  // Tracking parameter injection
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
             // Updater Models
             'includes/models/class-cuft-update-status.php',  // Update status model
@@ -298,6 +299,12 @@ class Choice_Universal_Form_Tracker {
             }
             if ( class_exists( 'CUFT_Auto_BCC_Ajax' ) ) {
                 new CUFT_Auto_BCC_Ajax();
+            }
+
+            // Initialize Email Tracking Parameter Injector
+            if ( class_exists( 'CUFT_Email_Tracking_Injector' ) ) {
+                $tracking_injector = new CUFT_Email_Tracking_Injector();
+                $tracking_injector->init();
             }
 
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
