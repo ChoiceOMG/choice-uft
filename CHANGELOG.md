@@ -5,6 +5,77 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.20.0] - 2025-12-17
+
+### Added
+- **Feature 010: Auto-BCC Testing Email System**
+  - Automatically BCCs a testing email address on form submission notifications
+  - Smart email type detection (form submissions, user registrations, password resets, etc.)
+  - Rate limiting with configurable hourly thresholds
+  - Duplicate detection (skips BCC if address already in TO/CC)
+  - Admin settings interface with real-time validation
+  - AJAX-powered configuration management
+  - Test email functionality for verification
+  - Database-level locking to prevent race conditions
+  - Automatic transient cleanup (once per day)
+
+- **Email Tracking Parameter Injection**
+  - Automatically appends UTM parameters to form submission emails
+  - Supports 6 UTM parameters (source, medium, campaign, term, content, id)
+  - Supports 11 platform click IDs (Google, Facebook, Microsoft, TikTok, LinkedIn, etc.)
+  - HTML and plain text email format detection
+  - Clean formatting with separate sections for UTM params and click IDs
+  - Graceful handling when no tracking data exists
+  - Cross-framework compatible (CF7, Gravity Forms, Elementor, etc.)
+
+- **New Admin Interface**
+  - Auto-BCC settings tab in Settings → Universal Form Tracker
+  - Real-time email validation with visual feedback
+  - Email type multi-select (form submissions, registrations, etc.)
+  - Rate limit configuration (threshold and action)
+  - "Send Test Email" button for immediate verification
+  - Modern CSS with responsive design
+
+### Technical Details
+- **New Classes**: 7 email infrastructure classes
+  - `CUFT_Email_Interceptor` - BCC injection (priority 10)
+  - `CUFT_Email_Tracking_Injector` - Tracking parameter injection (priority 15)
+  - `CUFT_Email_Type_Detector` - Email classification
+  - `CUFT_BCC_Rate_Limiter` - Rate limiting with MySQL locks
+  - `CUFT_Auto_BCC_Config` - Configuration management
+  - `CUFT_Auto_BCC_Manager` - Feature orchestration
+  - `CUFT_Auto_BCC_Validator` - Email validation
+
+- **Test Coverage**:
+  - 7 integration tests (end-to-end scenarios)
+  - 2 unit test suites (Email Type Detector, Rate Limiter)
+  - 3 contract tests (API compliance)
+  - All tests passing in CI
+
+- **Security**:
+  - CSRF protection via nonces
+  - Capability checks (`update_plugins`)
+  - Email sanitization and validation
+  - XSS prevention with `esc_html()` and `sanitize_text_field()`
+  - Race condition prevention with database locks
+
+- **Performance**:
+  - Hooks into `wp_mail` filter with priority management
+  - WordPress transients for rate limiting (fast lookups)
+  - Automatic cleanup prevents database bloat
+  - Minimal overhead (only processes when feature enabled)
+
+- **Compatibility**:
+  - Works with SMTP plugins (WP Mail SMTP, Post SMTP, etc.)
+  - Compatible with all major form builders
+  - Backward compatible (no breaking changes)
+  - Graceful degradation (never blocks primary emails)
+
+### Files Changed
+- **Added**: 13 new PHP classes, 2 admin assets, 1 admin view
+- **Modified**: 3 core files (plugin main, admin class, admin view)
+- **Lines**: +7,291 additions, -906 deletions
+
 ## [3.19.3] - 2025-10-14
 
 ### Fixed
