@@ -122,6 +122,8 @@ class CUFT_Admin {
                 <?php $this->render_debug_section(); ?>
             <?php elseif ( $current_tab === 'click-tracking' ): ?>
                 <?php $this->render_click_tracking_tab(); ?>
+            <?php elseif ( $current_tab === 'auto-bcc' ): ?>
+                <?php include CUFT_PATH . 'includes/admin/views/admin-auto-bcc-settings.php'; ?>
             <?php elseif ( $current_tab === 'force-update' ): ?>
                 <?php include CUFT_PATH . 'includes/admin/views/force-update-tab.php'; ?>
             <?php endif; ?>
@@ -739,6 +741,28 @@ class CUFT_Admin {
         wp_enqueue_style(
             'cuft-force-update',
             CUFT_URL . '/assets/admin/cuft-force-update.css',
+            array(),
+            CUFT_VERSION
+        );
+
+        // Enqueue Auto-BCC assets (Feature 010)
+        wp_enqueue_script(
+            'cuft-auto-bcc-admin',
+            CUFT_URL . '/assets/admin/js/cuft-auto-bcc-admin.js',
+            array( 'jquery' ),
+            CUFT_VERSION,
+            true
+        );
+
+        wp_localize_script( 'cuft-auto-bcc-admin', 'cuftAutoBcc', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'saveNonce' => wp_create_nonce( 'cuft_auto_bcc_save_settings' ),
+            'testNonce' => wp_create_nonce( 'cuft_auto_bcc_send_test' ),
+        ) );
+
+        wp_enqueue_style(
+            'cuft-auto-bcc-admin',
+            CUFT_URL . '/assets/admin/css/cuft-auto-bcc-admin.css',
             array(),
             CUFT_VERSION
         );
@@ -1468,6 +1492,7 @@ class CUFT_Admin {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
             'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' ),
+            'auto-bcc' => __( 'Auto-BCC', 'choice-universal-form-tracker' ),
             'force-update' => __( 'Force Update', 'choice-universal-form-tracker' )
         );
         

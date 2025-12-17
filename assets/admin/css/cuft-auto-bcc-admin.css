@@ -1,0 +1,311 @@
+/**
+ * Auto-BCC Admin CSS Stylesheet
+ *
+ * Styles for Auto-BCC settings UI (form, validation, messages, help section).
+ *
+ * @package    Choice_Universal_Form_Tracker
+ * @subpackage Assets/Admin/CSS
+ * @since      3.11.0
+ */
+
+/* Main Section Container */
+.cuft-auto-bcc-section {
+	max-width: 900px;
+	padding: 20px;
+	background: white;
+	border: 1px solid #ccd0d4;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+	margin-top: 20px;
+}
+
+.cuft-auto-bcc-section h2 {
+	margin-top: 0;
+	margin-bottom: 10px;
+	font-size: 23px;
+	font-weight: 400;
+	line-height: 29px;
+}
+
+.cuft-auto-bcc-section .description {
+	margin-bottom: 20px;
+	color: #646970;
+}
+
+/* Setting Rows */
+.cuft-setting-row {
+	margin-bottom: 25px;
+	padding-bottom: 25px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.cuft-setting-row:last-child {
+	border-bottom: none;
+}
+
+.cuft-setting-row label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.cuft-setting-row label .required {
+	color: #d63638;
+	font-weight: 700;
+}
+
+.cuft-setting-row .description {
+	font-size: 13px;
+	color: #646970;
+	margin-top: 8px;
+	margin-bottom: 0;
+	line-height: 1.6;
+}
+
+/* Toggle Switch */
+.cuft-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	cursor: pointer;
+	margin-bottom: 0;
+}
+
+.cuft-toggle input[type="checkbox"] {
+	width: 44px;
+	height: 24px;
+	position: relative;
+	appearance: none;
+	-webkit-appearance: none;
+	background: #8c8f94;
+	border-radius: 12px;
+	outline: none;
+	cursor: pointer;
+	transition: background 0.3s;
+}
+
+.cuft-toggle input[type="checkbox"]:checked {
+	background: #2271b1;
+}
+
+.cuft-toggle input[type="checkbox"]::before {
+	content: '';
+	position: absolute;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	top: 2px;
+	left: 2px;
+	background: white;
+	transition: left 0.3s;
+}
+
+.cuft-toggle input[type="checkbox"]:checked::before {
+	left: 22px;
+}
+
+.cuft-toggle-label {
+	font-weight: 600;
+	color: #1d2327;
+}
+
+/* Email Input with Validation */
+.cuft-email-input-wrapper {
+	position: relative;
+	display: inline-block;
+	width: 100%;
+	max-width: 400px;
+}
+
+.cuft-email-input-wrapper input {
+	padding-right: 40px;
+}
+
+.cuft-validation-feedback {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 20px;
+	line-height: 1;
+}
+
+.cuft-validation-feedback.valid {
+	color: #00a32a;
+}
+
+.cuft-validation-feedback.invalid {
+	color: #d63638;
+}
+
+.cuft-validation-feedback .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+}
+
+/* Checkbox List */
+.cuft-checkbox-label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 400;
+	cursor: pointer;
+	color: #1d2327;
+}
+
+.cuft-checkbox-label input[type="checkbox"] {
+	margin-right: 8px;
+}
+
+/* Action Buttons */
+.cuft-actions {
+	margin-top: 30px;
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.cuft-actions .button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.cuft-actions .button .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+}
+
+.cuft-actions .button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Messages Container */
+.cuft-messages {
+	margin-top: 20px;
+}
+
+.cuft-messages .notice {
+	margin: 10px 0;
+	padding: 12px;
+	border-left: 4px solid #72aee6;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.cuft-messages .notice-success {
+	border-left-color: #00a32a;
+	background: #f0f6fc;
+}
+
+.cuft-messages .notice-error {
+	border-left-color: #d63638;
+	background: #fcf0f1;
+}
+
+.cuft-messages .notice-warning {
+	border-left-color: #dba617;
+	background: #fcf9e8;
+}
+
+.cuft-messages .notice p {
+	margin: 0;
+	line-height: 1.6;
+}
+
+/* Help Section */
+.cuft-help-section {
+	margin-top: 40px;
+	padding: 20px;
+	background: #f0f0f1;
+	border-left: 4px solid #2271b1;
+	border-radius: 4px;
+}
+
+.cuft-help-section h3 {
+	margin-top: 0;
+	margin-bottom: 15px;
+	font-size: 18px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.cuft-help-section ul {
+	margin: 0;
+	padding-left: 20px;
+	list-style-type: disc;
+}
+
+.cuft-help-section li {
+	margin-bottom: 8px;
+	line-height: 1.6;
+	color: #2c3338;
+}
+
+/* Form Fields Specific Styles */
+#cuft-bcc-email {
+	width: 100%;
+}
+
+#cuft-rate-limit-threshold {
+	width: 80px;
+	text-align: center;
+}
+
+#cuft-rate-limit-action {
+	max-width: 300px;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 782px) {
+	.cuft-auto-bcc-section {
+		padding: 15px;
+	}
+
+	.cuft-email-input-wrapper {
+		max-width: 100%;
+	}
+
+	.cuft-actions {
+		flex-direction: column;
+	}
+
+	.cuft-actions .button {
+		width: 100%;
+		justify-content: center;
+	}
+
+	#cuft-rate-limit-action {
+		max-width: 100%;
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	.cuft-auto-bcc-section h2 {
+		font-size: 20px;
+	}
+
+	.cuft-help-section {
+		padding: 15px;
+	}
+}
+
+/* Animation for smooth appearance */
+.cuft-messages .notice {
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}

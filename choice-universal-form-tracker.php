@@ -94,6 +94,15 @@ class Choice_Universal_Form_Tracker {
             'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
             'includes/ajax/class-cuft-form-builder-ajax.php',  // Form builder AJAX endpoints
             'includes/ajax/class-cuft-updater-ajax.php',  // Updater AJAX endpoints
+            'includes/ajax/class-cuft-auto-bcc-ajax.php',  // Auto-BCC AJAX endpoints (Feature 010)
+            // Auto-BCC Email Infrastructure (Feature 010)
+            'includes/email/class-cuft-auto-bcc-config.php',  // Auto-BCC configuration model
+            'includes/email/class-cuft-auto-bcc-validator.php',  // Auto-BCC validation
+            'includes/email/class-cuft-email-type-detector.php',  // Email type detection
+            'includes/email/class-cuft-bcc-rate-limiter.php',  // BCC rate limiting (note: different from update rate limiter)
+            'includes/email/class-cuft-email-interceptor.php',  // wp_mail filter hook
+            'includes/email/class-cuft-auto-bcc-manager.php',  // Auto-BCC orchestrator
+            'includes/email/class-cuft-email-tracking-injector.php',  // Tracking parameter injection
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
             // Updater Models
             'includes/models/class-cuft-update-status.php',  // Update status model
@@ -282,6 +291,20 @@ class Choice_Universal_Form_Tracker {
             }
             if ( class_exists( 'CUFT_Backup_Manager' ) ) {
                 new CUFT_Backup_Manager();
+            }
+
+            // Initialize Auto-BCC Email System (Feature 010)
+            if ( class_exists( 'CUFT_Auto_BCC_Manager' ) ) {
+                CUFT_Auto_BCC_Manager::get_instance()->init();
+            }
+            if ( class_exists( 'CUFT_Auto_BCC_Ajax' ) ) {
+                new CUFT_Auto_BCC_Ajax();
+            }
+
+            // Initialize Email Tracking Parameter Injector
+            if ( class_exists( 'CUFT_Email_Tracking_Injector' ) ) {
+                $tracking_injector = new CUFT_Email_Tracking_Injector();
+                $tracking_injector->init();
             }
 
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
