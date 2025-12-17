@@ -1,0 +1,32 @@
+# Git archive export-ignore patterns
+# These files/directories will be excluded from release ZIPs
+
+# Development directories
+/.github export-ignore
+/.claude export-ignore
+/.cursor export-ignore
+/.specify export-ignore
+/tests export-ignore
+/docs export-ignore
+
+# Development files
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/phpcs.xml export-ignore
+/phpunit.xml export-ignore
+/.editorconfig export-ignore
+/composer.json export-ignore
+/composer.lock export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/.eslintrc export-ignore
+/.prettierrc export-ignore
+
+# Documentation files (keep README.md and readme.txt)
+/RELEASE-PROCESS.md export-ignore
+/CLAUDE.md export-ignore
+
+# Build/temp files
+/node_modules export-ignore
+/vendor export-ignore
+*.log export-ignore
