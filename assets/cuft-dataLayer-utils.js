@@ -207,6 +207,20 @@ window.cuftDataLayerUtils = (function () {
       }
     }
 
+    // Add click tracking data (ip_hash, platform) from server-side tracking
+    if (typeof window.cuftClickData === 'object' && window.cuftClickData) {
+      if (window.cuftClickData.ip_hash) {
+        payload.ip_hash = window.cuftClickData.ip_hash;
+      }
+      if (window.cuftClickData.platform) {
+        payload.click_platform = window.cuftClickData.platform;
+      }
+      // Also set click_id from server if not already present
+      if (!payload.click_id && window.cuftClickData.click_id) {
+        payload.click_id = window.cuftClickData.click_id;
+      }
+    }
+
     return payload;
   }
 

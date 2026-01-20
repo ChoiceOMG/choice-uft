@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '3.15.0';
+    const CURRENT_VERSION = '3.21.0';
 
     /**
      * Option name for storing database version
@@ -44,6 +44,11 @@ class CUFT_DB_Migration {
         // Run 3.15.0 migration for update log table
         if ( version_compare( $current_version, '3.15.0', '<' ) ) {
             self::migrate_to_3_15_0();
+        }
+
+        // Run 3.21.0 migration for IP hash
+        if ( version_compare( $current_version, '3.21.0', '<' ) ) {
+            self::migrate_to_3_21_0();
         }
 
         // Update version
@@ -345,6 +350,24 @@ class CUFT_DB_Migration {
                     'info',
                     'Created update log table',
                     array( 'version' => '3.15.0' )
+                );
+            }
+        }
+    }
+
+    /**
+     * Migration to version 3.21.0
+     * Converts ip_address column to ip_hash with SHA256 hashing
+     */
+    private static function migrate_to_3_21_0() {
+        if ( class_exists( 'CUFT_Migration_3_21_0' ) ) {
+            $result = CUFT_Migration_3_21_0::up();
+
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log(
+                    $result ? 'info' : 'error',
+                    'Migration 3.21.0: IP hash conversion ' . ( $result ? 'completed' : 'failed' ),
+                    array( 'version' => '3.21.0' )
                 );
             }
         }

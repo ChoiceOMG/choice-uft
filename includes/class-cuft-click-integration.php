@@ -144,14 +144,28 @@ class CUFT_Click_Integration {
             true
         );
         
-        // Pass click ID to JavaScript
+        // Pass click ID and tracking data to JavaScript
         $click_id = '';
+        $ip_hash = '';
+        $platform = '';
+
         if ( session_id() && isset( $_SESSION['cuft_click_id'] ) ) {
             $click_id = $_SESSION['cuft_click_id'];
+
+            // Fetch additional tracking data from database
+            if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
+                $click_data = CUFT_Click_Tracker::get_click_by_id( $click_id );
+                if ( $click_data ) {
+                    $ip_hash = isset( $click_data->ip_hash ) ? $click_data->ip_hash : '';
+                    $platform = isset( $click_data->platform ) ? $click_data->platform : '';
+                }
+            }
         }
-        
+
         wp_localize_script( 'cuft-click-integration', 'cuftClickData', array(
             'click_id' => $click_id,
+            'ip_hash' => $ip_hash,
+            'platform' => $platform,
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_click_nonce' )
         ) );

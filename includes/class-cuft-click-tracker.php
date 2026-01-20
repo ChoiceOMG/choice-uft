@@ -58,7 +58,7 @@ class CUFT_Click_Tracker {
             score int(11) DEFAULT 0,
             date_created datetime DEFAULT CURRENT_TIMESTAMP,
             date_updated datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            ip_address varchar(45) DEFAULT NULL,
+            ip_hash varchar(64) DEFAULT NULL,
             user_agent text DEFAULT NULL,
             additional_data longtext DEFAULT NULL,
             PRIMARY KEY (id),
@@ -103,7 +103,7 @@ class CUFT_Click_Tracker {
             'utm_content' => '',
             'qualified' => 0,
             'score' => 0,
-            'ip_address' => self::get_client_ip(),
+            'ip_hash' => self::hash_ip( self::get_client_ip() ),
             'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ) : '',
             'additional_data' => ''
         );
@@ -121,7 +121,7 @@ class CUFT_Click_Tracker {
         $data['utm_content'] = sanitize_text_field( $data['utm_content'] );
         $data['qualified'] = (int) $data['qualified'];
         $data['score'] = max( 0, min( 10, (int) $data['score'] ) ); // Ensure score is 0-10
-        $data['ip_address'] = sanitize_text_field( $data['ip_address'] );
+        $data['ip_hash'] = sanitize_text_field( $data['ip_hash'] );
         $data['user_agent'] = sanitize_textarea_field( $data['user_agent'] );
         
         if ( is_array( $data['additional_data'] ) ) {
@@ -160,9 +160,11 @@ class CUFT_Click_Tracker {
             );
         } else {
             // Insert new record
+            // Format: platform, campaign, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+            //         qualified(%d), score(%d), ip_hash, user_agent, additional_data, click_id, [events]
             $format = ! empty( $columns )
-                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
-                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
+                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
+                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' );
 
             $result = $wpdb->insert(
                 $table_name,
@@ -266,6 +268,7 @@ class CUFT_Click_Tracker {
             'event_type' => '',
             'date_from' => '',
             'date_to' => '',
+            'ip_hash' => '',
             'sort_by' => 'date_created'
         );
 
@@ -301,6 +304,12 @@ class CUFT_Click_Tracker {
             $where_values[] = sanitize_text_field( $args['date_to'] );
         }
 
+        // IP hash filter (v3.21.0+)
+        if ( ! empty( $args['ip_hash'] ) ) {
+            $where_clauses[] = 'ip_hash = %s';
+            $where_values[] = sanitize_text_field( $args['ip_hash'] );
+        }
+
         $where_sql = implode( ' AND ', $where_clauses );
 
         // Handle sort_by parameter (v3.12.0+)
@@ -321,7 +330,28 @@ class CUFT_Click_Tracker {
 
         return $wpdb->get_results( $sql );
     }
-    
+
+    /**
+     * Get a single click record by click_id
+     *
+     * @param string $click_id The click ID to look up
+     * @return object|null The click record or null if not found
+     */
+    public static function get_click_by_id( $click_id ) {
+        global $wpdb;
+
+        if ( empty( $click_id ) ) {
+            return null;
+        }
+
+        $table_name = $wpdb->prefix . self::$table_name;
+
+        return $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM $table_name WHERE click_id = %s",
+            sanitize_text_field( $click_id )
+        ) );
+    }
+
     /**
      * Get click tracking count
      */
@@ -333,7 +363,8 @@ class CUFT_Click_Tracker {
             'platform' => '',
             'event_type' => '',
             'date_from' => '',
-            'date_to' => ''
+            'date_to' => '',
+            'ip_hash' => ''
         );
 
         $args = wp_parse_args( $args, $defaults );
@@ -366,6 +397,12 @@ class CUFT_Click_Tracker {
         if ( ! empty( $args['date_to'] ) ) {
             $where_clauses[] = 'date_created <= %s';
             $where_values[] = sanitize_text_field( $args['date_to'] );
+        }
+
+        // IP hash filter (v3.21.0+)
+        if ( ! empty( $args['ip_hash'] ) ) {
+            $where_clauses[] = 'ip_hash = %s';
+            $where_values[] = sanitize_text_field( $args['ip_hash'] );
         }
 
         $where_sql = implode( ' AND ', $where_clauses );
@@ -456,7 +493,7 @@ class CUFT_Click_Tracker {
      */
     private static function get_client_ip() {
         $ip_keys = array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' );
-        
+
         foreach ( $ip_keys as $key ) {
             if ( ! empty( $_SERVER[ $key ] ) ) {
                 $ip = sanitize_text_field( $_SERVER[ $key ] );
@@ -464,13 +501,27 @@ class CUFT_Click_Tracker {
                 if ( strpos( $ip, ',' ) !== false ) {
                     $ip = trim( explode( ',', $ip )[0] );
                 }
-                if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+                // Validate IP address (allow all valid IPs including private ranges)
+                if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
                     return $ip;
                 }
             }
         }
-        
+
         return '';
+    }
+
+    /**
+     * Hash IP address using SHA256 for privacy
+     *
+     * @param string $ip The IP address to hash
+     * @return string The SHA256 hash of the IP (64 characters) or empty string
+     */
+    private static function hash_ip( $ip ) {
+        if ( empty( $ip ) ) {
+            return '';
+        }
+        return hash( 'sha256', $ip );
     }
     
     /**
@@ -515,7 +566,7 @@ class CUFT_Click_Tracker {
             'Score',
             'Date Created (UTC)',
             'Date Updated (UTC)',
-            'IP Address',
+            'IP Hash',
             'User Agent'
         ) );
 
@@ -535,7 +586,7 @@ class CUFT_Click_Tracker {
                 $click->score,
                 $click->date_created,
                 $click->date_updated,
-                $click->ip_address,
+                $click->ip_hash,
                 $click->user_agent
             ) );
         }

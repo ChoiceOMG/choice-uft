@@ -1519,6 +1519,7 @@ class CUFT_Admin {
         $filter_event_type = isset( $_GET['filter_event_type'] ) ? sanitize_text_field( $_GET['filter_event_type'] ) : '';
         $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
         $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
+        $filter_ip_search = isset( $_GET['filter_ip_search'] ) ? sanitize_text_field( $_GET['filter_ip_search'] ) : '';
         $sort_by = isset( $_GET['sort_by'] ) ? sanitize_text_field( $_GET['sort_by'] ) : 'date_created';
 
         $args = array(
@@ -1538,6 +1539,10 @@ class CUFT_Admin {
         }
         if ( ! empty( $filter_date_to ) ) {
             $args['date_to'] = $filter_date_to . ' 23:59:59';
+        }
+        if ( ! empty( $filter_ip_search ) ) {
+            // Hash the IP address for lookup
+            $args['ip_hash'] = hash( 'sha256', $filter_ip_search );
         }
         
         $clicks = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_clicks( $args ) : array();
@@ -1574,7 +1579,7 @@ class CUFT_Admin {
             </div>
             
             <?php $this->render_webhook_settings(); ?>
-            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $sort_by ); ?>
+            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $filter_ip_search, $sort_by ); ?>
             <?php $this->render_click_tracking_stats( $args ); ?>
             <?php $this->render_click_tracking_table( $clicks ); ?>
             <?php $this->render_click_tracking_pagination( $current_page, $total_pages ); ?>
@@ -1706,7 +1711,7 @@ class CUFT_Admin {
     /**
      * Render click tracking filters
      */
-    private function render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $sort_by ) {
+    private function render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $filter_ip_search, $sort_by ) {
         ?>
         <form method="GET" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
             <input type="hidden" name="page" value="choice-universal-form-tracker" />
@@ -1734,6 +1739,10 @@ class CUFT_Admin {
                     </select>
                 </div>
                 <div>
+                    <label><strong>Search by IP:</strong></label><br>
+                    <input type="text" name="filter_ip_search" value="<?php echo esc_attr( $filter_ip_search ); ?>" placeholder="e.g. 192.168.1.100" style="width: 100%;" />
+                </div>
+                <div>
                     <label><strong>Sort By:</strong></label><br>
                     <select name="sort_by">
                         <option value="date_created" <?php selected( $sort_by, 'date_created' ); ?>>Date Created</option>
@@ -1753,6 +1762,12 @@ class CUFT_Admin {
                     <a href="<?php echo esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ); ?>" class="button">Clear</a>
                 </div>
             </div>
+            <?php if ( ! empty( $filter_ip_search ) ) : ?>
+            <div style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 4px;">
+                <strong>🔍 IP Search:</strong> Showing results for IP <code><?php echo esc_html( $filter_ip_search ); ?></code>
+                (Hash: <code><?php echo esc_html( substr( hash( 'sha256', $filter_ip_search ), 0, 16 ) ); ?>...</code>)
+            </div>
+            <?php endif; ?>
         </form>
         <?php
     }
@@ -1832,8 +1847,8 @@ class CUFT_Admin {
                                         <strong style="text-decoration: underline; text-decoration-style: dotted;"><?php echo esc_html( $click->click_id ); ?></strong>
                                         <span class="dashicons dashicons-clipboard" style="font-size: 14px; vertical-align: middle; color: #666;"></span>
                                     </span>
-                                    <?php if ( ! empty( $click->ip_address ) ): ?>
-                                        <br><small style="color: #666;"><?php echo esc_html( $click->ip_address ); ?></small>
+                                    <?php if ( ! empty( $click->ip_hash ) ): ?>
+                                        <br><small style="color: #666;" title="<?php echo esc_attr( $click->ip_hash ); ?>">IP: <?php echo esc_html( substr( $click->ip_hash, 0, 12 ) ); ?>…</small>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html( $click->campaign ?: '—' ); ?></td>
