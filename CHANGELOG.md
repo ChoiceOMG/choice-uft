@@ -5,6 +5,23 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.0] - 2026-01-20
+
+### Added
+- **IP Hash Privacy Feature**: Store visitor IP addresses as SHA256 hashes instead of raw IPs for privacy compliance
+- **IP Search in Admin**: Search click tracking records by raw IP address (auto-hashed for lookup)
+- **DataLayer Enhancements**: Inject `ip_hash` and `click_platform` into form_submit and generate_lead GTM events
+- **New API Method**: `CUFT_Click_Tracker::get_click_by_id()` for retrieving individual click records
+
+### Changed
+- Database column renamed from `ip_address` (varchar 45) to `ip_hash` (varchar 64)
+- IP capture now works with private/local IPs in development environments
+- Fixed format arrays in `track_click()` for proper data insertion
+
+### Migration
+- v3.21.0 migration automatically converts existing IP addresses to hashes
+- Existing records with invalid IPs (empty, "0") are preserved as-is
+
 ## [3.20.1] - 2026-01-20
 
 ### Fixed
