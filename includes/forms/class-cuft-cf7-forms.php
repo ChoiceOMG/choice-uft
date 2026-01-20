@@ -92,9 +92,19 @@ class CUFT_CF7_Forms {
         
         // Extract email and phone from posted data
         foreach ( $posted_data as $key => $value ) {
+            // Skip arrays (checkboxes, multi-select) - get first value if needed
+            if ( is_array( $value ) ) {
+                $value = ! empty( $value ) ? reset( $value ) : '';
+            }
+
+            // Skip non-string values
+            if ( ! is_string( $value ) || empty( $value ) ) {
+                continue;
+            }
+
             if ( is_email( $value ) ) {
                 $data['user_email'] = sanitize_email( $value );
-            } elseif ( preg_match( '/phone|tel|mobile/i', $key ) && ! empty( $value ) ) {
+            } elseif ( preg_match( '/phone|tel|mobile/i', $key ) ) {
                 $data['user_phone'] = preg_replace( '/[^0-9+]/', '', $value );
             }
         }
