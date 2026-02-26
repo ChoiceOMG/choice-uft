@@ -144,6 +144,19 @@ try {
 
   function getClickIdFromSession() {
     try {
+      // Check UTM tracker's stored tracking data first (contains real gclid/fbclid)
+      var trackingData = null;
+      if (window.cuftGetTrackingData) {
+        trackingData = window.cuftGetTrackingData();
+      } else if (window.cuftGetUtmData) {
+        trackingData = window.cuftGetUtmData();
+      }
+      if (trackingData) {
+        var id = trackingData.gclid || trackingData.fbclid || trackingData.click_id ||
+                 trackingData.gbraid || trackingData.wbraid || trackingData.msclkid;
+        if (id) return id;
+      }
+      // Fallback to simple session key
       return sessionStorage.getItem('cuft_click_id');
     } catch (e) {
       return null;

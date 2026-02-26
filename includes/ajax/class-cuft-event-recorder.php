@@ -42,11 +42,6 @@ class CUFT_Event_Recorder {
      * @return void Sends JSON response and exits
      */
     public function record_event() {
-        // UNCONDITIONAL DEBUG - Always log
-        error_log( '=== CUFT Event Recorder: record_event() called ===' );
-        error_log( 'CUFT: Received nonce: ' . ( isset( $_POST['nonce'] ) ? $_POST['nonce'] : 'MISSING' ) );
-        error_log( 'CUFT: Current user ID: ' . get_current_user_id() );
-
         try {
             // Debug logging
             if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
