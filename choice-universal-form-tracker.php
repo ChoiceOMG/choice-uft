@@ -443,10 +443,12 @@ class Choice_Universal_Form_Tracker {
                                 get_option( 'cuft_sgtm_active_server', 'fallback' ) === 'custom';
 
         // Prepare config object
+        $console_logging = CUFT_Console_Logger::get_console_logging_setting();
         $cuft_config = array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => $nonce,
             'debug' => defined( 'WP_DEBUG' ) && WP_DEBUG,
+            'console_logging' => $console_logging,
             'custom_server_enabled' => $custom_server_enabled,
         );
 

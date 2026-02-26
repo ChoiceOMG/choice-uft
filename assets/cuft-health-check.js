@@ -113,7 +113,7 @@
             const responseData = data.data;
             
             // Log status change if it occurred
-            if (responseData.status_changed) {
+            if (responseData.status_changed && window.cuftConfig && window.cuftConfig.debug) {
                 console.info('[CUFT Health Check] Server status changed:', responseData.active_server);
             }
 

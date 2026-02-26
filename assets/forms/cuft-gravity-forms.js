@@ -3,7 +3,6 @@
 
   // Check if dataLayer utilities are available
   if (!window.cuftDataLayerUtils) {
-    console.error('[CUFT Gravity] DataLayer utilities not found - ensure cuft-dataLayer-utils.js is loaded first');
     return;
   }
 
@@ -590,7 +589,7 @@
 
       } else {
         // Traditional submission - store data for post-reload tracking
-        console.log("[CUFT Gravity] Traditional submission detected");
+        log("Traditional submission detected");
 
         // Prevent duplicate processing
         if (form.hasAttribute("data-cuft-gravity-submitted")) {
@@ -603,7 +602,7 @@
         var phone = getFieldValue(form, "phone");
         var formDetails = getGravityFormDetails(form);
 
-        console.log("[CUFT Gravity] Captured:", {
+        log("Captured:", {
           email: email ? "YES" : "NO",
           phone: phone ? "YES" : "NO"
         });
@@ -619,9 +618,9 @@
               timestamp: Date.now()
             };
             localStorage.setItem('cuft_gravity_submission_data', JSON.stringify(submissionData));
-            console.log("[CUFT Gravity] Stored submission data in localStorage");
+            log("Stored submission data in localStorage");
           } catch (e) {
-            console.error("[CUFT Gravity] Storage error:", e);
+            log("Storage error:", e);
           }
         }
       }
@@ -890,7 +889,6 @@
 
   // Initialize when DOM is ready
   ready(function () {
-    console.log("[CUFT Gravity] Initialized");
     log("=== Gravity Forms Tracking Initialization ===");
     log("Page URL:", window.location.href);
     log("jQuery available:", !!window.jQuery);
@@ -899,14 +897,14 @@
     // Check if this is a confirmation page after traditional submission
     var confirmationMessage = document.querySelector('.gform_confirmation_message');
     if (confirmationMessage) {
-      console.log("[CUFT Gravity] Confirmation page detected");
+      log("Confirmation page detected");
 
       // Check if we have submission data (email/phone) from the previous page
       try {
         var storedSubmission = localStorage.getItem('cuft_gravity_submission_data');
         if (storedSubmission) {
           var submissionData = JSON.parse(storedSubmission);
-          console.log("[CUFT Gravity] Found stored submission data:", {
+          log("Found stored submission data:", {
             email: submissionData.email ? "YES" : "NO",
             phone: submissionData.phone ? "YES" : "NO"
           });
@@ -922,23 +920,23 @@
               form_name: submissionData.formName,
               user_email: submissionData.email,
               user_phone: submissionData.phone,
-              debug: true,
+              debug: DEBUG,
               lead_currency: 'CAD',
               lead_value: 100
             });
 
             if (success) {
-              console.log("[CUFT Gravity] ✅ Form tracked successfully");
+              log("Form tracked successfully");
               localStorage.removeItem('cuft_gravity_submission_data');
             } else {
-              console.log("[CUFT Gravity] ❌ Tracking failed");
+              log("Tracking failed");
             }
           }
         } else {
-          console.log("[CUFT Gravity] No stored submission data found");
+          log("No stored submission data found");
         }
       } catch (e) {
-        console.error("[CUFT Gravity] Error:", e);
+        log("Error:", e);
       }
     }
 

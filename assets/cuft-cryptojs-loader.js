@@ -8,9 +8,20 @@
 (function() {
     'use strict';
 
+    var DEBUG = !!(window.cuftCryptoJS && window.cuftCryptoJS.debug);
+    function log() {
+        if (!DEBUG) return;
+        try {
+            if (window.console && window.console.log) {
+                window.console.log.apply(window.console,
+                    ['[CUFT CryptoJS]'].concat(Array.prototype.slice.call(arguments)));
+            }
+        } catch (e) {}
+    }
+
     // Check if CryptoJS is already available
     if (typeof window.CryptoJS !== 'undefined') {
-        console.log('[CUFT CryptoJS] CryptoJS already available, skipping CDN load');
+        log('CryptoJS already available, skipping CDN load');
 
         // Fire ready event for any code waiting for CryptoJS
         document.dispatchEvent(new CustomEvent('cuft:cryptojs:ready', {
@@ -24,7 +35,7 @@
     }
 
     // CryptoJS not found, load from CDN
-    console.log('[CUFT CryptoJS] CryptoJS not found, loading from CDN');
+    log('CryptoJS not found, loading from CDN');
 
     // Get configuration from WordPress
     var config = window.cuftCryptoJS || {};
@@ -44,7 +55,7 @@
 
     // Set up success handler
     script.onload = function() {
-        console.log('[CUFT CryptoJS] CryptoJS loaded successfully from CDN');
+        log('CryptoJS loaded successfully from CDN');
 
         // Verify CryptoJS is actually available
         if (typeof window.CryptoJS !== 'undefined') {
@@ -55,7 +66,7 @@
                 }
             }));
         } else {
-            console.error('[CUFT CryptoJS] CryptoJS script loaded but object not available');
+            log('CryptoJS script loaded but object not available');
             document.dispatchEvent(new CustomEvent('cuft:cryptojs:failed', {
                 detail: { reason: 'load_verification_failed' }
             }));
@@ -64,7 +75,7 @@
 
     // Set up error handler
     script.onerror = function() {
-        console.error('[CUFT CryptoJS] Failed to load CryptoJS from CDN');
+        log('Failed to load CryptoJS from CDN');
         document.dispatchEvent(new CustomEvent('cuft:cryptojs:failed', {
             detail: { reason: 'cdn_load_error' }
         }));
@@ -76,7 +87,7 @@
     // Set up fallback timeout
     setTimeout(function() {
         if (typeof window.CryptoJS === 'undefined') {
-            console.warn('[CUFT CryptoJS] CDN load timeout - CryptoJS still not available');
+            log('CDN load timeout - CryptoJS still not available');
             document.dispatchEvent(new CustomEvent('cuft:cryptojs:failed', {
                 detail: { reason: 'timeout' }
             }));

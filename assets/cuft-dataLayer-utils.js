@@ -268,9 +268,9 @@ window.cuftDataLayerUtils = (function () {
 
       return true;
     } catch (e) {
-      if (window.console && window.console.error) {
+      if (debugContext && debugContext.debug && window.console && window.console.error) {
         window.console.error('[CUFT DataLayer] Push error:', {
-          framework: debugContext ? debugContext.framework : 'unknown',
+          framework: debugContext.framework || 'unknown',
           formId: payload ? payload.form_id : 'unknown',
           error: e.message,
           eventType: payload ? payload.event : 'unknown'

@@ -4,6 +4,8 @@
 window.cuftUtmUtils = (function () {
   "use strict";
 
+  var DEBUG = !!(window.cuftConfig && window.cuftConfig.console_logging);
+
   /**
    * UTM parameters
    */
@@ -46,7 +48,7 @@ window.cuftUtmUtils = (function () {
     }
 
     // Debug logging
-    if (window.console && window.console.log) {
+    if (DEBUG && window.console && window.console.log) {
       var hasData = trackingData && Object.keys(trackingData).length > 0;
       console.log(
         '[CUFT UTM Utils] Tracking data retrieved:',
@@ -84,7 +86,7 @@ window.cuftUtmUtils = (function () {
       }
 
       // Debug logging
-      if (window.console && window.console.log) {
+      if (DEBUG && window.console && window.console.log) {
         if (fieldsAdded.length > 0) {
           console.log(
             '[CUFT UTM Utils] Added tracking fields to payload:',

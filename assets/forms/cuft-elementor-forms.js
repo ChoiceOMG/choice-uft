@@ -3,9 +3,6 @@
 
   // Check if dataLayer utilities are available
   if (!window.cuftDataLayerUtils) {
-    console.error(
-      "[CUFT Elementor] DataLayer utilities not found - ensure cuft-dataLayer-utils.js is loaded first"
-    );
     return;
   }
 

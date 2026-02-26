@@ -209,7 +209,7 @@
 
   // Log migration status if debug mode is enabled
   window.cuftMigration.logStatus = function() {
-    if (this.debugMode || (window.console && window.console.log)) {
+    if (this.debugMode) {
       var status = this.getStatus();
       console.log('[CUFT Migration] Status:', status);
       console.log('[CUFT Migration] Phase 1 (Core Compliance):',
@@ -313,7 +313,9 @@
 
   // Trigger rollback
   window.cuftMigration.triggerRollback = function(reason) {
-    console.error('[CUFT Migration] ROLLBACK TRIGGERED:', reason);
+    if (this.debugMode && window.console && window.console.error) {
+      console.error('[CUFT Migration] ROLLBACK TRIGGERED:', reason);
+    }
 
     // Disable all migration flags
     this.useVanillaJSFirst = false;
