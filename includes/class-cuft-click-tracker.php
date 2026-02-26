@@ -815,11 +815,6 @@ class CUFT_Click_Tracker {
             return false;
         }
 
-        // Check feature flag
-        if ( class_exists( 'CUFT_Utils' ) && ! CUFT_Utils::is_feature_enabled( 'click_event_tracking' ) ) {
-            return false;
-        }
-
         $table_name = $wpdb->prefix . self::$table_name;
 
         // Validate event type

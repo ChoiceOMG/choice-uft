@@ -5,6 +5,12 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.2] - 2026-02-26
+
+### Fixed
+- **Critical: Click events not recording** — Feature flag `click_event_tracking` was disabled by default and never initialized, causing `add_event()` to silently discard all events (form_submit, generate_lead, phone_click, email_click). Removed the unnecessary flag gate.
+- **Click ID validation too strict** — The event recorder regex rejected valid Google/Facebook click IDs containing periods, equals signs, or plus characters. Expanded the allowed character set.
+
 ## [3.21.1] - 2026-02-26
 
 ### Fixed

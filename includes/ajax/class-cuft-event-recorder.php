@@ -83,8 +83,8 @@ class CUFT_Event_Recorder {
                 return;
             }
 
-            // Validate click_id format (alphanumeric + hyphens/underscores only)
-            if ( ! preg_match( '/^[a-zA-Z0-9_-]+$/', $click_id ) ) {
+            // Validate click_id format (alphanumeric + common click ID characters)
+            if ( ! preg_match( '/^[a-zA-Z0-9_\-\.=+]+$/', $click_id ) ) {
                 wp_send_json_error( array(
                     'message' => 'Invalid click_id format'
                 ), 400 );
