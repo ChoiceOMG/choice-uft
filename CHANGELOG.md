@@ -5,6 +5,13 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.4] - 2026-02-26
+
+### Fixed
+- **Click ID column overflow** — Truncated long click IDs in the admin table to ~200px with ellipsis; full ID shown on hover and still copyable
+- **Link click events used wrong click ID** — phone_click and email_click events were recorded against temporary IDs instead of the real gclid/fbclid from tracking data, preventing them from linking to existing click records
+- **Removed debug noise** — Cleaned up unconditional `error_log()` calls in the AJAX event recorder
+
 ## [3.21.2] - 2026-02-26
 
 ### Fixed
