@@ -5,6 +5,19 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.1] - 2026-02-26
+
+### Fixed
+- **Console Logging Setting Ignored**: Browser console messages appeared even when "Browser Console Logging" was disabled in plugin settings. All frontend scripts now properly respect the setting:
+  - Gravity Forms: 11 direct console calls replaced with setting-aware wrapper
+  - Elementor, CF7, Ninja Forms, Avada: removed unguarded startup error messages
+  - UTM Utils, DataLayer Utils, Health Check, Feature Flags, CryptoJS Loader: all gated behind console logging setting
+- **Case-insensitive tel:/mailto: detection**: Link click tracking now correctly detects `Tel:` and `MAILTO:` links regardless of case
+
+### Changed
+- Added `console_logging` flag to global `cuftConfig` JavaScript object for consistent access across all scripts
+- GitHub release workflow updated to use `softprops/action-gh-release@v2`
+
 ## [3.21.0] - 2026-01-20
 
 ### Added
