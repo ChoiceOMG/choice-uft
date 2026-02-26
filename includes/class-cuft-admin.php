@@ -1837,14 +1837,14 @@ class CUFT_Admin {
                     <?php else: ?>
                         <?php foreach ( $clicks as $click ): ?>
                             <tr>
-                                <td>
+                                <td style="max-width: 200px;">
                                     <span
                                         class="cuft-click-id-copy"
                                         onclick="copyClickIdToTest('<?php echo esc_js( $click->click_id ); ?>')"
-                                        style="cursor: pointer; display: inline-block;"
-                                        title="Click to copy to test field"
+                                        style="cursor: pointer; display: inline-block; max-width: 100%;"
+                                        title="<?php echo esc_attr( $click->click_id ); ?> — Click to copy"
                                     >
-                                        <strong style="text-decoration: underline; text-decoration-style: dotted;"><?php echo esc_html( $click->click_id ); ?></strong>
+                                        <strong style="text-decoration: underline; text-decoration-style: dotted; display: inline-block; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;"><?php echo esc_html( $click->click_id ); ?></strong>
                                         <span class="dashicons dashicons-clipboard" style="font-size: 14px; vertical-align: middle; color: #666;"></span>
                                     </span>
                                     <?php if ( ! empty( $click->ip_hash ) ): ?>
@@ -1964,6 +1964,14 @@ class CUFT_Admin {
         </div>
         
         <style>
+        .cuft-click-tracking table.widefat {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .cuft-click-tracking table.widefat th:nth-child(1),
+        .cuft-click-tracking table.widefat td:nth-child(1) {
+            width: 200px;
+        }
         .cuft-click-id-copy:hover {
             background: #f0f6ff;
             padding: 2px 6px;
