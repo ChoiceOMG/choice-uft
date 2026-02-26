@@ -162,13 +162,12 @@ try {
 
   function onClick(e) {
     try {
-      var a =
-        e.target && e.target.closest
-          ? e.target.closest('a[href^="tel:"], a[href^="mailto:"]')
-          : null;
+      var el = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+      if (!el) return;
+      var href = (el.getAttribute("href") || "").trim();
+      var hrefLower = href.toLowerCase();
+      var a = (hrefLower.indexOf("tel:") === 0 || hrefLower.indexOf("mailto:") === 0) ? el : null;
       if (!a) return;
-
-      var href = a.getAttribute("href") || "";
 
       // Get GA4 standard parameters
       var ga4Params = getGA4StandardParams();
