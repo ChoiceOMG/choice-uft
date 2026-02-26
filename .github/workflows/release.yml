@@ -92,26 +92,13 @@ EOF
           echo "Release notes generated"
 
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Version ${{ steps.get_version.outputs.VERSION }}
+          name: Version ${{ steps.get_version.outputs.VERSION }}
           body_path: release_notes.md
+          files: choice-uft.zip
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./choice-uft.zip
-          asset_name: choice-uft.zip
-          asset_content_type: application/zip
 
       - name: Summary
         run: |
