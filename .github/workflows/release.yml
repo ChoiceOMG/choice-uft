@@ -48,26 +48,20 @@ jobs:
           ' CHANGELOG.md > release_notes.md
 
           # Append installation instructions
-          cat >> release_notes.md << ENDOFNOTES
-
-## Installation
-
-### Automatic Update
-If you already have the plugin installed, it should automatically detect this update. Go to **Plugins** in your WordPress admin and click **Update Now**.
-
-### Manual Installation
-1. Download the \`choice-uft-v${VERSION}.zip\` file from the assets below
-2. In WordPress admin, go to **Plugins → Add New → Upload Plugin**
-3. Choose the downloaded zip file and click **Install Now**
-4. Activate the plugin after installation
-
-## Requirements
-- WordPress 5.0 or higher
-- PHP 7.4 or higher
-
-## Support
-For issues or questions, please visit: https://github.com/ChoiceOMG/choice-uft/issues
-ENDOFNOTES
+          printf "\n## Installation\n\n" >> release_notes.md
+          printf "### Automatic Update\n" >> release_notes.md
+          printf "If you already have the plugin installed, it should automatically detect this update. " >> release_notes.md
+          printf "Go to **Plugins** in your WordPress admin and click **Update Now**.\n\n" >> release_notes.md
+          printf "### Manual Installation\n" >> release_notes.md
+          printf "1. Download the \`choice-uft-v%s.zip\` file from the assets below\n" "$VERSION" >> release_notes.md
+          printf "2. In WordPress admin, go to **Plugins → Add New → Upload Plugin**\n" >> release_notes.md
+          printf "3. Choose the downloaded zip file and click **Install Now**\n" >> release_notes.md
+          printf "4. Activate the plugin after installation\n\n" >> release_notes.md
+          printf "## Requirements\n" >> release_notes.md
+          printf "- WordPress 5.0 or higher\n" >> release_notes.md
+          printf "- PHP 7.4 or higher\n\n" >> release_notes.md
+          printf "## Support\n" >> release_notes.md
+          printf "For issues or questions, please visit: https://github.com/ChoiceOMG/choice-uft/issues\n" >> release_notes.md
 
           echo "Release notes generated"
 
