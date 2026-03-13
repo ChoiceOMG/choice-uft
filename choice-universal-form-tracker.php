@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.21.4
+ * Version:           3.21.5
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.21.4' );
+define( 'CUFT_VERSION', '3.21.5' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -63,6 +63,7 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-form-detector.php',
             'includes/class-cuft-form-tracker.php',
             'includes/class-cuft-link-tracking.php',
+            'includes/class-cuft-ai-files.php',
             'includes/class-cuft-utm-tracker.php',
             'includes/class-cuft-console-logger.php',
             'includes/class-cuft-github-updater.php',
@@ -242,6 +243,10 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Form_Tracker();
             }
             
+            if ( class_exists( 'CUFT_AI_Files' ) ) {
+                new CUFT_AI_Files();
+            }
+
             if ( class_exists( 'CUFT_Link_Tracking' ) ) {
                 new CUFT_Link_Tracking();
             }
