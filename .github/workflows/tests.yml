@@ -7,40 +7,19 @@ on:
     branches: [ master, main ]
 
 jobs:
-  unit:
-    name: Unit Tests (PHP ${{ matrix.php-version }})
+  test:
+    name: Tests (PHP ${{ matrix.php-version }}, WP ${{ matrix.wp-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         php-version: ['7.4', '8.0', '8.1', '8.2']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: mysqli
-          coverage: none
-          tools: composer
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Run unit tests
-        run: composer test:unit
-
-  integration:
-    name: Integration Tests (PHP ${{ matrix.php-version }}, WP ${{ matrix.wp-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-version: ['7.4', '8.2']
-        wp-version: ['latest', '6.4']
+        wp-version: ['latest']
+        include:
+          - php-version: '7.4'
+            wp-version: '6.4'
+          - php-version: '8.2'
+            wp-version: '6.4'
 
     services:
       mysql:
@@ -77,8 +56,8 @@ jobs:
           WP_TESTS_DIR: /tmp/wordpress-tests-lib
           WP_CORE_DIR: /tmp/wordpress
 
-      - name: Run integration tests
-        run: composer test:integration
+      - name: Run tests
+        run: composer test
         env:
           WP_TESTS_DIR: /tmp/wordpress-tests-lib
           WP_CORE_DIR: /tmp/wordpress

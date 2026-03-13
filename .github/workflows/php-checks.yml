@@ -186,7 +186,7 @@ jobs:
 
         # Check version consistency
         main_version=$(grep "Version:" choice-universal-form-tracker.php | head -1 | sed 's/.*Version:\s*//' | tr -d ' ')
-        const_version=$(grep "CUFT_VERSION" choice-universal-form-tracker.php | head -1 | sed "s/.*['\"]//;s/['\"].*//" | tr -d ' ')
+        const_version=$(grep "define.*CUFT_VERSION" choice-universal-form-tracker.php | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
         readme_version=$(grep "Stable tag:" readme.txt | sed 's/.*Stable tag:\s*//' | tr -d ' ')
 
         echo "Main version: $main_version"
