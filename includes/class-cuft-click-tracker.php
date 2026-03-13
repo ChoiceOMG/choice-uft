@@ -492,7 +492,7 @@ class CUFT_Click_Tracker {
      * Get client IP address
      */
     private static function get_client_ip() {
-        $ip_keys = array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' );
+        $ip_keys = array( 'HTTP_CF_CONNECTING_IP', 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' );
 
         foreach ( $ip_keys as $key ) {
             if ( ! empty( $_SERVER[ $key ] ) ) {

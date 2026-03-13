@@ -6,6 +6,7 @@
 /.claude export-ignore
 /.cursor export-ignore
 /.specify export-ignore
+/bin export-ignore
 /tests export-ignore
 /docs export-ignore
 /specs export-ignore
@@ -15,6 +16,7 @@
 /.gitattributes export-ignore
 /phpcs.xml export-ignore
 /phpunit.xml export-ignore
+/.distignore export-ignore
 /.editorconfig export-ignore
 /composer.json export-ignore
 /composer.lock export-ignore

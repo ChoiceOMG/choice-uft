@@ -10,6 +10,13 @@
  *   cuft_ai_file_llms      - /llms.txt content
  *   cuft_ai_file_ai        - /ai.txt content
  *   cuft_ai_file_llms_full - /llms-full.txt content
+ *
+ * Last-resort behaviour:
+ *   - If a physical file already exists at the webroot path (placed manually
+ *     or by another plugin), this handler steps aside and does nothing.
+ *   - Another plugin or theme can disable the handler entirely via the
+ *     `cuft_ai_files_enabled` filter:
+ *       add_filter( 'cuft_ai_files_enabled', '__return_false' );
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -33,11 +40,24 @@ class CUFT_AI_Files {
 
     /**
      * Intercept requests for AI readiness file paths and serve plain text.
+     *
+     * Steps aside when a physical file already exists at the path, or when
+     * the `cuft_ai_files_enabled` filter returns false.
      */
     public function maybe_serve_file() {
         $path = rtrim( parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH ), '/' );
 
         if ( ! isset( self::FILE_MAP[ $path ] ) ) {
+            return;
+        }
+
+        // Yield to a physical file on disk (manual upload or another plugin).
+        if ( file_exists( ABSPATH . ltrim( $path, '/' ) ) ) {
+            return;
+        }
+
+        // Allow another plugin or theme to disable this handler entirely.
+        if ( ! apply_filters( 'cuft_ai_files_enabled', true ) ) {
             return;
         }
 

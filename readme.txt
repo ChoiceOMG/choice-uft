@@ -4,7 +4,7 @@ Tags: forms, tracking, analytics, gtm, google tag manager, form tracking, utm tr
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 3.19.3
+Stable tag: 3.21.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -131,6 +131,13 @@ The plugin now supports automatic updates from GitHub:
 4. Plugin settings configuration
 
 == Changelog ==
+
+= 3.21.6 =
+* Feature: AI readiness files — serves /llms.txt, /ai.txt, and /llms-full.txt from WordPress options for AI crawler indexing
+* Enhancement: AI files yield to physical files on disk and respect cuft_ai_files_enabled filter for third-party plugin compatibility
+* Fix: Cloudflare IP detection — HTTP_CF_CONNECTING_IP added to IP header priority so visitor IPs are captured correctly on Cloudflare-proxied sites
+* Infrastructure: Fixed release ZIP naming and directory structure that was causing automatic updates to fail
+* Infrastructure: Added PHP test suite (PHPUnit 9, WordPress test bootstrap) and CI workflow running tests on PHP 7.4–8.2
 
 = 3.19.3 =
 * Fix: Removed redundant update notice on plugins page

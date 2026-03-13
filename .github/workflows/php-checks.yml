@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -40,7 +40,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -71,7 +71,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -102,7 +102,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Check for common security issues
       run: |
@@ -163,7 +163,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Check plugin structure
       run: |
@@ -194,9 +194,13 @@ jobs:
         echo "Readme version: $readme_version"
 
         if [ "$main_version" != "$const_version" ] || [ "$main_version" != "$readme_version" ]; then
-          echo "⚠️ Warning: Version mismatch detected"
+          echo "❌ Version mismatch — all three must agree before releasing:"
+          echo "  Plugin header : $main_version"
+          echo "  CUFT_VERSION  : $const_version"
+          echo "  readme.txt    : $readme_version"
+          exit 1
         else
-          echo "✅ Version consistency check passed"
+          echo "✅ Version consistency check passed ($main_version)"
         fi
 
         echo "✅ Plugin structure check complete"

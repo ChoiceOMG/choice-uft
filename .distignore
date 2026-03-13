@@ -1,0 +1,44 @@
+# Files and directories excluded from release ZIPs.
+# Used by release.yml (rsync --exclude-from) and should stay in sync with .gitattributes.
+
+# Development tooling
+/.github
+/.claude
+/.cursor
+/.specify
+/bin
+/tests
+/docs
+/specs
+/vendor
+/node_modules
+
+# Dev config files
+.gitignore
+.gitattributes
+.distignore
+.editorconfig
+.eslintrc
+.eslintrc.json
+.eslintrc.js
+.prettierrc
+webpack.config.js
+phpcs.xml
+phpunit.xml
+composer.json
+composer.lock
+package.json
+package-lock.json
+pnpm-lock.yaml
+Makefile
+
+# Dev-only docs
+RELEASE-PROCESS.md
+CLAUDE.md
+CLAUDE.local.md
+
+# Artifacts
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

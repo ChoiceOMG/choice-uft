@@ -21,41 +21,21 @@ jobs:
 
       - name: Create plugin directory
         run: |
-          mkdir -p choice-universal-form-tracker
-          rsync -av --exclude-from='.distignore' . choice-universal-form-tracker/ || \
-          rsync -av \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='.gitignore' \
-            --exclude='.env' \
-            --exclude='*.zip' \
-            --exclude='.distignore' \
-            --exclude='tests' \
-            --exclude='phpunit.xml' \
-            --exclude='composer.json' \
-            --exclude='composer.lock' \
-            --exclude='package.json' \
-            --exclude='package-lock.json' \
-            --exclude='pnpm-lock.yaml' \
-            --exclude='.eslintrc*' \
-            --exclude='.prettierrc*' \
-            --exclude='webpack.config.js' \
-            --exclude='*.log' \
-            --exclude='.DS_Store' \
-            --exclude='Thumbs.db' \
-            . choice-universal-form-tracker/
+          mkdir -p choice-uft
+          rsync -av --exclude-from='.distignore' --exclude='.git' --exclude='*.zip' . choice-uft/
 
       - name: Create zip file
         run: |
-          zip -r choice-uft.zip choice-universal-form-tracker/
-          echo "Created plugin zip: choice-uft.zip"
-          ls -lh choice-uft.zip
+          ZIP_NAME="choice-uft-v${{ steps.get_version.outputs.VERSION }}.zip"
+          zip -r "$ZIP_NAME" choice-uft/
+          echo "Created plugin zip: $ZIP_NAME"
+          ls -lh "$ZIP_NAME"
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
 
       - name: Generate release notes
         id: release_notes
         run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
           echo "Extracting release notes for version $VERSION"
 
           # Extract the section for this version from CHANGELOG.md
@@ -67,8 +47,8 @@ jobs:
             found && !/^## \[/ { print }
           ' CHANGELOG.md > release_notes.md
 
-          # Add installation instructions
-          cat >> release_notes.md << 'EOF'
+          # Append installation instructions
+          cat >> release_notes.md << ENDOFNOTES
 
 ## Installation
 
@@ -76,7 +56,7 @@ jobs:
 If you already have the plugin installed, it should automatically detect this update. Go to **Plugins** in your WordPress admin and click **Update Now**.
 
 ### Manual Installation
-1. Download the `choice-uft.zip` file from the assets below
+1. Download the \`choice-uft-v${VERSION}.zip\` file from the assets below
 2. In WordPress admin, go to **Plugins → Add New → Upload Plugin**
 3. Choose the downloaded zip file and click **Install Now**
 4. Activate the plugin after installation
@@ -87,7 +67,7 @@ If you already have the plugin installed, it should automatically detect this up
 
 ## Support
 For issues or questions, please visit: https://github.com/ChoiceOMG/choice-uft/issues
-EOF
+ENDOFNOTES
 
           echo "Release notes generated"
 
@@ -96,7 +76,7 @@ EOF
         with:
           name: Version ${{ steps.get_version.outputs.VERSION }}
           body_path: release_notes.md
-          files: choice-uft.zip
+          files: ${{ env.ZIP_NAME }}
           draft: false
           prerelease: false
 
@@ -105,6 +85,6 @@ EOF
           echo "✅ Release created successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Asset:** choice-uft.zip" >> $GITHUB_STEP_SUMMARY
+          echo "**Asset:** ${{ env.ZIP_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The plugin will be available for automatic updates within a few minutes." >> $GITHUB_STEP_SUMMARY

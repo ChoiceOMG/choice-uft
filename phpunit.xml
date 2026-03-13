@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    verbose="false"
+>
+    <testsuites>
+        <testsuite name="unit">
+            <directory suffix=".php">./tests/unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory suffix=".php">./tests/integration</directory>
+            <directory suffix=".php">./tests/ajax</directory>
+            <directory suffix=".php">./tests/contract</directory>
+            <directory suffix=".php">./tests/contracts</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="WP_TESTS_DIR" value="/tmp/wordpress-tests-lib" force="true"/>
+        <env name="WP_CORE_DIR" value="/tmp/wordpress/" force="true"/>
+    </php>
+</phpunit>

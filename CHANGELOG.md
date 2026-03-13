@@ -5,6 +5,23 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.6] - 2026-03-13
+
+### Added
+- **AI Readiness Files** — Serves `/llms.txt`, `/ai.txt`, and `/llms-full.txt` as plain text from WordPress options (`cuft_ai_file_llms`, `cuft_ai_file_ai`, `cuft_ai_file_llms_full`), enabling AI crawler indexing with site-specific content
+- **AI Files last-resort behavior** — Handler now yields silently to physical files already on disk (manual uploads or another plugin) and respects a new `cuft_ai_files_enabled` filter so other plugins can disable it with one line: `add_filter( 'cuft_ai_files_enabled', '__return_false' )`
+
+### Fixed
+- **Cloudflare IP detection** — Added `HTTP_CF_CONNECTING_IP` to the top of the IP header priority chain in both `CUFT_Click_Tracker` and `CUFT_Utils`; sites behind Cloudflare now capture the real visitor IP instead of the Cloudflare edge node IP
+
+### Infrastructure
+- **Release pipeline** — Fixed two bugs that caused every automatic update to fail: release ZIP was named `choice-uft.zip` (should be `choice-uft-v{VERSION}.zip`) and extracted to `choice-universal-form-tracker/` (should be `choice-uft/`); the GitHub updater and validate-release workflow both required the correct names
+- **PHP test suite** — Added PHPUnit 9 configuration (`phpunit.xml`), WordPress test bootstrap (`tests/bootstrap.php`), and a `tests.yml` CI workflow that runs all 75+ test files against PHP 7.4, 8.0, 8.1, 8.2 and WordPress 6.4 / latest
+- **Local development tooling** — Added `composer.json` with PHPCS, WPCS, PHPCompatibility, and PHPUnit as dev dependencies; `phpcs.xml` for local linting; `bin/install-wp-tests.sh` for database setup; `composer test` / `composer lint` now work locally after `composer install`
+- **Authoritative release exclusions** — Added `.distignore` as the single source of truth for files excluded from release ZIPs; release workflow reads this instead of a hardcoded inline list
+- **Version consistency enforcement** — Plugin header, `CUFT_VERSION` constant, and `readme.txt` Stable tag mismatch now causes a hard CI failure instead of a non-blocking warning
+- **GitHub Actions** — Upgraded `actions/checkout` and `actions/setup-node` from v3 to v4 across all workflows
+
 ## [3.21.4] - 2026-02-26
 
 ### Fixed
