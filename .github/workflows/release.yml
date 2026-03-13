@@ -58,8 +58,8 @@ jobs:
           printf "3. Choose the downloaded zip file and click **Install Now**\n" >> release_notes.md
           printf "4. Activate the plugin after installation\n\n" >> release_notes.md
           printf "## Requirements\n" >> release_notes.md
-          printf "- WordPress 5.0 or higher\n" >> release_notes.md
-          printf "- PHP 7.4 or higher\n\n" >> release_notes.md
+          printf '%s\n' "- WordPress 5.0 or higher" >> release_notes.md
+          printf '%s\n\n' "- PHP 7.4 or higher" >> release_notes.md
           printf "## Support\n" >> release_notes.md
           printf "For issues or questions, please visit: https://github.com/ChoiceOMG/choice-uft/issues\n" >> release_notes.md
 
