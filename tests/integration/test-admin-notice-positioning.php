@@ -35,7 +35,7 @@ class Test_Admin_Notice_Positioning extends WP_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create admin user
@@ -64,7 +64,7 @@ class Test_Admin_Notice_Positioning extends WP_UnitTestCase {
     /**
      * Tear down test fixtures
      */
-    public function tearDown() {
+    public function tearDown(): void {
         parent::tearDown();
         delete_site_transient('cuft_update_status');
         delete_site_transient('cuft_update_completed');

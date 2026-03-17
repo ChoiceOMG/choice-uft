@@ -36,7 +36,7 @@ class CUFT_Test_Download_Validation extends WP_UnitTestCase {
 	/**
 	 * Set up test environment
 	 */
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		// Load validator class
@@ -48,7 +48,7 @@ class CUFT_Test_Download_Validation extends WP_UnitTestCase {
 	/**
 	 * Clean up test files after each test
 	 */
-	public function tearDown() {
+	public function tearDown(): void {
 		// Delete temporary test files
 		foreach ( $this->temp_files as $file ) {
 			if ( file_exists( $file ) ) {

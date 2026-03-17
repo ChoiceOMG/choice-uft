@@ -20,7 +20,7 @@ class Test_Ajax_Generate_Data extends WP_Ajax_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create admin user

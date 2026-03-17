@@ -35,7 +35,7 @@ class CUFT_Test_Edge_Case_Restore_Fail extends WP_UnitTestCase {
 	/**
 	 * Set up test environment
 	 */
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		// Load backup manager class
@@ -47,7 +47,7 @@ class CUFT_Test_Edge_Case_Restore_Fail extends WP_UnitTestCase {
 	/**
 	 * Clean up test files
 	 */
-	public function tearDown() {
+	public function tearDown(): void {
 		// Delete temporary files
 		foreach ( $this->temp_files as $file ) {
 			if ( file_exists( $file ) ) {

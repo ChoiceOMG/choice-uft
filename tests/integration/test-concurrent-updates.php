@@ -41,7 +41,7 @@ class Test_Concurrent_Updates extends WP_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create two admin users
@@ -74,7 +74,7 @@ class Test_Concurrent_Updates extends WP_UnitTestCase {
     /**
      * Tear down test fixtures
      */
-    public function tearDown() {
+    public function tearDown(): void {
         parent::tearDown();
         $this->clear_all_transients();
         wp_set_current_user(0);

@@ -29,7 +29,7 @@ class Test_Update_History_FIFO extends WP_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create admin user
@@ -51,7 +51,7 @@ class Test_Update_History_FIFO extends WP_UnitTestCase {
     /**
      * Tear down test fixtures
      */
-    public function tearDown() {
+    public function tearDown(): void {
         parent::tearDown();
         $this->clear_all_logs();
         wp_set_current_user(0);

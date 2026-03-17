@@ -314,7 +314,7 @@ class Test_Update_Flow_Integration extends WP_UnitTestCase {
     /**
      * Set up test environment
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
         
         // Ensure we have an admin user
@@ -329,7 +329,7 @@ class Test_Update_Flow_Integration extends WP_UnitTestCase {
     /**
      * Clean up test environment
      */
-    public function tearDown() {
+    public function tearDown(): void {
         // Clean up POST/GET data
         unset( $_POST['action'] );
         unset( $_POST['nonce'] );

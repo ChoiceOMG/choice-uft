@@ -35,7 +35,7 @@ class CUFT_Test_Edge_Case_Backup_Dir extends WP_UnitTestCase {
 	/**
 	 * Set up test environment
 	 */
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		// Load backup manager class
@@ -47,7 +47,7 @@ class CUFT_Test_Edge_Case_Backup_Dir extends WP_UnitTestCase {
 	/**
 	 * Clean up after tests
 	 */
-	public function tearDown() {
+	public function tearDown(): void {
 		// Restore original permissions
 		foreach ( $this->original_permissions as $path => $perms ) {
 			if ( file_exists( $path ) ) {

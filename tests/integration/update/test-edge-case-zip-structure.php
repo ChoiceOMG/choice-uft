@@ -35,7 +35,7 @@ class CUFT_Test_Edge_Case_ZIP_Structure extends WP_UnitTestCase {
 	/**
 	 * Set up test environment
 	 */
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		// Load directory fixer class
@@ -47,7 +47,7 @@ class CUFT_Test_Edge_Case_ZIP_Structure extends WP_UnitTestCase {
 	/**
 	 * Clean up test directories
 	 */
-	public function tearDown() {
+	public function tearDown(): void {
 		// Delete temporary directories
 		foreach ( $this->temp_dirs as $dir ) {
 			if ( file_exists( $dir ) ) {

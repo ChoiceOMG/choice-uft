@@ -17,7 +17,7 @@ class Test_Data_Models extends WP_UnitTestCase {
     /**
      * Set up test environment
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Clear all transients and user meta before each test
@@ -35,7 +35,7 @@ class Test_Data_Models extends WP_UnitTestCase {
     /**
      * Clean up after each test
      */
-    public function tearDown() {
+    public function tearDown(): void {
         $this->clear_test_data();
         parent::tearDown();
     }

@@ -28,7 +28,7 @@ class CUFT_Test_Edge_Case_Concurrent extends WP_UnitTestCase {
 	/**
 	 * Set up test environment
 	 */
-	public function setUp() {
+	public function setUp(): void {
 		parent::setUp();
 
 		// Load update logger class

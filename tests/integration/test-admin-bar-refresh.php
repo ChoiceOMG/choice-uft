@@ -35,7 +35,7 @@ class Test_Admin_Bar_Refresh extends WP_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create admin user
@@ -65,7 +65,7 @@ class Test_Admin_Bar_Refresh extends WP_UnitTestCase {
     /**
      * Tear down test fixtures
      */
-    public function tearDown() {
+    public function tearDown(): void {
         parent::tearDown();
 
         // Clear transients

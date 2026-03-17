@@ -34,7 +34,7 @@ class Test_Admin_Page_Access extends WP_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create test users
@@ -53,7 +53,7 @@ class Test_Admin_Page_Access extends WP_UnitTestCase {
     /**
      * Clean up after tests
      */
-    public function tearDown() {
+    public function tearDown(): void {
         wp_delete_user($this->admin_user_id);
         wp_delete_user($this->editor_user_id);
         parent::tearDown();

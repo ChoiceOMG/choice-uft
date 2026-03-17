@@ -27,7 +27,7 @@ class Test_Test_Events_Table extends WP_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         global $wpdb;
@@ -43,7 +43,7 @@ class Test_Test_Events_Table extends WP_UnitTestCase {
     /**
      * Clean up after tests
      */
-    public function tearDown() {
+    public function tearDown(): void {
         // Clean up test data
         $this->table->delete_all();
         parent::tearDown();

@@ -34,7 +34,7 @@ class Test_Ajax_Simulate_Event extends WP_Ajax_UnitTestCase {
     /**
      * Set up test fixtures
      */
-    public function setUp() {
+    public function setUp(): void {
         parent::setUp();
 
         // Create admin user
