@@ -42,10 +42,13 @@ elif [[ $WP_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
 elif [[ $WP_VERSION == 'nightly' || $WP_VERSION == 'trunk' ]]; then
     WP_TESTS_TAG="trunk"
 else
-    # Fetch the latest stable tag.
-    download http://develop.svn.wordpress.org/tags/ /tmp/wp-tags.html
-    WP_TESTS_TAG=$(grep -o '"tags/[0-9]*\.[0-9]*\.[0-9]*/"' /tmp/wp-tags.html | tail -1 | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
-    WP_TESTS_TAG="tags/$WP_TESTS_TAG"
+    # Resolve latest version via the WordPress API (more reliable than scraping SVN tags page)
+    LATEST_VERSION=$(curl -s "https://api.wordpress.org/core/version-check/1.7/" | grep -o '"version":"[0-9.]*"' | head -1 | grep -o '[0-9.]*')
+    if [ -n "$LATEST_VERSION" ]; then
+        WP_TESTS_TAG="tags/$LATEST_VERSION"
+    else
+        WP_TESTS_TAG="trunk"
+    fi
 fi
 
 set -ex
@@ -86,8 +89,8 @@ install_test_suite() {
         WP_CORE_DIR=$(echo $WP_CORE_DIR | sed "s://$:/:")
         sed $ioption "s:dirname( __FILE__ ) . '/src/':'$WP_CORE_DIR/':" "$WP_TESTS_DIR/wp-tests-config.php"
         sed $ioption "s/youremptydbname/$DB_NAME/" "$WP_TESTS_DIR/wp-tests-config.php"
-        sed $ioption "s/yourusername/$DB_USER/" "$WP_TESTS_DIR/wp-tests-config.php"
-        sed $ioption "s/yourpassword/$DB_PASS/" "$WP_TESTS_DIR/wp-tests-config.php"
+        sed $ioption "s/yourusernamehere/$DB_USER/" "$WP_TESTS_DIR/wp-tests-config.php"
+        sed $ioption "s/yourpasswordhere/$DB_PASS/" "$WP_TESTS_DIR/wp-tests-config.php"
         sed $ioption "s|localhost|${DB_HOST}|" "$WP_TESTS_DIR/wp-tests-config.php"
     fi
 }
