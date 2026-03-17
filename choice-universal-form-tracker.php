@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Choice Universal Form Tracker
  * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.21.6
+ * Version:           3.21.7
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.21.6' );
+define( 'CUFT_VERSION', '3.21.7' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -95,15 +95,6 @@ class Choice_Universal_Form_Tracker {
             'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
             'includes/ajax/class-cuft-form-builder-ajax.php',  // Form builder AJAX endpoints
             'includes/ajax/class-cuft-updater-ajax.php',  // Updater AJAX endpoints
-            'includes/ajax/class-cuft-auto-bcc-ajax.php',  // Auto-BCC AJAX endpoints (Feature 010)
-            // Auto-BCC Email Infrastructure (Feature 010)
-            'includes/email/class-cuft-auto-bcc-config.php',  // Auto-BCC configuration model
-            'includes/email/class-cuft-auto-bcc-validator.php',  // Auto-BCC validation
-            'includes/email/class-cuft-email-type-detector.php',  // Email type detection
-            'includes/email/class-cuft-bcc-rate-limiter.php',  // BCC rate limiting (note: different from update rate limiter)
-            'includes/email/class-cuft-email-interceptor.php',  // wp_mail filter hook
-            'includes/email/class-cuft-auto-bcc-manager.php',  // Auto-BCC orchestrator
-            'includes/email/class-cuft-email-tracking-injector.php',  // Tracking parameter injection
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
             // Updater Models
             'includes/models/class-cuft-update-status.php',  // Update status model

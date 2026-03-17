@@ -254,10 +254,13 @@ class CUFT_Update_Status {
         $status['update_available'] = (bool) $status['update_available'];
         $status['check_in_progress'] = (bool) $status['check_in_progress'];
 
-        // Validate update availability logic
+        // Validate update availability logic - always use actual installed version
+        // This prevents stale transient data from showing false update notices after an update
         if ( ! empty( $status['latest_version'] ) ) {
+            $actual_version = self::get_current_version();
+            $status['current_version'] = $actual_version;
             $status['update_available'] = version_compare(
-                $status['current_version'],
+                $actual_version,
                 $status['latest_version'],
                 '<'
             );

@@ -38,8 +38,9 @@ class CUFT_Admin {
      * Handle export actions early (before any output)
      */
     public function handle_export_actions() {
-        // Only run on our admin page
-        if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'choice-universal-form-tracker' ) {
+        // Run on our admin pages
+        $allowed_pages = array( 'choice-universal-form-tracker', 'cuft-click-tracking' );
+        if ( ! isset( $_GET['page'] ) || ! in_array( $_GET['page'], $allowed_pages ) ) {
             return;
         }
 
@@ -73,6 +74,16 @@ class CUFT_Admin {
             'choice-universal-form-tracker',
             array( $this, 'admin_page' )
         );
+
+        add_menu_page(
+            'Click Tracking',
+            'Click Tracking',
+            'manage_options',
+            'cuft-click-tracking',
+            array( $this, 'click_tracking_page' ),
+            'dashicons-chart-line',
+            30
+        );
     }
     
     /**
@@ -82,11 +93,6 @@ class CUFT_Admin {
         // Handle form submission
         if ( isset( $_POST['cuft_save'] ) && wp_verify_nonce( $_POST['cuft_nonce'], 'cuft_settings' ) ) {
             $this->save_settings();
-        }
-        
-        // Handle click tracking actions
-        if ( isset( $_POST['cuft_click_action'] ) && wp_verify_nonce( $_POST['cuft_click_nonce'], 'cuft_click_tracking' ) ) {
-            $this->handle_click_tracking_actions();
         }
         
         // Note: Export actions and webhook regeneration are now handled in handle_export_actions() via admin_init hook
@@ -120,10 +126,6 @@ class CUFT_Admin {
                 <?php // render_github_status() removed in Feature 008 - using WordPress native updates ?>
                 <?php $this->render_utm_status(); ?>
                 <?php $this->render_debug_section(); ?>
-            <?php elseif ( $current_tab === 'click-tracking' ): ?>
-                <?php $this->render_click_tracking_tab(); ?>
-            <?php elseif ( $current_tab === 'auto-bcc' ): ?>
-                <?php include CUFT_PATH . 'includes/admin/views/admin-auto-bcc-settings.php'; ?>
             <?php elseif ( $current_tab === 'force-update' ): ?>
                 <?php include CUFT_PATH . 'includes/admin/views/force-update-tab.php'; ?>
             <?php endif; ?>
@@ -745,27 +747,6 @@ class CUFT_Admin {
             CUFT_VERSION
         );
 
-        // Enqueue Auto-BCC assets (Feature 010)
-        wp_enqueue_script(
-            'cuft-auto-bcc-admin',
-            CUFT_URL . '/assets/admin/js/cuft-auto-bcc-admin.js',
-            array( 'jquery' ),
-            CUFT_VERSION,
-            true
-        );
-
-        wp_localize_script( 'cuft-auto-bcc-admin', 'cuftAutoBcc', array(
-            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'saveNonce' => wp_create_nonce( 'cuft_auto_bcc_save_settings' ),
-            'testNonce' => wp_create_nonce( 'cuft_auto_bcc_send_test' ),
-        ) );
-
-        wp_enqueue_style(
-            'cuft-auto-bcc-admin',
-            CUFT_URL . '/assets/admin/css/cuft-auto-bcc-admin.css',
-            array(),
-            CUFT_VERSION
-        );
 
     }
 
@@ -1491,8 +1472,6 @@ class CUFT_Admin {
     private function render_admin_tabs( $current_tab ) {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'click-tracking' => __( 'Click Tracking', 'choice-universal-form-tracker' ),
-            'auto-bcc' => __( 'Auto-BCC', 'choice-universal-form-tracker' ),
             'force-update' => __( 'Force Update', 'choice-universal-form-tracker' )
         );
         
@@ -1505,6 +1484,27 @@ class CUFT_Admin {
         echo '</nav>';
     }
     
+    /**
+     * Click Tracking dashboard page callback
+     */
+    public function click_tracking_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+        }
+
+        // Handle POST actions
+        if ( isset( $_POST['cuft_click_action'] ) && wp_verify_nonce( $_POST['cuft_click_nonce'], 'cuft_click_tracking' ) ) {
+            $this->handle_click_tracking_actions();
+        }
+
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Click Tracking', 'choice-universal-form-tracker' ); ?></h1>
+            <?php $this->render_click_tracking_tab(); ?>
+        </div>
+        <?php
+    }
+
     /**
      * Render click tracking tab
      */
@@ -1520,6 +1520,7 @@ class CUFT_Admin {
         $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
         $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
         $filter_ip_search = isset( $_GET['filter_ip_search'] ) ? sanitize_text_field( $_GET['filter_ip_search'] ) : '';
+        $filter_has_events = isset( $_GET['filter_has_events'] ) ? sanitize_text_field( $_GET['filter_has_events'] ) : '';
         $sort_by = isset( $_GET['sort_by'] ) ? sanitize_text_field( $_GET['sort_by'] ) : 'date_created';
 
         $args = array(
@@ -1544,6 +1545,9 @@ class CUFT_Admin {
             // Hash the IP address for lookup
             $args['ip_hash'] = hash( 'sha256', $filter_ip_search );
         }
+        if ( $filter_has_events !== '' ) {
+            $args['has_events'] = $filter_has_events;
+        }
         
         $clicks = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_clicks( $args ) : array();
         $total_clicks = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_clicks_count( $args ) : 0;
@@ -1559,12 +1563,12 @@ class CUFT_Admin {
                 <div style="display: flex; gap: 10px;">
                     <?php
                     $export_url = wp_nonce_url(
-                        add_query_arg( array( 'action' => 'export_csv' ), admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ),
+                        add_query_arg( array( 'action' => 'export_csv' ), admin_url( 'admin.php?page=cuft-click-tracking' ) ),
                         'cuft_export_csv',
                         'nonce'
                     );
                     $google_ads_export_url = wp_nonce_url(
-                        add_query_arg( array( 'action' => 'export_google_ads_oci' ), admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ),
+                        add_query_arg( array( 'action' => 'export_google_ads_oci' ), admin_url( 'admin.php?page=cuft-click-tracking' ) ),
                         'cuft_export_google_ads_oci',
                         'nonce'
                     );
@@ -1579,7 +1583,7 @@ class CUFT_Admin {
             </div>
             
             <?php $this->render_webhook_settings(); ?>
-            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $filter_ip_search, $sort_by ); ?>
+            <?php $this->render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $filter_ip_search, $sort_by, $filter_has_events ); ?>
             <?php $this->render_click_tracking_stats( $args ); ?>
             <?php $this->render_click_tracking_table( $clicks ); ?>
             <?php $this->render_click_tracking_pagination( $current_page, $total_pages ); ?>
@@ -1711,11 +1715,10 @@ class CUFT_Admin {
     /**
      * Render click tracking filters
      */
-    private function render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $filter_ip_search, $sort_by ) {
+    private function render_click_tracking_filters( $filter_qualified, $filter_event_type, $filter_date_from, $filter_date_to, $filter_ip_search, $sort_by, $filter_has_events = '' ) {
         ?>
         <form method="GET" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-            <input type="hidden" name="page" value="choice-universal-form-tracker" />
-            <input type="hidden" name="tab" value="click-tracking" />
+            <input type="hidden" name="page" value="cuft-click-tracking" />
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
                 <div>
@@ -1729,13 +1732,22 @@ class CUFT_Admin {
                 <div>
                     <label><strong>Event Type:</strong></label><br>
                     <select name="filter_event_type">
-                        <option value="">All Events</option>
+                        <option value="">Any Event</option>
+                        <option value="no_event" <?php selected( $filter_event_type, 'no_event' ); ?>>No Event</option>
                         <option value="phone_click" <?php selected( $filter_event_type, 'phone_click' ); ?>>Phone Click</option>
                         <option value="email_click" <?php selected( $filter_event_type, 'email_click' ); ?>>Email Click</option>
                         <option value="form_submit" <?php selected( $filter_event_type, 'form_submit' ); ?>>Form Submit</option>
                         <option value="generate_lead" <?php selected( $filter_event_type, 'generate_lead' ); ?>>Generate Lead</option>
                         <option value="status_qualified" <?php selected( $filter_event_type, 'status_qualified' ); ?>>Status Qualified</option>
                         <option value="score_updated" <?php selected( $filter_event_type, 'score_updated' ); ?>>Score Updated</option>
+                    </select>
+                </div>
+                <div>
+                    <label><strong>Events:</strong></label><br>
+                    <select name="filter_has_events">
+                        <option value="">All</option>
+                        <option value="1" <?php selected( $filter_has_events, '1' ); ?>>Has Events</option>
+                        <option value="0" <?php selected( $filter_has_events, '0' ); ?>>No Events</option>
                     </select>
                 </div>
                 <div>
@@ -1759,7 +1771,7 @@ class CUFT_Admin {
                 </div>
                 <div>
                     <input type="submit" value="Filter" class="button button-secondary" />
-                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) ); ?>" class="button">Clear</a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=cuft-click-tracking' ) ); ?>" class="button">Clear</a>
                 </div>
             </div>
             <?php if ( ! empty( $filter_ip_search ) ) : ?>
@@ -2038,12 +2050,12 @@ class CUFT_Admin {
             return;
         }
         
-        $base_url = admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' );
+        $base_url = admin_url( 'admin.php?page=cuft-click-tracking' );
         
         // Preserve current filters
         $filter_params = array();
-        foreach ( array( 'filter_qualified', 'filter_event_type', 'filter_date_from', 'filter_date_to', 'sort_by' ) as $param ) {
-            if ( ! empty( $_GET[ $param ] ) ) {
+        foreach ( array( 'filter_qualified', 'filter_event_type', 'filter_has_events', 'filter_date_from', 'filter_date_to', 'sort_by' ) as $param ) {
+            if ( isset( $_GET[ $param ] ) && $_GET[ $param ] !== '' ) {
                 $filter_params[ $param ] = sanitize_text_field( $_GET[ $param ] );
             }
         }
@@ -2171,7 +2183,7 @@ class CUFT_Admin {
         settings_errors( 'cuft_messages' );
         
         // Redirect back to click tracking tab
-        wp_redirect( admin_url( 'options-general.php?page=choice-universal-form-tracker&tab=click-tracking' ) );
+        wp_redirect( admin_url( 'admin.php?page=cuft-click-tracking' ) );
         exit;
     }
     

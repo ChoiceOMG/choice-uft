@@ -5,6 +5,19 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.7] - 2026-03-17
+
+### Added
+- **Click Tracking dashboard page** — Click Tracking is now a standalone top-level admin menu page ("Click Tracking") instead of a sub-tab inside Universal Form Tracker settings
+- **"Any Event" filter default** — Event Type filter default label renamed from "All Events" to "Any Event" for clarity
+- **"No Event" filter option** — New "No Event" option in the Event Type filter shows click records that have no events recorded
+
+### Fixed
+- **False update available notice** — Plugin incorrectly showed "update available" for the already-installed version after an update. The update status transient was caching the old `current_version`; it now always compares against the actual installed `CUFT_VERSION` constant so the notice clears immediately after an update
+
+### Removed
+- **Auto-BCC feature** — Removed the Auto-BCC email feature and its associated tab, admin UI, and class files from the plugin loader
+
 ## [3.21.6] - 2026-03-13
 
 ### Added

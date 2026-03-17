@@ -266,6 +266,7 @@ class CUFT_Click_Tracker {
             'qualified' => null,
             'platform' => '',
             'event_type' => '',
+            'has_events' => '',
             'date_from' => '',
             'date_to' => '',
             'ip_hash' => '',
@@ -290,8 +291,19 @@ class CUFT_Click_Tracker {
 
         // Event type filter (v3.12.0+)
         if ( ! empty( $args['event_type'] ) ) {
-            $where_clauses[] = 'JSON_CONTAINS(events, %s)';
-            $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+            if ( $args['event_type'] === 'no_event' ) {
+                $where_clauses[] = '(events IS NULL OR JSON_LENGTH(events) = 0)';
+            } else {
+                $where_clauses[] = 'JSON_CONTAINS(events, %s)';
+                $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+            }
+        }
+
+        // Has events filter (v3.21.7+)
+        if ( $args['has_events'] === '0' ) {
+            $where_clauses[] = '(events IS NULL OR JSON_LENGTH(events) = 0)';
+        } elseif ( $args['has_events'] === '1' ) {
+            $where_clauses[] = '(events IS NOT NULL AND JSON_LENGTH(events) > 0)';
         }
 
         if ( ! empty( $args['date_from'] ) ) {
@@ -362,6 +374,7 @@ class CUFT_Click_Tracker {
             'qualified' => null,
             'platform' => '',
             'event_type' => '',
+            'has_events' => '',
             'date_from' => '',
             'date_to' => '',
             'ip_hash' => ''
@@ -385,8 +398,19 @@ class CUFT_Click_Tracker {
 
         // Event type filter (v3.12.0+)
         if ( ! empty( $args['event_type'] ) ) {
-            $where_clauses[] = 'JSON_CONTAINS(events, %s)';
-            $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+            if ( $args['event_type'] === 'no_event' ) {
+                $where_clauses[] = '(events IS NULL OR JSON_LENGTH(events) = 0)';
+            } else {
+                $where_clauses[] = 'JSON_CONTAINS(events, %s)';
+                $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+            }
+        }
+
+        // Has events filter (v3.21.7+)
+        if ( $args['has_events'] === '0' ) {
+            $where_clauses[] = '(events IS NULL OR JSON_LENGTH(events) = 0)';
+        } elseif ( $args['has_events'] === '1' ) {
+            $where_clauses[] = '(events IS NOT NULL AND JSON_LENGTH(events) > 0)';
         }
 
         if ( ! empty( $args['date_from'] ) ) {
