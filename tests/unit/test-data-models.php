@@ -100,7 +100,8 @@ class Test_Data_Models extends WP_UnitTestCase {
         $this->assertEquals( 12 * HOUR_IN_SECONDS, $timeout );
 
         // Mock different WordPress contexts
-        global $wp_current_filter, $wp_current_action;
+        global $wp_current_filter;
+        $original_filter = $wp_current_filter;
 
         // Test upgrader_process_complete (immediate)
         $wp_current_filter = 'upgrader_process_complete';
@@ -122,9 +123,8 @@ class Test_Data_Models extends WP_UnitTestCase {
         $timeout = CUFT_Update_Status::get_context_timeout();
         $this->assertEquals( HOUR_IN_SECONDS, $timeout );
 
-        // Reset
-        $wp_current_filter = null;
-        $wp_current_action = null;
+        // Restore original WP filter state
+        $wp_current_filter = $original_filter;
     }
 
     /**

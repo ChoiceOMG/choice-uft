@@ -326,8 +326,17 @@ class CUFT_Update_Status {
      * @return int Timeout in seconds
      */
     public static function get_context_timeout() {
-        $filter = current_filter();
-        $action = current_action();
+        global $wp_current_filter;
+
+        // Handle both array (normal WP) and string (legacy/test) forms of $wp_current_filter.
+        // PHP 8.1 requires end() argument to be an array, so we can't call current_filter()
+        // when the global is set to a plain string (as done in some test contexts).
+        if ( is_array( $wp_current_filter ) ) {
+            $filter = end( $wp_current_filter ) ?: '';
+        } else {
+            $filter = (string) ( $wp_current_filter ?? '' );
+        }
+        $action = $filter; // current_action() returns the same value as current_filter()
 
         // Context-aware timeout map based on WordPress core patterns
         $timeouts = array(
