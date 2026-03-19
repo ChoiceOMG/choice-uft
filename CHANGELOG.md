@@ -5,6 +5,15 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.8] - 2026-03-19
+
+### Added
+- **Phone validation & lead scoring** — Elementor form submissions with a phone field now call the Choice phone validator service (`phone-validator.choice.zone`), which combines Twilio Lookup v2 and Abstract API to score the number 0–10 by line type (mobile=9, landline=7, VoIP=4, toll-free=2, invalid=0). The score and qualified status are written to the click tracking record immediately on submission.
+- **CUFT_Phone_Validator class** — Handles calls to the validator service with a 24-hour transient cache per number. Enabled via the `cuft_phone_validation_enabled` option.
+- **CUFT_Token_Manager class** — Registers this WordPress site with the validator service using `CUFT_REGISTER_SECRET` (defined in `wp-config.php`) and stores the resulting JWE token. Token encodes the site domain so only the validator service can decode it.
+- **Phone validation settings UI** — New "Phone Validation" row in Settings with enable/disable toggle and a "Register Site" button that authenticates with the validator and stores the token, no manual token handling required.
+- **DataLayer phone quality fields** — `form_submit` events now include `phone_line_type`, `phone_quality_score`, and `phone_is_valid` when phone validation is active, enabling GTM-based lead quality segmentation.
+
 ## [3.21.7] - 2026-03-17
 
 ### Added

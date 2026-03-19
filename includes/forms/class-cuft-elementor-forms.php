@@ -74,7 +74,24 @@ class CUFT_Elementor_Forms {
     public function track_submission( $record, $ajax_handler ) {
         $form_data = $this->extract_form_data( $record );
         CUFT_Logger::log_form_submission( 'elementor', $form_data );
-        
+
+        // ── Phone validation & lead scoring ──────────────────────────────────
+        if ( ! empty( $form_data['user_phone'] ) && class_exists( 'CUFT_Phone_Validator' ) ) {
+            $phone_quality = CUFT_Phone_Validator::get_phone_quality( $form_data['user_phone'] );
+            if ( $phone_quality ) {
+                $form_data['phone_quality'] = $phone_quality;
+
+                $click_id = class_exists( 'CUFT_Click_Integration' )
+                    ? CUFT_Click_Integration::get_current_click_id()
+                    : '';
+
+                if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
+                    $qualified = $phone_quality['is_valid'] ? 1 : 0;
+                    CUFT_Click_Tracker::update_click_status( $click_id, $qualified, $phone_quality['quality_score'] );
+                }
+            }
+        }
+
         // Push to dataLayer if GTM is configured
         if ( get_option( 'cuft_gtm_id' ) ) {
             wp_add_inline_script( 'cuft-elementor-forms', $this->generate_datalayer_push( $form_data ), 'after' );
@@ -173,7 +190,12 @@ class CUFT_Elementor_Forms {
         if ( ! empty( $data['user_phone'] ) ) {
             $payload['user_phone'] = $data['user_phone'];
         }
-        
+        if ( ! empty( $data['phone_quality'] ) ) {
+            $payload['phone_line_type']     = $data['phone_quality']['line_type'];
+            $payload['phone_quality_score'] = $data['phone_quality']['quality_score'];
+            $payload['phone_is_valid']      = $data['phone_quality']['is_valid'];
+        }
+
         // Add UTM data if available
         $utm_data = CUFT_UTM_Tracker::get_utm_data();
         if ( ! empty( $utm_data ) ) {

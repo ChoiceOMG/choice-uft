@@ -104,6 +104,7 @@ class CUFT_Admin {
         $lead_value = get_option( 'cuft_lead_value', 100 );
         $console_logging = get_option( 'cuft_console_logging', 'no' );
         $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
+        $phone_validation_enabled = get_option( 'cuft_phone_validation_enabled', false );
 
         // Get current tab
         $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'settings';
@@ -121,7 +122,7 @@ class CUFT_Admin {
             <?php $this->render_admin_tabs( $current_tab ); ?>
 
             <?php if ( $current_tab === 'settings' ): ?>
-                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled ); ?>
+                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled, $phone_validation_enabled ); ?>
                 <?php $this->render_framework_status(); ?>
                 <?php // render_github_status() removed in Feature 008 - using WordPress native updates ?>
                 <?php $this->render_utm_status(); ?>
@@ -136,7 +137,7 @@ class CUFT_Admin {
     /**
      * Render settings form
      */
-    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled ) {
+    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled, $phone_validation_enabled = false ) {
         ?>
         <div class="cuft-settings-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <h2 style="margin-top: 0;">Settings</h2>
@@ -296,6 +297,40 @@ class CUFT_Admin {
                         </td>
                     </tr>
                     <tr>
+                        <th scope="row">Phone Validation</th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="phone_validation_enabled" value="1" <?php checked( $phone_validation_enabled ); ?> />
+                                Validate phone numbers via Choice validator service
+                            </label>
+                            <p class="description">
+                                Validates submitted phone numbers using Twilio + Abstract API. Scores leads 0–10 by line type (mobile=9, landline=7, VoIP=4) and writes the result to the click tracking record. Requires site registration below.
+                            </p>
+
+                            <?php
+                            $is_registered = class_exists( 'CUFT_Token_Manager' ) && CUFT_Token_Manager::is_registered();
+                            $registered_at = get_option( CUFT_Token_Manager::OPTION_REGISTERED );
+                            $registered_domain = get_option( CUFT_Token_Manager::OPTION_DOMAIN );
+                            ?>
+                            <div style="margin-top: 12px; padding: 12px; background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px;">
+                                <?php if ( $is_registered ): ?>
+                                    <p style="margin: 0 0 8px; color: #3a7c3a;">
+                                        &#10003; Registered: <strong><?php echo esc_html( $registered_domain ); ?></strong>
+                                        <?php if ( $registered_at ): ?>
+                                            &mdash; <?php echo esc_html( date_i18n( 'Y-m-d', $registered_at ) ); ?>
+                                        <?php endif; ?>
+                                    </p>
+                                <?php else: ?>
+                                    <p style="margin: 0 0 8px; color: #a00;">&#9679; Not registered &mdash; define <code>CUFT_REGISTER_SECRET</code> in wp-config.php then click Register.</p>
+                                <?php endif; ?>
+                                <button type="button" id="cuft-register-site" class="button button-secondary">
+                                    <?php echo $is_registered ? 'Re-register Site' : 'Register Site'; ?>
+                                </button>
+                                <span id="cuft-register-status" style="margin-left: 10px; display: none;"></span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row">Browser Console Logging</th>
                         <td>
                             <select name="console_logging">
@@ -315,6 +350,29 @@ class CUFT_Admin {
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
+            // Phone Validation — Register Site
+            $('#cuft-register-site').on('click', function() {
+                var $btn = $(this);
+                var $status = $('#cuft-register-status');
+                $btn.prop('disabled', true).text('Registering…');
+                $status.hide();
+                $.post(ajaxurl, {
+                    action: 'cuft_token_register',
+                    nonce: '<?php echo wp_create_nonce( 'cuft_token_register' ); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        $status.css('color', '#3a7c3a').text('Registered: ' + response.data.domain).show();
+                        $btn.text('Re-register Site');
+                    } else {
+                        $status.css('color', '#a00').text('Error: ' + (response.data || 'Unknown error')).show();
+                    }
+                    $btn.prop('disabled', false);
+                }).fail(function() {
+                    $status.css('color', '#a00').text('Request failed').show();
+                    $btn.prop('disabled', false);
+                });
+            });
+
             // GTM Template Download buttons
             $('.cuft-download-template').on('click', function(e) {
                 e.preventDefault();
@@ -455,6 +513,7 @@ class CUFT_Admin {
         $gtm_id = sanitize_text_field( $_POST['gtm_id'] );
         $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
         $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
+        $phone_validation_enabled = isset( $_POST['phone_validation_enabled'] ) && $_POST['phone_validation_enabled'];
         $lead_currency = isset( $_POST['lead_currency'] ) ? sanitize_text_field( $_POST['lead_currency'] ) : 'CAD';
         $lead_value = isset( $_POST['lead_value'] ) ? floatval( $_POST['lead_value'] ) : 100;
 
@@ -481,6 +540,7 @@ class CUFT_Admin {
             update_option( 'cuft_gtm_id', $gtm_id );
             update_option( 'cuft_debug_enabled', $debug_enabled );
             update_option( 'cuft_generate_lead_enabled', $generate_lead_enabled );
+            update_option( 'cuft_phone_validation_enabled', $phone_validation_enabled );
             update_option( 'cuft_lead_currency', $lead_currency );
             update_option( 'cuft_lead_value', $lead_value );
             update_option( 'cuft_console_logging', $console_logging );
