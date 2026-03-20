@@ -142,8 +142,9 @@ class CUFT_Elementor_Forms {
             if ( 'email' === $field_type ) {
                 $data['user_email'] = sanitize_email( $field_value );
             }
-            // Extract phone fields - multiple types
-            elseif ( in_array( $field_type, array( 'tel', 'phone', 'number' ), true ) ) {
+            // Extract phone fields - by type or by field ID containing phone-like keywords
+            elseif ( in_array( $field_type, array( 'tel', 'phone', 'number' ), true )
+                  || preg_match( '/phone|mobile|phonesms|cel/i', $field_id ) ) {
                 $data['user_phone'] = preg_replace( '/[^0-9+\-\(\)\s]/', '', $field_value );
             }
             // Also check for email-like values in text fields

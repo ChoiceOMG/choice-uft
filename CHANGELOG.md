@@ -5,6 +5,11 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.9] - 2026-03-20
+
+### Fixed
+- **Elementor phone field detection** — Phone numbers submitted via fields with custom IDs containing "phone", "mobile", "phonesms", or "cel" are now correctly extracted even when the Elementor field type is not set to `tel`. Fixes auto-qualification for forms that use custom phone field IDs (e.g. Choice Wraps `phonesms` field).
+
 ## [3.21.8] - 2026-03-19
 
 ### Added
