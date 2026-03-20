@@ -5,6 +5,11 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.21.10] - 2026-03-20
+
+### Fixed
+- **Click ID not passed to JS on form pages** — PHP session was only started when a click parameter (gclid etc.) was present in the URL. On subsequent page visits (e.g. the form page), the session was never resumed, so `window.cuftClickData.click_id` was always empty, preventing the click-integration script from injecting the click ID into forms and the dataLayer. The session is now started at the `init` hook for all front-end requests, ensuring the stored click ID is always available to JavaScript regardless of which page the user is currently on.
+
 ## [3.21.9] - 2026-03-20
 
 ### Fixed

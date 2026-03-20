@@ -36,9 +36,19 @@ class CUFT_Click_Integration {
      * Initialize hooks
      */
     public function init_hooks() {
+        // Start the session early for frontend requests so the stored click ID
+        // is accessible via $_SESSION on page visits that don't have a click param in the URL.
+        // This ensures window.cuftClickData.click_id is populated on the form page
+        // even when the user landed on a different page with the gclid.
+        if ( ! is_admin() && ! wp_doing_ajax() && ! wp_doing_cron() ) {
+            if ( ! session_id() ) {
+                session_start();
+            }
+        }
+
         // Capture click IDs on page load
         add_action( 'wp', array( $this, 'capture_click_ids' ) );
-        
+
         // Add click ID to form submissions
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_click_tracking_script' ) );
     }
@@ -149,7 +159,13 @@ class CUFT_Click_Integration {
         $ip_hash = '';
         $platform = '';
 
-        if ( session_id() && isset( $_SESSION['cuft_click_id'] ) ) {
+        // Session was started in init_hooks() for frontend requests; start it here
+        // as a fallback for any edge case where init_hooks() didn't run first.
+        if ( ! session_id() ) {
+            session_start();
+        }
+
+        if ( isset( $_SESSION['cuft_click_id'] ) ) {
             $click_id = $_SESSION['cuft_click_id'];
 
             // Fetch additional tracking data from database
