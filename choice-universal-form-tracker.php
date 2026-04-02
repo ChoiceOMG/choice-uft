@@ -73,6 +73,7 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-phone-validator.php',
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
+            'includes/class-cuft-measurement-protocol.php',
             'includes/class-cuft-cryptojs.php',
             // Form Builder Infrastructure
             'includes/admin/framework-adapters/abstract-cuft-adapter.php',  // Base adapter
