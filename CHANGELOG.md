@@ -5,6 +5,32 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.22.0] - 2026-04-02
+
+### Added
+- **GA4 event naming alignment** — adopted GA4 recommended lead generation event names
+  - New `qualify_lead` event replaces strict `generate_lead` (email + phone + click_id)
+  - New broad `generate_lead` fires on any form submission with a valid email
+  - Full lifecycle events: `disqualify_lead`, `working_lead`, `close_convert_lead`, `close_unconvert_lead`
+- **Webhook `status` parameter** — send `?status=qualify_lead` (etc.) to record lifecycle events
+  - Backward compatible: `qualified=1` still works, mapped to `qualify_lead`
+- **GA4 Measurement Protocol** — server-side events fire at webhook time
+  - Configurable in Settings: GA4 Measurement ID and API Secret
+  - Graceful fallback when not configured
+- **Client-side event replay** — webhook events pushed to dataLayer on next pageview
+  - Cookie-based (no PHP sessions), fires once per event
+  - `cuft_replayed: true` flag for GTM trigger differentiation
+- **Admin settings for secrets** — Registration Secret, GA4 Measurement ID, and API Secret configurable from wp-admin
+  - `wp-config.php` constants still override DB values
+- **`ga_client_id` capture** — extracted from `_ga` cookie at form submission for Measurement Protocol
+
+### Changed
+- `generate_lead` now fires on any form with a valid email (previously required email + phone + click_id)
+- `status_qualified` webhook event renamed to `qualify_lead`
+
+### Deprecated
+- `generate_lead` with strict criteria (email + phone + click_id) — fires with `cuft_deprecated: true` for one version, then removed. Migrate GTM triggers to `qualify_lead`.
+
 ## [3.21.10] - 2026-03-20
 
 ### Fixed
