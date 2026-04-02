@@ -207,9 +207,9 @@ class CUFT_Click_Tracker {
 
         $table_name = $wpdb->prefix . self::$table_name;
 
-        // Get current record to check for score increase
+        // Get current record to check for score increase and MP firing
         $current_record = $wpdb->get_row( $wpdb->prepare(
-            "SELECT qualified, score FROM $table_name WHERE click_id = %s",
+            "SELECT qualified, score, platform, ga_client_id FROM $table_name WHERE click_id = %s",
             sanitize_text_field( $click_id )
         ) );
 
@@ -233,6 +233,14 @@ class CUFT_Click_Tracker {
             try {
                 if ( in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
                     self::add_event( $click_id, $status );
+
+                    // Fire Measurement Protocol for webhook-driven lifecycle events
+                    $ga_client_id = $current_record ? $current_record->ga_client_id : '';
+                    $mp = new CUFT_Measurement_Protocol();
+                    $mp->send( $ga_client_id ?: '', $status, array(
+                        'click_id'    => $click_id,
+                        'lead_source' => $current_record ? ( isset( $current_record->platform ) ? $current_record->platform : 'unknown' ) : 'unknown',
+                    ) );
                 }
             } catch ( Exception $e ) {
                 if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -259,6 +267,14 @@ class CUFT_Click_Tracker {
                 // Record lifecycle status event
                 if ( $status && in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
                     self::add_event( $click_id, $status );
+
+                    // Fire Measurement Protocol for webhook-driven lifecycle events
+                    $ga_client_id = $current_record ? $current_record->ga_client_id : '';
+                    $mp = new CUFT_Measurement_Protocol();
+                    $mp->send( $ga_client_id ?: '', $status, array(
+                        'click_id'    => $click_id,
+                        'lead_source' => $current_record ? ( isset( $current_record->platform ) ? $current_record->platform : 'unknown' ) : 'unknown',
+                    ) );
                 } elseif ( $qualified === 1 || $qualified === '1' ) {
                     // Backward compatibility: qualified=1 maps to qualify_lead
                     self::add_event( $click_id, 'qualify_lead' );
