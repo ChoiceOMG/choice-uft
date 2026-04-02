@@ -150,6 +150,24 @@ window.cuftDataLayerUtils = (function () {
   }
 
   /**
+   * Extract GA4 client_id from _ga cookie
+   */
+  function getGaClientId() {
+    try {
+      var cookie = document.cookie.match(/(^|; )_ga=([^;]*)/);
+      if (cookie && cookie[2]) {
+        var parts = cookie[2].split(".");
+        if (parts.length >= 4) {
+          return parts[2] + "." + parts[3];
+        }
+      }
+    } catch (e) {
+      // Silently fail — ga_client_id is optional
+    }
+    return null;
+  }
+
+  /**
    * Create standardized form_submit event payload
    */
   function createFormSubmitPayload(framework, formId, options) {
@@ -226,6 +244,12 @@ window.cuftDataLayerUtils = (function () {
       if (!payload.click_id && window.cuftClickData.click_id) {
         payload.click_id = window.cuftClickData.click_id;
       }
+    }
+
+    // Add GA4 client_id for Measurement Protocol
+    var gaClientId = getGaClientId();
+    if (gaClientId) {
+      payload.ga_client_id = gaClientId;
     }
 
     return payload;
@@ -313,7 +337,7 @@ window.cuftDataLayerUtils = (function () {
    * Record event to click tracking database via AJAX
    * Fire-and-forget pattern with silent failures
    */
-  function recordEvent(clickId, eventType, debugMode) {
+  function recordEvent(clickId, eventType, debugMode, gaClientId) {
     try {
       // Validate inputs
       if (!clickId || !eventType) {
@@ -328,6 +352,17 @@ window.cuftDataLayerUtils = (function () {
         return;
       }
 
+      // Build POST params
+      var postParams = {
+        action: "cuft_record_event",
+        nonce: window.cuftConfig.nonce,
+        click_id: clickId,
+        event_type: eventType,
+      };
+      if (gaClientId) {
+        postParams.ga_client_id = gaClientId;
+      }
+
       // Fire-and-forget: Use fetch if available, fallback to XMLHttpRequest
       if (typeof fetch !== "undefined") {
         fetch(window.cuftConfig.ajaxUrl, {
@@ -335,12 +370,7 @@ window.cuftDataLayerUtils = (function () {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: new URLSearchParams({
-            action: "cuft_record_event",
-            nonce: window.cuftConfig.nonce,
-            click_id: clickId,
-            event_type: eventType,
-          }),
+          body: new URLSearchParams(postParams),
         })
           .then(function (response) {
             if (response.ok && debugMode && window.console) {
@@ -364,6 +394,10 @@ window.cuftDataLayerUtils = (function () {
           "&nonce=" + encodeURIComponent(window.cuftConfig.nonce) +
           "&click_id=" + encodeURIComponent(clickId) +
           "&event_type=" + encodeURIComponent(eventType);
+
+        if (gaClientId) {
+          params += "&ga_client_id=" + encodeURIComponent(gaClientId);
+        }
 
         xhr.onreadystatechange = function () {
           if (xhr.readyState === 4 && xhr.status === 200 && debugMode && window.console) {
@@ -441,8 +475,9 @@ window.cuftDataLayerUtils = (function () {
 
       // Record form_submit event to click tracking database (fire-and-forget)
       var clickId = getClickIdFromTracking();
+      var gaClientId = formSubmitPayload.ga_client_id || null;
       if (clickId) {
-        recordEvent(clickId, 'form_submit', options.debug);
+        recordEvent(clickId, 'form_submit', options.debug, gaClientId);
       }
 
       // Fire generate_lead if email is present (broad GA4 meaning)
@@ -474,7 +509,7 @@ window.cuftDataLayerUtils = (function () {
 
         // Record qualify_lead event server-side
         if (clickId) {
-          recordEvent(clickId, 'qualify_lead', options.debug);
+          recordEvent(clickId, 'qualify_lead', options.debug, gaClientId);
         }
 
         // DEPRECATED: Dual-fire old generate_lead with strict payload for one version
@@ -531,6 +566,7 @@ window.cuftDataLayerUtils = (function () {
     // Event recording functions (v3.12.0)
     recordEvent: recordEvent,
     getClickIdFromTracking: getClickIdFromTracking,
+    getGaClientId: getGaClientId,
 
     // Data access
     getTrackingParameters: getTrackingParameters,

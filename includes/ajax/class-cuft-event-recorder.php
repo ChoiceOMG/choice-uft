@@ -75,6 +75,7 @@ class CUFT_Event_Recorder {
             // Sanitize and validate inputs
             $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( $_POST['click_id'] ) : '';
             $event_type = isset( $_POST['event_type'] ) ? sanitize_text_field( $_POST['event_type'] ) : '';
+            $ga_client_id = isset( $_POST['ga_client_id'] ) ? sanitize_text_field( $_POST['ga_client_id'] ) : '';
 
             // Validate click_id
             if ( empty( $click_id ) ) {
@@ -105,6 +106,19 @@ class CUFT_Event_Recorder {
             $result = CUFT_Click_Tracker::add_event( $click_id, $event_type );
 
             if ( $result ) {
+                // Store ga_client_id if provided (for Measurement Protocol)
+                if ( ! empty( $ga_client_id ) ) {
+                    global $wpdb;
+                    $table_name = $wpdb->prefix . 'cuft_click_tracking';
+                    $wpdb->update(
+                        $table_name,
+                        array( 'ga_client_id' => sanitize_text_field( $ga_client_id ) ),
+                        array( 'click_id' => sanitize_text_field( $click_id ) ),
+                        array( '%s' ),
+                        array( '%s' )
+                    );
+                }
+
                 // Get updated event count
                 $events = CUFT_Click_Tracker::get_events( $click_id );
                 $event_count = is_array( $events ) ? count( $events ) : 0;
