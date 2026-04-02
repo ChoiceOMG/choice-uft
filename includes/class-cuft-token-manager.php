@@ -33,14 +33,14 @@ class CUFT_Token_Manager {
     }
 
     /**
-     * Secret used to authenticate /register requests.
-     * Must be defined as CUFT_REGISTER_SECRET in wp-config.php.
+     * Get the registration secret. wp-config.php constant takes precedence,
+     * then falls back to the DB option.
      */
-    private static function get_register_secret(): string {
+    public static function get_register_secret_value(): string {
         if ( defined( 'CUFT_REGISTER_SECRET' ) ) {
             return CUFT_REGISTER_SECRET;
         }
-        return '';
+        return get_option( 'cuft_register_secret', '' );
     }
 
     /**
@@ -48,11 +48,11 @@ class CUFT_Token_Manager {
      * Returns WP_Error on failure, or the token string on success.
      */
     public static function register_site(): string|WP_Error {
-        $secret = self::get_register_secret();
+        $secret = self::get_register_secret_value();
         if ( empty( $secret ) ) {
             return new WP_Error(
                 'cuft_no_secret',
-                'CUFT_REGISTER_SECRET is not defined in wp-config.php'
+                'Registration secret is not configured. Define CUFT_REGISTER_SECRET in wp-config.php or set it in Settings > Universal Form Tracker > API Credentials.'
             );
         }
 

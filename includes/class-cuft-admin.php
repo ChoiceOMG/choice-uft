@@ -321,7 +321,7 @@ class CUFT_Admin {
                                         <?php endif; ?>
                                     </p>
                                 <?php else: ?>
-                                    <p style="margin: 0 0 8px; color: #a00;">&#9679; Not registered &mdash; define <code>CUFT_REGISTER_SECRET</code> in wp-config.php then click Register.</p>
+                                    <p style="margin: 0 0 8px; color: #a00;">&#9679; Not registered &mdash; set the Registration Secret below (or define <code>CUFT_REGISTER_SECRET</code> in wp-config.php) then click Register.</p>
                                 <?php endif; ?>
                                 <button type="button" id="cuft-register-site" class="button button-secondary">
                                     <?php echo $is_registered ? 'Re-register Site' : 'Register Site'; ?>
@@ -344,6 +344,47 @@ class CUFT_Admin {
                         </td>
                     </tr>
                 </table>
+
+                <!-- API Credentials Section -->
+                <div style="background: #fff; border: 1px solid #ccd0d4; border-radius: 6px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px; color: #23282d;">API Credentials</h3>
+                    <?php $register_secret_override = defined( 'CUFT_REGISTER_SECRET' ); ?>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><label for="cuft_register_secret">Registration Secret</label></th>
+                            <td>
+                                <?php if ( $register_secret_override ) : ?>
+                                    <input type="text" value="••••••••" disabled class="regular-text" />
+                                    <p class="description">Overridden by <code>CUFT_REGISTER_SECRET</code> in wp-config.php</p>
+                                <?php else : ?>
+                                    <input type="password" id="cuft_register_secret" name="cuft_register_secret"
+                                        value="<?php echo esc_attr( get_option( 'cuft_register_secret', '' ) ); ?>"
+                                        class="regular-text" autocomplete="off" />
+                                    <p class="description">Authenticates with the validator service.</p>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="cuft_measurement_id">GA4 Measurement ID</label></th>
+                            <td>
+                                <input type="text" id="cuft_measurement_id" name="cuft_measurement_id"
+                                    value="<?php echo esc_attr( get_option( 'cuft_measurement_id', '' ) ); ?>"
+                                    class="regular-text" placeholder="G-XXXXXXXXXX" />
+                                <p class="description">Required for server-side Measurement Protocol events.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><label for="cuft_measurement_api_secret">GA4 API Secret</label></th>
+                            <td>
+                                <input type="password" id="cuft_measurement_api_secret" name="cuft_measurement_api_secret"
+                                    value="<?php echo esc_attr( get_option( 'cuft_measurement_api_secret', '' ) ); ?>"
+                                    class="regular-text" autocomplete="off" />
+                                <p class="description">Found in GA4 Admin > Data Streams > Measurement Protocol API secrets.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
                 <?php submit_button( 'Save Settings', 'primary', 'cuft_save' ); ?>
             </form>
         </div>
@@ -568,6 +609,20 @@ class CUFT_Admin {
             } else {
                 // If sGTM is disabled, clear the validation
                 update_option( 'cuft_sgtm_validated', false );
+            }
+
+            // API Credentials
+            if ( isset( $_POST['cuft_register_secret'] ) && ! defined( 'CUFT_REGISTER_SECRET' ) ) {
+                update_option( 'cuft_register_secret', sanitize_text_field( wp_unslash( $_POST['cuft_register_secret'] ) ) );
+            }
+            if ( isset( $_POST['cuft_measurement_id'] ) ) {
+                $measurement_id = sanitize_text_field( wp_unslash( $_POST['cuft_measurement_id'] ) );
+                if ( empty( $measurement_id ) || preg_match( '/^G-[A-Z0-9]+$/', $measurement_id ) ) {
+                    update_option( 'cuft_measurement_id', $measurement_id );
+                }
+            }
+            if ( isset( $_POST['cuft_measurement_api_secret'] ) ) {
+                update_option( 'cuft_measurement_api_secret', sanitize_text_field( wp_unslash( $_POST['cuft_measurement_api_secret'] ) ) );
             }
 
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );
