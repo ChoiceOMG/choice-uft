@@ -1798,7 +1798,11 @@ class CUFT_Admin {
                         <option value="email_click" <?php selected( $filter_event_type, 'email_click' ); ?>>Email Click</option>
                         <option value="form_submit" <?php selected( $filter_event_type, 'form_submit' ); ?>>Form Submit</option>
                         <option value="generate_lead" <?php selected( $filter_event_type, 'generate_lead' ); ?>>Generate Lead</option>
-                        <option value="status_qualified" <?php selected( $filter_event_type, 'status_qualified' ); ?>>Status Qualified</option>
+                        <option value="qualify_lead" <?php selected( $filter_event_type, 'qualify_lead' ); ?>>Qualify Lead</option>
+                        <option value="disqualify_lead" <?php selected( $filter_event_type, 'disqualify_lead' ); ?>>Disqualify Lead</option>
+                        <option value="working_lead" <?php selected( $filter_event_type, 'working_lead' ); ?>>Working Lead</option>
+                        <option value="close_convert_lead" <?php selected( $filter_event_type, 'close_convert_lead' ); ?>>Close Convert Lead</option>
+                        <option value="close_unconvert_lead" <?php selected( $filter_event_type, 'close_unconvert_lead' ); ?>>Close Unconvert Lead</option>
                         <option value="score_updated" <?php selected( $filter_event_type, 'score_updated' ); ?>>Score Updated</option>
                     </select>
                 </div>
@@ -1948,7 +1952,11 @@ class CUFT_Admin {
                                                 'email_click' => '#8b5cf6',
                                                 'form_submit' => '#10b981',
                                                 'generate_lead' => '#f59e0b',
-                                                'status_qualified' => '#ef4444',
+                                                'qualify_lead' => '#10b981',
+                                                'disqualify_lead' => '#ef4444',
+                                                'working_lead' => '#f59e0b',
+                                                'close_convert_lead' => '#059669',
+                                                'close_unconvert_lead' => '#6b7280',
                                                 'score_updated' => '#06b6d4'
                                             );
                                             $badge_color = isset( $badge_colors[ $event_type ] ) ? $badge_colors[ $event_type ] : '#6b7280';

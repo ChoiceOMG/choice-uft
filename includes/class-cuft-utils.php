@@ -197,7 +197,7 @@ class CUFT_Utils {
                 }
 
                 // Validate event types
-                $valid_events = array( 'phone_click', 'email_click', 'form_submit', 'generate_lead', 'status_update' );
+                $valid_events = array( 'phone_click', 'email_click', 'form_submit', 'generate_lead', 'status_update', 'qualify_lead', 'disqualify_lead', 'working_lead', 'close_convert_lead', 'close_unconvert_lead', 'score_updated' );
                 if ( ! in_array( $event['event'], $valid_events ) ) {
                     return false;
                 }
@@ -235,11 +235,17 @@ class CUFT_Utils {
      */
     public static function get_event_display_name( $event_type ) {
         $display_names = array(
-            'phone_click' => 'Phone Click',
-            'email_click' => 'Email Click',
-            'form_submit' => 'Form Submit',
-            'generate_lead' => 'Generate Lead',
-            'status_update' => 'Status Update'
+            'phone_click'          => 'Phone Click',
+            'email_click'          => 'Email Click',
+            'form_submit'          => 'Form Submit',
+            'generate_lead'        => 'Generate Lead',
+            'qualify_lead'         => 'Qualify Lead',
+            'disqualify_lead'      => 'Disqualify Lead',
+            'working_lead'         => 'Working Lead',
+            'close_convert_lead'   => 'Close Convert Lead',
+            'close_unconvert_lead' => 'Close Unconvert Lead',
+            'score_updated'        => 'Score Updated',
+            'status_update'        => 'Status Update',
         );
 
         return isset( $display_names[ $event_type ] ) ? $display_names[ $event_type ] : $event_type;
@@ -253,11 +259,17 @@ class CUFT_Utils {
      */
     public static function get_event_icon( $event_type ) {
         $icons = array(
-            'phone_click' => '📞',
-            'email_click' => '📧',
-            'form_submit' => '📝',
-            'generate_lead' => '⭐',
-            'status_update' => '🔄'
+            'phone_click'          => '📞',
+            'email_click'          => '📧',
+            'form_submit'          => '📝',
+            'generate_lead'        => '🎯',
+            'qualify_lead'         => '⭐',
+            'disqualify_lead'      => '❌',
+            'working_lead'         => '📋',
+            'close_convert_lead'   => '✅',
+            'close_unconvert_lead' => '🚫',
+            'score_updated'        => '📊',
+            'status_update'        => '🔄',
         );
 
         return isset( $icons[ $event_type ] ) ? $icons[ $event_type ] : '●';

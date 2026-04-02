@@ -23,6 +23,12 @@ class CUFT_Event_Recorder {
         'email_click',
         'form_submit',
         'generate_lead',
+        'qualify_lead',
+        'disqualify_lead',
+        'working_lead',
+        'close_convert_lead',
+        'close_unconvert_lead',
+        'score_updated',
     );
 
     /**

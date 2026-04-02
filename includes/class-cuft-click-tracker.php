@@ -759,6 +759,11 @@ class CUFT_Click_Tracker {
             'form_submit' => 'Form Submit',
             'generate_lead' => 'Qualified Lead',
             'status_qualified' => 'Status Qualified',
+            'qualify_lead' => 'Qualify Lead',
+            'disqualify_lead' => 'Disqualify Lead',
+            'working_lead' => 'Working Lead',
+            'close_convert_lead' => 'Close Convert Lead',
+            'close_unconvert_lead' => 'Close Unconvert Lead',
             'score_updated' => 'Score Updated'
         );
 
@@ -847,8 +852,13 @@ class CUFT_Click_Tracker {
             'email_click',
             'form_submit',
             'generate_lead',
-            'status_qualified',  // Webhook event
-            'score_updated'      // Webhook event
+            'qualify_lead',
+            'disqualify_lead',
+            'working_lead',
+            'close_convert_lead',
+            'close_unconvert_lead',
+            'score_updated',
+            'status_qualified',
         );
         if ( ! in_array( $event_type, $valid_events ) ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
