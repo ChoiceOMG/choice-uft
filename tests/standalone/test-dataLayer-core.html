@@ -157,38 +157,38 @@
 
             // Test Suite 6: Lead Qualification
             utils.describe('Lead Qualification Logic', function() {
-                utils.test('meetsLeadConditions() requires email, phone, and click ID', function() {
+                utils.test('meetsQualifyConditions() requires email, phone, and click ID', function() {
                     // All conditions met
                     const validPayload = {
                         user_email: 'test@example.com',
                         user_phone: '1234567890',
                         gclid: 'test_click_id'
                     };
-                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(validPayload), true);
+                    utils.assertEqual(dataLayerUtils.meetsQualifyConditions(validPayload), true);
 
                     // Missing email
                     const noEmail = {
                         user_phone: '1234567890',
                         gclid: 'test_click_id'
                     };
-                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(noEmail), false);
+                    utils.assertEqual(dataLayerUtils.meetsQualifyConditions(noEmail), false);
 
                     // Missing phone
                     const noPhone = {
                         user_email: 'test@example.com',
                         gclid: 'test_click_id'
                     };
-                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(noPhone), false);
+                    utils.assertEqual(dataLayerUtils.meetsQualifyConditions(noPhone), false);
 
                     // Missing click ID
                     const noClickId = {
                         user_email: 'test@example.com',
                         user_phone: '1234567890'
                     };
-                    utils.assertEqual(dataLayerUtils.meetsLeadConditions(noClickId), false);
+                    utils.assertEqual(dataLayerUtils.meetsQualifyConditions(noClickId), false);
                 });
 
-                utils.test('meetsLeadConditions() accepts any valid click ID type', function() {
+                utils.test('meetsQualifyConditions() accepts any valid click ID type', function() {
                     const clickIdTypes = ['click_id', 'gclid', 'gbraid', 'wbraid', 'fbclid',
                                          'msclkid', 'ttclid', 'li_fat_id', 'twclid',
                                          'snap_click_id', 'pclid'];
@@ -200,11 +200,34 @@
                             [clickIdType]: 'test_id_123'
                         };
                         utils.assertEqual(
-                            dataLayerUtils.meetsLeadConditions(payload),
+                            dataLayerUtils.meetsQualifyConditions(payload),
                             true,
                             'Should accept ' + clickIdType
                         );
                     });
+                });
+
+                utils.test('meetsGenerateLeadConditions() requires only email', function() {
+                    // Email present
+                    utils.assertEqual(
+                        dataLayerUtils.meetsGenerateLeadConditions({ user_email: 'test@example.com' }),
+                        true,
+                        'Should return true when email is present'
+                    );
+
+                    // No email
+                    utils.assertEqual(
+                        dataLayerUtils.meetsGenerateLeadConditions({ user_phone: '1234567890' }),
+                        false,
+                        'Should return false when email is missing'
+                    );
+
+                    // Empty payload
+                    utils.assertEqual(
+                        dataLayerUtils.meetsGenerateLeadConditions({}),
+                        false,
+                        'Should return false for empty payload'
+                    );
                 });
             });
 
@@ -260,9 +283,33 @@
                 });
             });
 
-            // Test Suite 8: Generate Lead Event Creation
-            utils.describe('Generate Lead Event Creation', function() {
-                utils.test('createGenerateLeadPayload() includes all required fields', function() {
+            // Test Suite 8: Lead Event Creation
+            utils.describe('Lead Event Creation', function() {
+                utils.test('createGenerateLeadPayload() creates broad generate_lead event', function() {
+                    const formSubmitPayload = {
+                        event: 'form_submit',
+                        form_type: 'elementor',
+                        form_id: 'test-form',
+                        user_email: 'test@example.com',
+                        submitted_at: '2025-01-01T12:00:00.000Z',
+                        cuft_tracked: true,
+                        cuft_source: 'elementor_pro'
+                    };
+
+                    const leadPayload = dataLayerUtils.createGenerateLeadPayload(formSubmitPayload, 'elementor');
+
+                    utils.assertEqual(leadPayload.event, 'generate_lead', 'Event must be generate_lead');
+                    utils.assertEqual(leadPayload.cuft_source, 'elementor_pro_lead', 'Should use lead-specific source');
+                    utils.assertEqual(leadPayload.currency, 'CAD', 'Default currency must be CAD');
+                    utils.assertEqual(leadPayload.value, 100, 'Default value must be 100');
+
+                    // All form fields should be included
+                    utils.assertEqual(leadPayload.form_type, 'elementor');
+                    utils.assertEqual(leadPayload.form_id, 'test-form');
+                    utils.assertEqual(leadPayload.user_email, 'test@example.com');
+                });
+
+                utils.test('createQualifyLeadPayload() creates strict qualify_lead event', function() {
                     const formSubmitPayload = {
                         event: 'form_submit',
                         form_type: 'elementor',
@@ -275,19 +322,19 @@
                         gclid: 'test_click_id'
                     };
 
-                    const leadPayload = dataLayerUtils.createGenerateLeadPayload(formSubmitPayload, 'elementor');
+                    const qualifyPayload = dataLayerUtils.createQualifyLeadPayload(formSubmitPayload, 'elementor');
 
-                    utils.assertEqual(leadPayload.event, 'generate_lead', 'Event must be generate_lead');
-                    utils.assertEqual(leadPayload.cuft_source, 'elementor_pro_lead', 'Should use lead-specific source');
-                    utils.assertEqual(leadPayload.currency, 'USD', 'Currency must be USD');
-                    utils.assertEqual(leadPayload.value, 0, 'Value must be 0');
+                    utils.assertEqual(qualifyPayload.event, 'qualify_lead', 'Event must be qualify_lead');
+                    utils.assertEqual(qualifyPayload.cuft_source, 'elementor_pro_lead', 'Should use lead-specific source');
+                    utils.assertEqual(qualifyPayload.currency, 'CAD', 'Default currency must be CAD');
+                    utils.assertEqual(qualifyPayload.value, 100, 'Default value must be 100');
 
                     // All form fields should be included
-                    utils.assertEqual(leadPayload.form_type, 'elementor');
-                    utils.assertEqual(leadPayload.form_id, 'test-form');
-                    utils.assertEqual(leadPayload.user_email, 'test@example.com');
-                    utils.assertEqual(leadPayload.user_phone, '1234567890');
-                    utils.assertEqual(leadPayload.gclid, 'test_click_id');
+                    utils.assertEqual(qualifyPayload.form_type, 'elementor');
+                    utils.assertEqual(qualifyPayload.form_id, 'test-form');
+                    utils.assertEqual(qualifyPayload.user_email, 'test@example.com');
+                    utils.assertEqual(qualifyPayload.user_phone, '1234567890');
+                    utils.assertEqual(qualifyPayload.gclid, 'test_click_id');
                 });
 
                 utils.test('Lead source naming follows specification pattern', function() {
@@ -310,7 +357,7 @@
 
             // Test Suite 9: Full Tracking Flow
             utils.describe('Complete Form Tracking Flow', function() {
-                utils.test('trackFormSubmission() fires form_submit event with correct data', function() {
+                utils.test('trackFormSubmission() fires form_submit and generate_lead with email', function() {
                     const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
                     const mockDL = utils.setupMockDataLayer();
 
@@ -322,19 +369,23 @@
                     });
 
                     utils.assertEqual(result, true, 'Tracking should succeed');
-                    utils.assertEqual(mockDL.events.length, 1, 'Should fire exactly one event');
+                    utils.assertEqual(mockDL.events.length, 2, 'Should fire two events (form_submit and generate_lead)');
 
-                    const event = mockDL.getLastEvent();
-                    utils.assertEqual(event.event, 'form_submit');
-                    utils.assertEqual(event.cuft_tracked, true);
-                    utils.assertEqual(event.form_id, 'contact-form-1');
-                    utils.assertEqual(event.user_phone, '5551234567', 'Phone should be sanitized');
+                    const formEvent = mockDL.events[0];
+                    utils.assertEqual(formEvent.event, 'form_submit');
+                    utils.assertEqual(formEvent.cuft_tracked, true);
+                    utils.assertEqual(formEvent.form_id, 'contact-form-1');
+                    utils.assertEqual(formEvent.user_phone, '5551234567', 'Phone should be sanitized');
+
+                    const generateEvent = mockDL.events[1];
+                    utils.assertEqual(generateEvent.event, 'generate_lead', 'Broad generate_lead should fire with email');
+                    utils.assertEqual(generateEvent.cuft_source, 'elementor_pro_lead');
 
                     mockDL.restore();
                     utils.cleanupTestContainer(form.parentElement);
                 });
 
-                utils.test('trackFormSubmission() fires generate_lead when conditions are met', function() {
+                utils.test('trackFormSubmission() fires generate_lead, qualify_lead, and deprecated generate_lead when all conditions met', function() {
                     const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
                     const mockDL = utils.setupMockDataLayer();
 
@@ -350,16 +401,27 @@
                     });
 
                     utils.assertEqual(result, true, 'Tracking should succeed');
-                    utils.assertEqual(mockDL.events.length, 2, 'Should fire two events (form_submit and generate_lead)');
+                    utils.assertEqual(mockDL.events.length, 4, 'Should fire four events (form_submit, generate_lead, qualify_lead, deprecated generate_lead)');
 
                     const formEvent = mockDL.events[0];
-                    const leadEvent = mockDL.events[1];
+                    const generateLeadEvent = mockDL.events[1];
+                    const qualifyLeadEvent = mockDL.events[2];
+                    const deprecatedEvent = mockDL.events[3];
 
                     utils.assertEqual(formEvent.event, 'form_submit');
-                    utils.assertEqual(leadEvent.event, 'generate_lead');
-                    utils.assertEqual(leadEvent.currency, 'USD');
-                    utils.assertEqual(leadEvent.value, 0);
-                    utils.assertEqual(leadEvent.cuft_source, 'elementor_pro_lead');
+
+                    // Broad generate_lead (fires because email present)
+                    utils.assertEqual(generateLeadEvent.event, 'generate_lead');
+                    utils.assertEqual(generateLeadEvent.cuft_source, 'elementor_pro_lead');
+
+                    // Strict qualify_lead (fires because email + phone + click_id)
+                    utils.assertEqual(qualifyLeadEvent.event, 'qualify_lead');
+                    utils.assertEqual(qualifyLeadEvent.cuft_source, 'elementor_pro_lead');
+
+                    // Deprecated dual-fire generate_lead with strict payload
+                    utils.assertEqual(deprecatedEvent.event, 'generate_lead');
+                    utils.assertEqual(deprecatedEvent.cuft_deprecated, true);
+                    utils.assertEqual(deprecatedEvent.cuft_migrate_to, 'qualify_lead');
 
                     // Cleanup
                     delete window.cuftGetTrackingData;

@@ -105,9 +105,9 @@ window.cuftDataLayerUtils = (function () {
   }
 
   /**
-   * Check if lead conditions are met (email + phone + click_id)
+   * Check if qualify_lead conditions are met (email + phone + click_id)
    */
-  function meetsLeadConditions(payload) {
+  function meetsQualifyConditions(payload) {
     // Must have valid email and phone
     if (!payload.user_email || !payload.user_phone) {
       return false;
@@ -120,6 +120,13 @@ window.cuftDataLayerUtils = (function () {
       }
     }
     return false;
+  }
+
+  /**
+   * Check if generate_lead conditions are met (broad: just email)
+   */
+  function meetsGenerateLeadConditions(payload) {
+    return !!payload.user_email;
   }
 
   /**
@@ -225,9 +232,9 @@ window.cuftDataLayerUtils = (function () {
   }
 
   /**
-   * Create standardized generate_lead event payload
+   * Create standardized qualify_lead event payload (strict: email + phone + click_id)
    */
-  function createGenerateLeadPayload(formSubmitPayload, framework, options) {
+  function createQualifyLeadPayload(formSubmitPayload, framework, options) {
     // Validate framework
     var frameworkConfig = FRAMEWORK_IDENTIFIERS[framework];
     if (!frameworkConfig) {
@@ -245,11 +252,33 @@ window.cuftDataLayerUtils = (function () {
     }
 
     // Override event-specific fields
-    leadPayload.event = "generate_lead";
+    leadPayload.event = "qualify_lead";
     leadPayload.cuft_source = frameworkConfig.cuft_source_lead;
     leadPayload.currency = options.lead_currency || "CAD";
     leadPayload.value = parseFloat(options.lead_value) || 100;
 
+    return leadPayload;
+  }
+
+  /**
+   * Create standardized generate_lead event payload (broad: just email)
+   */
+  function createGenerateLeadPayload(formSubmitPayload, framework, options) {
+    var frameworkConfig = FRAMEWORK_IDENTIFIERS[framework];
+    if (!frameworkConfig) {
+      throw new Error('[CUFT DataLayer] Unknown framework: ' + framework);
+    }
+    options = options || {};
+    var leadPayload = {};
+    for (var key in formSubmitPayload) {
+      if (formSubmitPayload.hasOwnProperty(key)) {
+        leadPayload[key] = formSubmitPayload[key];
+      }
+    }
+    leadPayload.event = "generate_lead";
+    leadPayload.cuft_source = frameworkConfig.cuft_source_lead;
+    leadPayload.currency = options.lead_currency || "CAD";
+    leadPayload.value = parseFloat(options.lead_value) || 100;
     return leadPayload;
   }
 
@@ -416,50 +445,57 @@ window.cuftDataLayerUtils = (function () {
         recordEvent(clickId, 'form_submit', options.debug);
       }
 
-      // Check for generate_lead conditions
-      var meetsConditions = meetsLeadConditions(formSubmitPayload);
-
-      if (options.debug && window.console && window.console.log) {
-        window.console.log('[CUFT DataLayer] Generate lead conditions check:', {
-          framework: framework,
-          meetsConditions: meetsConditions,
-          hasEmail: !!formSubmitPayload.user_email,
-          hasPhone: !!formSubmitPayload.user_phone,
-          hasClickId: !!(formSubmitPayload.click_id || formSubmitPayload.gclid ||
-                       formSubmitPayload.fbclid || formSubmitPayload.wbraid ||
-                       formSubmitPayload.gbraid || formSubmitPayload.msclkid),
-          clickIds: {
-            click_id: formSubmitPayload.click_id || null,
-            gclid: formSubmitPayload.gclid || null,
-            fbclid: formSubmitPayload.fbclid || null,
-            wbraid: formSubmitPayload.wbraid || null,
-            gbraid: formSubmitPayload.gbraid || null,
-            msclkid: formSubmitPayload.msclkid || null
-          }
-        });
-      }
-
-      if (meetsConditions) {
-        var leadPayload = createGenerateLeadPayload(formSubmitPayload, framework, {
+      // Fire generate_lead if email is present (broad GA4 meaning)
+      if (meetsGenerateLeadConditions(formSubmitPayload)) {
+        var generateLeadPayload = createGenerateLeadPayload(formSubmitPayload, framework, {
           lead_currency: options.lead_currency,
           lead_value: options.lead_value
         });
-        pushToDataLayer(leadPayload, {
+        pushToDataLayer(generateLeadPayload, {
           debug: options.debug,
           framework: framework
         });
 
-        // Record generate_lead event to click tracking database (fire-and-forget)
+        if (options.debug && window.console && window.console.log) {
+          window.console.log('[CUFT DataLayer] generate_lead event fired for:', framework);
+        }
+      }
+
+      // Fire qualify_lead if strict criteria met (email + phone + click_id)
+      if (meetsQualifyConditions(formSubmitPayload)) {
+        var qualifyLeadPayload = createQualifyLeadPayload(formSubmitPayload, framework, {
+          lead_currency: options.lead_currency,
+          lead_value: options.lead_value
+        });
+        pushToDataLayer(qualifyLeadPayload, {
+          debug: options.debug,
+          framework: framework
+        });
+
+        // Record qualify_lead event server-side
         if (clickId) {
-          recordEvent(clickId, 'generate_lead', options.debug);
+          recordEvent(clickId, 'qualify_lead', options.debug);
+        }
+
+        // DEPRECATED: Dual-fire old generate_lead with strict payload for one version
+        var deprecatedPayload = createQualifyLeadPayload(formSubmitPayload, framework, {
+          lead_currency: options.lead_currency,
+          lead_value: options.lead_value
+        });
+        deprecatedPayload.event = "generate_lead";
+        deprecatedPayload.cuft_deprecated = true;
+        deprecatedPayload.cuft_migrate_to = "qualify_lead";
+        pushToDataLayer(deprecatedPayload, {
+          debug: options.debug,
+          framework: framework
+        });
+
+        if (options.console_logging === "yes" || (options.debug && window.console)) {
+          console.warn('[CUFT] "generate_lead" with strict criteria is deprecated. Update your GTM trigger to use "qualify_lead" instead.');
         }
 
         if (options.debug && window.console && window.console.log) {
-          window.console.log('[CUFT DataLayer] ✅ generate_lead event fired for:', framework);
-        }
-      } else {
-        if (options.debug && window.console && window.console.log) {
-          window.console.log('[CUFT DataLayer] ❌ generate_lead NOT fired for:', framework, 'Missing requirements');
+          window.console.log('[CUFT DataLayer] qualify_lead event fired for:', framework);
         }
       }
 
@@ -483,11 +519,13 @@ window.cuftDataLayerUtils = (function () {
     generateTimestamp: generateTimestamp,
     isFormProcessed: isFormProcessed,
     markFormProcessed: markFormProcessed,
-    meetsLeadConditions: meetsLeadConditions,
+    meetsQualifyConditions: meetsQualifyConditions,
+    meetsGenerateLeadConditions: meetsGenerateLeadConditions,
 
     // Event creation functions
     createFormSubmitPayload: createFormSubmitPayload,
     createGenerateLeadPayload: createGenerateLeadPayload,
+    createQualifyLeadPayload: createQualifyLeadPayload,
     pushToDataLayer: pushToDataLayer,
 
     // Event recording functions (v3.12.0)

@@ -189,8 +189,35 @@ window.CUFTTestData = (function() {
     gclid: "TeSter-123_abc"
   };
 
+  // Broad generate_lead: fires when email is present (GA4 convention)
   const expectedGenerateLeadEvent = {
     event: "generate_lead",
+    currency: "USD",
+    value: 0,
+    cuft_tracked: true,
+    cuft_source: "elementor_pro_lead",
+
+    // All form_submit fields also included
+    form_type: "elementor",
+    form_id: "contact-form-1",
+    form_name: "Contact Form",
+    user_email: "test@example.com",
+    submitted_at: "2025-01-01T12:00:00.000Z",
+
+    // GA4 parameters
+    page_location: "https://example.com/contact",
+    page_referrer: "https://google.com",
+    page_title: "Contact Us - Example Site",
+
+    // UTM parameters
+    utm_source: "google",
+    utm_medium: "cpc",
+    utm_campaign: "summer_sale_2025"
+  };
+
+  // Strict qualify_lead: fires when email + phone + click_id are all present
+  const expectedQualifyLeadEvent = {
+    event: "qualify_lead",
     currency: "USD",
     value: 0,
     cuft_tracked: true,
@@ -214,7 +241,7 @@ window.CUFTTestData = (function() {
     utm_medium: "cpc",
     utm_campaign: "summer_sale_2025",
 
-    // Click ID (at least one required)
+    // Click ID (at least one required for qualify_lead)
     gclid: "TeSter-123_abc"
   };
 
@@ -236,7 +263,7 @@ window.CUFTTestData = (function() {
       clickIds: {
         gclid: "test_click_id"
       },
-      expectedEvents: ["form_submit", "generate_lead"]
+      expectedEvents: ["form_submit", "generate_lead", "qualify_lead"]
     },
     {
       name: "Form with email only",
@@ -246,7 +273,7 @@ window.CUFTTestData = (function() {
       },
       utmParams: {},
       clickIds: {},
-      expectedEvents: ["form_submit"] // No generate_lead without click ID
+      expectedEvents: ["form_submit", "generate_lead"] // Broad generate_lead fires with just email
     },
     {
       name: "Form with phone only",
@@ -389,6 +416,7 @@ window.CUFTTestData = (function() {
     clickIdSets: clickIdSets,
     expectedFormSubmitEvent: expectedFormSubmitEvent,
     expectedGenerateLeadEvent: expectedGenerateLeadEvent,
+    expectedQualifyLeadEvent: expectedQualifyLeadEvent,
     positiveTestScenarios: positiveTestScenarios,
     negativeTestScenarios: negativeTestScenarios,
     performanceTestData: performanceTestData,
