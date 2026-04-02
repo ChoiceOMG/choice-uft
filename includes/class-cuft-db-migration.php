@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '3.21.0';
+    const CURRENT_VERSION = '3.22.0';
 
     /**
      * Option name for storing database version
@@ -49,6 +49,15 @@ class CUFT_DB_Migration {
         // Run 3.21.0 migration for IP hash
         if ( version_compare( $current_version, '3.21.0', '<' ) ) {
             self::migrate_to_3_21_0();
+        }
+
+        // Run 3.22.0 migration for ga_client_id and replayed_at columns
+        if ( version_compare( $current_version, '3.22.0', '<' ) ) {
+            if ( class_exists( 'CUFT_Migration_3_22_0' ) ) {
+                if ( CUFT_Migration_3_22_0::needs_migration() ) {
+                    CUFT_Migration_3_22_0::up();
+                }
+            }
         }
 
         // Update version

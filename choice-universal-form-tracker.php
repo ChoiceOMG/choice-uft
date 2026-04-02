@@ -137,6 +137,7 @@ class Choice_Universal_Form_Tracker {
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
             'includes/migrations/class-cuft-migration-3-21-0.php',
+            'includes/migrations/class-cuft-migration-3-22-0.php',
             'includes/migrations/create-update-log-table.php',  // Update log table migration
             // Update System (Feature 008 - v3.17.0)
             'includes/update/class-cuft-plugin-info.php',  // plugins_api filter for update modal
