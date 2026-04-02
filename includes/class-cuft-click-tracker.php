@@ -181,9 +181,24 @@ class CUFT_Click_Tracker {
     }
     
     /**
+     * Get valid webhook status values for lead lifecycle events
+     *
+     * @return array List of valid status strings.
+     */
+    public static function get_valid_webhook_statuses() {
+        return array(
+            'qualify_lead',
+            'disqualify_lead',
+            'working_lead',
+            'close_convert_lead',
+            'close_unconvert_lead',
+        );
+    }
+
+    /**
      * Update qualified status and score
      */
-    public static function update_click_status( $click_id, $qualified = null, $score = null ) {
+    public static function update_click_status( $click_id, $qualified = null, $score = null, $status = null ) {
         global $wpdb;
 
         if ( empty( $click_id ) ) {
@@ -213,7 +228,21 @@ class CUFT_Click_Tracker {
             $update_format[] = '%d';
         }
 
-        if ( empty( $update_data ) ) {
+        // If only status provided (no qualified/score changes), still record the event
+        if ( empty( $update_data ) && $status ) {
+            try {
+                if ( in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
+                    self::add_event( $click_id, $status );
+                }
+            } catch ( Exception $e ) {
+                if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    CUFT_Logger::log( 'error', 'Failed to record webhook event: ' . $e->getMessage() );
+                }
+            }
+            return true;
+        }
+
+        if ( empty( $update_data ) && ! $status ) {
             return false;
         }
 
@@ -226,11 +255,13 @@ class CUFT_Click_Tracker {
         );
 
         if ( $result !== false ) {
-            // Record events for webhook updates (non-breaking, wrapped in try-catch)
             try {
-                // Record status_qualified event if qualified=1
-                if ( $qualified === 1 ) {
-                    self::add_event( $click_id, 'status_qualified' );
+                // Record lifecycle status event
+                if ( $status && in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
+                    self::add_event( $click_id, $status );
+                } elseif ( $qualified === 1 || $qualified === '1' ) {
+                    // Backward compatibility: qualified=1 maps to qualify_lead
+                    self::add_event( $click_id, 'qualify_lead' );
                 }
 
                 // Record score_updated event if score increased
@@ -238,7 +269,6 @@ class CUFT_Click_Tracker {
                     self::add_event( $click_id, 'score_updated' );
                 }
             } catch ( Exception $e ) {
-                // Never break webhook functionality due to event recording failures
                 if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
                     CUFT_Logger::log( 'error', 'Failed to record webhook event: ' . $e->getMessage() );
                 }
@@ -491,6 +521,19 @@ class CUFT_Click_Tracker {
         // Get optional parameters
         $qualified = isset( $_GET['qualified'] ) ? (int) $_GET['qualified'] : null;
         $score = isset( $_GET['score'] ) ? (int) $_GET['score'] : null;
+        $status = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
+
+        // Validate status if provided
+        if ( $status && ! in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
+            wp_send_json_error( array(
+                'message' => 'Invalid status value. Valid values: ' . implode( ', ', self::get_valid_webhook_statuses() ),
+            ), 400 );
+        }
+
+        // Status=qualify_lead implies qualified=1
+        if ( 'qualify_lead' === $status && null === $qualified ) {
+            $qualified = 1;
+        }
 
         // Validate score range
         if ( $score !== null && ( $score < 0 || $score > 10 ) ) {
@@ -498,14 +541,15 @@ class CUFT_Click_Tracker {
         }
 
         // Update the record
-        $result = self::update_click_status( $click_id, $qualified, $score );
+        $result = self::update_click_status( $click_id, $qualified, $score, $status );
 
         if ( $result !== false ) {
             wp_send_json_success( array(
                 'message' => 'Click status updated successfully',
                 'click_id' => $click_id,
                 'qualified' => $qualified,
-                'score' => $score
+                'score' => $score,
+                'status' => $status,
             ) );
         } else {
             wp_send_json_error( array( 'message' => 'Failed to update click status' ), 500 );
