@@ -49,7 +49,7 @@ class Test_Webhook_Status extends WP_UnitTestCase {
         ) );
         $events = json_decode( $row->events, true );
         $last_event = end( $events );
-        $this->assertEquals( 'working_lead', $last_event['event_type'] );
+        $this->assertEquals( 'working_lead', $last_event['event'] );
     }
 
     public function test_qualified_param_maps_to_qualify_lead() {
@@ -62,6 +62,6 @@ class Test_Webhook_Status extends WP_UnitTestCase {
         ) );
         $events = json_decode( $row->events, true );
         $last_event = end( $events );
-        $this->assertEquals( 'qualify_lead', $last_event['event_type'] );
+        $this->assertEquals( 'qualify_lead', $last_event['event'] );
     }
 }
