@@ -143,6 +143,65 @@
     // Add click ID to dataLayer
     addClickIdToDataLayer();
 
+    // Check for pending webhook events to replay into dataLayer
+    (function checkPendingEvents() {
+      var clickId = null;
+      try {
+        var match = document.cookie.match(/(^|; )cuft_click_id=([^;]*)/);
+        if (match && match[2]) {
+          clickId = decodeURIComponent(match[2]);
+        }
+      } catch (e) {
+        return;
+      }
+
+      if (!clickId) {
+        return;
+      }
+
+      var ajaxUrl =
+        (window.cuftAjax && window.cuftAjax.ajax_url) ||
+        (window.cuftConfig && window.cuftConfig.ajaxUrl) ||
+        "/wp-admin/admin-ajax.php";
+
+      var xhr = new XMLHttpRequest();
+      xhr.open(
+        "GET",
+        ajaxUrl +
+          "?action=cuft_get_pending_events&click_id=" +
+          encodeURIComponent(clickId),
+        true
+      );
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4 || xhr.status !== 200) return;
+        try {
+          var resp = JSON.parse(xhr.responseText);
+          if (
+            resp.success &&
+            resp.data &&
+            resp.data.events &&
+            resp.data.events.length
+          ) {
+            var dl = (window.dataLayer = window.dataLayer || []);
+            for (var i = 0; i < resp.data.events.length; i++) {
+              var evt = resp.data.events[i];
+              dl.push({
+                event: evt.event,
+                click_id: clickId,
+                cuft_tracked: true,
+                cuft_source: "webhook_replay",
+                cuft_replayed: true,
+              });
+              log("Replayed webhook event:", evt.event);
+            }
+          }
+        } catch (e) {
+          // Silently fail on parse errors
+        }
+      };
+      xhr.send();
+    })();
+
     // Enhance existing forms
     enhanceFormSubmissions();
 

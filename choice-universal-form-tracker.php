@@ -92,6 +92,7 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-form-builder-validator.php',  // Compliance validator
             // AJAX Handlers
             'includes/ajax/class-cuft-event-recorder.php',  // AJAX event recording handler
+            'includes/ajax/class-cuft-event-replay.php',    // AJAX event replay for webhook events
             'includes/ajax/class-cuft-test-data-generator.php',  // Test data generator AJAX
             'includes/ajax/class-cuft-event-simulator.php',  // Event simulator AJAX
             'includes/ajax/class-cuft-test-form-builder.php',  // Test form builder AJAX
@@ -269,6 +270,11 @@ class Choice_Universal_Form_Tracker {
             // Initialize AJAX Event Recorder (v3.12.0)
             if ( class_exists( 'CUFT_Event_Recorder' ) ) {
                 new CUFT_Event_Recorder();
+            }
+
+            // Initialize AJAX Event Replay for webhook-driven lifecycle events
+            if ( class_exists( 'CUFT_Event_Replay' ) ) {
+                new CUFT_Event_Replay();
             }
 
             // Initialize Testing Dashboard (v3.14.0)

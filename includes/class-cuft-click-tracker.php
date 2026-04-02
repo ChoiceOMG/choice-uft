@@ -232,7 +232,7 @@ class CUFT_Click_Tracker {
         if ( empty( $update_data ) && $status ) {
             try {
                 if ( in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
-                    self::add_event( $click_id, $status );
+                    self::add_event( $click_id, $status, 'webhook' );
 
                     // Fire Measurement Protocol for webhook-driven lifecycle events
                     $ga_client_id = $current_record ? $current_record->ga_client_id : '';
@@ -266,7 +266,7 @@ class CUFT_Click_Tracker {
             try {
                 // Record lifecycle status event
                 if ( $status && in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
-                    self::add_event( $click_id, $status );
+                    self::add_event( $click_id, $status, 'webhook' );
 
                     // Fire Measurement Protocol for webhook-driven lifecycle events
                     $ga_client_id = $current_record ? $current_record->ga_client_id : '';
@@ -277,12 +277,12 @@ class CUFT_Click_Tracker {
                     ) );
                 } elseif ( $qualified === 1 || $qualified === '1' ) {
                     // Backward compatibility: qualified=1 maps to qualify_lead
-                    self::add_event( $click_id, 'qualify_lead' );
+                    self::add_event( $click_id, 'qualify_lead', 'webhook' );
                 }
 
                 // Record score_updated event if score increased
                 if ( $score !== null && $score > $old_score ) {
-                    self::add_event( $click_id, 'score_updated' );
+                    self::add_event( $click_id, 'score_updated', 'webhook' );
                 }
             } catch ( Exception $e ) {
                 if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -893,11 +893,13 @@ class CUFT_Click_Tracker {
     /**
      * Add event to click tracking record
      *
-     * @param string $click_id Unique click identifier
-     * @param string $event_type Event type (phone_click, email_click, form_submit, generate_lead, status_update)
+     * @param string      $click_id   Unique click identifier.
+     * @param string      $event_type Event type (phone_click, email_click, form_submit, generate_lead, etc.).
+     * @param string|null $source     Optional origin tag (e.g. 'webhook'). When set, the event also
+     *                                gets a `replayed_at` field (initially null) for client-side replay.
      * @return bool Success status
      */
-    public static function add_event( $click_id, $event_type ) {
+    public static function add_event( $click_id, $event_type, $source = null ) {
         global $wpdb;
 
         if ( empty( $click_id ) || empty( $event_type ) ) {
@@ -974,10 +976,15 @@ class CUFT_Click_Tracker {
 
             // If event type doesn't exist, append it
             if ( ! $event_exists ) {
-                $events[] = array(
-                    'event' => $event_type,
-                    'timestamp' => $new_timestamp
+                $new_event = array(
+                    'event'     => $event_type,
+                    'timestamp' => $new_timestamp,
                 );
+                if ( $source ) {
+                    $new_event['source']      = $source;
+                    $new_event['replayed_at'] = null;
+                }
+                $events[] = $new_event;
             }
 
             // FIFO cleanup: Limit to 100 events (remove oldest if exceeded)
