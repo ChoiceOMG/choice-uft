@@ -358,9 +358,9 @@ class CUFT_Admin {
                                     <p class="description">Overridden by <code>CUFT_REGISTER_SECRET</code> in wp-config.php</p>
                                 <?php else : ?>
                                     <input type="password" id="cuft_register_secret" name="cuft_register_secret"
-                                        value="<?php echo esc_attr( get_option( 'cuft_register_secret', '' ) ); ?>"
-                                        class="regular-text" autocomplete="off" />
-                                    <p class="description">Authenticates with the validator service.</p>
+                                        value="" class="regular-text" autocomplete="off"
+                                        placeholder="<?php echo get_option( 'cuft_register_secret', '' ) ? '••••••••' : ''; ?>" />
+                                    <p class="description">Authenticates with the validator service. Leave blank to keep current value.</p>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -377,9 +377,9 @@ class CUFT_Admin {
                             <th scope="row"><label for="cuft_measurement_api_secret">GA4 API Secret</label></th>
                             <td>
                                 <input type="password" id="cuft_measurement_api_secret" name="cuft_measurement_api_secret"
-                                    value="<?php echo esc_attr( get_option( 'cuft_measurement_api_secret', '' ) ); ?>"
-                                    class="regular-text" autocomplete="off" />
-                                <p class="description">Found in GA4 Admin > Data Streams > Measurement Protocol API secrets.</p>
+                                    value="" class="regular-text" autocomplete="off"
+                                    placeholder="<?php echo get_option( 'cuft_measurement_api_secret', '' ) ? '••••••••' : ''; ?>" />
+                                <p class="description">Found in GA4 Admin > Data Streams > Measurement Protocol API secrets. Leave blank to keep current value.</p>
                             </td>
                         </tr>
                     </table>
@@ -613,7 +613,10 @@ class CUFT_Admin {
 
             // API Credentials
             if ( isset( $_POST['cuft_register_secret'] ) && ! defined( 'CUFT_REGISTER_SECRET' ) ) {
-                update_option( 'cuft_register_secret', sanitize_text_field( wp_unslash( $_POST['cuft_register_secret'] ) ) );
+                $secret = sanitize_text_field( wp_unslash( $_POST['cuft_register_secret'] ) );
+                if ( ! empty( $secret ) ) {
+                    update_option( 'cuft_register_secret', CUFT_Utils::encrypt_secret( $secret ) );
+                }
             }
             if ( isset( $_POST['cuft_measurement_id'] ) ) {
                 $measurement_id = sanitize_text_field( wp_unslash( $_POST['cuft_measurement_id'] ) );
@@ -622,7 +625,10 @@ class CUFT_Admin {
                 }
             }
             if ( isset( $_POST['cuft_measurement_api_secret'] ) ) {
-                update_option( 'cuft_measurement_api_secret', sanitize_text_field( wp_unslash( $_POST['cuft_measurement_api_secret'] ) ) );
+                $secret = sanitize_text_field( wp_unslash( $_POST['cuft_measurement_api_secret'] ) );
+                if ( ! empty( $secret ) ) {
+                    update_option( 'cuft_measurement_api_secret', CUFT_Utils::encrypt_secret( $secret ) );
+                }
             }
 
             add_settings_error( 'cuft_messages', 'cuft_message', 'Settings saved!', 'updated' );

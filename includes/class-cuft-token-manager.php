@@ -40,7 +40,7 @@ class CUFT_Token_Manager {
         if ( defined( 'CUFT_REGISTER_SECRET' ) ) {
             return CUFT_REGISTER_SECRET;
         }
-        return get_option( 'cuft_register_secret', '' );
+        return CUFT_Utils::decrypt_secret( get_option( 'cuft_register_secret', '' ) );
     }
 
     /**

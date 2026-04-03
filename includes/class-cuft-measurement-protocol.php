@@ -51,7 +51,7 @@ class CUFT_Measurement_Protocol {
         }
 
         $measurement_id = get_option( 'cuft_measurement_id', '' );
-        $api_secret     = get_option( 'cuft_measurement_api_secret', '' );
+        $api_secret     = CUFT_Utils::decrypt_secret( get_option( 'cuft_measurement_api_secret', '' ) );
 
         $url = add_query_arg( array(
             'measurement_id' => $measurement_id,
