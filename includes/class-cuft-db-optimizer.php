@@ -28,6 +28,9 @@ class CUFT_DB_Optimizer {
     public static function init() {
         // Hook into WordPress admin init for optimization checks
         add_action('admin_init', array(__CLASS__, 'maybe_optimize_tables'));
+
+        // Hook stale pending event cleanup into the daily cron (S5 spec requirement)
+        add_action('cuft_daily_cleanup', array(__CLASS__, 'cleanup_stale_pending_events'));
     }
 
     /**
@@ -285,6 +288,79 @@ class CUFT_DB_Optimizer {
         );
 
         return (int) $deleted;
+    }
+
+    /**
+     * Expire stale pending webhook events older than 30 days
+     *
+     * Finds click records containing webhook events that have never been replayed
+     * (replayed_at is null) and whose timestamp is older than 30 days. Marks those
+     * events as 'expired' so the replay endpoint no longer returns them.
+     *
+     * @since 3.22.0
+     * @return int Number of click records updated
+     */
+    public static function cleanup_stale_pending_events() {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'cuft_click_tracking';
+
+        // Check if table exists
+        $table_exists = $wpdb->get_var(
+            $wpdb->prepare( "SHOW TABLES LIKE %s", $table )
+        );
+
+        if ( ! $table_exists ) {
+            return 0;
+        }
+
+        // Find clicks with unreplayed webhook events
+        $clicks = $wpdb->get_results(
+            "SELECT click_id, events FROM {$table} WHERE events LIKE '%\"source\":\"webhook\"%' AND events LIKE '%\"replayed_at\":null%'"
+        );
+
+        if ( empty( $clicks ) ) {
+            return 0;
+        }
+
+        $thirty_days_ago = gmdate( 'c', strtotime( '-30 days' ) );
+        $updated_count   = 0;
+
+        foreach ( $clicks as $click ) {
+            $events = json_decode( $click->events, true );
+            if ( ! is_array( $events ) ) {
+                continue;
+            }
+
+            $updated = false;
+
+            foreach ( $events as &$event ) {
+                if ( ! empty( $event['source'] ) && 'webhook' === $event['source']
+                    && ( ! isset( $event['replayed_at'] ) || null === $event['replayed_at'] )
+                    && isset( $event['timestamp'] ) && $event['timestamp'] < $thirty_days_ago ) {
+                    $event['replayed_at'] = 'expired';
+                    $updated = true;
+                }
+            }
+            unset( $event );
+
+            if ( $updated ) {
+                $wpdb->update(
+                    $table,
+                    array( 'events' => wp_json_encode( $events ) ),
+                    array( 'click_id' => $click->click_id ),
+                    array( '%s' ),
+                    array( '%s' )
+                );
+                $updated_count++;
+            }
+        }
+
+        if ( $updated_count > 0 && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( sprintf( 'CUFT DB Optimizer: Expired stale pending events in %d click records', $updated_count ) );
+        }
+
+        return $updated_count;
     }
 
     /**

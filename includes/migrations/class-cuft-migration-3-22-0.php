@@ -2,9 +2,11 @@
 /**
  * Migration for v3.22.0
  *
- * Adds ga_client_id and replayed_at columns to the click tracking table.
+ * Adds ga_client_id column to the click tracking table.
  * - ga_client_id: Stores the GA4 client ID from the _ga cookie for Measurement Protocol replay.
- * - replayed_at: Marks when webhook-driven events have been replayed to the client-side dataLayer.
+ *
+ * Replay tracking (replayed_at) is handled entirely within the JSON events blob,
+ * so no separate DB column is needed.
  *
  * @package Choice_UTM_Form_Tracker
  * @since 3.22.0
@@ -21,7 +23,7 @@ class CUFT_Migration_3_22_0 {
     /**
      * Execute schema migration (up)
      *
-     * Adds ga_client_id column after ip_hash and replayed_at column after events.
+     * Adds ga_client_id column after ip_hash.
      *
      * @return bool True on success, false on failure
      */
@@ -48,21 +50,10 @@ class CUFT_Migration_3_22_0 {
             }
         }
 
-        if ( ! in_array( 'replayed_at', $columns, true ) ) {
-            $result = $wpdb->query( "ALTER TABLE $table ADD COLUMN replayed_at datetime DEFAULT NULL AFTER events" );
-
-            if ( $result === false ) {
-                if ( class_exists( 'CUFT_Logger' ) ) {
-                    CUFT_Logger::log( 'error', 'Migration 3.22.0: Failed to add replayed_at column: ' . $wpdb->last_error );
-                }
-                return false;
-            }
-        }
-
         update_option( self::OPTION_KEY, true );
 
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', 'Migration 3.22.0: Added ga_client_id and replayed_at columns' );
+            CUFT_Logger::log( 'info', 'Migration 3.22.0: Added ga_client_id column' );
         }
 
         return true;
