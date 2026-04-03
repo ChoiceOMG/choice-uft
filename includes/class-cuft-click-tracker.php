@@ -30,7 +30,7 @@ class CUFT_Click_Tracker {
         add_action( 'wp_ajax_cuft_webhook', array( $this, 'handle_webhook' ) );
         
         // Add rewrite rule for cleaner webhook URLs
-        add_action( 'init', array( $this, 'add_webhook_rewrite_rules' ) );
+        $this->add_webhook_rewrite_rules();
         add_action( 'template_redirect', array( $this, 'handle_webhook_request' ) );
     }
     
