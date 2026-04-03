@@ -196,6 +196,35 @@ class CUFT_Click_Tracker {
     }
 
     /**
+     * Fire Measurement Protocol for webhook-driven lifecycle events
+     *
+     * @param string      $click_id       Unique click identifier.
+     * @param string|null $status         Lifecycle status value.
+     * @param object|null $current_record Current DB record for the click.
+     */
+    private static function fire_measurement_protocol( $click_id, $status, $current_record ) {
+        if ( ! $status || ! in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
+            return;
+        }
+
+        $ga_client_id = '';
+        if ( $current_record && ! empty( $current_record->ga_client_id ) ) {
+            $ga_client_id = $current_record->ga_client_id;
+        }
+
+        $platform = 'unknown';
+        if ( $current_record && ! empty( $current_record->platform ) ) {
+            $platform = $current_record->platform;
+        }
+
+        $mp = new CUFT_Measurement_Protocol();
+        $mp->send( $ga_client_id, $status, array(
+            'click_id'    => $click_id,
+            'lead_source' => $platform,
+        ) );
+    }
+
+    /**
      * Update qualified status and score
      */
     public static function update_click_status( $click_id, $qualified = null, $score = null, $status = null ) {
@@ -233,14 +262,7 @@ class CUFT_Click_Tracker {
             try {
                 if ( in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
                     self::add_event( $click_id, $status, 'webhook' );
-
-                    // Fire Measurement Protocol for webhook-driven lifecycle events
-                    $ga_client_id = $current_record ? $current_record->ga_client_id : '';
-                    $mp = new CUFT_Measurement_Protocol();
-                    $mp->send( $ga_client_id ?: '', $status, array(
-                        'click_id'    => $click_id,
-                        'lead_source' => $current_record ? ( isset( $current_record->platform ) ? $current_record->platform : 'unknown' ) : 'unknown',
-                    ) );
+                    self::fire_measurement_protocol( $click_id, $status, $current_record );
                 }
             } catch ( Exception $e ) {
                 if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -267,14 +289,7 @@ class CUFT_Click_Tracker {
                 // Record lifecycle status event
                 if ( $status && in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
                     self::add_event( $click_id, $status, 'webhook' );
-
-                    // Fire Measurement Protocol for webhook-driven lifecycle events
-                    $ga_client_id = $current_record ? $current_record->ga_client_id : '';
-                    $mp = new CUFT_Measurement_Protocol();
-                    $mp->send( $ga_client_id ?: '', $status, array(
-                        'click_id'    => $click_id,
-                        'lead_source' => $current_record ? ( isset( $current_record->platform ) ? $current_record->platform : 'unknown' ) : 'unknown',
-                    ) );
+                    self::fire_measurement_protocol( $click_id, $status, $current_record );
                 } elseif ( $qualified === 1 || $qualified === '1' ) {
                     // Backward compatibility: qualified=1 maps to qualify_lead
                     self::add_event( $click_id, 'qualify_lead', 'webhook' );
@@ -546,9 +561,15 @@ class CUFT_Click_Tracker {
             ), 400 );
         }
 
-        // Status=qualify_lead implies qualified=1
-        if ( 'qualify_lead' === $status && null === $qualified ) {
-            $qualified = 1;
+        // Status takes precedence over qualified parameter
+        if ( $status ) {
+            if ( 'qualify_lead' === $status ) {
+                // qualify_lead implies qualified=1
+                $qualified = 1;
+            } else {
+                // Other statuses: don't update qualified field
+                $qualified = null;
+            }
         }
 
         // Validate score range
@@ -818,7 +839,7 @@ class CUFT_Click_Tracker {
             'email_click' => 'Email Click',
             'form_submit' => 'Form Submit',
             'generate_lead' => 'Qualified Lead',
-            'status_qualified' => 'Status Qualified',
+            'status_qualified' => 'Status Qualified', // Retained for display of legacy events
             'qualify_lead' => 'Qualify Lead',
             'disqualify_lead' => 'Disqualify Lead',
             'working_lead' => 'Working Lead',
@@ -920,7 +941,7 @@ class CUFT_Click_Tracker {
             'close_convert_lead',
             'close_unconvert_lead',
             'score_updated',
-            'status_qualified',
+            'status_qualified', // Legacy: retained for backward compatibility with existing data
         );
         if ( ! in_array( $event_type, $valid_events ) ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
