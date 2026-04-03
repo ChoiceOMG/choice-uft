@@ -28,7 +28,7 @@ class CUFT_Phone_Validator {
      * @param string $phone Raw phone number (any format).
      * @return array|WP_Error
      */
-    public static function validate( string $phone ): array|WP_Error {
+    public static function validate( string $phone ) {
         if ( ! self::is_enabled() ) {
             return new WP_Error( 'cuft_validation_disabled', 'Phone validation is not enabled' );
         }

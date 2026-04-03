@@ -47,7 +47,7 @@ class CUFT_Token_Manager {
      * Register this site with the validator service and store the returned token.
      * Returns WP_Error on failure, or the token string on success.
      */
-    public static function register_site(): string|WP_Error {
+    public static function register_site() {
         $secret = self::get_register_secret_value();
         if ( empty( $secret ) ) {
             return new WP_Error(
