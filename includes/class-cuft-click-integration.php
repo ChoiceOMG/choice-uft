@@ -36,16 +36,6 @@ class CUFT_Click_Integration {
      * Initialize hooks
      */
     public function init_hooks() {
-        // Start the session early for frontend requests so the stored click ID
-        // is accessible via $_SESSION on page visits that don't have a click param in the URL.
-        // This ensures window.cuftClickData.click_id is populated on the form page
-        // even when the user landed on a different page with the gclid.
-        if ( ! is_admin() && ! wp_doing_ajax() && ! wp_doing_cron() ) {
-            if ( ! session_id() ) {
-                session_start();
-            }
-        }
-
         // Capture click IDs on page load
         add_action( 'wp', array( $this, 'capture_click_ids' ) );
 
@@ -104,13 +94,18 @@ class CUFT_Click_Integration {
         // Track the click
         $result = CUFT_Click_Tracker::track_click( $click_id, $tracking_data );
         
-        // Store click ID in session for form submissions
+        // Store click ID in cookie for form submissions
         if ( $result !== false ) {
-            if ( ! session_id() ) {
-                session_start();
-            }
-            $_SESSION['cuft_click_id'] = $click_id;
-            
+            setcookie( 'cuft_click_id', $click_id, array(
+                'expires'  => time() + ( 30 * DAY_IN_SECONDS ),
+                'path'     => COOKIEPATH,
+                'domain'   => COOKIE_DOMAIN,
+                'secure'   => is_ssl(),
+                'httponly'  => false, // Read by client-side JS for event replay
+                'samesite' => 'Lax',
+            ) );
+            $_COOKIE['cuft_click_id'] = $click_id; // Make available in current request
+
             // Log the tracking
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'Click ID captured: ' . $click_id, 'info', array(
@@ -159,14 +154,8 @@ class CUFT_Click_Integration {
         $ip_hash = '';
         $platform = '';
 
-        // Session was started in init_hooks() for frontend requests; start it here
-        // as a fallback for any edge case where init_hooks() didn't run first.
-        if ( ! session_id() ) {
-            session_start();
-        }
-
-        if ( isset( $_SESSION['cuft_click_id'] ) ) {
-            $click_id = $_SESSION['cuft_click_id'];
+        if ( isset( $_COOKIE['cuft_click_id'] ) ) {
+            $click_id = sanitize_text_field( $_COOKIE['cuft_click_id'] );
 
             // Fetch additional tracking data from database
             if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
@@ -188,24 +177,24 @@ class CUFT_Click_Integration {
     }
     
     /**
-     * Get current click ID from session
+     * Get current click ID from cookie
      */
     public static function get_current_click_id() {
-        if ( ! session_id() ) {
-            session_start();
-        }
-        
-        return isset( $_SESSION['cuft_click_id'] ) ? $_SESSION['cuft_click_id'] : '';
+        return isset( $_COOKIE['cuft_click_id'] ) ? sanitize_text_field( $_COOKIE['cuft_click_id'] ) : '';
     }
-    
+
     /**
-     * Clear current click ID from session
+     * Clear current click ID
      */
     public static function clear_current_click_id() {
-        if ( ! session_id() ) {
-            session_start();
-        }
-        
-        unset( $_SESSION['cuft_click_id'] );
+        setcookie( 'cuft_click_id', '', array(
+            'expires'  => time() - 3600,
+            'path'     => COOKIEPATH,
+            'domain'   => COOKIE_DOMAIN,
+            'secure'   => is_ssl(),
+            'httponly'  => false,
+            'samesite' => 'Lax',
+        ) );
+        unset( $_COOKIE['cuft_click_id'] );
     }
 }

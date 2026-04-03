@@ -287,7 +287,7 @@ class CUFT_Utils {
         }
         $key = substr( hash( 'sha256', AUTH_SALT ), 0, 32 );
         $iv  = openssl_random_pseudo_bytes( 16 );
-        $encrypted = openssl_encrypt( $plaintext, 'aes-256-cbc', $key, 0, $iv );
+        $encrypted = openssl_encrypt( $plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
         if ( false === $encrypted ) {
             return $plaintext; // Fallback to plaintext if encryption fails
         }
@@ -315,7 +315,7 @@ class CUFT_Utils {
         }
         $iv        = substr( $data, 0, 16 );
         $encrypted = substr( $data, 16 );
-        $decrypted = openssl_decrypt( $encrypted, 'aes-256-cbc', $key, 0, $iv );
+        $decrypted = openssl_decrypt( $encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
         if ( false === $decrypted ) {
             // Decryption failed — might be a plaintext value from before encryption was added
             return $ciphertext;

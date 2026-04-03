@@ -88,17 +88,9 @@ class CUFT_UTM_Tracker {
         }
         
         if ( ! empty( $tracking_data ) ) {
-            // Store in session (with cookie fallback)
-            if ( ! session_id() ) {
-                session_start();
-            }
-            $_SESSION['cuft_utm_data'] = $tracking_data;
-            $_SESSION['cuft_utm_timestamp'] = current_time( 'timestamp' );
-            
-            // Also store in cookie for persistence
             $this->store_utm_cookie( $tracking_data );
-            
-            CUFT_Logger::log( 'Tracking data stored for session', CUFT_Logger::DEBUG, $tracking_data );
+
+            CUFT_Logger::log( 'Tracking data stored in cookie', CUFT_Logger::DEBUG, $tracking_data );
         }
         
         wp_send_json_success();
@@ -114,13 +106,14 @@ class CUFT_UTM_Tracker {
         );
         
         // Store for 30 days
-        setcookie( 
-            'cuft_utm_data', 
-            wp_json_encode( $cookie_data ), 
-            time() + ( 30 * DAY_IN_SECONDS ), 
-            COOKIEPATH, 
-            COOKIE_DOMAIN 
-        );
+        setcookie( 'cuft_utm_data', wp_json_encode( $cookie_data ), array(
+            'expires'  => time() + ( 30 * DAY_IN_SECONDS ),
+            'path'     => COOKIEPATH,
+            'domain'   => COOKIE_DOMAIN,
+            'secure'   => is_ssl(),
+            'httponly'  => false, // Read by client-side JS
+            'samesite' => 'Lax',
+        ) );
     }
     
     /**
@@ -128,24 +121,17 @@ class CUFT_UTM_Tracker {
      */
     public static function get_utm_data() {
         $utm_data = array();
-        
-        // Try session first
-        if ( session_id() && isset( $_SESSION['cuft_utm_data'] ) ) {
-            $utm_data = $_SESSION['cuft_utm_data'];
-        } else {
-            // Fallback to cookie
-            if ( isset( $_COOKIE['cuft_utm_data'] ) ) {
-                $cookie_data = json_decode( stripslashes( $_COOKIE['cuft_utm_data'] ), true );
-                if ( is_array( $cookie_data ) && isset( $cookie_data['utm'] ) ) {
-                    // Check if cookie is not too old (30 days)
-                    $timestamp = isset( $cookie_data['timestamp'] ) ? $cookie_data['timestamp'] : 0;
-                    if ( ( current_time( 'timestamp' ) - $timestamp ) < ( 30 * DAY_IN_SECONDS ) ) {
-                        $utm_data = $cookie_data['utm'];
-                    }
+
+        if ( isset( $_COOKIE['cuft_utm_data'] ) ) {
+            $cookie_data = json_decode( stripslashes( $_COOKIE['cuft_utm_data'] ), true );
+            if ( is_array( $cookie_data ) && isset( $cookie_data['utm'] ) ) {
+                $timestamp = isset( $cookie_data['timestamp'] ) ? $cookie_data['timestamp'] : 0;
+                if ( ( current_time( 'timestamp' ) - $timestamp ) < ( 30 * DAY_IN_SECONDS ) ) {
+                    $utm_data = $cookie_data['utm'];
                 }
             }
         }
-        
+
         return $utm_data;
     }
     
@@ -161,11 +147,14 @@ class CUFT_UTM_Tracker {
      * Clear UTM data
      */
     public static function clear_utm_data() {
-        if ( session_id() ) {
-            unset( $_SESSION['cuft_utm_data'] );
-            unset( $_SESSION['cuft_utm_timestamp'] );
-        }
-        
-        setcookie( 'cuft_utm_data', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN );
+        setcookie( 'cuft_utm_data', '', array(
+            'expires'  => time() - 3600,
+            'path'     => COOKIEPATH,
+            'domain'   => COOKIE_DOMAIN,
+            'secure'   => is_ssl(),
+            'httponly'  => false,
+            'samesite' => 'Lax',
+        ) );
+        unset( $_COOKIE['cuft_utm_data'] );
     }
 }

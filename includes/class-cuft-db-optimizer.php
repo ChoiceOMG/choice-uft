@@ -323,8 +323,8 @@ class CUFT_DB_Optimizer {
             return 0;
         }
 
-        $thirty_days_ago = gmdate( 'c', strtotime( '-30 days' ) );
-        $updated_count   = 0;
+        $cutoff        = strtotime( '-30 days' );
+        $updated_count = 0;
 
         foreach ( $clicks as $click ) {
             $events = json_decode( $click->events, true );
@@ -337,7 +337,7 @@ class CUFT_DB_Optimizer {
             foreach ( $events as &$event ) {
                 if ( ! empty( $event['source'] ) && 'webhook' === $event['source']
                     && ( ! isset( $event['replayed_at'] ) || null === $event['replayed_at'] )
-                    && isset( $event['timestamp'] ) && $event['timestamp'] < $thirty_days_ago ) {
+                    && isset( $event['timestamp'] ) && strtotime( $event['timestamp'] ) < $cutoff ) {
                     $event['replayed_at'] = 'expired';
                     $updated = true;
                 }

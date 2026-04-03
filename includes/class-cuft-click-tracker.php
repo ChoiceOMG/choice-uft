@@ -838,9 +838,9 @@ class CUFT_Click_Tracker {
             'phone_click' => 'Phone Click',
             'email_click' => 'Email Click',
             'form_submit' => 'Form Submit',
-            'generate_lead' => 'Qualified Lead',
+            'generate_lead' => 'Lead Generated',
             'status_qualified' => 'Status Qualified', // Retained for display of legacy events
-            'qualify_lead' => 'Qualify Lead',
+            'qualify_lead' => 'Qualified Lead',
             'disqualify_lead' => 'Disqualify Lead',
             'working_lead' => 'Working Lead',
             'close_convert_lead' => 'Close Convert Lead',
@@ -863,7 +863,7 @@ class CUFT_Click_Tracker {
      */
     private static function calculate_conversion_value( $event_type, $score, $lead_value ) {
         // Only qualified leads get a value
-        if ( $event_type === 'generate_lead' ) {
+        if ( $event_type === 'qualify_lead' ) {
             return round( ( $lead_value * $score ) / 10, 2 );
         }
 
