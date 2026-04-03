@@ -159,6 +159,11 @@
         return;
       }
 
+      var nonce = (window.cuftConfig && window.cuftConfig.nonce) || "";
+      if (!nonce) {
+        return;
+      }
+
       var ajaxUrl =
         (window.cuftAjax && window.cuftAjax.ajax_url) ||
         (window.cuftConfig && window.cuftConfig.ajaxUrl) ||
@@ -169,7 +174,9 @@
         "GET",
         ajaxUrl +
           "?action=cuft_get_pending_events&click_id=" +
-          encodeURIComponent(clickId),
+          encodeURIComponent(clickId) +
+          "&nonce=" +
+          encodeURIComponent(nonce),
         true
       );
       xhr.onreadystatechange = function () {

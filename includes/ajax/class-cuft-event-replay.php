@@ -108,10 +108,74 @@ class CUFT_Event_Replay {
     }
 
     /**
+     * Atomically fetch and mark pending webhook events for a given click_id.
+     *
+     * Uses a database transaction with SELECT ... FOR UPDATE to prevent race
+     * conditions where concurrent requests could replay the same events twice.
+     *
+     * @param string $click_id Click identifier.
+     * @return array Pending event objects (already marked as replayed in DB).
+     */
+    public static function get_and_mark_pending_events( string $click_id ): array {
+        global $wpdb;
+        $table = $wpdb->prefix . 'cuft_click_tracking';
+
+        $wpdb->query( 'START TRANSACTION' );
+
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT events FROM $table WHERE click_id = %s FOR UPDATE",
+            sanitize_text_field( $click_id )
+        ) );
+
+        if ( ! $row || empty( $row->events ) ) {
+            $wpdb->query( 'COMMIT' );
+            return array();
+        }
+
+        $events = json_decode( $row->events, true );
+        if ( ! is_array( $events ) ) {
+            $wpdb->query( 'COMMIT' );
+            return array();
+        }
+
+        $pending = array();
+        $updated = false;
+
+        foreach ( $events as &$event ) {
+            if ( ! empty( $event['source'] ) && 'webhook' === $event['source'] && ( ! isset( $event['replayed_at'] ) || null === $event['replayed_at'] ) ) {
+                $pending[]             = $event;
+                $event['replayed_at']  = current_time( 'mysql' );
+                $updated               = true;
+            }
+        }
+        unset( $event );
+
+        if ( $updated ) {
+            $wpdb->update(
+                $table,
+                array( 'events' => wp_json_encode( $events ) ),
+                array( 'click_id' => sanitize_text_field( $click_id ) ),
+                array( '%s' ),
+                array( '%s' )
+            );
+        }
+
+        $wpdb->query( 'COMMIT' );
+
+        return $pending;
+    }
+
+    /**
      * AJAX handler: return pending events and mark them replayed atomically.
      */
     public function ajax_get_pending(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public endpoint keyed by click_id cookie
+        // Verify nonce.
+        $nonce = isset( $_GET['nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['nonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'cuft-event-recorder' ) ) {
+            wp_send_json_error( array( 'message' => 'Invalid nonce' ), 403 );
+            return;
+        }
+
         $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( wp_unslash( $_GET['click_id'] ) ) : '';
 
         if ( empty( $click_id ) ) {
@@ -119,11 +183,8 @@ class CUFT_Event_Replay {
             return;
         }
 
-        $pending = self::get_pending_events( $click_id );
-
-        if ( ! empty( $pending ) ) {
-            self::mark_events_replayed( $click_id );
-        }
+        // Atomically get and mark pending events (prevents race condition).
+        $pending = self::get_and_mark_pending_events( $click_id );
 
         wp_send_json_success( array( 'events' => $pending ) );
     }
