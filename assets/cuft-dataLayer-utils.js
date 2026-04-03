@@ -158,7 +158,10 @@ window.cuftDataLayerUtils = (function () {
       if (cookie && cookie[2]) {
         var parts = cookie[2].split(".");
         if (parts.length >= 4) {
-          return parts[2] + "." + parts[3];
+          var clientId = parts[2] + "." + parts[3];
+          if (/^\d+\.\d+$/.test(clientId)) {
+            return clientId;
+          }
         }
       }
     } catch (e) {
@@ -491,6 +494,11 @@ window.cuftDataLayerUtils = (function () {
           framework: framework
         });
 
+        // Record generate_lead event to click tracking database
+        if (clickId) {
+          recordEvent(clickId, 'generate_lead', options.debug, formSubmitPayload.ga_client_id);
+        }
+
         if (options.debug && window.console && window.console.log) {
           window.console.log('[CUFT DataLayer] generate_lead event fired for:', framework);
         }
@@ -525,8 +533,8 @@ window.cuftDataLayerUtils = (function () {
           framework: framework
         });
 
-        if (options.console_logging === "yes" || (options.debug && window.console)) {
-          console.warn('[CUFT] "generate_lead" with strict criteria is deprecated. Update your GTM trigger to use "qualify_lead" instead.');
+        if ((options.console_logging === "yes" || options.debug) && window.console && window.console.warn) {
+          window.console.warn('[CUFT] "generate_lead" with strict criteria is deprecated. Update your GTM trigger to use "qualify_lead" instead.');
         }
 
         if (options.debug && window.console && window.console.log) {
