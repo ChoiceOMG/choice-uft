@@ -1641,7 +1641,8 @@ class CUFT_Admin {
         $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
         $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
         $filter_ip_search = isset( $_GET['filter_ip_search'] ) ? sanitize_text_field( $_GET['filter_ip_search'] ) : '';
-        $filter_has_events = isset( $_GET['filter_has_events'] ) ? sanitize_text_field( $_GET['filter_has_events'] ) : '';
+        // Default to showing only clicks with events — submit the filter form with "All" to see everything
+        $filter_has_events = isset( $_GET['filter_has_events'] ) ? sanitize_text_field( $_GET['filter_has_events'] ) : '1';
         $sort_by = isset( $_GET['sort_by'] ) ? sanitize_text_field( $_GET['sort_by'] ) : 'date_created';
 
         $args = array(
