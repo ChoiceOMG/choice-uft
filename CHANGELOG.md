@@ -5,6 +5,16 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.23.0] - 2026-04-23
+
+### Added
+- Reddit Ads `rdt_cid` click ID now tracked alongside Google/Meta/MS/TikTok/etc.
+- `_cuft_click` cookie read as a fallback click_id source when URL params are absent (supports first-party click collector on `track.<domain>`).
+- New admin setting **Click Collector Host**: when set, CUFT posts click data to `https://<host>/p` on page load via `navigator.sendBeacon()`. Integrates with the Thor click-collector service.
+
+### Why
+Adds coverage of Reddit ad traffic, plus first-class integration with Choice OMG's centralized Thor click pipeline. Enables server-side click logging even when JavaScript is partially blocked by extensions.
+
 ## [3.22.1] - 2026-04-22
 
 ### Changed
