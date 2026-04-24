@@ -16,6 +16,23 @@
   }
 
   /**
+   * Read a cookie value by name (first-match, URI-decoded)
+   */
+  function readCookie(name) {
+    try {
+      var prefix = name + "=";
+      var parts = document.cookie.split(";");
+      for (var i = 0; i < parts.length; i++) {
+        var c = parts[i].replace(/^\s+/, "");
+        if (c.indexOf(prefix) === 0) {
+          return decodeURIComponent(c.substring(prefix.length));
+        }
+      }
+    } catch (e) {}
+    return "";
+  }
+
+  /**
    * UTM parameters to track
    */
   var UTM_PARAMS = [
@@ -100,6 +117,17 @@
     if (firstClickId && !trackingData.click_id) {
       trackingData.click_id = firstClickId;
       log("Setting generic click_id:", firstClickId);
+    }
+
+    // Fallback: read _cuft_click cookie when no click_id came from URL
+    if (!trackingData.click_id) {
+      var cookieVal = readCookie("_cuft_click");
+      if (cookieVal) {
+        trackingData.click_id = cookieVal;
+        trackingData.click_id_source = "cookie";
+        hasData = true;
+        log("click_id resolved from _cuft_click cookie:", cookieVal);
+      }
     }
 
     return hasData ? trackingData : null;
