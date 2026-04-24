@@ -479,6 +479,29 @@ class Choice_Universal_Form_Tracker {
                 true
             );
         }
+
+        // Enqueue passive-ping emitter when a collector host is configured.
+        // Posts click context to https://<collector_host>/p on every page load
+        // via navigator.sendBeacon() so server-side attribution captures clicks
+        // even when forms never submit.
+        $collector_host = get_option( 'cuft_collector_host', '' );
+        if ( ! empty( $collector_host ) ) {
+            wp_enqueue_script(
+                'cuft-passive-ping',
+                CUFT_URL . '/assets/cuft-passive-ping.js',
+                array(),
+                CUFT_VERSION,
+                true
+            );
+            wp_localize_script(
+                'cuft-passive-ping',
+                'cuftPing',
+                array(
+                    'collector_host' => $collector_host,
+                    'debug'          => ( 'no' !== $console_logging ),
+                )
+            );
+        }
     }
 
     /**

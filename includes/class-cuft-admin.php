@@ -343,6 +343,17 @@ class CUFT_Admin {
                             </p>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row"><label for="cuft_collector_host">Click Collector Host</label></th>
+                        <td>
+                            <input type="text" id="cuft_collector_host" name="cuft_collector_host"
+                                   value="<?php echo esc_attr( get_option( 'cuft_collector_host', '' ) ); ?>"
+                                   class="regular-text" placeholder="track.example.com" />
+                            <p class="description">
+                                Optional. If set, CUFT posts click data to <code>https://&lt;host&gt;/p</code> on page load via <code>navigator.sendBeacon()</code>. Leave blank to disable.
+                            </p>
+                        </td>
+                    </tr>
                 </table>
 
                 <!-- API Credentials Section -->
@@ -570,6 +581,10 @@ class CUFT_Admin {
         }
         $console_logging = in_array( $_POST['console_logging'], array( 'no', 'yes', 'admin_only' ) ) ? $_POST['console_logging'] : 'no';
         $github_updates_enabled = isset( $_POST['github_updates_enabled'] ) && $_POST['github_updates_enabled'];
+        $collector_host = isset( $_POST['cuft_collector_host'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_collector_host'] ) ) : '';
+        // Strip protocol/path if a user pastes a full URL - we only want the host.
+        $collector_host = preg_replace( '#^https?://#i', '', $collector_host );
+        $collector_host = trim( $collector_host, "/ \t\n\r\0\x0B" );
         $sgtm_enabled = isset( $_POST['sgtm_enabled'] ) && $_POST['sgtm_enabled'];
         $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
 
@@ -586,6 +601,7 @@ class CUFT_Admin {
             update_option( 'cuft_lead_value', $lead_value );
             update_option( 'cuft_console_logging', $console_logging );
             update_option( 'cuft_github_updates_enabled', $github_updates_enabled );
+            update_option( 'cuft_collector_host', $collector_host );
             update_option( 'cuft_sgtm_enabled', $sgtm_enabled );
 
             // Only save sGTM URL if sGTM is enabled
