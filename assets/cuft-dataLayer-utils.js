@@ -44,7 +44,7 @@ window.cuftDataLayerUtils = (function () {
    * Click ID parameters for lead qualification
    */
   var CLICK_ID_FIELDS = [
-    "click_id", "gclid", "gbraid", "wbraid", "fbclid",
+    "click_id", "gclid", "gbraid", "wbraid", "fbclid", "rdt_cid",
     "msclkid", "ttclid", "li_fat_id", "twclid", "snap_click_id", "pclid"
   ];
 

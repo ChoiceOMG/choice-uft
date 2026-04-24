@@ -26,6 +26,7 @@ window.cuftUtmUtils = (function () {
     "gbraid", // Google Ads click ID for iOS app-to-web journeys
     "wbraid", // Google Ads click ID for web-to-app journeys
     "fbclid", // Facebook / Instagram (Meta Ads) click ID
+    "rdt_cid", // Reddit Ads click ID
     "msclkid", // Microsoft Advertising (Bing Ads) click ID
     "ttclid", // TikTok Ads click ID
     "li_fat_id", // LinkedIn Ads click ID
