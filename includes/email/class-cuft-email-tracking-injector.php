@@ -9,7 +9,7 @@
  * ## Supported Parameters
  *
  * - **UTM Parameters**: utm_source, utm_medium, utm_campaign, utm_term, utm_content, utm_id
- * - **Click IDs**: gclid, gbraid, wbraid, fbclid, msclkid, ttclid, li_fat_id, twclid, snap_click_id, pclid
+ * - **Click IDs**: gclid, gbraid, wbraid, fbclid, rdt_cid, msclkid, ttclid, li_fat_id, twclid, snap_click_id, pclid
  *
  * ## Usage
  *
@@ -189,7 +189,7 @@ class CUFT_Email_Tracking_Injector {
 		$click_ids = array();
 
 		$utm_keys = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id' );
-		$click_id_keys = array( 'click_id', 'gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'ttclid', 'li_fat_id', 'twclid', 'snap_click_id', 'pclid' );
+		$click_id_keys = array( 'click_id', 'gclid', 'gbraid', 'wbraid', 'fbclid', 'rdt_cid', 'msclkid', 'ttclid', 'li_fat_id', 'twclid', 'snap_click_id', 'pclid' );
 
 		foreach ( $tracking_data as $key => $value ) {
 			if ( in_array( $key, $utm_keys, true ) ) {
@@ -308,6 +308,7 @@ class CUFT_Email_Tracking_Injector {
 			'gbraid'        => 'Google iOS Click ID',
 			'wbraid'        => 'Google Web-to-App Click ID',
 			'fbclid'        => 'Facebook Click ID',
+			'rdt_cid'       => 'Reddit Click ID',
 			'msclkid'       => 'Microsoft/Bing Click ID',
 			'ttclid'        => 'TikTok Click ID',
 			'li_fat_id'     => 'LinkedIn Click ID',

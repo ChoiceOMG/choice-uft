@@ -14,15 +14,17 @@ class CUFT_Click_Integration {
      */
     private $click_id_params = array(
         'gclid',           // Google Ads
-        'fbclid',          // Facebook
+        'gbraid',          // Google Ads (iOS app-to-web)
+        'wbraid',          // Google Ads (web-to-app)
+        'fbclid',          // Meta (Facebook / Instagram) Ads
+        'rdt_cid',         // Reddit Ads
         'msclkid',         // Microsoft Ads
         'ttclid',          // TikTok
         'li_fat_id',       // LinkedIn
-        'twclid',          // Twitter
-        'pinclid',         // Pinterest
+        'twclid',          // X (Twitter)
+        'snap_click_id',   // Snapchat
+        'pclid',           // Pinterest (current parameter name)
         'click_id',        // Generic
-        'clickid',         // Generic alternative
-        'cid'              // Short form
     );
     
     /**

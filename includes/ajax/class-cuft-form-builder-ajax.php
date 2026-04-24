@@ -344,7 +344,7 @@ class CUFT_Form_Builder_Ajax {
      * @return array Click IDs found
      */
     private function get_tracked_click_ids($event) {
-        $click_id_fields = array('click_id', 'gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'ttclid', 'li_fat_id', 'twclid', 'snap_click_id', 'pclid');
+        $click_id_fields = array('click_id', 'gclid', 'gbraid', 'wbraid', 'fbclid', 'rdt_cid', 'msclkid', 'ttclid', 'li_fat_id', 'twclid', 'snap_click_id', 'pclid');
         $tracked = array();
 
         foreach ($click_id_fields as $field) {

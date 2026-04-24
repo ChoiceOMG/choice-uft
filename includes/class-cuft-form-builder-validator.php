@@ -167,7 +167,7 @@ class CUFT_Form_Builder_Validator {
     private static function check_click_ids($event) {
         $click_id_fields = array(
             'click_id', 'gclid', 'gbraid', 'wbraid',
-            'fbclid', 'msclkid', 'ttclid', 'li_fat_id',
+            'fbclid', 'rdt_cid', 'msclkid', 'ttclid', 'li_fat_id',
             'twclid', 'snap_click_id', 'pclid',
         );
 
@@ -336,7 +336,7 @@ class CUFT_Form_Builder_Validator {
             'click_id_tracking' => array(
                 'supported' => array(
                     'click_id', 'gclid', 'gbraid', 'wbraid',
-                    'fbclid', 'msclkid', 'ttclid', 'li_fat_id',
+                    'fbclid', 'rdt_cid', 'msclkid', 'ttclid', 'li_fat_id',
                     'twclid', 'snap_click_id', 'pclid',
                 ),
             ),
