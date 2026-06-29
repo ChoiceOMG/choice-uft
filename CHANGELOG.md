@@ -5,6 +5,19 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.24.0] - 2026-06-29
+
+### Added
+- **Server-side form attribution persistence (OPS-2209)** — attribution captured client-side is now read back server-side at submit time and forwarded into the lead record, with no hidden-field injection.
+  - New `CUFT_Form_Attribution::get_payload()` assembler collects last-touch UTM, named click IDs, first-touch UTM, landing page, current page URL, referrer, form name, service interest, and submission timestamp from existing cookies + the click table.
+  - Elementor Pro webhook payloads (e.g. to n8n) enriched via the `elementor_pro/forms/webhooks/request_args` filter; attribution added under `cuft_attribution` and flattened to the body top level. Purely additive and a no-op when no webhook action is configured.
+  - Attribution also written onto the stored Elementor submission entry as hidden fields (guarded; never fatal).
+  - First-touch attribution persisted in a write-once `cuft_first_touch` cookie (1-year), preserving the first attributed touch across visits (previous behavior was last-touch only).
+  - Service interest derived from the submitting page, configurable via the `cuft_service_interest_map` option and the `cuft_service_interest` / `cuft_form_attribution_payload` filters.
+
+### Why
+Closes the persistence gap behind OPS-2209: CUFT already captured the full convention set to the dataLayer but only wrote a single `cuft_click_id` into the submitted form, so UTM, named click IDs, service interest, and timestamp never reached the stored entry or downstream (n8n/Cliniko/Google Ads). Enrichment is server-side to avoid the regression risk of injecting form fields into live lead forms.
+
 ## [3.23.0] - 2026-04-23
 
 ### Added

@@ -115,6 +115,52 @@ class CUFT_UTM_Tracker {
             'httponly'  => false, // Read by client-side JS
             'samesite' => 'Lax',
         ) );
+
+        // Persist first-touch attribution alongside last-touch (written once).
+        $this->maybe_store_first_touch( $tracking_data );
+    }
+
+    /**
+     * Store first-touch attribution once.
+     *
+     * Unlike cuft_utm_data (last-touch, overwritten on each attributed visit),
+     * cuft_first_touch is written only when it does not already exist, so it
+     * preserves the visitor's very first attributed touch across visits.
+     *
+     * @param array $tracking_data UTM + click ID values captured on this visit.
+     */
+    private function maybe_store_first_touch( $tracking_data ) {
+        if ( isset( $_COOKIE['cuft_first_touch'] ) ) {
+            return; // Already recorded; never overwrite.
+        }
+
+        $landing_page = '';
+        if ( function_exists( 'wp_get_referer' ) ) {
+            $landing_page = wp_get_referer(); // Page that triggered the store request.
+        }
+        if ( ! $landing_page ) {
+            $landing_page = home_url( '/' );
+        }
+
+        $first_touch = array(
+            'utm'          => $tracking_data,
+            'landing_page' => esc_url_raw( $landing_page ),
+            'timestamp'    => gmdate( 'c' ),
+        );
+
+        $encoded = wp_json_encode( $first_touch );
+
+        // Store for 1 year so first-touch survives the 30-day last-touch window.
+        setcookie( 'cuft_first_touch', $encoded, array(
+            'expires'  => time() + ( 365 * DAY_IN_SECONDS ),
+            'path'     => COOKIEPATH,
+            'domain'   => COOKIE_DOMAIN,
+            'secure'   => is_ssl(),
+            'httponly' => false, // Readable by client-side JS, mirrors other CUFT cookies.
+            'samesite' => 'Lax',
+        ) );
+
+        $_COOKIE['cuft_first_touch'] = $encoded; // Available within the current request.
     }
     
     /**
@@ -136,6 +182,48 @@ class CUFT_UTM_Tracker {
         return $utm_data;
     }
     
+    /**
+     * Get stored first-touch attribution data.
+     *
+     * Returns the UTM/click-ID values from the first attributed visit, plus
+     * the landing_page and timestamp recorded at that time. Empty array if none.
+     *
+     * @return array
+     */
+    public static function get_first_touch_data() {
+        $data = array();
+
+        if ( isset( $_COOKIE['cuft_first_touch'] ) ) {
+            $decoded = json_decode( stripslashes( $_COOKIE['cuft_first_touch'] ), true );
+            if ( is_array( $decoded ) ) {
+                $data = ( isset( $decoded['utm'] ) && is_array( $decoded['utm'] ) ) ? $decoded['utm'] : array();
+                if ( isset( $decoded['landing_page'] ) ) {
+                    $data['landing_page'] = $decoded['landing_page'];
+                }
+                if ( isset( $decoded['timestamp'] ) ) {
+                    $data['timestamp'] = $decoded['timestamp'];
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Clear first-touch data
+     */
+    public static function clear_first_touch_data() {
+        setcookie( 'cuft_first_touch', '', array(
+            'expires'  => time() - 3600,
+            'path'     => COOKIEPATH,
+            'domain'   => COOKIE_DOMAIN,
+            'secure'   => is_ssl(),
+            'httponly' => false,
+            'samesite' => 'Lax',
+        ) );
+        unset( $_COOKIE['cuft_first_touch'] );
+    }
+
     /**
      * Get UTM data for JavaScript
      */

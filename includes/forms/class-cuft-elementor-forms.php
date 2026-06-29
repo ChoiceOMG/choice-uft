@@ -23,6 +23,13 @@ class CUFT_Elementor_Forms {
 
         // Add response filter to inject tracking data into Elementor's response
         add_filter( 'elementor_pro/forms/ajax_response_data', array( $this, 'add_tracking_to_response' ), 10, 2 );
+
+        // Enrich the outgoing webhook payload (e.g. to n8n) with server-side
+        // attribution, without injecting hidden form fields. (OPS-2209)
+        add_filter( 'elementor_pro/forms/webhooks/request_args', array( $this, 'enrich_webhook_args' ), 10, 2 );
+
+        // Persist attribution onto the stored Elementor submission entry. (OPS-2209)
+        add_action( 'elementor_pro/forms/new_record', array( $this, 'add_attribution_to_record' ), 9, 2 );
     }
     
     /**
@@ -290,5 +297,148 @@ class CUFT_Elementor_Forms {
         );
 
         return $response_data;
+    }
+
+    /**
+     * Assemble the attribution payload for a submission record.
+     *
+     * @param object $record Elementor Pro form record.
+     * @return array Flat attribution payload (may be empty).
+     */
+    private function get_attribution_payload( $record ) {
+        if ( ! class_exists( 'CUFT_Form_Attribution' ) ) {
+            return array();
+        }
+
+        // Use Elementor's native accessor for form identity (form_settings is a
+        // top-level record property, not nested under get('meta')).
+        $form_id   = '';
+        $form_name = '';
+        if ( is_object( $record ) && method_exists( $record, 'get_form_settings' ) ) {
+            $form_id   = (string) $record->get_form_settings( 'id' );
+            $form_name = (string) $record->get_form_settings( 'form_name' );
+        }
+
+        // During an AJAX submit the page is admin-ajax.php; the form's page URL
+        // is the referer. Elementor posts it as $_POST['referrer'] too.
+        $page_url = '';
+        if ( ! empty( $_POST['referrer'] ) ) {
+            $page_url = esc_url_raw( wp_unslash( $_POST['referrer'] ) );
+        } elseif ( function_exists( 'wp_get_referer' ) ) {
+            $page_url = wp_get_referer();
+        }
+
+        return CUFT_Form_Attribution::get_payload( array(
+            'form_id'   => $form_id,
+            'form_name' => $form_name,
+            'page_url'  => $page_url,
+        ) );
+    }
+
+    /**
+     * Inject server-side attribution into the outgoing webhook payload.
+     *
+     * Hooked on elementor_pro/forms/webhooks/request_args. Purely additive:
+     * attribution is added under a `cuft_attribution` key and also flattened to
+     * the body top level for keys that are not already present, so downstream
+     * (e.g. n8n) can map whichever shape it expects. No-op if the form has no
+     * webhook action configured (this filter simply never fires).
+     *
+     * @param array  $args   wp_remote_post args ('body' may be array or JSON string).
+     * @param object $record Elementor Pro form record.
+     * @return array Filtered args.
+     */
+    public function enrich_webhook_args( $args, $record ) {
+        try {
+            if ( ! is_array( $args ) ) {
+                return $args;
+            }
+
+            $attribution = $this->get_attribution_payload( $record );
+            if ( empty( $attribution ) ) {
+                return $args;
+            }
+
+            // JSON string body (advanced webhook config).
+            if ( isset( $args['body'] ) && is_string( $args['body'] ) ) {
+                $decoded = json_decode( $args['body'], true );
+                if ( is_array( $decoded ) ) {
+                    $decoded['cuft_attribution'] = $attribution;
+                    foreach ( $attribution as $key => $value ) {
+                        if ( ! isset( $decoded[ $key ] ) ) {
+                            $decoded[ $key ] = $value;
+                        }
+                    }
+                    $args['body'] = wp_json_encode( $decoded );
+                }
+                return $args;
+            }
+
+            // Array body (default Elementor webhook).
+            if ( ! isset( $args['body'] ) || ! is_array( $args['body'] ) ) {
+                $args['body'] = array();
+            }
+            $args['body']['cuft_attribution'] = $attribution;
+            foreach ( $attribution as $key => $value ) {
+                if ( ! isset( $args['body'][ $key ] ) ) {
+                    $args['body'][ $key ] = $value;
+                }
+            }
+        } catch ( \Throwable $e ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'error', 'Elementor webhook enrichment failed: ' . $e->getMessage() );
+            }
+        }
+
+        return $args;
+    }
+
+    /**
+     * Persist attribution onto the stored Elementor submission entry.
+     *
+     * Hooked early (priority 9) on elementor_pro/forms/new_record so the added
+     * hidden fields are present when Elementor's Submissions module saves the
+     * record. Fully guarded: a no-op if the record API differs, never fatal.
+     *
+     * @param object $record       Elementor Pro form record.
+     * @param object $ajax_handler Elementor Pro ajax handler.
+     */
+    public function add_attribution_to_record( $record, $ajax_handler ) {
+        try {
+            if ( ! is_object( $record ) || ! method_exists( $record, 'get' ) || ! method_exists( $record, 'set' ) ) {
+                return;
+            }
+
+            $attribution = $this->get_attribution_payload( $record );
+            if ( empty( $attribution ) ) {
+                return;
+            }
+
+            // Elementor Pro has no add_field(); fields are an id-keyed array
+            // managed via get/set( 'fields' ). Merge attribution as hidden
+            // fields without clobbering real form fields that share a key.
+            $fields = (array) $record->get( 'fields' );
+
+            foreach ( $attribution as $key => $value ) {
+                $field_id = 'cuft_' . $key;
+                if ( isset( $fields[ $key ] ) || isset( $fields[ $field_id ] ) ) {
+                    continue;
+                }
+                $fields[ $field_id ] = array(
+                    'id'        => $field_id,
+                    'type'      => 'hidden',
+                    'title'     => $key,
+                    'value'     => (string) $value,
+                    'raw_value' => (string) $value,
+                    'required'  => false,
+                );
+            }
+
+            $record->set( 'fields', $fields );
+        } catch ( \Throwable $e ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'error', 'Elementor entry attribution failed: ' . $e->getMessage() );
+            }
+        }
     }
 }
