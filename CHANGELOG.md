@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.24.0] - 2026-06-29
 
 ### Added
-- **Server-side form attribution persistence (OPS-2209)** — attribution captured client-side is now read back server-side at submit time and forwarded into the lead record, with no hidden-field injection.
+- **Server-side form attribution persistence (OPS-2209)**: attribution captured client-side is now read back server-side at submit time and forwarded into the lead record, with no hidden-field injection.
   - New `CUFT_Form_Attribution::get_payload()` assembler collects last-touch UTM, named click IDs, first-touch UTM, landing page, current page URL, referrer, form name, service interest, and submission timestamp from existing cookies + the click table.
   - Elementor Pro webhook payloads (e.g. to n8n) enriched via the `elementor_pro/forms/webhooks/request_args` filter; attribution added under `cuft_attribution` and flattened to the body top level. Purely additive and a no-op when no webhook action is configured.
   - Attribution also written onto the stored Elementor submission entry as hidden fields (guarded; never fatal).
