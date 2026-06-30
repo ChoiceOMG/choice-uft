@@ -31,95 +31,95 @@ Adds coverage of Reddit ad traffic, plus first-class integration with Choice OMG
 ## [3.22.1] - 2026-04-22
 
 ### Changed
-- **Click Tracking tab** — default view now shows only clicks with events attached. Select "All" in the Events filter to see every click, including untriggered ones.
+- **Click Tracking tab**: default view now shows only clicks with events attached. Select "All" in the Events filter to see every click, including untriggered ones.
 
 ## [3.22.0] - 2026-04-02
 
 ### Added
-- **GA4 event naming alignment** — adopted GA4 recommended lead generation event names
+- **GA4 event naming alignment**: adopted GA4 recommended lead generation event names
   - New `qualify_lead` event replaces strict `generate_lead` (email + phone + click_id)
   - New broad `generate_lead` fires on any form submission with a valid email
   - Full lifecycle events: `disqualify_lead`, `working_lead`, `close_convert_lead`, `close_unconvert_lead`
-- **Webhook `status` parameter** — send `?status=qualify_lead` (etc.) to record lifecycle events
+- **Webhook `status` parameter**: send `?status=qualify_lead` (etc.) to record lifecycle events
   - Backward compatible: `qualified=1` still works, mapped to `qualify_lead`
-- **GA4 Measurement Protocol** — server-side events fire at webhook time
+- **GA4 Measurement Protocol**: server-side events fire at webhook time
   - Configurable in Settings: GA4 Measurement ID and API Secret
   - Graceful fallback when not configured
-- **Client-side event replay** — webhook events pushed to dataLayer on next pageview
+- **Client-side event replay**: webhook events pushed to dataLayer on next pageview
   - Cookie-based (no PHP sessions), fires once per event
   - `cuft_replayed: true` flag for GTM trigger differentiation
-- **Admin settings for secrets** — Registration Secret, GA4 Measurement ID, and API Secret configurable from wp-admin
+- **Admin settings for secrets**: Registration Secret, GA4 Measurement ID, and API Secret configurable from wp-admin
   - `wp-config.php` constants still override DB values
-- **`ga_client_id` capture** — extracted from `_ga` cookie at form submission for Measurement Protocol
+- **`ga_client_id` capture**: extracted from `_ga` cookie at form submission for Measurement Protocol
 
 ### Changed
 - `generate_lead` now fires on any form with a valid email (previously required email + phone + click_id)
 - `status_qualified` webhook event renamed to `qualify_lead`
 
 ### Deprecated
-- `generate_lead` with strict criteria (email + phone + click_id) — fires with `cuft_deprecated: true` for one version, then removed. Migrate GTM triggers to `qualify_lead`.
+- `generate_lead` with strict criteria (email + phone + click_id). Fires with `cuft_deprecated: true` for one version, then removed. Migrate GTM triggers to `qualify_lead`.
 
 ## [3.21.10] - 2026-03-20
 
 ### Fixed
-- **Click ID not passed to JS on form pages** — PHP session was only started when a click parameter (gclid etc.) was present in the URL. On subsequent page visits (e.g. the form page), the session was never resumed, so `window.cuftClickData.click_id` was always empty, preventing the click-integration script from injecting the click ID into forms and the dataLayer. The session is now started at the `init` hook for all front-end requests, ensuring the stored click ID is always available to JavaScript regardless of which page the user is currently on.
+- **Click ID not passed to JS on form pages**: PHP session was only started when a click parameter (gclid etc.) was present in the URL. On subsequent page visits (e.g. the form page), the session was never resumed, so `window.cuftClickData.click_id` was always empty, preventing the click-integration script from injecting the click ID into forms and the dataLayer. The session is now started at the `init` hook for all front-end requests, ensuring the stored click ID is always available to JavaScript regardless of which page the user is currently on.
 
 ## [3.21.9] - 2026-03-20
 
 ### Fixed
-- **Elementor phone field detection** — Phone numbers submitted via fields with custom IDs containing "phone", "mobile", "phonesms", or "cel" are now correctly extracted even when the Elementor field type is not set to `tel`. Fixes auto-qualification for forms that use custom phone field IDs (e.g. Choice Wraps `phonesms` field).
+- **Elementor phone field detection**: Phone numbers submitted via fields with custom IDs containing "phone", "mobile", "phonesms", or "cel" are now correctly extracted even when the Elementor field type is not set to `tel`. Fixes auto-qualification for forms that use custom phone field IDs (e.g. Choice Wraps `phonesms` field).
 
 ## [3.21.8] - 2026-03-19
 
 ### Added
-- **Phone validation & lead scoring** — Elementor form submissions with a phone field now call the Choice phone validator service (`phone-validator.choice.zone`), which combines Twilio Lookup v2 and Abstract API to score the number 0–10 by line type (mobile=9, landline=7, VoIP=4, toll-free=2, invalid=0). The score and qualified status are written to the click tracking record immediately on submission.
-- **CUFT_Phone_Validator class** — Handles calls to the validator service with a 24-hour transient cache per number. Enabled via the `cuft_phone_validation_enabled` option.
-- **CUFT_Token_Manager class** — Registers this WordPress site with the validator service using `CUFT_REGISTER_SECRET` (defined in `wp-config.php`) and stores the resulting JWE token. Token encodes the site domain so only the validator service can decode it.
-- **Phone validation settings UI** — New "Phone Validation" row in Settings with enable/disable toggle and a "Register Site" button that authenticates with the validator and stores the token, no manual token handling required.
-- **DataLayer phone quality fields** — `form_submit` events now include `phone_line_type`, `phone_quality_score`, and `phone_is_valid` when phone validation is active, enabling GTM-based lead quality segmentation.
+- **Phone validation & lead scoring**: Elementor form submissions with a phone field now call the Choice phone validator service (`phone-validator.choice.zone`), which combines Twilio Lookup v2 and Abstract API to score the number 0–10 by line type (mobile=9, landline=7, VoIP=4, toll-free=2, invalid=0). The score and qualified status are written to the click tracking record immediately on submission.
+- **CUFT_Phone_Validator class**: Handles calls to the validator service with a 24-hour transient cache per number. Enabled via the `cuft_phone_validation_enabled` option.
+- **CUFT_Token_Manager class**: Registers this WordPress site with the validator service using `CUFT_REGISTER_SECRET` (defined in `wp-config.php`) and stores the resulting JWE token. Token encodes the site domain so only the validator service can decode it.
+- **Phone validation settings UI**: New "Phone Validation" row in Settings with enable/disable toggle and a "Register Site" button that authenticates with the validator and stores the token, no manual token handling required.
+- **DataLayer phone quality fields**: `form_submit` events now include `phone_line_type`, `phone_quality_score`, and `phone_is_valid` when phone validation is active, enabling GTM-based lead quality segmentation.
 
 ## [3.21.7] - 2026-03-17
 
 ### Added
-- **Click Tracking dashboard page** — Click Tracking is now a standalone top-level admin menu page ("Click Tracking") instead of a sub-tab inside Universal Form Tracker settings
-- **"Any Event" filter default** — Event Type filter default label renamed from "All Events" to "Any Event" for clarity
-- **"No Event" filter option** — New "No Event" option in the Event Type filter shows click records that have no events recorded
+- **Click Tracking dashboard page**: Click Tracking is now a standalone top-level admin menu page ("Click Tracking") instead of a sub-tab inside Universal Form Tracker settings
+- **"Any Event" filter default**: Event Type filter default label renamed from "All Events" to "Any Event" for clarity
+- **"No Event" filter option**: New "No Event" option in the Event Type filter shows click records that have no events recorded
 
 ### Fixed
-- **False update available notice** — Plugin incorrectly showed "update available" for the already-installed version after an update. The update status transient was caching the old `current_version`; it now always compares against the actual installed `CUFT_VERSION` constant so the notice clears immediately after an update
+- **False update available notice**: Plugin incorrectly showed "update available" for the already-installed version after an update. The update status transient was caching the old `current_version`; it now always compares against the actual installed `CUFT_VERSION` constant so the notice clears immediately after an update
 
 ### Removed
-- **Auto-BCC feature** — Removed the Auto-BCC email feature and its associated tab, admin UI, and class files from the plugin loader
+- **Auto-BCC feature**: Removed the Auto-BCC email feature and its associated tab, admin UI, and class files from the plugin loader
 
 ## [3.21.6] - 2026-03-13
 
 ### Added
-- **AI Readiness Files** — Serves `/llms.txt`, `/ai.txt`, and `/llms-full.txt` as plain text from WordPress options (`cuft_ai_file_llms`, `cuft_ai_file_ai`, `cuft_ai_file_llms_full`), enabling AI crawler indexing with site-specific content
-- **AI Files last-resort behavior** — Handler now yields silently to physical files already on disk (manual uploads or another plugin) and respects a new `cuft_ai_files_enabled` filter so other plugins can disable it with one line: `add_filter( 'cuft_ai_files_enabled', '__return_false' )`
+- **AI Readiness Files**: Serves `/llms.txt`, `/ai.txt`, and `/llms-full.txt` as plain text from WordPress options (`cuft_ai_file_llms`, `cuft_ai_file_ai`, `cuft_ai_file_llms_full`), enabling AI crawler indexing with site-specific content
+- **AI Files last-resort behavior**: Handler now yields silently to physical files already on disk (manual uploads or another plugin) and respects a new `cuft_ai_files_enabled` filter so other plugins can disable it with one line: `add_filter( 'cuft_ai_files_enabled', '__return_false' )`
 
 ### Fixed
-- **Cloudflare IP detection** — Added `HTTP_CF_CONNECTING_IP` to the top of the IP header priority chain in both `CUFT_Click_Tracker` and `CUFT_Utils`; sites behind Cloudflare now capture the real visitor IP instead of the Cloudflare edge node IP
+- **Cloudflare IP detection**: Added `HTTP_CF_CONNECTING_IP` to the top of the IP header priority chain in both `CUFT_Click_Tracker` and `CUFT_Utils`; sites behind Cloudflare now capture the real visitor IP instead of the Cloudflare edge node IP
 
 ### Infrastructure
-- **Release pipeline** — Fixed two bugs that caused every automatic update to fail: release ZIP was named `choice-uft.zip` (should be `choice-uft-v{VERSION}.zip`) and extracted to `choice-universal-form-tracker/` (should be `choice-uft/`); the GitHub updater and validate-release workflow both required the correct names
-- **PHP test suite** — Added PHPUnit 9 configuration (`phpunit.xml`), WordPress test bootstrap (`tests/bootstrap.php`), and a `tests.yml` CI workflow that runs all 75+ test files against PHP 7.4, 8.0, 8.1, 8.2 and WordPress 6.4 / latest
-- **Local development tooling** — Added `composer.json` with PHPCS, WPCS, PHPCompatibility, and PHPUnit as dev dependencies; `phpcs.xml` for local linting; `bin/install-wp-tests.sh` for database setup; `composer test` / `composer lint` now work locally after `composer install`
-- **Authoritative release exclusions** — Added `.distignore` as the single source of truth for files excluded from release ZIPs; release workflow reads this instead of a hardcoded inline list
-- **Version consistency enforcement** — Plugin header, `CUFT_VERSION` constant, and `readme.txt` Stable tag mismatch now causes a hard CI failure instead of a non-blocking warning
-- **GitHub Actions** — Upgraded `actions/checkout` and `actions/setup-node` from v3 to v4 across all workflows
+- **Release pipeline**: Fixed two bugs that caused every automatic update to fail: release ZIP was named `choice-uft.zip` (should be `choice-uft-v{VERSION}.zip`) and extracted to `choice-universal-form-tracker/` (should be `choice-uft/`); the GitHub updater and validate-release workflow both required the correct names
+- **PHP test suite**: Added PHPUnit 9 configuration (`phpunit.xml`), WordPress test bootstrap (`tests/bootstrap.php`), and a `tests.yml` CI workflow that runs all 75+ test files against PHP 7.4, 8.0, 8.1, 8.2 and WordPress 6.4 / latest
+- **Local development tooling**: Added `composer.json` with PHPCS, WPCS, PHPCompatibility, and PHPUnit as dev dependencies; `phpcs.xml` for local linting; `bin/install-wp-tests.sh` for database setup; `composer test` / `composer lint` now work locally after `composer install`
+- **Authoritative release exclusions**: Added `.distignore` as the single source of truth for files excluded from release ZIPs; release workflow reads this instead of a hardcoded inline list
+- **Version consistency enforcement**: Plugin header, `CUFT_VERSION` constant, and `readme.txt` Stable tag mismatch now causes a hard CI failure instead of a non-blocking warning
+- **GitHub Actions**: Upgraded `actions/checkout` and `actions/setup-node` from v3 to v4 across all workflows
 
 ## [3.21.4] - 2026-02-26
 
 ### Fixed
-- **Click ID column overflow** — Truncated long click IDs in the admin table to ~200px with ellipsis; full ID shown on hover and still copyable
-- **Link click events used wrong click ID** — phone_click and email_click events were recorded against temporary IDs instead of the real gclid/fbclid from tracking data, preventing them from linking to existing click records
-- **Removed debug noise** — Cleaned up unconditional `error_log()` calls in the AJAX event recorder
+- **Click ID column overflow**: Truncated long click IDs in the admin table to ~200px with ellipsis; full ID shown on hover and still copyable
+- **Link click events used wrong click ID**: phone_click and email_click events were recorded against temporary IDs instead of the real gclid/fbclid from tracking data, preventing them from linking to existing click records
+- **Removed debug noise**: Cleaned up unconditional `error_log()` calls in the AJAX event recorder
 
 ## [3.21.2] - 2026-02-26
 
 ### Fixed
-- **Critical: Click events not recording** — Feature flag `click_event_tracking` was disabled by default and never initialized, causing `add_event()` to silently discard all events (form_submit, generate_lead, phone_click, email_click). Removed the unnecessary flag gate.
-- **Click ID validation too strict** — The event recorder regex rejected valid Google/Facebook click IDs containing periods, equals signs, or plus characters. Expanded the allowed character set.
+- **Critical: Click events not recording**: Feature flag `click_event_tracking` was disabled by default and never initialized, causing `add_event()` to silently discard all events (form_submit, generate_lead, phone_click, email_click). Removed the unnecessary flag gate.
+- **Click ID validation too strict**: The event recorder regex rejected valid Google/Facebook click IDs containing periods, equals signs, or plus characters. Expanded the allowed character set.
 
 ## [3.21.1] - 2026-02-26
 
