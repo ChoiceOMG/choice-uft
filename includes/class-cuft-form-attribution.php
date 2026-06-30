@@ -155,6 +155,24 @@ class CUFT_Form_Attribution {
             $payload['service_interest'] = sanitize_text_field( $service_interest );
         }
 
+        // Lead identity (OPS-2210). Deterministic sha256 so every system (WP, n8n,
+        // Cliniko, Google EC, Meta CAPI) derives the SAME id from the same person.
+        // Email is preferred; phone is the fallback when no email is submitted.
+        // The caller passes the submitted email/phone in $context (the assembler
+        // itself only reads cookies / the click table).
+        $lead_email = isset( $context['email'] ) ? $context['email'] : '';
+        $lead_phone = isset( $context['phone'] ) ? $context['phone'] : '';
+        $lead_id = self::lead_id_from_email( $lead_email );
+        $lead_id_source = 'email';
+        if ( '' === $lead_id ) {
+            $lead_id = self::lead_id_from_phone( $lead_phone );
+            $lead_id_source = 'phone';
+        }
+        if ( '' !== $lead_id ) {
+            $payload['lead_id'] = $lead_id;
+            $payload['lead_id_source'] = $lead_id_source;
+        }
+
         // Submission timestamp, ISO 8601 UTC, always present.
         $payload['submitted_at'] = gmdate( 'c' );
 
@@ -167,6 +185,102 @@ class CUFT_Form_Attribution {
          * @param array $context Submit context (form_id, form_name, page_url).
          */
         return apply_filters( 'cuft_form_attribution_payload', $payload, $context );
+    }
+
+    /**
+     * Compute the shared lead_id from an email address.
+     *
+     * Canonical normalization (mirror this exactly in JS so digests match):
+     *   1. trim leading/trailing whitespace
+     *   2. lowercase
+     *   3. sha256 hex (lowercase)
+     *
+     * This matches Google Enhanced Conversions and Meta CAPI email normalization,
+     * so the same hash doubles as a cross-platform match key.
+     *
+     * @param string $email Raw email address.
+     * @return string Lowercase sha256 hex digest, or '' when no email.
+     */
+    public static function lead_id_from_email( $email ) {
+        $email = is_string( $email ) ? trim( $email ) : '';
+        if ( '' === $email ) {
+            return '';
+        }
+        $normalized = strtolower( $email );
+        $lead_id = hash( 'sha256', $normalized );
+
+        /**
+         * Filter the computed lead_id before it is used.
+         *
+         * @since 3.25.0
+         *
+         * @param string $lead_id Lowercase sha256 hex digest.
+         * @param string $source  Basis for the id: 'email' or 'phone'.
+         * @param string $raw     The raw input value that was hashed.
+         */
+        return apply_filters( 'cuft_lead_id', $lead_id, 'email', $email );
+    }
+
+    /**
+     * Compute the shared lead_id from a phone number (fallback when no email).
+     *
+     * Normalization: strip to digits, then canonicalize to E.164 ("+<digits>").
+     * Defaults to North America (NANP): a bare 10-digit number is prefixed with
+     * the default country code; an 11-digit number already carrying it is kept.
+     * The default country code is filterable for non-NANP clients.
+     *
+     * @param string $phone Raw phone number.
+     * @return string Lowercase sha256 hex digest, or '' when no usable phone.
+     */
+    public static function lead_id_from_phone( $phone ) {
+        $normalized = self::normalize_phone_e164( $phone );
+        if ( '' === $normalized ) {
+            return '';
+        }
+        $lead_id = hash( 'sha256', $normalized );
+
+        /** This filter is documented in lead_id_from_email(). */
+        return apply_filters( 'cuft_lead_id', $lead_id, 'phone', $phone );
+    }
+
+    /**
+     * Normalize a phone number to canonical E.164 ("+<digits>").
+     *
+     * @param mixed $phone Raw phone value.
+     * @return string E.164 string, or '' when there are no digits.
+     */
+    private static function normalize_phone_e164( $phone ) {
+        if ( ! is_string( $phone ) && ! is_numeric( $phone ) ) {
+            return '';
+        }
+
+        $digits = preg_replace( '/\D+/', '', (string) $phone );
+        if ( '' === $digits ) {
+            return '';
+        }
+
+        /**
+         * Filter the default country code used to canonicalize bare national
+         * numbers (no leading country code). Digits only; defaults to '1' (NANP).
+         *
+         * @since 3.25.0
+         *
+         * @param string $country_code Default country calling code.
+         * @param string $digits       The stripped phone digits being normalized.
+         */
+        $country = apply_filters( 'cuft_lead_id_phone_country', '1', $digits );
+        $country = preg_replace( '/\D+/', '', (string) $country );
+        if ( '' === $country ) {
+            $country = '1';
+        }
+
+        // A bare 10-digit number gets the default country code; anything longer
+        // is assumed to already include its own country code and is left as-is.
+        if ( 10 === strlen( $digits ) ) {
+            $digits = $country . $digits;
+        }
+
+        return '+' . $digits;
     }
 
     /**

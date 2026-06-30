@@ -10,8 +10,15 @@ class Test_Form_Attribution extends WP_UnitTestCase {
         delete_option( 'cuft_service_interest_map' );
         remove_all_filters( 'cuft_form_attribution_payload' );
         remove_all_filters( 'cuft_service_interest' );
+        remove_all_filters( 'cuft_lead_id' );
+        remove_all_filters( 'cuft_lead_id_phone_country' );
         parent::tear_down();
     }
+
+    /**
+     * Known SHA-256 vector for "test@example.com" (lowercase normalized).
+     */
+    const EMAIL_HASH = '973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b';
 
     private function set_last_touch( array $utm ) {
         $_COOKIE['cuft_utm_data'] = wp_json_encode( array(
@@ -124,5 +131,77 @@ class Test_Form_Attribution extends WP_UnitTestCase {
         $this->assertSame( 'abc123', $payload['form_id'] );
         $this->assertSame( 'Care for Your Body Form', $payload['form_name'] );
         $this->assertSame( 'https://example.com/contact/', $payload['page_url'] );
+    }
+
+    // ── lead_id (OPS-2210) ───────────────────────────────────────────────────
+
+    public function test_lead_id_from_email_known_vector() {
+        $this->assertSame( self::EMAIL_HASH, CUFT_Form_Attribution::lead_id_from_email( 'test@example.com' ) );
+    }
+
+    public function test_lead_id_email_normalized_trim_and_lowercase() {
+        // Same person, different casing/whitespace -> identical id.
+        $this->assertSame( self::EMAIL_HASH, CUFT_Form_Attribution::lead_id_from_email( '  Test@Example.COM  ' ) );
+    }
+
+    public function test_lead_id_from_email_empty_returns_empty() {
+        $this->assertSame( '', CUFT_Form_Attribution::lead_id_from_email( '' ) );
+        $this->assertSame( '', CUFT_Form_Attribution::lead_id_from_email( '   ' ) );
+    }
+
+    public function test_lead_id_in_payload_prefers_email() {
+        $payload = CUFT_Form_Attribution::get_payload( array(
+            'email' => 'test@example.com',
+            'phone' => '(780) 555-1234',
+        ) );
+        $this->assertSame( self::EMAIL_HASH, $payload['lead_id'] );
+        $this->assertSame( 'email', $payload['lead_id_source'] );
+    }
+
+    public function test_lead_id_falls_back_to_phone_when_no_email() {
+        $expected = hash( 'sha256', '+17805551234' );
+        $payload  = CUFT_Form_Attribution::get_payload( array(
+            'phone' => '(780) 555-1234',
+        ) );
+        $this->assertSame( $expected, $payload['lead_id'] );
+        $this->assertSame( 'phone', $payload['lead_id_source'] );
+    }
+
+    public function test_lead_id_phone_normalization_is_format_independent() {
+        // 10-digit, 11-digit-with-1, and formatted variants all canonicalize equally.
+        $a = CUFT_Form_Attribution::lead_id_from_phone( '7805551234' );
+        $b = CUFT_Form_Attribution::lead_id_from_phone( '1-780-555-1234' );
+        $c = CUFT_Form_Attribution::lead_id_from_phone( '+1 (780) 555-1234' );
+        $this->assertSame( hash( 'sha256', '+17805551234' ), $a );
+        $this->assertSame( $a, $b );
+        $this->assertSame( $a, $c );
+    }
+
+    public function test_lead_id_phone_empty_returns_empty() {
+        $this->assertSame( '', CUFT_Form_Attribution::lead_id_from_phone( '' ) );
+        $this->assertSame( '', CUFT_Form_Attribution::lead_id_from_phone( 'no-digits-here' ) );
+    }
+
+    public function test_lead_id_omitted_when_no_email_or_phone() {
+        $payload = CUFT_Form_Attribution::get_payload( array(
+            'page_url' => 'https://example.com/contact/',
+        ) );
+        $this->assertArrayNotHasKey( 'lead_id', $payload );
+        $this->assertArrayNotHasKey( 'lead_id_source', $payload );
+    }
+
+    public function test_lead_id_phone_country_filter() {
+        add_filter( 'cuft_lead_id_phone_country', function () {
+            return '44';
+        } );
+        // Bare 10-digit number now takes the +44 prefix.
+        $this->assertSame( hash( 'sha256', '+447805551234' ), CUFT_Form_Attribution::lead_id_from_phone( '7805551234' ) );
+    }
+
+    public function test_lead_id_filter_override() {
+        add_filter( 'cuft_lead_id', function () {
+            return 'OVERRIDDEN';
+        } );
+        $this->assertSame( 'OVERRIDDEN', CUFT_Form_Attribution::lead_id_from_email( 'test@example.com' ) );
     }
 }

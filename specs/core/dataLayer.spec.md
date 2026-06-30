@@ -39,6 +39,9 @@ This specification defines the standardized format for all dataLayer events push
   form_name: "Contact Form",               // STRING: Human-readable form name
   user_email: "user@example.com",          // STRING: Email field value
   user_phone: "123-456-7890",              // STRING: Phone field value
+  // Shared cross-system lead identity
+  lead_id: "973dfe46...4e813b",            // STRING: sha256 hex of normalized email (phone fallback)
+  lead_id_source: "email",                 // STRING: basis for lead_id ("email" or "phone")
   // UTM Parameters (if available)
   utm_source: "google",                    // STRING: Traffic source
   utm_medium: "cpc",                       // STRING: Marketing medium
@@ -105,6 +108,8 @@ This specification defines the standardized format for all dataLayer events push
 | `form_name` | String | Any valid string | Human-readable identifier |
 | `user_email` | String | Valid email format | Must pass email validation regex |
 | `user_phone` | String | Any phone format | No specific format required |
+| `lead_id` | String | Lowercase sha256 hex (64 chars) | sha256 of normalized email (trim+lowercase); phone (E.164) fallback |
+| `lead_id_source` | String | `email` or `phone` | Indicates which value produced `lead_id` |
 | `submitted_at` | String | ISO 8601 format | Must be valid datetime string |
 | `utm_*` | String | Any valid string | No special validation |
 | `*clid` | String | Alphanumeric with allowed special chars | Must match click ID patterns |
@@ -142,6 +147,26 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 - Include only if field contains value
 - Strip common formatting characters for consistency: `()`, `-`, spaces
 - Preserve international format indicators: `+`
+
+### Lead ID Derivation
+
+`lead_id` is a deterministic, privacy-preserving identifier so every system (WordPress, n8n, CRM, Google Enhanced Conversions, Meta CAPI) derives the SAME id for the same person without passing a generated UUID around. The same normalization MUST be used in PHP (`CUFT_Form_Attribution`) and JavaScript (`cuft-dataLayer-utils.js`) so digests match.
+
+**Email (preferred):**
+1. Trim leading/trailing whitespace
+2. Lowercase
+3. `lead_id = sha256_hex(normalized)` (lowercase hex)
+
+This mirrors Google EC + Meta CAPI documented email normalization, so the hash doubles as a cross-platform match key.
+
+**Phone (fallback, only when no email is present):**
+1. Strip to digits
+2. Canonicalize to E.164 `+<digits>`. NANP default: a bare 10-digit number is prefixed with country code `1`; a number already carrying its country code is kept. Default country code is filterable (`cuft_lead_id_phone_country`).
+3. `lead_id = sha256_hex(normalized)`
+
+`lead_id_source` records which basis was used (`email` or `phone`); email-hash and phone-hash differ for the same person, so downstream consumers need to know. When neither email nor phone is present, both fields are omitted. The final value is filterable via `cuft_lead_id`.
+
+**Client-side caveat:** the browser computes `lead_id` via CryptoJS, which loads asynchronously. When CryptoJS has not yet loaded at submit time, the client-side analytics event omits `lead_id`; the server-side payload (webhook, stored entry, email notification) still carries it.
 
 ### Timestamp Format
 

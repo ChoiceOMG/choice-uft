@@ -165,9 +165,73 @@ window.cuftDataLayerUtils = (function () {
         }
       }
     } catch (e) {
-      // Silently fail — ga_client_id is optional
+      // Silently fail; ga_client_id is optional
     }
     return null;
+  }
+
+  /**
+   * Normalize an email for hashing: trim + lowercase.
+   * Mirrors CUFT_Form_Attribution::lead_id_from_email() in PHP so digests match.
+   */
+  function normalizeEmailForHash(email) {
+    return String(email).trim().toLowerCase();
+  }
+
+  /**
+   * Normalize a phone for hashing to canonical E.164 ("+<digits>").
+   * Mirrors CUFT_Form_Attribution::normalize_phone_e164() in PHP. NANP default:
+   * a bare 10-digit number is prefixed with country code 1.
+   */
+  function normalizePhoneForHash(phone) {
+    var digits = String(phone).replace(/\D+/g, "");
+    if (!digits) return "";
+    if (digits.length === 10) {
+      digits = "1" + digits;
+    }
+    return "+" + digits;
+  }
+
+  /**
+   * Lowercase sha256 hex via CryptoJS, or null when CryptoJS is unavailable.
+   * CryptoJS loads async from CDN (cuft-cryptojs-loader.js); when it has not
+   * arrived yet we skip the client-side lead_id and let the server-side payload
+   * (webhook/email/entry) carry it. CryptoJS.SHA256().toString() returns the
+   * same lowercase hex as PHP hash('sha256').
+   */
+  function sha256Hex(input) {
+    try {
+      if (window.CryptoJS && window.CryptoJS.SHA256) {
+        return window.CryptoJS.SHA256(input).toString();
+      }
+    } catch (e) {
+      // Silent failure - lead_id is optional client-side.
+    }
+    return null;
+  }
+
+  /**
+   * Compute the shared lead identity (lead_id + lead_id_source). Email preferred,
+   * phone fallback. Returns {} when nothing can be computed. (OPS-2210)
+   */
+  function computeLeadIdentity(email, phone) {
+    var hex = null;
+    var source = null;
+
+    if (email && validateEmail(email)) {
+      hex = sha256Hex(normalizeEmailForHash(email));
+      source = "email";
+    }
+    if (!hex && phone) {
+      var normalized = normalizePhoneForHash(phone);
+      if (normalized) {
+        hex = sha256Hex(normalized);
+        source = "phone";
+      }
+    }
+
+    if (!hex) return {};
+    return { lead_id: hex, lead_id_source: source };
   }
 
   /**
@@ -208,6 +272,15 @@ window.cuftDataLayerUtils = (function () {
       if (sanitized) {
         payload.user_phone = sanitized;
       }
+    }
+
+    // Shared cross-system lead identity (OPS-2210). Deterministic sha256 of the
+    // normalized email (or phone fallback) so the analytics event matches the
+    // server-side webhook/entry/email value. Skipped if CryptoJS is not yet loaded.
+    var leadIdentity = computeLeadIdentity(payload.user_email, payload.user_phone);
+    if (leadIdentity.lead_id) {
+      payload.lead_id = leadIdentity.lead_id;
+      payload.lead_id_source = leadIdentity.lead_id_source;
     }
 
     // Add UTM and click ID parameters
@@ -559,6 +632,7 @@ window.cuftDataLayerUtils = (function () {
     // Utility functions
     validateEmail: validateEmail,
     sanitizePhone: sanitizePhone,
+    computeLeadIdentity: computeLeadIdentity,
     generateTimestamp: generateTimestamp,
     isFormProcessed: isFormProcessed,
     markFormProcessed: markFormProcessed,

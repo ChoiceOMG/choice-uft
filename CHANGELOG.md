@@ -5,6 +5,19 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.25.0] - 2026-06-30
+
+### Added
+- **Shared cross-system lead ID (OPS-2210)**: every lead now carries one deterministic `lead_id` across the webhook payload, the stored entry, the email notification, and the analytics event, so a booked client in the CRM can be matched back to the campaign that produced them.
+  - `lead_id` is the lowercase sha256 hex of the normalized email (trim + lowercase). This matches Google Enhanced Conversions and Meta CAPI email normalization, so the same hash doubles as a cross-platform match key.
+  - Phone fallback: when a submission has no email, `lead_id` is the sha256 of the phone normalized to E.164 (`+<digits>`, NANP default, filterable via `cuft_lead_id_phone_country`).
+  - New `lead_id_source` field records the basis (`email` or `phone`) so downstream consumers know which value was hashed. Both fields are omitted when neither email nor phone is present.
+  - New `CUFT_Form_Attribution::lead_id_from_email()` and `lead_id_from_phone()` helpers; final value filterable via `cuft_lead_id`.
+  - Added to the Elementor server-side `form_submit` and `generate_lead` dataLayer pushes, and computed client-side via CryptoJS for the analytics event (PHP and JS produce identical digests).
+
+### Why
+Closes OPS-2210 and unblocks downstream offline-conversion import (OPS-2211) and lead reporting (OPS-2212): a deterministic hash lets WordPress, n8n, Cliniko, QuickBooks, and the ad platforms all derive the same identifier from the same person without passing a generated UUID around, while keeping raw PII out of analytics.
+
 ## [3.24.0] - 2026-06-29
 
 ### Added

@@ -176,6 +176,40 @@ class CUFT_Elementor_Forms {
     }
     
     /**
+     * Build the shared lead identity (lead_id + lead_id_source) for a submission.
+     *
+     * Email is preferred; phone is the fallback. Returns an empty array when
+     * neither is present so callers can array_merge it unconditionally. (OPS-2210)
+     *
+     * @param array $data Extracted form data (user_email, user_phone).
+     * @return array { lead_id, lead_id_source } or empty.
+     */
+    private function lead_identity( $data ) {
+        if ( ! class_exists( 'CUFT_Form_Attribution' ) ) {
+            return array();
+        }
+
+        $lead_id = '';
+        $source  = '';
+        if ( ! empty( $data['user_email'] ) ) {
+            $lead_id = CUFT_Form_Attribution::lead_id_from_email( $data['user_email'] );
+            $source  = 'email';
+        }
+        if ( '' === $lead_id && ! empty( $data['user_phone'] ) ) {
+            $lead_id = CUFT_Form_Attribution::lead_id_from_phone( $data['user_phone'] );
+            $source  = 'phone';
+        }
+        if ( '' === $lead_id ) {
+            return array();
+        }
+
+        return array(
+            'lead_id'        => $lead_id,
+            'lead_id_source' => $source,
+        );
+    }
+
+    /**
      * Generate dataLayer push JavaScript
      */
     private function generate_datalayer_push( $data ) {
@@ -203,6 +237,9 @@ class CUFT_Elementor_Forms {
             $payload['phone_quality_score'] = $data['phone_quality']['quality_score'];
             $payload['phone_is_valid']      = $data['phone_quality']['is_valid'];
         }
+
+        // Shared cross-system lead identity (OPS-2210).
+        $payload = array_merge( $payload, $this->lead_identity( $data ) );
 
         // Add UTM data if available
         $utm_data = CUFT_UTM_Tracker::get_utm_data();
@@ -243,12 +280,15 @@ class CUFT_Elementor_Forms {
             'language' => get_locale(),
             'submitted_at' => gmdate( 'c' )
         );
-        
+
+        // Shared cross-system lead identity (OPS-2210).
+        $payload = array_merge( $payload, $this->lead_identity( $data ) );
+
         // Add UTM data
         foreach ( $utm_data as $key => $value ) {
             $payload[ $key ] = $value;
         }
-        
+
         CUFT_Logger::log_form_submission( 'elementor_generate_lead', $payload );
         
         return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
@@ -328,10 +368,22 @@ class CUFT_Elementor_Forms {
             $page_url = wp_get_referer();
         }
 
+        // The submitted email/phone drive the shared lead_id (OPS-2210). The
+        // assembler does not read form fields itself, so pass them in context.
+        $email = '';
+        $phone = '';
+        if ( is_object( $record ) && method_exists( $record, 'get' ) ) {
+            $form_data = $this->extract_form_data( $record );
+            $email = isset( $form_data['user_email'] ) ? $form_data['user_email'] : '';
+            $phone = isset( $form_data['user_phone'] ) ? $form_data['user_phone'] : '';
+        }
+
         return CUFT_Form_Attribution::get_payload( array(
             'form_id'   => $form_id,
             'form_name' => $form_name,
             'page_url'  => $page_url,
+            'email'     => $email,
+            'phone'     => $phone,
         ) );
     }
 
