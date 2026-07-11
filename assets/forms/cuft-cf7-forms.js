@@ -309,10 +309,15 @@
   }
 
   /**
-   * Handle CF7 wpcf7mailfailed event (for debugging)
+   * Handle CF7 wpcf7mailfailed event
+   *
+   * Warns unconditionally (not gated by DEBUG) so a silently failing
+   * submission is visible in the console without turning on CUFT debug
+   * logging first (OPS-2652).
    */
   function handleCF7MailFailed(event) {
     try {
+      console.warn("[CUFT CF7] Submission ended in wpcf7mailfailed - form_submit/generate_lead will NOT fire for this attempt:", event.target);
       if (DEBUG) {
         log("CF7 mail failed for form:", event.target);
       }
@@ -322,15 +327,36 @@
   }
 
   /**
-   * Handle CF7 wpcf7invalid event (for debugging)
+   * Handle CF7 wpcf7invalid event
+   *
+   * Warns unconditionally (not gated by DEBUG) - see handleCF7MailFailed.
    */
   function handleCF7Invalid(event) {
     try {
+      console.warn("[CUFT CF7] Submission ended in wpcf7invalid - form_submit/generate_lead will NOT fire for this attempt:", event.target);
       if (DEBUG) {
         log("CF7 form validation failed:", event.target);
       }
     } catch (e) {
       log("CF7 invalid handler error:", e);
+    }
+  }
+
+  /**
+   * Handle CF7 wpcf7spam event
+   *
+   * CF7 core has no server-side hook at all for the spam status (only
+   * wpcf7_mail_sent and wpcf7_mail_failed), so this client-side listener is
+   * the only place a spam-flagged submission is observable at all.
+   */
+  function handleCF7Spam(event) {
+    try {
+      console.warn("[CUFT CF7] Submission was flagged as spam (wpcf7spam) - form_submit/generate_lead will NOT fire for this attempt:", event.target);
+      if (DEBUG) {
+        log("CF7 submission flagged as spam:", event.target);
+      }
+    } catch (e) {
+      log("CF7 spam handler error:", e);
     }
   }
 
@@ -348,21 +374,28 @@
       log("Could not add CF7 mailsent listener:", e);
     }
 
-    // Debug listeners for failed submissions
-    if (DEBUG) {
-      try {
-        document.addEventListener("wpcf7mailfailed", handleCF7MailFailed, false);
-        listenersSetup.push("wpcf7mailfailed (debug)");
-      } catch (e) {
-        log("Could not add CF7 mailfailed listener:", e);
-      }
+    // Non-success terminal states: always listen so a silently failing
+    // submission surfaces in the console without needing debug mode on
+    // (OPS-2652). Verbose per-field logging still respects DEBUG.
+    try {
+      document.addEventListener("wpcf7mailfailed", handleCF7MailFailed, false);
+      listenersSetup.push("wpcf7mailfailed");
+    } catch (e) {
+      log("Could not add CF7 mailfailed listener:", e);
+    }
 
-      try {
-        document.addEventListener("wpcf7invalid", handleCF7Invalid, false);
-        listenersSetup.push("wpcf7invalid (debug)");
-      } catch (e) {
-        log("Could not add CF7 invalid listener:", e);
-      }
+    try {
+      document.addEventListener("wpcf7invalid", handleCF7Invalid, false);
+      listenersSetup.push("wpcf7invalid");
+    } catch (e) {
+      log("Could not add CF7 invalid listener:", e);
+    }
+
+    try {
+      document.addEventListener("wpcf7spam", handleCF7Spam, false);
+      listenersSetup.push("wpcf7spam");
+    } catch (e) {
+      log("Could not add CF7 spam listener:", e);
     }
 
     log("CF7 event listeners setup complete:", listenersSetup);

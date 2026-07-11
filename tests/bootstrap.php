@@ -27,6 +27,23 @@ if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
 require_once $_tests_dir . '/includes/functions.php';
 
 /**
+ * Load Contact Form 7 ahead of CUFT, when available, so integration tests
+ * can exercise the real WPCF7_ContactForm/WPCF7_Submission classes.
+ *
+ * CF7 isn't a Composer dependency of this plugin; it's expected to be
+ * copied into $WP_CORE_DIR/wp-content/plugins/contact-form-7 (see
+ * bin/install-wp-tests.sh usage notes). Tests that need it should skip
+ * gracefully when it's absent rather than fail the whole suite.
+ */
+function _cuft_manually_load_cf7() {
+    $cf7_main_file = WP_CONTENT_DIR . '/plugins/contact-form-7/wp-contact-form-7.php';
+    if ( file_exists( $cf7_main_file ) ) {
+        require $cf7_main_file;
+    }
+}
+tests_add_filter( 'muplugins_loaded', '_cuft_manually_load_cf7' );
+
+/**
  * Manually load the plugin being tested.
  */
 function _cuft_manually_load_plugin() {

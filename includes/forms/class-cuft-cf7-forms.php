@@ -15,6 +15,7 @@ class CUFT_CF7_Forms {
     public function __construct() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
         add_action( 'wpcf7_mail_sent', array( $this, 'track_submission' ) );
+        add_action( 'wpcf7_mail_failed', array( $this, 'track_mail_failed' ) );
     }
     
     /**
@@ -76,6 +77,18 @@ class CUFT_CF7_Forms {
         }
     }
     
+    /**
+     * Log CF7 mail send failures (OPS-2652)
+     *
+     * CF7 core has no PHP action for validation_failed/spam/acceptance_missing/
+     * aborted statuses, only wpcf7_mail_sent and wpcf7_mail_failed. Without this,
+     * a failed send is completely invisible server-side.
+     */
+    public function track_mail_failed( $contact_form ) {
+        $form_data = $this->extract_form_data( $contact_form );
+        CUFT_Logger::log_error( 'CF7 mail failed to send: contact_form_7', $form_data );
+    }
+
     /**
      * Extract form data from CF7 contact form
      */
