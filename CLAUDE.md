@@ -28,6 +28,30 @@ Before committing any code changes, ALWAYS verify using [.specify/memory/review-
 
 ---
 
+## Two distribution channels, one tree
+
+`build.sh` produces both packages. They differ only by file list, never by editing code.
+
+```bash
+./build.sh          # GitHub release  -> dist/choice-uft/
+./build.sh --wporg  # WordPress.org   -> dist/choice-universal-form-tracker/
+```
+
+The WordPress.org package applies `.wporgignore` on top of `.distignore` and **strips the
+self-update subsystem**. Directory guideline 8 forbids a hosted plugin from "serving updates
+or otherwise installing plugins from servers other than WordPress.org's", so directory
+installs get their updates from core. `Choice_Universal_Form_Tracker::has_updater()` detects
+the missing files at runtime and skips loading them, the Force Update tab, and its assets.
+
+The directory names differ on purpose: the GitHub updater matches releases against the
+`choice-uft/` install path, while WordPress.org derives the slug from the directory and
+expects it to match the `Text Domain` header.
+
+`build.sh` fails the build on a version mismatch across the three version sources, hidden
+files, em-dashes in shipped files, and (for `--wporg`) any self-update file or third-party
+CDN reference reaching the package. Prefer it over `git archive`, which ships development
+files and cannot produce the directory package.
+
 ## CRITICAL: GitHub Release Process
 
 ### Release Asset Naming Convention
@@ -81,9 +105,12 @@ When creating a new GitHub release, follow these steps IN ORDER:
 
 4. **Create Release ZIP with CORRECT naming**:
    ```bash
-   # CRITICAL: Use "v" prefix in filename
-   git archive --format=zip --prefix=choice-uft/ -o /tmp/choice-uft-v3.x.x.zip HEAD
+   ./build.sh
+   # CRITICAL: Use "v" prefix in the release asset filename
+   cp dist/choice-uft.zip /tmp/choice-uft-v3.x.x.zip
    ```
+   `build.sh` honours `.distignore`; `git archive` does not, and would ship `vendor/`,
+   `tests/`, and the `.git` directory.
 
 5. **Validate ZIP Structure**:
    ```bash
