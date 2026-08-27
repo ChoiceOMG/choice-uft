@@ -103,7 +103,6 @@ class CUFT_Admin {
         $lead_currency = get_option( 'cuft_lead_currency', 'CAD' );
         $lead_value = get_option( 'cuft_lead_value', 100 );
         $console_logging = get_option( 'cuft_console_logging', 'no' );
-        $github_updates_enabled = get_option( 'cuft_github_updates_enabled', true );
         $phone_validation_enabled = get_option( 'cuft_phone_validation_enabled', false );
 
         // Get current tab
@@ -122,12 +121,12 @@ class CUFT_Admin {
             <?php $this->render_admin_tabs( $current_tab ); ?>
 
             <?php if ( $current_tab === 'settings' ): ?>
-                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled, $phone_validation_enabled ); ?>
+                <?php $this->render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $phone_validation_enabled ); ?>
                 <?php $this->render_framework_status(); ?>
                 <?php // render_github_status() removed in Feature 008 - using WordPress native updates ?>
                 <?php $this->render_utm_status(); ?>
                 <?php $this->render_debug_section(); ?>
-            <?php elseif ( $current_tab === 'force-update' ): ?>
+            <?php elseif ( $current_tab === 'force-update' && Choice_Universal_Form_Tracker::has_updater() ): ?>
                 <?php include CUFT_PATH . 'includes/admin/views/force-update-tab.php'; ?>
             <?php endif; ?>
         </div>
@@ -137,7 +136,7 @@ class CUFT_Admin {
     /**
      * Render settings form
      */
-    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $github_updates_enabled, $phone_validation_enabled = false ) {
+    private function render_settings_form( $gtm_id, $debug_enabled, $generate_lead_enabled, $lead_currency, $lead_value, $console_logging, $phone_validation_enabled = false ) {
         ?>
         <div class="cuft-settings-card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <h2 style="margin-top: 0;">Settings</h2>
@@ -402,7 +401,7 @@ class CUFT_Admin {
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            // Phone Validation — Register Site
+            // Phone Validation: Register Site
             $('#cuft-register-site').on('click', function() {
                 var $btn = $(this);
                 var $status = $('#cuft-register-status');
@@ -410,7 +409,7 @@ class CUFT_Admin {
                 $status.hide();
                 $.post(ajaxurl, {
                     action: 'cuft_token_register',
-                    nonce: '<?php echo wp_create_nonce( 'cuft_token_register' ); ?>'
+                    nonce: '<?php echo esc_js( wp_create_nonce( 'cuft_token_register' ) ); ?>'
                 }, function(response) {
                     if (response.success) {
                         $status.css('color', '#3a7c3a').text('Registered: ' + response.data.domain).show();
@@ -440,7 +439,7 @@ class CUFT_Admin {
                     data: {
                         action: 'cuft_download_gtm_template',
                         template: template,
-                        nonce: '<?php echo wp_create_nonce( 'cuft_admin' ); ?>'
+                        nonce: '<?php echo esc_js( wp_create_nonce( 'cuft_admin' ) ); ?>'
                     },
                     success: function(response) {
                         if (response.success) {
@@ -548,7 +547,7 @@ class CUFT_Admin {
                             <?php elseif ( $sgtm_enabled && ! $sgtm_url ): ?>
                                 <span style="color: #dc3545;">✗</span> Enabled but no URL configured
                             <?php else: ?>
-                                <span style="color: #6c757d;">—</span> Disabled - Using standard GTM
+                                <span style="color: #6c757d;">-</span> Disabled (using standard GTM)
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -562,11 +561,16 @@ class CUFT_Admin {
      * Save settings
      */
     private function save_settings() {
-        $gtm_id = sanitize_text_field( $_POST['gtm_id'] );
+        // The caller already verified this nonce. Verifying again here keeps the
+        // check next to the code that trusts $_POST, so a future caller cannot
+        // reach these writes without it.
+        check_admin_referer( 'cuft_settings', 'cuft_nonce' );
+
+        $gtm_id = isset( $_POST['gtm_id'] ) ? sanitize_text_field( wp_unslash( $_POST['gtm_id'] ) ) : '';
         $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
         $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
         $phone_validation_enabled = isset( $_POST['phone_validation_enabled'] ) && $_POST['phone_validation_enabled'];
-        $lead_currency = isset( $_POST['lead_currency'] ) ? sanitize_text_field( $_POST['lead_currency'] ) : 'CAD';
+        $lead_currency = isset( $_POST['lead_currency'] ) ? sanitize_text_field( wp_unslash( $_POST['lead_currency'] ) ) : 'CAD';
         $lead_value = isset( $_POST['lead_value'] ) ? floatval( $_POST['lead_value'] ) : 100;
 
         // Validate currency (ensure it's one of the allowed values)
@@ -579,14 +583,14 @@ class CUFT_Admin {
         if ( $lead_value < 0 ) {
             $lead_value = 0;
         }
-        $console_logging = in_array( $_POST['console_logging'], array( 'no', 'yes', 'admin_only' ) ) ? $_POST['console_logging'] : 'no';
-        $github_updates_enabled = isset( $_POST['github_updates_enabled'] ) && $_POST['github_updates_enabled'];
+        $console_logging_raw = isset( $_POST['console_logging'] ) ? sanitize_text_field( wp_unslash( $_POST['console_logging'] ) ) : 'no';
+        $console_logging = in_array( $console_logging_raw, array( 'no', 'yes', 'admin_only' ), true ) ? $console_logging_raw : 'no';
         $collector_host = isset( $_POST['cuft_collector_host'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_collector_host'] ) ) : '';
         // Strip protocol/path if a user pastes a full URL - we only want the host.
         $collector_host = preg_replace( '#^https?://#i', '', $collector_host );
         $collector_host = trim( $collector_host, "/ \t\n\r\0\x0B" );
         $sgtm_enabled = isset( $_POST['sgtm_enabled'] ) && $_POST['sgtm_enabled'];
-        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
+        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
 
         // Remove trailing slash from sGTM URL
         $sgtm_url = rtrim( $sgtm_url, '/' );
@@ -600,7 +604,6 @@ class CUFT_Admin {
             update_option( 'cuft_lead_currency', $lead_currency );
             update_option( 'cuft_lead_value', $lead_value );
             update_option( 'cuft_console_logging', $console_logging );
-            update_option( 'cuft_github_updates_enabled', $github_updates_enabled );
             update_option( 'cuft_collector_host', $collector_host );
             update_option( 'cuft_sgtm_enabled', $sgtm_enabled );
 
@@ -690,7 +693,7 @@ class CUFT_Admin {
      * Check if URL is a localnet domain
      */
     private function is_localnet_url( $url ) {
-        $parsed = parse_url( $url );
+        $parsed = wp_parse_url( $url );
         if ( ! $parsed || ! isset( $parsed['host'] ) ) {
             return false;
         }
@@ -791,7 +794,7 @@ class CUFT_Admin {
                             <?php foreach ( $logs as $log ): ?>
                                 <tr>
                                     <td style="white-space: nowrap;"><?php echo esc_html( $log['timestamp'] ); ?></td>
-                                    <td><span style="padding: 2px 6px; border-radius: 3px; font-size: 11px; background: <?php echo $this->get_log_level_color( $log['level'] ); ?>; color: white;"><?php echo esc_html( strtoupper( $log['level'] ) ); ?></span></td>
+                                    <td><span style="padding: 2px 6px; border-radius: 3px; font-size: 11px; background: <?php echo esc_attr( $this->get_log_level_color( $log['level'] ) ); ?>; color: white;"><?php echo esc_html( strtoupper( $log['level'] ) ); ?></span></td>
                                     <td><?php echo esc_html( $log['message'] ); ?></td>
                                     <td><?php echo ! empty( $log['context'] ) ? '<pre style="font-size: 11px; margin: 0;">' . esc_html( wp_json_encode( $log['context'], JSON_PRETTY_PRINT ) ) . '</pre>' : '-'; ?></td>
                                 </tr>
@@ -863,26 +866,29 @@ class CUFT_Admin {
             'admin_url' => admin_url( 'options-general.php?page=choice-universal-form-tracker' )
         ));
 
-        // Enqueue Force Update assets (Feature 009 - v3.19.0)
-        wp_enqueue_script(
-            'cuft-force-update',
-            CUFT_URL . '/assets/admin/cuft-force-update.js',
-            array( 'jquery' ),
-            CUFT_VERSION,
-            true
-        );
+        // Enqueue Force Update assets (Feature 009 - v3.19.0). Skipped in the
+        // WordPress.org build, which ships neither the tab nor its handlers.
+        if ( Choice_Universal_Form_Tracker::has_updater() ) {
+            wp_enqueue_script(
+                'cuft-force-update',
+                CUFT_URL . '/assets/admin/cuft-force-update.js',
+                array( 'jquery' ),
+                CUFT_VERSION,
+                true
+            );
 
-        wp_localize_script( 'cuft-force-update', 'cuftForceUpdate', array(
-            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'cuft_force_update' ),
-        ) );
+            wp_localize_script( 'cuft-force-update', 'cuftForceUpdate', array(
+                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                'nonce' => wp_create_nonce( 'cuft_force_update' ),
+            ) );
 
-        wp_enqueue_style(
-            'cuft-force-update',
-            CUFT_URL . '/assets/admin/cuft-force-update.css',
-            array(),
-            CUFT_VERSION
-        );
+            wp_enqueue_style(
+                'cuft-force-update',
+                CUFT_URL . '/assets/admin/cuft-force-update.css',
+                array(),
+                CUFT_VERSION
+            );
+        }
 
 
     }
@@ -1581,7 +1587,7 @@ class CUFT_Admin {
             <div class="cuft-setup-progress">
                 <h3>Setup Progress</h3>
                 <div class="cuft-progress-bar">
-                    <div class="cuft-progress-fill" style="width: <?php echo round($progress_percentage); ?>%;"></div>
+                    <div class="cuft-progress-fill" style="width: <?php echo esc_attr( round($progress_percentage) ); ?>%;"></div>
                 </div>
                 <div class="cuft-progress-steps">
                     <div class="cuft-progress-step <?php echo $steps['gtm_setup'] ? 'completed' : ''; ?>">
@@ -1609,14 +1615,19 @@ class CUFT_Admin {
     private function render_admin_tabs( $current_tab ) {
         $tabs = array(
             'settings' => __( 'Settings', 'choice-universal-form-tracker' ),
-            'force-update' => __( 'Force Update', 'choice-universal-form-tracker' )
         );
+
+        // Force Update drives the self-update subsystem, which the
+        // WordPress.org build does not ship. See has_updater().
+        if ( Choice_Universal_Form_Tracker::has_updater() ) {
+            $tabs['force-update'] = __( 'Force Update', 'choice-universal-form-tracker' );
+        }
         
         echo '<nav class="nav-tab-wrapper" style="margin-bottom: 20px;">';
         foreach ( $tabs as $tab_key => $tab_label ) {
             $active_class = ( $current_tab === $tab_key ) ? ' nav-tab-active' : '';
             $tab_url = add_query_arg( array( 'tab' => $tab_key ), admin_url( 'options-general.php?page=choice-universal-form-tracker' ) );
-            echo '<a href="' . esc_url( $tab_url ) . '" class="nav-tab' . $active_class . '">' . esc_html( $tab_label ) . '</a>';
+            echo '<a href="' . esc_url( $tab_url ) . '" class="nav-tab' . esc_attr( $active_class ) . '">' . esc_html( $tab_label ) . '</a>';
         }
         echo '</nav>';
     }
@@ -1626,7 +1637,7 @@ class CUFT_Admin {
      */
     public function click_tracking_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'choice-universal-form-tracker' ) );
         }
 
         // Handle POST actions
@@ -1657,7 +1668,7 @@ class CUFT_Admin {
         $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
         $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
         $filter_ip_search = isset( $_GET['filter_ip_search'] ) ? sanitize_text_field( $_GET['filter_ip_search'] ) : '';
-        // Default to showing only clicks with events — submit the filter form with "All" to see everything
+        // Default to showing only clicks with events; submit the filter form with "All" to see everything
         $filter_has_events = isset( $_GET['filter_has_events'] ) ? sanitize_text_field( $_GET['filter_has_events'] ) : '1';
         $sort_by = isset( $_GET['sort_by'] ) ? sanitize_text_field( $_GET['sort_by'] ) : 'date_created';
 
@@ -1955,7 +1966,7 @@ class CUFT_Admin {
                 <div style="color: #666;">Unqualified Clicks</div>
             </div>
             <div style="background: #f3e5f5; padding: 15px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 24px; font-weight: bold; color: #7b1fa2;"><?php echo $qualification_rate; ?>%</div>
+                <div style="font-size: 24px; font-weight: bold; color: #7b1fa2;"><?php echo esc_html( $qualification_rate ); ?>%</div>
                 <div style="color: #666;">Qualification Rate</div>
             </div>
         </div>
@@ -1996,7 +2007,7 @@ class CUFT_Admin {
                                         class="cuft-click-id-copy"
                                         onclick="copyClickIdToTest('<?php echo esc_js( $click->click_id ); ?>')"
                                         style="cursor: pointer; display: inline-block; max-width: 100%;"
-                                        title="<?php echo esc_attr( $click->click_id ); ?> — Click to copy"
+                                        title="<?php echo esc_attr( $click->click_id ); ?> (click to copy)"
                                     >
                                         <strong style="text-decoration: underline; text-decoration-style: dotted; display: inline-block; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;"><?php echo esc_html( $click->click_id ); ?></strong>
                                         <span class="dashicons dashicons-clipboard" style="font-size: 14px; vertical-align: middle; color: #666;"></span>
@@ -2005,7 +2016,7 @@ class CUFT_Admin {
                                         <br><small style="color: #666;" title="<?php echo esc_attr( $click->ip_hash ); ?>">IP: <?php echo esc_html( substr( $click->ip_hash, 0, 12 ) ); ?>…</small>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo esc_html( $click->campaign ?: '—' ); ?></td>
+                                <td><?php echo esc_html( $click->campaign ?: '-' ); ?></td>
                                 <td>
                                     <?php
                                     // Display events timeline (v3.12.0+)
@@ -2022,7 +2033,7 @@ class CUFT_Admin {
 
                                         foreach ( $visible_events as $event ):
                                             $event_type = $event['event'];
-                                            $event_time = date( 'M j, g:i A', strtotime( $event['timestamp'] ) );
+                                            $event_time = gmdate( 'M j, g:i A', strtotime( $event['timestamp'] ) );
 
                                             // Badge colors by event type
                                             $badge_colors = array(
@@ -2065,15 +2076,15 @@ class CUFT_Admin {
                                     </span>
                                 </td>
                                 <td>
-                                    <?php echo esc_html( date( 'M j, Y g:i A', strtotime( $click->date_created ) ) ); ?>
+                                    <?php echo esc_html( gmdate( 'M j, Y g:i A', strtotime( $click->date_created ) ) ); ?>
                                     <br><small style="color: #666;">UTC</small>
                                 </td>
                                 <td>
                                     <?php if ( $click->date_updated !== $click->date_created ): ?>
-                                        <?php echo esc_html( date( 'M j, Y g:i A', strtotime( $click->date_updated ) ) ); ?>
+                                        <?php echo esc_html( gmdate( 'M j, Y g:i A', strtotime( $click->date_updated ) ) ); ?>
                                         <br><small style="color: #666;">UTC</small>
                                     <?php else: ?>
-                                        —
+                                        -
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -2213,7 +2224,7 @@ class CUFT_Admin {
             <?php endif; ?>
             
             <span style="margin: 0 15px;">
-                Page <?php echo $current_page; ?> of <?php echo $total_pages; ?>
+                Page <?php echo esc_html( $current_page ); ?> of <?php echo esc_html( $total_pages ); ?>
             </span>
             
             <?php if ( $current_page < $total_pages ): ?>
@@ -2399,7 +2410,7 @@ class CUFT_Admin {
             // Show persistent warning notice for missing GTM ID (not dismissible)
             echo '<div class="notice notice-warning">';
             echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
-            echo 'Please <a href="' . $settings_url . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
+            echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
             echo '</div>';
         } else {
             // Check if success notice has been dismissed by this user
@@ -2409,9 +2420,9 @@ class CUFT_Admin {
             if ( ! $dismissed ) {
                 // Show dismissible success notice
                 echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
-                echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . $detected_count . ' form framework(s) detected. ';
+                echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . esc_html( $detected_count ) . ' form framework(s) detected. ';
                 echo 'GTM container <code>' . esc_html( $gtm_id ) . '</code> is configured. ';
-                echo '<a href="' . $settings_url . '">Settings</a></p>';
+                echo '<a href="' . esc_url( $settings_url ) . '">Settings</a></p>';
                 echo '</div>';
 
                 // Add inline script to handle dismiss
@@ -2421,7 +2432,7 @@ class CUFT_Admin {
                     $(document).on('click', '.notice[data-dismiss-action="cuft-dismiss-notice"] .notice-dismiss', function() {
                         $.post(ajaxurl, {
                             action: 'cuft_dismiss_notice',
-                            nonce: '<?php echo wp_create_nonce( 'cuft_dismiss_notice' ); ?>'
+                            nonce: '<?php echo esc_js( wp_create_nonce( 'cuft_dismiss_notice' ) ); ?>'
                         });
                     });
                 });
@@ -2457,7 +2468,7 @@ class CUFT_Admin {
             echo '<div class="notice notice-success is-dismissible">';
             echo '<p><strong>✅ Custom GTM server is now active</strong><br>';
             echo 'Your custom server has passed 3 consecutive health checks and is now being used for GTM script loading. ';
-            echo '<a href="' . $settings_url . '">View status</a></p>';
+            echo '<a href="' . esc_url( $settings_url ) . '">View status</a></p>';
             echo '</div>';
             
             // Clean up the trigger
@@ -2470,7 +2481,7 @@ class CUFT_Admin {
             echo '<div class="notice notice-warning is-dismissible">';
             echo '<p><strong>⚠️ Custom GTM server unavailable, using fallback</strong><br>';
             echo 'Your custom server failed a health check and the system has automatically switched to Google\'s default endpoints. ';
-            echo '<a href="' . $settings_url . '">View status</a></p>';
+            echo '<a href="' . esc_url( $settings_url ) . '">View status</a></p>';
             echo '</div>';
             
             // Clean up the trigger

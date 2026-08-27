@@ -195,8 +195,10 @@ class CUFT_Test_Events_Table {
 
         // Execute query
         if (!empty($values)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Placeholders were built into $query above; user values are bound here.
             $results = $wpdb->get_results($wpdb->prepare($query, $values));
         } else {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. No user values in this branch.
             $results = $wpdb->get_results($query);
         }
 
@@ -236,9 +238,11 @@ class CUFT_Test_Events_Table {
         $query = "SELECT COUNT(*) FROM {$this->table_name} WHERE {$where_clause}";
 
         if (!empty($values)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Placeholders were built into $query above; user values are bound here.
             return (int) $wpdb->get_var($wpdb->prepare($query, $values));
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. No user values in this branch.
         return (int) $wpdb->get_var($query);
     }
 

@@ -38,7 +38,7 @@ class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
 
     public function create_form($template_id, $config = array()) {
         if ($this->silent_exit_if_unavailable()) {
-            return $this->error('framework_unavailable', __('Gravity Forms is not available.', 'choice-uft'));
+            return $this->error('framework_unavailable', __('Gravity Forms is not available.', 'choice-universal-form-tracker'));
         }
 
         $validation = $this->validate_template($template_id);
@@ -99,7 +99,7 @@ class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
 
     public function delete_form($post_id) {
         if ($this->silent_exit_if_unavailable()) {
-            return $this->error('framework_unavailable', __('Gravity Forms is not available.', 'choice-uft'));
+            return $this->error('framework_unavailable', __('Gravity Forms is not available.', 'choice-universal-form-tracker'));
         }
 
         // Get form_id from page meta
@@ -121,7 +121,7 @@ class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
         $deleted = wp_delete_post($post_id, true);
 
         if (!$deleted) {
-            return $this->error('deletion_failed', __('Failed to delete form page.', 'choice-uft'));
+            return $this->error('deletion_failed', __('Failed to delete form page.', 'choice-universal-form-tracker'));
         }
 
         $this->log('Deleted Gravity form', array('page_id' => $post_id));
@@ -154,12 +154,13 @@ class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
         }
 
         return array(
-            'title' => sprintf(__('CUFT Test Form - %s', 'choice-uft'), $instance_id),
+            /* translators: %s: unique test form instance ID */
+            'title' => sprintf(__('CUFT Test Form - %s', 'choice-universal-form-tracker'), $instance_id),
             'description' => '',
             'fields' => $gf_fields,
             'button' => array(
                 'type' => 'text',
-                'text' => __('Submit', 'choice-uft'),
+                'text' => __('Submit', 'choice-universal-form-tracker'),
             ),
             'confirmations' => array(
                 array(
@@ -167,7 +168,7 @@ class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
                     'name' => 'Default Confirmation',
                     'isDefault' => true,
                     'type' => 'message',
-                    'message' => __('Thank you for your submission!', 'choice-uft'),
+                    'message' => __('Thank you for your submission!', 'choice-universal-form-tracker'),
                 ),
             ),
         );
@@ -186,7 +187,8 @@ class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
 
     private function create_display_page($instance_id, $shortcode) {
         $post_data = array(
-            'post_title' => sprintf(__('CUFT Test Form Page - %s', 'choice-uft'), $instance_id),
+            /* translators: %s: unique test form instance ID */
+            'post_title' => sprintf(__('CUFT Test Form Page - %s', 'choice-universal-form-tracker'), $instance_id),
             'post_content' => $shortcode,
             'post_status' => 'publish',
             'post_type' => 'page',

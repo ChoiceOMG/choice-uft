@@ -99,13 +99,13 @@ class CUFT_Admin_Notices {
 		?>
 		<div class="notice notice-info is-dismissible cuft-update-notice" data-version="<?php echo esc_attr( $latest_version ); ?>">
 			<p>
-				<strong><?php esc_html_e( 'Choice Universal Form Tracker Update Available', 'choice-uft' ); ?></strong>
+				<strong><?php esc_html_e( 'Choice Universal Form Tracker Update Available', 'choice-universal-form-tracker' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				printf(
 					/* translators: 1: current version, 2: new version */
-					esc_html__( 'Version %2$s is available. You are currently running version %1$s.', 'choice-uft' ),
+					esc_html__( 'Version %2$s is available. You are currently running version %1$s.', 'choice-universal-form-tracker' ),
 					esc_html( $current_version ),
 					'<strong>' . esc_html( $latest_version ) . '</strong>'
 				);
@@ -113,10 +113,10 @@ class CUFT_Admin_Notices {
 			</p>
 			<p>
 				<a href="<?php echo esc_url( $plugins_page_url ); ?>" class="button button-primary">
-					<?php esc_html_e( 'Update Plugin', 'choice-uft' ); ?>
+					<?php esc_html_e( 'Update Plugin', 'choice-universal-form-tracker' ); ?>
 				</a>
 				<a href="#" class="button cuft-dismiss-notice" data-version="<?php echo esc_attr( $latest_version ); ?>">
-					<?php esc_html_e( 'Dismiss', 'choice-uft' ); ?>
+					<?php esc_html_e( 'Dismiss', 'choice-universal-form-tracker' ); ?>
 				</a>
 			</p>
 		</div>
@@ -141,13 +141,13 @@ class CUFT_Admin_Notices {
 		?>
 		<div class="notice notice-success is-dismissible">
 			<p>
-				<strong><?php esc_html_e( 'Update Completed Successfully!', 'choice-uft' ); ?></strong>
+				<strong><?php esc_html_e( 'Update Completed Successfully!', 'choice-universal-form-tracker' ); ?></strong>
 			</p>
 			<p>
 				<?php
 				printf(
 					/* translators: %s: new version */
-					esc_html__( 'Choice Universal Form Tracker has been updated to version %s.', 'choice-uft' ),
+					esc_html__( 'Choice Universal Form Tracker has been updated to version %s.', 'choice-universal-form-tracker' ),
 					'<strong>' . esc_html( CUFT_VERSION ) . '</strong>'
 				);
 				?>
@@ -178,17 +178,17 @@ class CUFT_Admin_Notices {
 		?>
 		<div class="notice notice-error is-dismissible cuft-update-failed-notice">
 			<p>
-				<strong><?php esc_html_e( 'Update Failed', 'choice-uft' ); ?></strong>
+				<strong><?php esc_html_e( 'Update Failed', 'choice-universal-form-tracker' ); ?></strong>
 			</p>
 			<p>
 				<?php echo esc_html( $progress['message'] ); ?>
 			</p>
 			<p>
 				<a href="#" class="button button-secondary cuft-retry-update">
-					<?php esc_html_e( 'Retry Update', 'choice-uft' ); ?>
+					<?php esc_html_e( 'Retry Update', 'choice-universal-form-tracker' ); ?>
 				</a>
 				<a href="#" class="button cuft-dismiss-failed" data-dismiss-type="failed">
-					<?php esc_html_e( 'Dismiss', 'choice-uft' ); ?>
+					<?php esc_html_e( 'Dismiss', 'choice-universal-form-tracker' ); ?>
 				</a>
 			</p>
 		</div>
@@ -217,7 +217,7 @@ class CUFT_Admin_Notices {
 		?>
 		<div class="notice notice-warning cuft-update-progress-notice">
 			<p>
-				<strong><?php esc_html_e( 'Update in Progress', 'choice-uft' ); ?></strong>
+				<strong><?php esc_html_e( 'Update in Progress', 'choice-universal-form-tracker' ); ?></strong>
 			</p>
 			<p>
 				<?php echo esc_html( $progress['message'] ); ?>
@@ -227,7 +227,7 @@ class CUFT_Admin_Notices {
 				<div class="cuft-progress-fill" style="width: <?php echo absint( $progress['percentage'] ); ?>%;"></div>
 			</div>
 			<p class="description">
-				<?php esc_html_e( 'Please do not close this page or navigate away until the update is complete.', 'choice-uft' ); ?>
+				<?php esc_html_e( 'Please do not close this page or navigate away until the update is complete.', 'choice-universal-form-tracker' ); ?>
 			</p>
 		</div>
 		<?php
@@ -255,8 +255,8 @@ class CUFT_Admin_Notices {
 		wp_localize_script( 'cuft-admin-notices', 'cuftNotices', array(
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'cuft_updater_nonce' ),
-			'dismissing' => __( 'Dismissing...', 'choice-uft' ),
-			'dismissed' => __( 'Dismissed', 'choice-uft' ),
+			'dismissing' => __( 'Dismissing...', 'choice-universal-form-tracker' ),
+			'dismissed' => __( 'Dismissed', 'choice-universal-form-tracker' ),
 		) );
 
 		// Add inline styles

@@ -115,97 +115,97 @@ class CUFT_Error_Messages {
 			// Download failures
 			self::DOWNLOAD_FAILURE => sprintf(
 				/* translators: 1: GitHub URL */
-				__( 'Download failed. Please check your internet connection and try again. If the problem persists, download manually from: %1$s', 'choice-uft' ),
+				__( 'Download failed. Please check your internet connection and try again. If the problem persists, download manually from: %1$s', 'choice-universal-form-tracker' ),
 				'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 			),
 			self::DOWNLOAD_SIZE_MISMATCH => sprintf(
 				/* translators: 1: Expected size, 2: Actual size */
-				__( 'Download verification failed: File size mismatch. Expected %1$s, got %2$s. Please try again.', 'choice-uft' ),
+				__( 'Download verification failed: File size mismatch. Expected %1$s, got %2$s. Please try again.', 'choice-universal-form-tracker' ),
 				isset( $context['expected_size'] ) ? size_format( $context['expected_size'] ) : 'unknown',
 				isset( $context['actual_size'] ) ? size_format( $context['actual_size'] ) : 'unknown'
 			),
-			self::DOWNLOAD_TIMEOUT => __( 'Download timed out. Please check your internet connection and try again.', 'choice-uft' ),
-			self::DOWNLOAD_NETWORK_ERROR => __( 'Network error during download. Please check your internet connection and try again.', 'choice-uft' ),
+			self::DOWNLOAD_TIMEOUT => __( 'Download timed out. Please check your internet connection and try again.', 'choice-universal-form-tracker' ),
+			self::DOWNLOAD_NETWORK_ERROR => __( 'Network error during download. Please check your internet connection and try again.', 'choice-universal-form-tracker' ),
 
 			// Extraction failures
-			self::EXTRACTION_FAILURE => __( 'Could not extract plugin update. Please try again or download manually from GitHub.', 'choice-uft' ),
-			self::EXTRACTION_INVALID_ZIP => __( 'Downloaded file is not a valid ZIP archive. Please try again.', 'choice-uft' ),
-			self::EXTRACTION_CORRUPTED_ZIP => __( 'Downloaded file appears to be corrupted. Please try again.', 'choice-uft' ),
-			self::EXTRACTION_TIMEOUT => __( 'Extraction took too long and was aborted. Please try again.', 'choice-uft' ),
+			self::EXTRACTION_FAILURE => __( 'Could not extract plugin update. Please try again or download manually from GitHub.', 'choice-universal-form-tracker' ),
+			self::EXTRACTION_INVALID_ZIP => __( 'Downloaded file is not a valid ZIP archive. Please try again.', 'choice-universal-form-tracker' ),
+			self::EXTRACTION_CORRUPTED_ZIP => __( 'Downloaded file appears to be corrupted. Please try again.', 'choice-universal-form-tracker' ),
+			self::EXTRACTION_TIMEOUT => __( 'Extraction took too long and was aborted. Please try again.', 'choice-universal-form-tracker' ),
 
 			// Permission errors
 			self::PERMISSION_DENIED => sprintf(
 				/* translators: %s: Required permission (e.g., 755) */
-				__( 'Permission denied. Please ensure your plugin directory has proper permissions (recommended: %s).', 'choice-uft' ),
+				__( 'Permission denied. Please ensure your plugin directory has proper permissions (recommended: %s).', 'choice-universal-form-tracker' ),
 				'755'
 			),
 			self::PLUGIN_DIR_NOT_WRITABLE => sprintf(
 				/* translators: %s: Directory path */
-				__( 'Plugin directory is not writable: %s. Please check file permissions or contact your hosting provider.', 'choice-uft' ),
+				__( 'Plugin directory is not writable: %s. Please check file permissions or contact your hosting provider.', 'choice-universal-form-tracker' ),
 				isset( $context['path'] ) ? esc_html( $context['path'] ) : '/wp-content/plugins/'
 			),
 			self::BACKUP_DIR_NOT_WRITABLE => sprintf(
 				/* translators: %s: Directory path */
-				__( 'Cannot create backup directory: %s. Please ensure /wp-content/uploads/ has correct permissions (755).', 'choice-uft' ),
+				__( 'Cannot create backup directory: %s. Please ensure /wp-content/uploads/ has correct permissions (755).', 'choice-universal-form-tracker' ),
 				isset( $context['path'] ) ? esc_html( $context['path'] ) : '/wp-content/uploads/cuft-backups/'
 			),
-			self::TEMP_DIR_NOT_WRITABLE => __( 'Temporary directory is not writable. Please contact your hosting provider.', 'choice-uft' ),
+			self::TEMP_DIR_NOT_WRITABLE => __( 'Temporary directory is not writable. Please contact your hosting provider.', 'choice-universal-form-tracker' ),
 
 			// Disk space errors
 			self::DISK_SPACE_INSUFFICIENT => sprintf(
 				/* translators: %s: Required space in MB */
-				__( 'Insufficient disk space to create backup. Free at least %s MB and try again.', 'choice-uft' ),
+				__( 'Insufficient disk space to create backup. Free at least %s MB and try again.', 'choice-universal-form-tracker' ),
 				isset( $context['required_space'] ) ? number_format( $context['required_space'] / 1048576, 2 ) : 'unknown'
 			),
-			self::DISK_SPACE_CHECK_FAILED => __( 'Could not check available disk space. Please ensure you have sufficient space and try again.', 'choice-uft' ),
+			self::DISK_SPACE_CHECK_FAILED => __( 'Could not check available disk space. Please ensure you have sufficient space and try again.', 'choice-universal-form-tracker' ),
 
 			// Backup errors
-			self::BACKUP_CREATION_FAILED => __( 'Backup creation failed. Update aborted to prevent data loss. Please try again.', 'choice-uft' ),
+			self::BACKUP_CREATION_FAILED => __( 'Backup creation failed. Update aborted to prevent data loss. Please try again.', 'choice-universal-form-tracker' ),
 			self::BACKUP_NOT_FOUND => sprintf(
 				/* translators: %s: GitHub URL */
-				__( 'Backup file not found. Cannot restore previous version. Please reinstall manually from: %s', 'choice-uft' ),
+				__( 'Backup file not found. Cannot restore previous version. Please reinstall manually from: %s', 'choice-universal-form-tracker' ),
 				'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 			),
 			self::BACKUP_CORRUPTED => sprintf(
 				/* translators: %s: GitHub URL */
-				__( 'Backup file is corrupted. Cannot restore previous version. Please reinstall manually from: %s', 'choice-uft' ),
+				__( 'Backup file is corrupted. Cannot restore previous version. Please reinstall manually from: %s', 'choice-universal-form-tracker' ),
 				'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 			),
-			self::BACKUP_DELETION_FAILED => __( 'Warning: Could not delete backup file. You may manually delete it from /wp-content/uploads/cuft-backups/', 'choice-uft' ),
+			self::BACKUP_DELETION_FAILED => __( 'Warning: Could not delete backup file. You may manually delete it from /wp-content/uploads/cuft-backups/', 'choice-universal-form-tracker' ),
 
 			// Restoration errors
 			self::RESTORATION_FAILED => sprintf(
 				/* translators: 1: Error details, 2: GitHub URL */
-				__( 'Update failed and automatic restoration also failed (%1$s). Please reinstall plugin manually from: %2$s', 'choice-uft' ),
+				__( 'Update failed and automatic restoration also failed (%1$s). Please reinstall plugin manually from: %2$s', 'choice-universal-form-tracker' ),
 				isset( $context['details'] ) ? esc_html( $context['details'] ) : 'unknown error',
 				'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 			),
 			self::RESTORATION_TIMEOUT => sprintf(
 				/* translators: 1: Timeout in seconds, 2: GitHub URL */
-				__( 'Restoration exceeded %1$d second timeout. Please reinstall plugin manually from: %2$s', 'choice-uft' ),
+				__( 'Restoration exceeded %1$d second timeout. Please reinstall plugin manually from: %2$s', 'choice-universal-form-tracker' ),
 				isset( $context['timeout'] ) ? absint( $context['timeout'] ) : 10,
 				'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 			),
 			self::RESTORATION_VERIFICATION_FAILED => sprintf(
 				/* translators: %s: GitHub URL */
-				__( 'Restoration completed but verification failed. Please check plugin functionality or reinstall from: %s', 'choice-uft' ),
+				__( 'Restoration completed but verification failed. Please check plugin functionality or reinstall from: %s', 'choice-universal-form-tracker' ),
 				'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 			),
 
 			// Version errors
 			self::VERSION_MISMATCH => sprintf(
 				/* translators: 1: Expected version, 2: Actual version */
-				__( 'Version mismatch after update. Expected %1$s, got %2$s. Please verify plugin functionality.', 'choice-uft' ),
+				__( 'Version mismatch after update. Expected %1$s, got %2$s. Please verify plugin functionality.', 'choice-universal-form-tracker' ),
 				isset( $context['expected_version'] ) ? esc_html( $context['expected_version'] ) : 'unknown',
 				isset( $context['actual_version'] ) ? esc_html( $context['actual_version'] ) : 'unknown'
 			),
-			self::VERSION_DETECTION_FAILED => __( 'Could not detect plugin version. Please verify plugin functionality.', 'choice-uft' ),
+			self::VERSION_DETECTION_FAILED => __( 'Could not detect plugin version. Please verify plugin functionality.', 'choice-universal-form-tracker' ),
 
 			// Security errors
-			self::SECURITY_NONCE_INVALID => __( 'Security check failed. Please refresh the page and try again.', 'choice-uft' ),
-			self::SECURITY_CAPABILITY_DENIED => __( 'You do not have permission to update plugins. Please contact an administrator.', 'choice-uft' ),
-			self::SECURITY_URL_INVALID => __( 'Invalid download URL. Security check failed. Update aborted.', 'choice-uft' ),
-			self::SECURITY_FILE_MODS_DISABLED => __( 'File modifications are disabled on this site (DISALLOW_FILE_MODS). Please contact your administrator.', 'choice-uft' ),
+			self::SECURITY_NONCE_INVALID => __( 'Security check failed. Please refresh the page and try again.', 'choice-universal-form-tracker' ),
+			self::SECURITY_CAPABILITY_DENIED => __( 'You do not have permission to update plugins. Please contact an administrator.', 'choice-universal-form-tracker' ),
+			self::SECURITY_URL_INVALID => __( 'Invalid download URL. Security check failed. Update aborted.', 'choice-universal-form-tracker' ),
+			self::SECURITY_FILE_MODS_DISABLED => __( 'File modifications are disabled on this site (DISALLOW_FILE_MODS). Please contact your administrator.', 'choice-universal-form-tracker' ),
 		);
 
 		// Return message if exists, otherwise generic error
@@ -215,7 +215,7 @@ class CUFT_Error_Messages {
 
 		return sprintf(
 			/* translators: 1: Error code, 2: GitHub URL */
-			__( 'An unexpected error occurred (%1$s). Please try again or contact support. Manual download: %2$s', 'choice-uft' ),
+			__( 'An unexpected error occurred (%1$s). Please try again or contact support. Manual download: %2$s', 'choice-universal-form-tracker' ),
 			esc_html( $error_code ),
 			'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 		);
@@ -411,7 +411,7 @@ class CUFT_Error_Messages {
 			printf(
 				'<div class="notice notice-%s is-dismissible"><p><strong>%s:</strong> %s</p></div>',
 				esc_attr( $notice_type ),
-				esc_html__( 'Plugin Update Failed', 'choice-uft' ),
+				esc_html__( 'Plugin Update Failed', 'choice-universal-form-tracker' ),
 				wp_kses_post( $message )
 			);
 		} );

@@ -33,3 +33,5 @@ test-output/
 
 # Local Claude settings (already excluded by Claude)
 .claude/settings.local.json
+# Build output
+dist/

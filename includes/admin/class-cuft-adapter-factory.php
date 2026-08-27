@@ -57,7 +57,8 @@ class CUFT_Adapter_Factory {
         if (!isset(self::$registry[$framework])) {
             return new WP_Error(
                 'invalid_framework',
-                sprintf(__('Invalid framework: %s', 'choice-uft'), $framework)
+                /* translators: %s: form framework name */
+                sprintf(__('Invalid framework: %s', 'choice-universal-form-tracker'), $framework)
             );
         }
 
@@ -73,7 +74,8 @@ class CUFT_Adapter_Factory {
         if (!file_exists($file_path)) {
             return new WP_Error(
                 'adapter_file_not_found',
-                sprintf(__('Adapter file not found for framework: %s', 'choice-uft'), $framework)
+                /* translators: %s: form framework name */
+                sprintf(__('Adapter file not found for framework: %s', 'choice-universal-form-tracker'), $framework)
             );
         }
 
@@ -83,7 +85,8 @@ class CUFT_Adapter_Factory {
         if (!class_exists($class_name)) {
             return new WP_Error(
                 'adapter_class_not_found',
-                sprintf(__('Adapter class not found: %s', 'choice-uft'), $class_name)
+                /* translators: %s: adapter class name */
+                sprintf(__('Adapter class not found: %s', 'choice-universal-form-tracker'), $class_name)
             );
         }
 
@@ -94,7 +97,8 @@ class CUFT_Adapter_Factory {
         if (!($adapter instanceof Abstract_CUFT_Adapter)) {
             return new WP_Error(
                 'invalid_adapter',
-                sprintf(__('Adapter must extend Abstract_CUFT_Adapter: %s', 'choice-uft'), $class_name)
+                /* translators: %s: adapter class name */
+                sprintf(__('Adapter must extend Abstract_CUFT_Adapter: %s', 'choice-universal-form-tracker'), $class_name)
             );
         }
 

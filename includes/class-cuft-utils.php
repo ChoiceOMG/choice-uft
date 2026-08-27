@@ -298,7 +298,7 @@ class CUFT_Utils {
      * Decrypt a secret value previously encrypted with encrypt_secret().
      *
      * Gracefully handles plaintext values that were stored before encryption
-     * was introduced — if decryption fails the raw value is returned as-is.
+     * was introduced; if decryption fails the raw value is returned as-is.
      *
      * @param string $ciphertext The stored (possibly encrypted) value.
      * @return string Decrypted plaintext.
@@ -310,14 +310,14 @@ class CUFT_Utils {
         $key  = substr( hash( 'sha256', AUTH_SALT ), 0, 32 );
         $data = base64_decode( $ciphertext, true );
         if ( false === $data || strlen( $data ) < 17 ) {
-            // Not encrypted or too short — return as-is (handles migration from plaintext)
+            // Not encrypted or too short; return as-is (handles migration from plaintext)
             return $ciphertext;
         }
         $iv        = substr( $data, 0, 16 );
         $encrypted = substr( $data, 16 );
         $decrypted = openssl_decrypt( $encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
         if ( false === $decrypted ) {
-            // Decryption failed — might be a plaintext value from before encryption was added
+            // Decryption failed; might be a plaintext value from before encryption was added
             return $ciphertext;
         }
         return $decrypted;

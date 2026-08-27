@@ -176,30 +176,30 @@ abstract class Abstract_CUFT_Adapter {
             array(
                 'type' => 'text',
                 'name' => 'name',
-                'label' => __('Name', 'choice-uft'),
+                'label' => __('Name', 'choice-universal-form-tracker'),
                 'required' => true,
-                'placeholder' => __('Your Name', 'choice-uft'),
+                'placeholder' => __('Your Name', 'choice-universal-form-tracker'),
             ),
             array(
                 'type' => 'email',
                 'name' => 'email',
-                'label' => __('Email', 'choice-uft'),
+                'label' => __('Email', 'choice-universal-form-tracker'),
                 'required' => true,
-                'placeholder' => __('your@email.com', 'choice-uft'),
+                'placeholder' => __('your@email.com', 'choice-universal-form-tracker'),
             ),
             array(
                 'type' => 'tel',
                 'name' => 'phone',
-                'label' => __('Phone', 'choice-uft'),
+                'label' => __('Phone', 'choice-universal-form-tracker'),
                 'required' => true,
-                'placeholder' => __('555-0123', 'choice-uft'),
+                'placeholder' => __('555-0123', 'choice-universal-form-tracker'),
             ),
             array(
                 'type' => 'textarea',
                 'name' => 'message',
-                'label' => __('Message', 'choice-uft'),
+                'label' => __('Message', 'choice-universal-form-tracker'),
                 'required' => false,
-                'placeholder' => __('Your message...', 'choice-uft'),
+                'placeholder' => __('Your message...', 'choice-universal-form-tracker'),
                 'rows' => 4,
             ),
         );
@@ -270,7 +270,8 @@ abstract class Abstract_CUFT_Adapter {
         if (!in_array($template_id, $valid_templates, true)) {
             return $this->error(
                 'invalid_template',
-                sprintf(__('Invalid template ID: %s', 'choice-uft'), $template_id)
+                /* translators: %s: form template ID */
+                sprintf(__('Invalid template ID: %s', 'choice-universal-form-tracker'), $template_id)
             );
         }
 

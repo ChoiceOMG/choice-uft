@@ -45,14 +45,14 @@ class CUFT_Test_Events_Ajax {
         // Security check: Verify nonce
         if (!check_ajax_referer('cuft-testing-dashboard', 'nonce', false)) {
             wp_send_json_error(array(
-                'message' => __('Security check failed.', 'choice-uft')
+                'message' => __('Security check failed.', 'choice-universal-form-tracker')
             ), 403);
         }
 
         // Security check: Verify capability
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array(
-                'message' => __('Insufficient permissions.', 'choice-uft')
+                'message' => __('Insufficient permissions.', 'choice-universal-form-tracker')
             ), 403);
         }
 
@@ -104,7 +104,7 @@ class CUFT_Test_Events_Ajax {
         } catch (Exception $e) {
             error_log('CUFT: Failed to get test events - ' . $e->getMessage());
             wp_send_json_error(array(
-                'message' => __('Failed to retrieve test events.', 'choice-uft'),
+                'message' => __('Failed to retrieve test events.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
             ), 500);
         }
@@ -119,14 +119,14 @@ class CUFT_Test_Events_Ajax {
         // Security check: Verify nonce
         if (!check_ajax_referer('cuft-testing-dashboard', 'nonce', false)) {
             wp_send_json_error(array(
-                'message' => __('Security check failed.', 'choice-uft')
+                'message' => __('Security check failed.', 'choice-universal-form-tracker')
             ), 403);
         }
 
         // Security check: Verify capability
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array(
-                'message' => __('Insufficient permissions.', 'choice-uft')
+                'message' => __('Insufficient permissions.', 'choice-universal-form-tracker')
             ), 403);
         }
 
@@ -164,7 +164,7 @@ class CUFT_Test_Events_Ajax {
 
                 default:
                     wp_send_json_error(array(
-                        'message' => __('Invalid delete type specified.', 'choice-uft')
+                        'message' => __('Invalid delete type specified.', 'choice-universal-form-tracker')
                     ), 400);
                     return;
             }
@@ -173,11 +173,12 @@ class CUFT_Test_Events_Ajax {
             $response = array(
                 'deleted_count' => $deleted_count,
                 'message' => sprintf(
+                    /* translators: %d: number of test events that were deleted */
                     _n(
                         '%d test event deleted successfully.',
                         '%d test events deleted successfully.',
                         $deleted_count,
-                        'choice-uft'
+                        'choice-universal-form-tracker'
                     ),
                     $deleted_count
                 )
@@ -188,7 +189,7 @@ class CUFT_Test_Events_Ajax {
         } catch (Exception $e) {
             error_log('CUFT: Failed to delete test events - ' . $e->getMessage());
             wp_send_json_error(array(
-                'message' => __('Failed to delete test events.', 'choice-uft'),
+                'message' => __('Failed to delete test events.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
             ), 500);
         }
@@ -212,7 +213,7 @@ class CUFT_Test_Events_Ajax {
                 'test_mode' => (bool) $event->test_mode,
                 'created_at' => $event->created_at,
                 'created_at_formatted' => mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $event->created_at),
-                'time_ago' => human_time_diff(strtotime($event->created_at), current_time('timestamp')) . ' ' . __('ago', 'choice-uft')
+                'time_ago' => human_time_diff(strtotime($event->created_at), current_time('timestamp')) . ' ' . __('ago', 'choice-universal-form-tracker')
             );
         }
 

@@ -1,12 +1,16 @@
 <?php
 /**
  * Plugin Name:       Choice Universal Form Tracker
- * Description:       Universal form tracking for WordPress - supports Avada, Elementor Pro, Contact Form 7, Ninja Forms, Gravity Forms, and more. Tracks submissions and link clicks via Google Tag Manager's dataLayer.
- * Version:           3.25.0
+ * Plugin URI:        https://github.com/ChoiceOMG/choice-uft
+ * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
+ * Version:           3.26.0
+ * Requires at least: 5.0
+ * Requires PHP:      7.4
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
  * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.25.0' );
+define( 'CUFT_VERSION', '3.26.0' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -49,6 +53,21 @@ class Choice_Universal_Form_Tracker {
     }
     
     /**
+     * Whether the self-update subsystem is bundled in this build.
+     *
+     * WordPress.org guideline 8 prohibits a plugin distributed through the
+     * directory from installing or serving its own updates, so that package is
+     * built without the updater files. Every caller checks presence rather than
+     * a build constant, which keeps the two packages a pure file-list
+     * difference and lets core handle updates on directory installs.
+     *
+     * @return bool
+     */
+    public static function has_updater() {
+        return file_exists( CUFT_PATH . 'includes/class-cuft-wordpress-updater.php' );
+    }
+
+    /**
      * Load plugin dependencies
      */
     private function load_dependencies() {
@@ -67,7 +86,6 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-utm-tracker.php',
             'includes/class-cuft-form-attribution.php',  // Server-side attribution assembler (OPS-2209)
             'includes/class-cuft-console-logger.php',
-            'includes/class-cuft-github-updater.php',
             'includes/class-cuft-click-tracker.php',
             'includes/class-cuft-click-integration.php',
             'includes/class-cuft-token-manager.php',
@@ -75,7 +93,6 @@ class Choice_Universal_Form_Tracker {
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
             'includes/class-cuft-measurement-protocol.php',
-            'includes/class-cuft-cryptojs.php',
             // Form Builder Infrastructure
             'includes/admin/framework-adapters/abstract-cuft-adapter.php',  // Base adapter
             'includes/admin/framework-adapters/class-cuft-elementor-adapter.php',
@@ -99,55 +116,11 @@ class Choice_Universal_Form_Tracker {
             'includes/ajax/class-cuft-test-form-builder.php',  // Test form builder AJAX
             'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
             'includes/ajax/class-cuft-form-builder-ajax.php',  // Form builder AJAX endpoints
-            'includes/ajax/class-cuft-updater-ajax.php',  // Updater AJAX endpoints
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
-            // Updater Models
-            'includes/models/class-cuft-update-status.php',  // Update status model
-            'includes/models/class-cuft-update-progress.php',  // Update progress model
-            'includes/models/class-cuft-github-release.php',  // GitHub release model
-            'includes/models/class-cuft-update-log.php',  // Update log model
-            'includes/models/class-cuft-update-configuration.php',  // Update configuration model
-            // Force Update Infrastructure (Feature 009 - v3.19.0)
-            'includes/class-cuft-update-lock-manager.php',  // Transient-based operation locking
-            'includes/class-cuft-disk-space-validator.php',  // Disk space validation
-            'includes/class-cuft-cache-clearer.php',  // WordPress cache clearing
-            // Force Update Models (Feature 009 - v3.19.0)
-            'includes/models/class-cuft-force-reinstall-operation.php',  // Force reinstall operation model
-            'includes/models/class-cuft-plugin-installation-state.php',  // Plugin installation state model
-            'includes/models/class-cuft-update-history-entry.php',  // Update history entry model
-            'includes/models/class-cuft-update-check-request.php',  // Update check request model
-            // Force Update Service (Feature 009 - v3.19.0)
-            'includes/class-cuft-force-update-handler.php',  // Force update orchestrator
-            // Updater Services
-            'includes/class-cuft-github-api.php',  // GitHub API service
-            'includes/class-cuft-update-checker.php',  // Update checker service
-            'includes/class-cuft-filesystem-handler.php',  // Filesystem wrapper
-            // 'includes/class-cuft-backup-manager.php',  // DEPRECATED: Replaced by includes/update/class-cuft-backup-manager.php in Feature 008
-            // 'includes/class-cuft-update-installer.php',  // DEPRECATED: Removed in Feature 007/008 refactor
-            'includes/class-cuft-wordpress-updater.php',  // WordPress update integration
-            'includes/class-cuft-cron-manager.php',  // Cron scheduling manager
-            // Updater Admin
-            'includes/admin/class-cuft-admin-notices.php',  // Admin update notices
-            // 'includes/admin/class-cuft-admin-bar.php',  // DEPRECATED: Removed in Feature 007 refactor
-            // Updater Performance
-            'includes/class-cuft-db-optimizer.php',  // Database query optimization
-            'includes/class-cuft-cache-warmer.php',  // Cache preloading
-            // Updater Security
-            'includes/class-cuft-rate-limiter.php',  // Rate limiting
-            'includes/class-cuft-download-verifier.php',  // Download verification
-            'includes/class-cuft-capabilities.php',  // Capability checks
-            'includes/class-cuft-input-validator.php',  // Input validation
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
             'includes/migrations/class-cuft-migration-3-21-0.php',
             'includes/migrations/class-cuft-migration-3-22-0.php',
-            'includes/migrations/create-update-log-table.php',  // Update log table migration
-            // Update System (Feature 008 - v3.17.0)
-            'includes/update/class-cuft-plugin-info.php',  // plugins_api filter for update modal
-            'includes/update/class-cuft-directory-fixer.php',  // upgrader_source_selection filter
-            'includes/update/class-cuft-update-logger.php',  // upgrader_process_complete hook for history
-            'includes/update/class-cuft-update-validator.php',  // Download validation (FR-401)
-            'includes/update/class-cuft-backup-manager.php',  // Backup/restore (FR-402)
             // Form framework handlers
             'includes/forms/class-cuft-avada-forms.php',
             'includes/forms/class-cuft-elementor-forms.php',
@@ -155,6 +128,49 @@ class Choice_Universal_Form_Tracker {
             'includes/forms/class-cuft-ninja-forms.php',
             'includes/forms/class-cuft-gravity-forms.php'
         );
+
+        // Self-update subsystem. The WordPress.org distribution ships without
+        // these files, because directory guideline 8 forbids a hosted plugin
+        // from serving its own updates; the GitHub build keeps them. Presence
+        // of the files is the switch, so one codebase produces both packages.
+        if ( self::has_updater() ) {
+            $includes = array_merge( $includes, array(
+                'includes/class-cuft-github-updater.php',
+                'includes/ajax/class-cuft-updater-ajax.php',  // Updater AJAX endpoints
+                'includes/models/class-cuft-update-status.php',  // Update status model
+                'includes/models/class-cuft-update-progress.php',  // Update progress model
+                'includes/models/class-cuft-github-release.php',  // GitHub release model
+                'includes/models/class-cuft-update-log.php',  // Update log model
+                'includes/models/class-cuft-update-configuration.php',  // Update configuration model
+                'includes/class-cuft-update-lock-manager.php',  // Transient-based operation locking
+                'includes/class-cuft-disk-space-validator.php',  // Disk space validation
+                'includes/class-cuft-cache-clearer.php',  // WordPress cache clearing
+                'includes/models/class-cuft-force-reinstall-operation.php',  // Force reinstall operation model
+                'includes/models/class-cuft-plugin-installation-state.php',  // Plugin installation state model
+                'includes/models/class-cuft-update-history-entry.php',  // Update history entry model
+                'includes/models/class-cuft-update-check-request.php',  // Update check request model
+                'includes/class-cuft-force-update-handler.php',  // Force update orchestrator
+                'includes/class-cuft-github-api.php',  // GitHub API service
+                'includes/class-cuft-update-checker.php',  // Update checker service
+                'includes/class-cuft-filesystem-handler.php',  // Filesystem wrapper
+                'includes/class-cuft-wordpress-updater.php',  // WordPress update integration
+                'includes/class-cuft-cron-manager.php',  // Cron scheduling manager
+                'includes/admin/class-cuft-admin-notices.php',  // Admin update notices
+                'includes/class-cuft-db-optimizer.php',  // Database query optimization
+                'includes/class-cuft-cache-warmer.php',  // Cache preloading
+                'includes/class-cuft-rate-limiter.php',  // Rate limiting
+                'includes/class-cuft-download-verifier.php',  // Download verification
+                'includes/class-cuft-capabilities.php',  // Capability checks
+                'includes/class-cuft-input-validator.php',  // Input validation
+                'includes/migrations/create-update-log-table.php',  // Update log table migration
+                'includes/update/class-cuft-plugin-info.php',  // plugins_api filter for update modal
+                'includes/update/class-cuft-directory-fixer.php',  // upgrader_source_selection filter
+                'includes/update/class-cuft-update-logger.php',  // upgrader_process_complete hook for history
+                'includes/update/class-cuft-update-validator.php',  // Download validation (FR-401)
+                'includes/update/class-cuft-backup-manager.php',  // Backup/restore (FR-402)
+            ) );
+        }
+
 
         foreach ( $includes as $file ) {
             $filepath = CUFT_PATH . $file;
@@ -172,7 +188,6 @@ class Choice_Universal_Form_Tracker {
      */
     private function init_hooks() {
         add_action( 'plugins_loaded', array( $this, 'init' ) );
-        add_action( 'wp_loaded', array( $this, 'ensure_updater_hooks' ) );
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 
@@ -182,8 +197,11 @@ class Choice_Universal_Form_Tracker {
         // Add plugin row meta (View on GitHub, Releases)
         add_filter( 'plugin_row_meta', array( $this, 'add_row_meta' ), 10, 2 );
 
-        // Customize update notification message
-        add_action( 'in_plugin_update_message-' . CUFT_BASENAME, array( $this, 'update_message' ), 10, 2 );
+        // Customize update notification message. Only meaningful in the build
+        // that carries its own updater; directory installs get core's notice.
+        if ( self::has_updater() ) {
+            add_action( 'in_plugin_update_message-' . CUFT_BASENAME, array( $this, 'update_message' ), 10, 2 );
+        }
     }
     
     /**
@@ -196,7 +214,7 @@ class Choice_Universal_Form_Tracker {
         }
         
         // Check PHP version compatibility
-        if ( version_compare( PHP_VERSION, '7.0', '<' ) ) {
+        if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
             if ( is_admin() ) {
                 add_action( 'admin_notices', array( $this, 'php_version_notice' ) );
             }
@@ -264,9 +282,6 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Token_Manager();
             }
 
-            if ( class_exists( 'CUFT_CryptoJS' ) ) {
-                new CUFT_CryptoJS();
-            }
 
             // Initialize AJAX Event Recorder (v3.12.0)
             if ( class_exists( 'CUFT_Event_Recorder' ) ) {
@@ -336,16 +351,6 @@ class Choice_Universal_Form_Tracker {
     }
 
     /**
-     * Ensure updater hooks are properly registered
-     *
-     * @deprecated 3.16.2 No longer needed - CUFT_WordPress_Updater handles all hooks
-     */
-    public function ensure_updater_hooks() {
-        // No-op: CUFT_WordPress_Updater (v3.16.0+) handles all update hooks automatically
-        // See: includes/class-cuft-wordpress-updater.php:register_hooks()
-    }
-
-    /**
      * Plugin activation
      */
     public function activate() {
@@ -356,7 +361,7 @@ class Choice_Universal_Form_Tracker {
         if ( false === get_option( 'cuft_debug_enabled' ) ) {
             add_option( 'cuft_debug_enabled', false );
         }
-        if ( false === get_option( 'cuft_github_updates_enabled' ) ) {
+        if ( self::has_updater() && false === get_option( 'cuft_github_updates_enabled' ) ) {
             add_option( 'cuft_github_updates_enabled', true );
         }
         if ( false === get_option( 'cuft_lead_currency' ) ) {
@@ -383,13 +388,15 @@ class Choice_Universal_Form_Tracker {
         }
 
         // Clear update-related transients on activation (handles update completion)
-        delete_transient( 'cuft_github_version' );
-        delete_transient( 'cuft_github_changelog' );
-        delete_site_transient( 'update_plugins' );
-        wp_clean_plugins_cache();
+        if ( self::has_updater() ) {
+            delete_transient( 'cuft_github_version' );
+            delete_transient( 'cuft_github_changelog' );
+            delete_site_transient( 'update_plugins' );
+            wp_clean_plugins_cache();
 
-        // Force a fresh update check
-        wp_update_plugins();
+            // Force a fresh update check
+            wp_update_plugins();
+        }
 
         // Flush rewrite rules to enable webhook endpoints
         flush_rewrite_rules();
@@ -544,7 +551,7 @@ class Choice_Universal_Form_Tracker {
 
         echo ' ';
         echo 'Version ' . esc_html( $new_version ) . ' is available. ';
-        echo '<a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Go to Settings → Force Update</a> | ';
+        echo '<a href="' . esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker' ) ) . '">Go to Settings → Force Update</a> | ';
         echo '<a href="https://github.com/ChoiceOMG/choice-uft/releases/tag/v' . esc_attr( $new_version ) . '" target="_blank">View release notes</a>';
     }
 
@@ -553,7 +560,7 @@ class Choice_Universal_Form_Tracker {
      */
     public function php_version_notice() {
         echo '<div class="notice notice-error"><p>';
-        echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires PHP 7.0 or higher. ';
+        echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires PHP 7.4 or higher. ';
         echo 'You are running PHP ' . PHP_VERSION . '. Please contact your hosting provider to upgrade PHP.';
         echo '</p></div>';
     }
@@ -564,7 +571,7 @@ class Choice_Universal_Form_Tracker {
     public function wp_version_notice() {
         echo '<div class="notice notice-error"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires WordPress 5.0 or higher. ';
-        echo 'You are running WordPress ' . get_bloginfo( 'version' ) . '. Please update WordPress.';
+        echo 'You are running WordPress ' . esc_html( get_bloginfo( 'version' ) ) . '. Please update WordPress.';
         echo '</p></div>';
     }
     

@@ -5,6 +5,28 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.26.0] - 2026-08-27
+
+### Added
+- **WordPress.org distribution**: `build.sh` now produces two packages from one tree. `./build.sh` builds the GitHub release exactly as before; `./build.sh --wporg` builds the directory package, which omits the self-update subsystem because directory guideline 8 forbids a hosted plugin from serving its own updates. The extra exclusions live in `.wporgignore`.
+- `Choice_Universal_Form_Tracker::has_updater()` reports whether the update subsystem is bundled. Loading, the Force Update tab, its assets, and the custom update notice all check it, so the directory build degrades to core-managed updates instead of failing.
+- `build.sh` fails the build on a version mismatch across the three version sources, on hidden files, on em-dashes in shipped files, and (for `--wporg`) on any self-update file or third-party CDN reference reaching the package.
+- `readme.txt` gained an `== External services ==` section itemising every third-party endpoint the plugin can contact, what is transmitted, when, and under which terms and privacy policy.
+
+### Changed
+- **SHA-256 now ships with the plugin.** CryptoJS was loaded from `cdnjs.cloudflare.com`, which guideline 8 prohibits and which introduced a race: a slow CDN response left `lead_id` off the event entirely. The bundled implementation is synchronous, so `lead_id` is always available when the payload is built. Digests are unchanged and still match PHP `hash('sha256')`.
+- Declared PHP 7.4 consistently. The plugin header had no `Requires PHP` at all, `readme.txt` claimed 7.4, and the runtime notice named 7.0.
+- Added `Plugin URI`, `Requires at least`, `Requires PHP`, and `License URI` to the plugin header.
+- Text domain corrected to `choice-universal-form-tracker` in 275 places that used `choice-uft`, which did not match the declared `Text Domain` header and left those strings untranslatable.
+- `readme.txt` tags reduced from 12 to the 5 WordPress.org permits, and the six that were other companies' trademarks removed. Framework compatibility is described in the Description body instead.
+
+### Fixed
+- **GitHub updates were silently switched off on every settings save.** The checkbox that `save_settings()` read was removed in Feature 008, so the value was always false and got written back over the stored option.
+- `save_settings()` now verifies the settings nonce itself rather than relying on its caller, and unslashes `$_POST` values before sanitising them.
+- Escaped previously unescaped output across the admin screens, the GTM injector, and the testing dashboard.
+- Replaced `date()` with `gmdate()`, `rand()` with `wp_rand()`, and `parse_url()` with `wp_parse_url()`.
+- `/llms.txt`, `/ai.txt`, and `/llms-full.txt` now send `X-Content-Type-Options: nosniff`.
+
 ## [3.25.0] - 2026-06-30
 
 ### Added

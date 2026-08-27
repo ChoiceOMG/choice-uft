@@ -46,8 +46,8 @@ class CUFT_Testing_Dashboard {
     public function add_menu_page() {
         add_submenu_page(
             'options-general.php',
-            __('CUFT Testing Dashboard', 'choice-uft'),
-            __('Testing Dashboard', 'choice-uft'),
+            __('CUFT Testing Dashboard', 'choice-universal-form-tracker'),
+            __('Testing Dashboard', 'choice-universal-form-tracker'),
             'manage_options',
             $this->page_slug,
             array($this, 'render_dashboard')
@@ -62,7 +62,7 @@ class CUFT_Testing_Dashboard {
     public function render_dashboard() {
         // Security check
         if (!current_user_can('manage_options')) {
-            wp_die(__('Access Denied: You do not have sufficient permissions to access this page.', 'choice-uft'));
+            wp_die(esc_html__('Access Denied: You do not have sufficient permissions to access this page.', 'choice-universal-form-tracker'));
         }
 
         // Include the view template

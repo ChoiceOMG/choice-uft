@@ -2,10 +2,12 @@
 # Used by release.yml (rsync --exclude-from) and should stay in sync with .gitattributes.
 
 # Development tooling
+/.git
 /.github
 /.claude
 /.cursor
 /.specify
+/.remember
 /bin
 /tests
 /docs
@@ -17,6 +19,9 @@
 .gitignore
 .gitattributes
 .distignore
+.wporgignore
+.phpunit.result.cache
+build.sh
 .editorconfig
 .eslintrc
 .eslintrc.json

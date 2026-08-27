@@ -68,13 +68,13 @@ class CUFT_Cron_Manager {
 		// Twice daily (12 hours)
 		$schedules['twicedaily'] = array(
 			'interval' => 12 * HOUR_IN_SECONDS,
-			'display' => __( 'Twice Daily', 'choice-uft' ),
+			'display' => __( 'Twice Daily', 'choice-universal-form-tracker' ),
 		);
 
 		// Weekly
 		$schedules['weekly'] = array(
 			'interval' => 7 * DAY_IN_SECONDS,
-			'display' => __( 'Once Weekly', 'choice-uft' ),
+			'display' => __( 'Once Weekly', 'choice-universal-form-tracker' ),
 		);
 
 		return $schedules;
@@ -258,13 +258,13 @@ class CUFT_Cron_Manager {
 
 		// If the scheduled time is in the past, return "due now"
 		if ( $timestamp < time() ) {
-			return __( 'due now', 'choice-uft' );
+			return __( 'due now', 'choice-universal-form-tracker' );
 		}
 
 		// Return time difference with "in" prefix
 		return sprintf(
 			/* translators: %s: human time difference */
-			__( 'in %s', 'choice-uft' ),
+			__( 'in %s', 'choice-universal-form-tracker' ),
 			human_time_diff( time(), $timestamp )
 		);
 	}

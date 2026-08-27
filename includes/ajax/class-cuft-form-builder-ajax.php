@@ -72,13 +72,13 @@ class CUFT_Form_Builder_Ajax {
     public function handle_create_test_form() {
         // Verify nonce
         if (!$this->verify_nonce()) {
-            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-uft'), 403);
+            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
 
         // Check capabilities
         if (!$this->check_capabilities()) {
-            $this->send_error('insufficient_permissions', __('You do not have permission to create test forms.', 'choice-uft'), 401);
+            $this->send_error('insufficient_permissions', __('You do not have permission to create test forms.', 'choice-universal-form-tracker'), 401);
             return;
         }
 
@@ -88,7 +88,7 @@ class CUFT_Form_Builder_Ajax {
 
         // Validate framework
         if (empty($framework)) {
-            $this->send_error('missing_framework', __('Framework parameter is required.', 'choice-uft'), 400);
+            $this->send_error('missing_framework', __('Framework parameter is required.', 'choice-universal-form-tracker'), 400);
             return;
         }
 
@@ -107,7 +107,8 @@ class CUFT_Form_Builder_Ajax {
         if (!$adapter->is_available()) {
             $this->send_error(
                 'framework_unavailable',
-                sprintf(__('Framework not available: %s', 'choice-uft'), $framework),
+                /* translators: %s: form framework name */
+                sprintf(__('Framework not available: %s', 'choice-universal-form-tracker'), $framework),
                 400
             );
             return;
@@ -132,13 +133,13 @@ class CUFT_Form_Builder_Ajax {
     public function handle_get_test_forms() {
         // Verify nonce
         if (!$this->verify_nonce()) {
-            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-uft'), 403);
+            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
 
         // Check capabilities
         if (!$this->check_capabilities()) {
-            $this->send_error('insufficient_permissions', __('You do not have permission to view test forms.', 'choice-uft'), 401);
+            $this->send_error('insufficient_permissions', __('You do not have permission to view test forms.', 'choice-universal-form-tracker'), 401);
             return;
         }
 
@@ -163,13 +164,13 @@ class CUFT_Form_Builder_Ajax {
     public function handle_delete_test_form() {
         // Verify nonce
         if (!$this->verify_nonce()) {
-            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-uft'), 403);
+            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
 
         // Check capabilities
         if (!$this->check_capabilities()) {
-            $this->send_error('insufficient_permissions', __('You do not have permission to delete test forms.', 'choice-uft'), 401);
+            $this->send_error('insufficient_permissions', __('You do not have permission to delete test forms.', 'choice-universal-form-tracker'), 401);
             return;
         }
 
@@ -177,7 +178,7 @@ class CUFT_Form_Builder_Ajax {
         $instance_id = sanitize_text_field($_POST['instance_id'] ?? '');
 
         if (empty($instance_id)) {
-            $this->send_error('missing_instance_id', __('Instance ID is required.', 'choice-uft'), 400);
+            $this->send_error('missing_instance_id', __('Instance ID is required.', 'choice-universal-form-tracker'), 400);
             return;
         }
 
@@ -190,7 +191,7 @@ class CUFT_Form_Builder_Ajax {
         ));
 
         if (!$query->have_posts()) {
-            $this->send_error('form_not_found', __('Test form not found.', 'choice-uft'), 404);
+            $this->send_error('form_not_found', __('Test form not found.', 'choice-universal-form-tracker'), 404);
             return;
         }
 
@@ -217,7 +218,7 @@ class CUFT_Form_Builder_Ajax {
         }
 
         $this->send_success(array(
-            'message' => __('Test form deleted successfully', 'choice-uft'),
+            'message' => __('Test form deleted successfully', 'choice-universal-form-tracker'),
             'instance_id' => $instance_id,
         ));
     }
@@ -230,13 +231,13 @@ class CUFT_Form_Builder_Ajax {
     public function handle_populate_form() {
         // Verify nonce
         if (!$this->verify_nonce()) {
-            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-uft'), 403);
+            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
 
         // Check capabilities
         if (!$this->check_capabilities()) {
-            $this->send_error('insufficient_permissions', __('You do not have permission to populate forms.', 'choice-uft'), 401);
+            $this->send_error('insufficient_permissions', __('You do not have permission to populate forms.', 'choice-universal-form-tracker'), 401);
             return;
         }
 
@@ -267,13 +268,13 @@ class CUFT_Form_Builder_Ajax {
     public function handle_test_submit() {
         // Verify nonce
         if (!$this->verify_nonce()) {
-            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-uft'), 403);
+            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
 
         // Check capabilities
         if (!$this->check_capabilities()) {
-            $this->send_error('insufficient_permissions', __('You do not have permission to submit test forms.', 'choice-uft'), 401);
+            $this->send_error('insufficient_permissions', __('You do not have permission to submit test forms.', 'choice-universal-form-tracker'), 401);
             return;
         }
 
@@ -297,7 +298,7 @@ class CUFT_Form_Builder_Ajax {
         $this->send_success(array(
             'logged' => true,
             'validation' => $validation,
-            'message' => __('Test submission logged successfully', 'choice-uft'),
+            'message' => __('Test submission logged successfully', 'choice-universal-form-tracker'),
         ));
     }
 
@@ -364,13 +365,13 @@ class CUFT_Form_Builder_Ajax {
     public function handle_get_frameworks() {
         // Verify nonce
         if (!$this->verify_nonce()) {
-            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-uft'), 403);
+            $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
 
         // Check capabilities
         if (!$this->check_capabilities()) {
-            $this->send_error('insufficient_permissions', __('You do not have permission to view frameworks.', 'choice-uft'), 401);
+            $this->send_error('insufficient_permissions', __('You do not have permission to view frameworks.', 'choice-universal-form-tracker'), 401);
             return;
         }
 

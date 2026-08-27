@@ -120,6 +120,7 @@ class CUFT_DB_Migration {
                 ADD COLUMN `events` LONGTEXT DEFAULT NULL
                 AFTER `utm_content`";
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. Schema change with no user input.
         $result = $wpdb->query( $sql );
 
         if ( $result === false ) {
@@ -211,6 +212,7 @@ class CUFT_DB_Migration {
         foreach ($indexes as $index_name => $columns) {
             if (!self::index_exists($table_name, $index_name)) {
                 $sql = "ALTER TABLE $table_name ADD INDEX $index_name ($columns)";
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. Index name and columns come from the hardcoded $indexes map.
                 $result = $wpdb->query($sql);
 
                 if ($wpdb->last_error) {
@@ -306,6 +308,7 @@ class CUFT_DB_Migration {
             return array('error' => 'Invalid query type');
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query text is selected by key from the hardcoded $queries map.
         $explain = $wpdb->get_results("EXPLAIN " . $queries[$query_type], ARRAY_A);
         return $explain;
     }
@@ -329,6 +332,7 @@ class CUFT_DB_Migration {
         if ( ! empty( $column_exists ) ) {
             // Remove events column
             $sql = "ALTER TABLE `{$table_name}` DROP COLUMN `events`";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. Schema change with no user input.
             $wpdb->query( $sql );
 
             // Log rollback

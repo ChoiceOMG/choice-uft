@@ -61,7 +61,7 @@ class CUFT_Elementor_Adapter extends Abstract_CUFT_Adapter {
     public function create_form($template_id, $config = array()) {
         // Silent exit if Elementor Pro not available
         if ($this->silent_exit_if_unavailable()) {
-            return $this->error('framework_unavailable', __('Elementor Pro is not available.', 'choice-uft'));
+            return $this->error('framework_unavailable', __('Elementor Pro is not available.', 'choice-universal-form-tracker'));
         }
 
         // Validate template
@@ -76,7 +76,8 @@ class CUFT_Elementor_Adapter extends Abstract_CUFT_Adapter {
 
             // Create page for the form
             $post_data = array(
-                'post_title' => sprintf(__('CUFT Test Form - %s', 'choice-uft'), $instance_id),
+                /* translators: %s: unique test form instance ID */
+                'post_title' => sprintf(__('CUFT Test Form - %s', 'choice-universal-form-tracker'), $instance_id),
                 'post_content' => '',
                 'post_status' => 'publish',
                 'post_type' => 'page',
@@ -136,20 +137,20 @@ class CUFT_Elementor_Adapter extends Abstract_CUFT_Adapter {
      */
     public function delete_form($post_id) {
         if ($this->silent_exit_if_unavailable()) {
-            return $this->error('framework_unavailable', __('Elementor Pro is not available.', 'choice-uft'));
+            return $this->error('framework_unavailable', __('Elementor Pro is not available.', 'choice-universal-form-tracker'));
         }
 
         // Verify it's a CUFT test form
         $is_test_form = get_post_meta($post_id, '_cuft_test_form', true);
         if (!$is_test_form) {
-            return $this->error('not_test_form', __('Post is not a CUFT test form.', 'choice-uft'));
+            return $this->error('not_test_form', __('Post is not a CUFT test form.', 'choice-universal-form-tracker'));
         }
 
         // Delete the post (this will trigger cleanup hooks)
         $deleted = wp_delete_post($post_id, true);
 
         if (!$deleted) {
-            return $this->error('deletion_failed', __('Failed to delete form post.', 'choice-uft'));
+            return $this->error('deletion_failed', __('Failed to delete form post.', 'choice-universal-form-tracker'));
         }
 
         $this->log('Deleted Elementor form', array('post_id' => $post_id));
@@ -185,7 +186,7 @@ class CUFT_Elementor_Adapter extends Abstract_CUFT_Adapter {
 
         // Submit button
         $submit_button = array(
-            'button_text' => __('Submit', 'choice-uft'),
+            'button_text' => __('Submit', 'choice-universal-form-tracker'),
             'button_size' => 'md',
         );
 

@@ -38,14 +38,14 @@ class CUFT_Measurement_Protocol {
     public function send( string $client_id, string $event_name, array $event_params = array() ): bool {
         if ( ! $this->is_configured() ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'Measurement Protocol not configured — skipping event: ' . $event_name );
+                CUFT_Logger::log( 'Measurement Protocol not configured; skipping event: ' . $event_name );
             }
             return false;
         }
 
         if ( empty( $client_id ) ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'No ga_client_id available — skipping MP event: ' . $event_name );
+                CUFT_Logger::log( 'No ga_client_id available; skipping MP event: ' . $event_name );
             }
             return false;
         }

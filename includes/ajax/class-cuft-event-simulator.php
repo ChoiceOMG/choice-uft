@@ -34,14 +34,14 @@ class CUFT_Event_Simulator {
         // Security check: Verify nonce
         if (!check_ajax_referer('cuft-testing-dashboard', 'nonce', false)) {
             wp_send_json_error(array(
-                'message' => __('Security check failed.', 'choice-uft')
+                'message' => __('Security check failed.', 'choice-universal-form-tracker')
             ), 403);
         }
 
         // Security check: Verify capability
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array(
-                'message' => __('Insufficient permissions.', 'choice-uft')
+                'message' => __('Insufficient permissions.', 'choice-universal-form-tracker')
             ), 403);
         }
 
@@ -54,7 +54,7 @@ class CUFT_Event_Simulator {
         $valid_event_types = array('phone_click', 'email_click', 'form_submit', 'generate_lead');
         if (!in_array($event_type, $valid_event_types, true)) {
             wp_send_json_error(array(
-                'message' => __('Invalid event type.', 'choice-uft'),
+                'message' => __('Invalid event type.', 'choice-universal-form-tracker'),
                 'event_type' => $event_type
             ), 400);
         }
@@ -98,7 +98,7 @@ class CUFT_Event_Simulator {
         } catch (Exception $e) {
             error_log('CUFT Event Simulator Error: ' . $e->getMessage());
             wp_send_json_error(array(
-                'message' => __('Failed to simulate event.', 'choice-uft'),
+                'message' => __('Failed to simulate event.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
             ), 500);
         }
@@ -143,7 +143,7 @@ class CUFT_Event_Simulator {
 
                 $event['clicked_phone'] = $phone_number;
                 $event['href'] = 'tel:' . $phone_number;
-                $event['clickedAt'] = date('c'); // ISO 8601 format
+                $event['clickedAt'] = gmdate('c'); // ISO 8601 format
                 $event['cuft_source'] = 'link_tracking';
 
                 // Add GA4 standard parameters
@@ -152,7 +152,7 @@ class CUFT_Event_Simulator {
                 $event['page_title'] = 'CUFT Testing Dashboard';
                 $event['language'] = get_locale();
                 $event['screen_resolution'] = '1920x1080'; // Mock value for testing
-                $event['engagement_time_msec'] = rand(1000, 10000); // Random engagement time
+                $event['engagement_time_msec'] = wp_rand(1000, 10000); // Random engagement time
                 break;
 
             case 'email_click':
@@ -163,7 +163,7 @@ class CUFT_Event_Simulator {
 
                 $event['clicked_email'] = $email;
                 $event['href'] = 'mailto:' . $email;
-                $event['clickedAt'] = date('c');
+                $event['clickedAt'] = gmdate('c');
                 $event['cuft_source'] = 'link_tracking';
 
                 // Add GA4 standard parameters
@@ -172,14 +172,14 @@ class CUFT_Event_Simulator {
                 $event['page_title'] = 'CUFT Testing Dashboard';
                 $event['language'] = get_locale();
                 $event['screen_resolution'] = '1920x1080';
-                $event['engagement_time_msec'] = rand(1000, 10000);
+                $event['engagement_time_msec'] = wp_rand(1000, 10000);
                 break;
 
             case 'form_submit':
                 // Match the actual structure from cuft-dataLayer-utils.js
                 $event['form_type'] = 'elementor'; // Simulate Elementor form
                 $event['form_id'] = 'test-form-' . substr(md5(uniqid()), 0, 8);
-                $event['submitted_at'] = date('c');
+                $event['submitted_at'] = gmdate('c');
                 $event['cuft_source'] = 'elementor_pro';
 
                 // Optional fields (only add if available)
@@ -199,7 +199,7 @@ class CUFT_Event_Simulator {
                 // generate_lead includes all form_submit fields plus specific additions
                 $event['form_type'] = 'elementor';
                 $event['form_id'] = 'test-form-' . substr(md5(uniqid()), 0, 8);
-                $event['submitted_at'] = date('c');
+                $event['submitted_at'] = gmdate('c');
                 $event['cuft_source'] = 'elementor_pro_lead';
                 $event['form_name'] = 'Test Lead Form';
 

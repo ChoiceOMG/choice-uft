@@ -195,7 +195,7 @@ class CUFT_Migration_3_12_0 {
         global $wpdb;
 
         $table = $wpdb->prefix . 'cuft_click_tracking';
-        $backup_table = $table . '_backup_' . date( 'Ymd_His' );
+        $backup_table = $table . '_backup_' . gmdate( 'Ymd_His' );
 
         try {
             // Create backup table structure

@@ -1,4 +1,4 @@
-/* Choice Universal Form Tracker — link click tracking (non-blocking, defensive)
+/* Choice Universal Form Tracker: link click tracking (non-blocking, defensive)
    - Sends phone_click for tel: links (with normalized number)
    - Also sends email_click for mailto: links (optional bonus)
    - Never prevents default; wrapped in try/catch so it cannot interfere
@@ -238,7 +238,7 @@ try {
       }
     } catch (err) {
       log("link tracking error:", err);
-      // swallow error — never interfere
+      // swallow error; never interfere
     }
   }
 

@@ -79,7 +79,7 @@ class CUFT_Directory_Fixer {
 		if ( empty( $wp_filesystem ) ) {
 			return new WP_Error(
 				'filesystem_error',
-				__( 'Could not initialize WordPress filesystem.', 'choice-uft' )
+				__( 'Could not initialize WordPress filesystem.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -95,7 +95,7 @@ class CUFT_Directory_Fixer {
 		if ( ! self::is_valid_pattern( $source_basename ) ) {
 			return new WP_Error(
 				'incompatible_plugin_archive',
-				__( 'Plugin archive does not contain expected directory structure.', 'choice-uft' )
+				__( 'Plugin archive does not contain expected directory structure.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -103,7 +103,7 @@ class CUFT_Directory_Fixer {
 		if ( ! $wp_filesystem->is_dir( $source ) ) {
 			return new WP_Error(
 				'source_directory_missing',
-				__( 'Extracted plugin directory not found at expected location.', 'choice-uft' )
+				__( 'Extracted plugin directory not found at expected location.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -112,7 +112,7 @@ class CUFT_Directory_Fixer {
 		if ( ! $wp_filesystem->exists( $plugin_file ) ) {
 			return new WP_Error(
 				'invalid_plugin_structure',
-				__( 'Plugin archive does not contain main plugin file.', 'choice-uft' )
+				__( 'Plugin archive does not contain main plugin file.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -127,7 +127,7 @@ class CUFT_Directory_Fixer {
 				'unable_to_rename_directory',
 				sprintf(
 					/* translators: 1: old directory name, 2: new directory name */
-					__( 'Unable to rename plugin directory from %1$s to %2$s.', 'choice-uft' ),
+					__( 'Unable to rename plugin directory from %1$s to %2$s.', 'choice-universal-form-tracker' ),
 					$source_basename,
 					self::PLUGIN_SLUG
 				)
@@ -138,7 +138,7 @@ class CUFT_Directory_Fixer {
 		if ( ! $wp_filesystem->is_dir( $corrected_source ) ) {
 			return new WP_Error(
 				'rename_verification_failed',
-				__( 'Plugin directory rename did not produce expected result.', 'choice-uft' )
+				__( 'Plugin directory rename did not produce expected result.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -147,7 +147,7 @@ class CUFT_Directory_Fixer {
 		if ( ! $wp_filesystem->exists( $plugin_file_new ) ) {
 			return new WP_Error(
 				'rename_verification_failed',
-				__( 'Plugin file not found after directory rename.', 'choice-uft' )
+				__( 'Plugin file not found after directory rename.', 'choice-universal-form-tracker' )
 			);
 		}
 

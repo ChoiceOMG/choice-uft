@@ -169,17 +169,17 @@ class CUFT_Form_Builder {
     public function create_test_form($framework, $template_id = 'basic_contact_form') {
         // Security check
         if (!current_user_can('manage_options')) {
-            return new WP_Error('insufficient_permissions', __('You do not have permission to create test forms.', 'choice-uft'));
+            return new WP_Error('insufficient_permissions', __('You do not have permission to create test forms.', 'choice-universal-form-tracker'));
         }
 
         // Validate framework
         if (!isset($this->adapters[$framework])) {
-            return new WP_Error('invalid_framework', __('Invalid framework specified.', 'choice-uft'));
+            return new WP_Error('invalid_framework', __('Invalid framework specified.', 'choice-universal-form-tracker'));
         }
 
         // Get adapter (will be implemented via factory)
         // For now, return stub response
-        return new WP_Error('not_implemented', __('Form creation will be implemented via framework adapters.', 'choice-uft'));
+        return new WP_Error('not_implemented', __('Form creation will be implemented via framework adapters.', 'choice-universal-form-tracker'));
     }
 
     /**
@@ -191,16 +191,16 @@ class CUFT_Form_Builder {
     public function delete_test_form($instance_id) {
         // Security check
         if (!current_user_can('manage_options')) {
-            return new WP_Error('insufficient_permissions', __('You do not have permission to delete test forms.', 'choice-uft'));
+            return new WP_Error('insufficient_permissions', __('You do not have permission to delete test forms.', 'choice-universal-form-tracker'));
         }
 
         // Validate instance_id
         if (empty($instance_id)) {
-            return new WP_Error('invalid_instance_id', __('Invalid instance ID.', 'choice-uft'));
+            return new WP_Error('invalid_instance_id', __('Invalid instance ID.', 'choice-universal-form-tracker'));
         }
 
         // Will be implemented with adapter support
-        return new WP_Error('not_implemented', __('Form deletion will be implemented via framework adapters.', 'choice-uft'));
+        return new WP_Error('not_implemented', __('Form deletion will be implemented via framework adapters.', 'choice-universal-form-tracker'));
     }
 
     /**

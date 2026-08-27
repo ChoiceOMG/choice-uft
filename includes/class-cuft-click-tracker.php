@@ -398,9 +398,11 @@ class CUFT_Click_Tracker {
         $sql = "SELECT * FROM $table_name WHERE $where_sql ORDER BY $orderby LIMIT $limit OFFSET $offset";
 
         if ( ! empty( $where_values ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled above from a $wpdb->prefix table name plus %s placeholders; the user values are bound here.
             $sql = $wpdb->prepare( $sql, $where_values );
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
         return $wpdb->get_results( $sql );
     }
 
@@ -494,9 +496,11 @@ class CUFT_Click_Tracker {
         $sql = "SELECT COUNT(*) FROM $table_name WHERE $where_sql";
 
         if ( ! empty( $where_values ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled above from a $wpdb->prefix table name plus %s placeholders; the user values are bound here.
             $sql = $wpdb->prepare( $sql, $where_values );
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
         return (int) $wpdb->get_var( $sql );
     }
     
@@ -644,13 +648,14 @@ class CUFT_Click_Tracker {
             ob_end_clean();
         }
 
-        $filename = 'cuft-click-tracking-' . date( 'Y-m-d-H-i-s' ) . '.csv';
+        $filename = 'cuft-click-tracking-' . gmdate( 'Y-m-d-H-i-s' ) . '.csv';
 
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'Pragma: no-cache' );
         header( 'Expires: 0' );
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://output is the HTTP response stream, not a file.
         $output = fopen( 'php://output', 'w' );
 
         // Add UTF-8 BOM for Excel compatibility
@@ -696,6 +701,7 @@ class CUFT_Click_Tracker {
             ) );
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the php://output stream opened above.
         fclose( $output );
         exit;
     }
@@ -747,9 +753,11 @@ class CUFT_Click_Tracker {
         $sql = "SELECT * FROM $table_name WHERE $where_sql ORDER BY date_created DESC LIMIT 10000";
 
         if ( ! empty( $where_values ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled above from a $wpdb->prefix table name plus %s placeholders; the user values are bound here.
             $sql = $wpdb->prepare( $sql, $where_values );
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
         $clicks = $wpdb->get_results( $sql );
 
         if ( empty( $clicks ) ) {
@@ -762,13 +770,14 @@ class CUFT_Click_Tracker {
         }
 
         // Set headers for CSV download
-        $filename = 'google-ads-oci-' . date( 'Y-m-d-H-i-s' ) . '.csv';
+        $filename = 'google-ads-oci-' . gmdate( 'Y-m-d-H-i-s' ) . '.csv';
 
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'Pragma: no-cache' );
         header( 'Expires: 0' );
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://output is the HTTP response stream, not a file.
         $output = fopen( 'php://output', 'w' );
 
         // Add UTF-8 BOM for Excel compatibility
@@ -823,6 +832,7 @@ class CUFT_Click_Tracker {
             }
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the php://output stream opened above.
         fclose( $output );
         exit;
     }
@@ -897,7 +907,7 @@ class CUFT_Click_Tracker {
         global $wpdb;
         
         $table_name = $wpdb->prefix . self::$table_name;
-        $cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+        $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
         
         $result = $wpdb->query( $wpdb->prepare(
             "DELETE FROM $table_name WHERE date_created < %s",
@@ -1167,6 +1177,7 @@ class CUFT_Click_Tracker {
             json_encode( array( 'event' => $event_type ) )
         );
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
         return $wpdb->get_results( $sql );
     }
 

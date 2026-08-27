@@ -34,14 +34,14 @@ class CUFT_Test_Data_Generator {
         // Security check: Verify nonce
         if (!check_ajax_referer('cuft-testing-dashboard', 'nonce', false)) {
             wp_send_json_error(array(
-                'message' => __('Security check failed.', 'choice-uft')
+                'message' => __('Security check failed.', 'choice-universal-form-tracker')
             ), 403);
         }
 
         // Security check: Verify capability
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array(
-                'message' => __('Insufficient permissions.', 'choice-uft')
+                'message' => __('Insufficient permissions.', 'choice-universal-form-tracker')
             ), 403);
         }
 
@@ -85,7 +85,7 @@ class CUFT_Test_Data_Generator {
         } catch (Exception $e) {
             error_log('CUFT Test Data Generator Error: ' . $e->getMessage());
             wp_send_json_error(array(
-                'message' => __('Failed to generate test data.', 'choice-uft'),
+                'message' => __('Failed to generate test data.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
             ), 500);
         }
@@ -105,7 +105,7 @@ class CUFT_Test_Data_Generator {
         $click_ids['click_id'] = 'test_' . substr(md5(uniqid()), 0, 16);
 
         // Randomly pick one platform-specific click ID
-        $rand = rand(1, 3);
+        $rand = wp_rand(1, 3);
         switch($rand) {
             case 1:
                 // Google Ads
@@ -135,7 +135,7 @@ class CUFT_Test_Data_Generator {
 
         // Simplified, more realistic UTM params
         return array(
-            'utm_campaign' => $campaigns[array_rand($campaigns)] . '_' . date('Y')
+            'utm_campaign' => $campaigns[array_rand($campaigns)] . '_' . gmdate('Y')
         );
     }
 
@@ -155,8 +155,8 @@ class CUFT_Test_Data_Generator {
         return array(
             'name' => $first . ' ' . $last,
             'email' => strtolower($first) . '+test_' . $unique_id . '@example.com',
-            'phone' => '555-01' . sprintf('%02d-%04d', rand(0, 99), rand(0, 9999)),
-            'company' => 'Test Company ' . rand(1, 999),
+            'phone' => '555-01' . sprintf('%02d-%04d', wp_rand(0, 99), wp_rand(0, 9999)),
+            'company' => 'Test Company ' . wp_rand(1, 999),
             'message' => 'This is a test message generated at ' . current_time('mysql') . ' for testing conversion tracking functionality.'
         );
     }

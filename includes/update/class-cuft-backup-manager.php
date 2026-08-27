@@ -107,7 +107,7 @@ class CUFT_Backup_Manager {
 		if ( empty( $wp_filesystem ) ) {
 			return new WP_Error(
 				'filesystem_unavailable',
-				__( 'WordPress Filesystem API is not available.', 'choice-uft' )
+				__( 'WordPress Filesystem API is not available.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -121,7 +121,7 @@ class CUFT_Backup_Manager {
 					'backup_dir_create_failed',
 					sprintf(
 						/* translators: %s: Directory path */
-						__( 'Could not create backup directory: %s', 'choice-uft' ),
+						__( 'Could not create backup directory: %s', 'choice-universal-form-tracker' ),
 						$this->backup_dir
 					)
 				);
@@ -222,7 +222,7 @@ class CUFT_Backup_Manager {
 		if ( empty( $wp_filesystem ) ) {
 			return new WP_Error(
 				'filesystem_unavailable',
-				__( 'WordPress Filesystem API is not available.', 'choice-uft' )
+				__( 'WordPress Filesystem API is not available.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -232,7 +232,7 @@ class CUFT_Backup_Manager {
 				'plugin_dir_not_found',
 				sprintf(
 					/* translators: %s: Directory path */
-					__( 'Plugin directory not found: %s', 'choice-uft' ),
+					__( 'Plugin directory not found: %s', 'choice-universal-form-tracker' ),
 					$this->plugin_dir
 				)
 			);
@@ -246,7 +246,7 @@ class CUFT_Backup_Manager {
 				'backup_dir_not_writable',
 				sprintf(
 					/* translators: %s: Directory path */
-					__( 'Backup directory is not writable: %s. Please ensure /wp-content/uploads/ has correct permissions (755).', 'choice-uft' ),
+					__( 'Backup directory is not writable: %s. Please ensure /wp-content/uploads/ has correct permissions (755).', 'choice-universal-form-tracker' ),
 					$this->backup_dir
 				)
 			);
@@ -261,7 +261,7 @@ class CUFT_Backup_Manager {
 				'insufficient_disk_space',
 				sprintf(
 					/* translators: %s: Required space in MB */
-					__( 'Insufficient disk space to create backup. Free at least %s MB and try again.', 'choice-uft' ),
+					__( 'Insufficient disk space to create backup. Free at least %s MB and try again.', 'choice-universal-form-tracker' ),
 					number_format( $required_space / 1048576, 2 )
 				)
 			);
@@ -279,7 +279,7 @@ class CUFT_Backup_Manager {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			return new WP_Error(
 				'ziparchive_unavailable',
-				__( 'ZipArchive PHP extension is not available. Cannot create backup.', 'choice-uft' )
+				__( 'ZipArchive PHP extension is not available. Cannot create backup.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -292,7 +292,7 @@ class CUFT_Backup_Manager {
 				'zip_create_failed',
 				sprintf(
 					/* translators: %s: Error message */
-					__( 'Could not create backup ZIP file: %s', 'choice-uft' ),
+					__( 'Could not create backup ZIP file: %s', 'choice-universal-form-tracker' ),
 					$this->get_zip_error_message( $zip_opened )
 				)
 			);
@@ -314,7 +314,7 @@ class CUFT_Backup_Manager {
 		if ( ! file_exists( $backup_path ) ) {
 			return new WP_Error(
 				'backup_verification_failed',
-				__( 'Backup file was not created successfully.', 'choice-uft' )
+				__( 'Backup file was not created successfully.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -324,7 +324,7 @@ class CUFT_Backup_Manager {
 			@unlink( $backup_path );
 			return new WP_Error(
 				'backup_empty',
-				__( 'Backup file is empty.', 'choice-uft' )
+				__( 'Backup file is empty.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -372,7 +372,7 @@ class CUFT_Backup_Manager {
 			// Add restoration failure to original error
 			$result->add(
 				'restoration_unavailable',
-				__( 'Update failed and backup file is not available. Please reinstall plugin manually from GitHub.', 'choice-uft' )
+				__( 'Update failed and backup file is not available. Please reinstall plugin manually from GitHub.', 'choice-universal-form-tracker' )
 			);
 
 			return $result;
@@ -392,7 +392,7 @@ class CUFT_Backup_Manager {
 				'restoration_failed',
 				sprintf(
 					/* translators: 1: Original error, 2: Restoration error, 3: GitHub URL */
-					__( 'Update failed (%1$s) and automatic restoration also failed (%2$s). Please reinstall plugin manually from GitHub: %3$s', 'choice-uft' ),
+					__( 'Update failed (%1$s) and automatic restoration also failed (%2$s). Please reinstall plugin manually from GitHub: %3$s', 'choice-universal-form-tracker' ),
 					$result->get_error_message(),
 					$restore_result->get_error_message(),
 					'https://github.com/ChoiceOMG/choice-uft/releases/latest'
@@ -411,7 +411,7 @@ class CUFT_Backup_Manager {
 		// Update error message to indicate rollback
 		$result->add(
 			'update_rolled_back',
-			__( 'Update failed but previous version was restored successfully. Plugin is functional.', 'choice-uft' )
+			__( 'Update failed but previous version was restored successfully. Plugin is functional.', 'choice-universal-form-tracker' )
 		);
 
 		return $result;
@@ -443,7 +443,7 @@ class CUFT_Backup_Manager {
 		if ( empty( $wp_filesystem ) ) {
 			return new WP_Error(
 				'filesystem_unavailable',
-				__( 'WordPress Filesystem API is not available.', 'choice-uft' )
+				__( 'WordPress Filesystem API is not available.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -451,7 +451,7 @@ class CUFT_Backup_Manager {
 		if ( ! file_exists( $backup_path ) ) {
 			return new WP_Error(
 				'backup_not_found',
-				__( 'Backup file not found.', 'choice-uft' )
+				__( 'Backup file not found.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -459,7 +459,7 @@ class CUFT_Backup_Manager {
 		if ( ! is_readable( $backup_path ) ) {
 			return new WP_Error(
 				'backup_not_readable',
-				__( 'Backup file is not readable.', 'choice-uft' )
+				__( 'Backup file is not readable.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -471,7 +471,7 @@ class CUFT_Backup_Manager {
 				'plugin_dir_not_writable',
 				sprintf(
 					/* translators: %s: Directory path */
-					__( 'Plugin directory is not writable: %s', 'choice-uft' ),
+					__( 'Plugin directory is not writable: %s', 'choice-universal-form-tracker' ),
 					$plugin_parent_dir
 				)
 			);
@@ -487,7 +487,7 @@ class CUFT_Backup_Manager {
 			if ( ! $wp_filesystem->delete( $wp_plugin_dir, true ) ) {
 				return new WP_Error(
 					'plugin_dir_delete_failed',
-					__( 'Could not delete existing plugin directory for restoration.', 'choice-uft' )
+					__( 'Could not delete existing plugin directory for restoration.', 'choice-universal-form-tracker' )
 				);
 			}
 		}
@@ -498,7 +498,7 @@ class CUFT_Backup_Manager {
 				'restoration_timeout',
 				sprintf(
 					/* translators: 1: Timeout in seconds, 2: GitHub URL */
-					__( 'Restoration exceeded %1$d second timeout. Please reinstall plugin manually from GitHub: %2$s', 'choice-uft' ),
+					__( 'Restoration exceeded %1$d second timeout. Please reinstall plugin manually from GitHub: %2$s', 'choice-universal-form-tracker' ),
 					self::RESTORE_TIMEOUT,
 					'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 				)
@@ -515,7 +515,7 @@ class CUFT_Backup_Manager {
 				'backup_extraction_failed',
 				sprintf(
 					/* translators: %s: Error message */
-					__( 'Backup extraction failed: %s', 'choice-uft' ),
+					__( 'Backup extraction failed: %s', 'choice-universal-form-tracker' ),
 					$extract_result->get_error_message()
 				)
 			);
@@ -527,7 +527,7 @@ class CUFT_Backup_Manager {
 				'restoration_timeout',
 				sprintf(
 					/* translators: 1: Timeout in seconds, 2: GitHub URL */
-					__( 'Restoration exceeded %1$d second timeout. Please verify plugin functionality or reinstall from GitHub: %2$s', 'choice-uft' ),
+					__( 'Restoration exceeded %1$d second timeout. Please verify plugin functionality or reinstall from GitHub: %2$s', 'choice-universal-form-tracker' ),
 					self::RESTORE_TIMEOUT,
 					'https://github.com/ChoiceOMG/choice-uft/releases/latest'
 				)
@@ -538,7 +538,7 @@ class CUFT_Backup_Manager {
 		if ( ! is_dir( $this->plugin_dir ) ) {
 			return new WP_Error(
 				'restoration_verification_failed',
-				__( 'Plugin directory was not restored correctly.', 'choice-uft' )
+				__( 'Plugin directory was not restored correctly.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -548,7 +548,7 @@ class CUFT_Backup_Manager {
 		if ( ! file_exists( $main_plugin_file ) ) {
 			return new WP_Error(
 				'plugin_file_missing',
-				__( 'Main plugin file not found after restoration.', 'choice-uft' )
+				__( 'Main plugin file not found after restoration.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -719,7 +719,7 @@ class CUFT_Backup_Manager {
 				'zip_directory_scan_failed',
 				sprintf(
 					/* translators: %s: Error message */
-					__( 'Failed to scan plugin directory for backup: %s', 'choice-uft' ),
+					__( 'Failed to scan plugin directory for backup: %s', 'choice-universal-form-tracker' ),
 					$e->getMessage()
 				)
 			);
@@ -782,17 +782,17 @@ class CUFT_Backup_Manager {
 	 */
 	private function get_zip_error_message( $error_code ) {
 		$messages = array(
-			ZipArchive::ER_EXISTS      => __( 'File already exists', 'choice-uft' ),
-			ZipArchive::ER_INCONS      => __( 'ZIP archive inconsistent', 'choice-uft' ),
-			ZipArchive::ER_INVAL       => __( 'Invalid argument', 'choice-uft' ),
-			ZipArchive::ER_MEMORY      => __( 'Memory allocation failure', 'choice-uft' ),
-			ZipArchive::ER_NOENT       => __( 'No such file', 'choice-uft' ),
-			ZipArchive::ER_NOZIP       => __( 'Not a ZIP archive', 'choice-uft' ),
-			ZipArchive::ER_OPEN        => __( "Can't open file", 'choice-uft' ),
-			ZipArchive::ER_READ        => __( 'Read error', 'choice-uft' ),
-			ZipArchive::ER_SEEK        => __( 'Seek error', 'choice-uft' ),
+			ZipArchive::ER_EXISTS      => __( 'File already exists', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_INCONS      => __( 'ZIP archive inconsistent', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_INVAL       => __( 'Invalid argument', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_MEMORY      => __( 'Memory allocation failure', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_NOENT       => __( 'No such file', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_NOZIP       => __( 'Not a ZIP archive', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_OPEN        => __( "Can't open file", 'choice-universal-form-tracker' ),
+			ZipArchive::ER_READ        => __( 'Read error', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_SEEK        => __( 'Seek error', 'choice-universal-form-tracker' ),
 		);
 
-		return isset( $messages[ $error_code ] ) ? $messages[ $error_code ] : __( 'Unknown error', 'choice-uft' );
+		return isset( $messages[ $error_code ] ) ? $messages[ $error_code ] : __( 'Unknown error', 'choice-universal-form-tracker' );
 	}
 }

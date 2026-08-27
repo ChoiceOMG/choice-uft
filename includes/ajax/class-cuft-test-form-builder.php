@@ -34,14 +34,14 @@ class CUFT_Test_Form_Builder {
         // Security check: Verify nonce
         if (!check_ajax_referer('cuft-testing-dashboard', 'nonce', false)) {
             wp_send_json_error(array(
-                'message' => __('Security check failed.', 'choice-uft')
+                'message' => __('Security check failed.', 'choice-universal-form-tracker')
             ), 403);
         }
 
         // Security check: Verify capability
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array(
-                'message' => __('Insufficient permissions.', 'choice-uft')
+                'message' => __('Insufficient permissions.', 'choice-universal-form-tracker')
             ), 403);
         }
 
@@ -76,7 +76,7 @@ class CUFT_Test_Form_Builder {
         } catch (Exception $e) {
             error_log('CUFT: Test form builder error - ' . $e->getMessage());
             wp_send_json_error(array(
-                'message' => __('Failed to build test form.', 'choice-uft'),
+                'message' => __('Failed to build test form.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
             ), 500);
         }
@@ -132,7 +132,7 @@ class CUFT_Test_Form_Builder {
     private function build_gravity_form($session_id, $test_data) {
         // Check if Gravity Forms is active
         if (!class_exists('GFAPI')) {
-            return $this->get_fallback_form_response('gravity', $session_id, __('Gravity Forms is not active.', 'choice-uft'));
+            return $this->get_fallback_form_response('gravity', $session_id, __('Gravity Forms is not active.', 'choice-universal-form-tracker'));
         }
 
         // Get existing test form or create new one
@@ -142,42 +142,42 @@ class CUFT_Test_Form_Builder {
             // Create new test form
             $form = array(
                 'title' => 'CUFT Test Form - ' . $session_id,
-                'description' => __('Test form for CUFT tracking validation', 'choice-uft'),
+                'description' => __('Test form for CUFT tracking validation', 'choice-universal-form-tracker'),
                 'fields' => array(
                     array(
                         'id' => 1,
                         'type' => 'name',
-                        'label' => __('Name', 'choice-uft'),
+                        'label' => __('Name', 'choice-universal-form-tracker'),
                         'isRequired' => false,
                         'inputs' => array(
-                            array('id' => '1.3', 'label' => __('First', 'choice-uft')),
-                            array('id' => '1.6', 'label' => __('Last', 'choice-uft'))
+                            array('id' => '1.3', 'label' => __('First', 'choice-universal-form-tracker')),
+                            array('id' => '1.6', 'label' => __('Last', 'choice-universal-form-tracker'))
                         )
                     ),
                     array(
                         'id' => 2,
                         'type' => 'email',
-                        'label' => __('Email', 'choice-uft'),
+                        'label' => __('Email', 'choice-universal-form-tracker'),
                         'isRequired' => true,
                         'defaultValue' => isset($test_data['email']) ? $test_data['email'] : ''
                     ),
                     array(
                         'id' => 3,
                         'type' => 'phone',
-                        'label' => __('Phone', 'choice-uft'),
+                        'label' => __('Phone', 'choice-universal-form-tracker'),
                         'isRequired' => false,
                         'defaultValue' => isset($test_data['phone']) ? $test_data['phone'] : ''
                     ),
                     array(
                         'id' => 4,
                         'type' => 'textarea',
-                        'label' => __('Message', 'choice-uft'),
+                        'label' => __('Message', 'choice-universal-form-tracker'),
                         'isRequired' => false
                     )
                 ),
                 'button' => array(
                     'type' => 'text',
-                    'text' => __('Submit Test', 'choice-uft')
+                    'text' => __('Submit Test', 'choice-universal-form-tracker')
                 ),
                 'confirmations' => array(
                     array(
@@ -185,7 +185,7 @@ class CUFT_Test_Form_Builder {
                         'name' => 'Default Confirmation',
                         'isDefault' => true,
                         'type' => 'message',
-                        'message' => __('Test form submitted successfully!', 'choice-uft')
+                        'message' => __('Test form submitted successfully!', 'choice-universal-form-tracker')
                     )
                 )
             );
@@ -213,7 +213,7 @@ class CUFT_Test_Form_Builder {
             'form_id' => $form_id,
             'shortcode' => '[gravityform id="' . $form_id . '" title="false" description="false" ajax="true"]',
             'rendered_html' => do_shortcode('[gravityform id="' . $form_id . '" title="false" description="false" ajax="true"]'),
-            'message' => __('Gravity Forms test form ready.', 'choice-uft')
+            'message' => __('Gravity Forms test form ready.', 'choice-universal-form-tracker')
         );
     }
 
@@ -227,7 +227,7 @@ class CUFT_Test_Form_Builder {
     private function build_cf7_form($session_id, $test_data) {
         // Check if Contact Form 7 is active
         if (!function_exists('wpcf7_contact_form')) {
-            return $this->get_fallback_form_response('cf7', $session_id, __('Contact Form 7 is not active.', 'choice-uft'));
+            return $this->get_fallback_form_response('cf7', $session_id, __('Contact Form 7 is not active.', 'choice-universal-form-tracker'));
         }
 
         // Get existing test form ID or use first available
@@ -247,7 +247,7 @@ class CUFT_Test_Form_Builder {
         }
 
         if (!$form_id) {
-            return $this->get_fallback_form_response('cf7', $session_id, __('No Contact Form 7 forms available.', 'choice-uft'));
+            return $this->get_fallback_form_response('cf7', $session_id, __('No Contact Form 7 forms available.', 'choice-universal-form-tracker'));
         }
 
         // Pre-fill data using JavaScript (CF7 doesn't support server-side pre-population easily)
@@ -275,7 +275,7 @@ class CUFT_Test_Form_Builder {
             'form_id' => $form_id,
             'shortcode' => '[contact-form-7 id="' . $form_id . '"]',
             'rendered_html' => do_shortcode('[contact-form-7 id="' . $form_id . '"]') . $prefill_script,
-            'message' => __('Contact Form 7 test form ready.', 'choice-uft')
+            'message' => __('Contact Form 7 test form ready.', 'choice-universal-form-tracker')
         );
     }
 
@@ -289,7 +289,7 @@ class CUFT_Test_Form_Builder {
     private function build_ninja_form($session_id, $test_data) {
         // Check if Ninja Forms is active
         if (!function_exists('Ninja_Forms')) {
-            return $this->get_fallback_form_response('ninja', $session_id, __('Ninja Forms is not active.', 'choice-uft'));
+            return $this->get_fallback_form_response('ninja', $session_id, __('Ninja Forms is not active.', 'choice-universal-form-tracker'));
         }
 
         // Get existing test form ID or use first available
@@ -305,7 +305,7 @@ class CUFT_Test_Form_Builder {
         }
 
         if (!$form_id) {
-            return $this->get_fallback_form_response('ninja', $session_id, __('No Ninja Forms available.', 'choice-uft'));
+            return $this->get_fallback_form_response('ninja', $session_id, __('No Ninja Forms available.', 'choice-universal-form-tracker'));
         }
 
         // Pre-fill data using JavaScript
@@ -333,7 +333,7 @@ class CUFT_Test_Form_Builder {
             'form_id' => $form_id,
             'shortcode' => '[ninja_form id=' . $form_id . ']',
             'rendered_html' => do_shortcode('[ninja_form id=' . $form_id . ']') . $prefill_script,
-            'message' => __('Ninja Forms test form ready.', 'choice-uft')
+            'message' => __('Ninja Forms test form ready.', 'choice-universal-form-tracker')
         );
     }
 
@@ -347,7 +347,7 @@ class CUFT_Test_Form_Builder {
     private function build_avada_form($session_id, $test_data) {
         // Check if Avada/Fusion Builder is active
         if (!class_exists('FusionBuilder')) {
-            return $this->get_fallback_form_response('avada', $session_id, __('Avada/Fusion Builder is not active.', 'choice-uft'));
+            return $this->get_fallback_form_response('avada', $session_id, __('Avada/Fusion Builder is not active.', 'choice-universal-form-tracker'));
         }
 
         // Get test form page ID
@@ -392,10 +392,10 @@ class CUFT_Test_Form_Builder {
             'session_id' => $session_id,
             'page_id' => $page_id,
             'page_url' => $page_id ? get_permalink($page_id) : '',
-            'rendered_html' => '<p>' . __('Avada forms must be tested on their page.', 'choice-uft') . '</p>' .
-                              ($page_id ? '<a href="' . get_permalink($page_id) . '" target="_blank" class="button">' . __('Open Test Page', 'choice-uft') . '</a>' : '') .
+            'rendered_html' => '<p>' . __('Avada forms must be tested on their page.', 'choice-universal-form-tracker') . '</p>' .
+                              ($page_id ? '<a href="' . get_permalink($page_id) . '" target="_blank" class="button">' . __('Open Test Page', 'choice-universal-form-tracker') . '</a>' : '') .
                               $prefill_script,
-            'message' => __('Avada test form ready.', 'choice-uft')
+            'message' => __('Avada test form ready.', 'choice-universal-form-tracker')
         );
     }
 
@@ -409,7 +409,7 @@ class CUFT_Test_Form_Builder {
     private function build_elementor_form($session_id, $test_data) {
         // Check if Elementor Pro is active
         if (!defined('ELEMENTOR_PRO_VERSION')) {
-            return $this->get_fallback_form_response('elementor', $session_id, __('Elementor Pro is not active.', 'choice-uft'));
+            return $this->get_fallback_form_response('elementor', $session_id, __('Elementor Pro is not active.', 'choice-universal-form-tracker'));
         }
 
         // Get test form page ID
@@ -454,10 +454,10 @@ class CUFT_Test_Form_Builder {
             'session_id' => $session_id,
             'page_id' => $page_id,
             'page_url' => $page_id ? get_permalink($page_id) : '',
-            'rendered_html' => '<p>' . __('Elementor forms must be tested on their page.', 'choice-uft') . '</p>' .
-                              ($page_id ? '<a href="' . get_permalink($page_id) . '" target="_blank" class="button">' . __('Open Test Page', 'choice-uft') . '</a>' : '') .
+            'rendered_html' => '<p>' . __('Elementor forms must be tested on their page.', 'choice-universal-form-tracker') . '</p>' .
+                              ($page_id ? '<a href="' . get_permalink($page_id) . '" target="_blank" class="button">' . __('Open Test Page', 'choice-universal-form-tracker') . '</a>' : '') .
                               $prefill_script,
-            'message' => __('Elementor test form ready.', 'choice-uft')
+            'message' => __('Elementor test form ready.', 'choice-universal-form-tracker')
         );
     }
 

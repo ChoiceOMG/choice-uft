@@ -284,7 +284,7 @@ class CUFT_Form_Template {
                 }
 
             case 'textarea':
-                return 'This is a test submission from CUFT Testing Dashboard at ' . date('Y-m-d H:i:s');
+                return 'This is a test submission from CUFT Testing Dashboard at ' . gmdate('Y-m-d H:i:s');
 
             default:
                 return 'Test Value';

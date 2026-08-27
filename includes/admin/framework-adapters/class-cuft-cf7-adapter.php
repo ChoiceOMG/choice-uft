@@ -38,7 +38,7 @@ class CUFT_CF7_Adapter extends Abstract_CUFT_Adapter {
 
     public function create_form($template_id, $config = array()) {
         if ($this->silent_exit_if_unavailable()) {
-            return $this->error('framework_unavailable', __('Contact Form 7 is not available.', 'choice-uft'));
+            return $this->error('framework_unavailable', __('Contact Form 7 is not available.', 'choice-universal-form-tracker'));
         }
 
         $validation = $this->validate_template($template_id);
@@ -54,7 +54,8 @@ class CUFT_CF7_Adapter extends Abstract_CUFT_Adapter {
 
             // Create CF7 form post
             $post_data = array(
-                'post_title' => sprintf(__('CUFT Test Form - %s', 'choice-uft'), $instance_id),
+                /* translators: %s: unique test form instance ID */
+                'post_title' => sprintf(__('CUFT Test Form - %s', 'choice-universal-form-tracker'), $instance_id),
                 'post_content' => $form_content,
                 'post_status' => 'publish',
                 'post_type' => 'wpcf7_contact_form',
@@ -107,12 +108,12 @@ class CUFT_CF7_Adapter extends Abstract_CUFT_Adapter {
 
     public function delete_form($post_id) {
         if ($this->silent_exit_if_unavailable()) {
-            return $this->error('framework_unavailable', __('Contact Form 7 is not available.', 'choice-uft'));
+            return $this->error('framework_unavailable', __('Contact Form 7 is not available.', 'choice-universal-form-tracker'));
         }
 
         $is_test_form = get_post_meta($post_id, '_cuft_test_form', true);
         if (!$is_test_form) {
-            return $this->error('not_test_form', __('Post is not a CUFT test form.', 'choice-uft'));
+            return $this->error('not_test_form', __('Post is not a CUFT test form.', 'choice-universal-form-tracker'));
         }
 
         // Delete associated page if exists
@@ -132,7 +133,7 @@ class CUFT_CF7_Adapter extends Abstract_CUFT_Adapter {
         $deleted = wp_delete_post($post_id, true);
 
         if (!$deleted) {
-            return $this->error('deletion_failed', __('Failed to delete form.', 'choice-uft'));
+            return $this->error('deletion_failed', __('Failed to delete form.', 'choice-universal-form-tracker'));
         }
 
         $this->log('Deleted CF7 form', array('post_id' => $post_id));
@@ -178,7 +179,8 @@ class CUFT_CF7_Adapter extends Abstract_CUFT_Adapter {
 
     private function create_display_page($instance_id, $shortcode) {
         $post_data = array(
-            'post_title' => sprintf(__('CUFT Test Form Page - %s', 'choice-uft'), $instance_id),
+            /* translators: %s: unique test form instance ID */
+            'post_title' => sprintf(__('CUFT Test Form Page - %s', 'choice-universal-form-tracker'), $instance_id),
             'post_content' => $shortcode,
             'post_status' => 'publish',
             'post_type' => 'page',

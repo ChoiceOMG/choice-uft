@@ -1,0 +1,90 @@
+# Extra exclusions for the WordPress.org package, applied on top of
+# .distignore by build.sh. The GitHub release ZIP uses .distignore alone, so
+# nothing listed here changes what self-hosted installs receive.
+#
+# Three reasons appear below, in this order.
+
+# 1. The self-update subsystem.
+#
+# Directory guideline 8 forbids a plugin hosted on WordPress.org from
+# "serving updates or otherwise installing plugins, themes, or add-ons from
+# servers other than WordPress.org's". Directory installs get their updates
+# from core, so the whole GitHub updater stays out of this package.
+# Choice_Universal_Form_Tracker::has_updater() detects the absence and skips
+# loading, registering the Force Update tab, and enqueueing its assets.
+/includes/admin/class-cuft-admin-notices.php
+/includes/ajax/class-cuft-updater-ajax.php
+/includes/class-cuft-cache-clearer.php
+/includes/class-cuft-cache-warmer.php
+/includes/class-cuft-capabilities.php
+/includes/class-cuft-cron-manager.php
+/includes/class-cuft-db-optimizer.php
+/includes/class-cuft-disk-space-validator.php
+/includes/class-cuft-download-verifier.php
+/includes/class-cuft-filesystem-handler.php
+/includes/class-cuft-force-update-handler.php
+/includes/class-cuft-github-api.php
+/includes/class-cuft-github-updater.php
+/includes/class-cuft-input-validator.php
+/includes/class-cuft-rate-limiter.php
+/includes/class-cuft-update-checker.php
+/includes/class-cuft-update-lock-manager.php
+/includes/class-cuft-wordpress-updater.php
+/includes/migrations/create-update-log-table.php
+/includes/models/class-cuft-force-reinstall-operation.php
+/includes/models/class-cuft-github-release.php
+/includes/models/class-cuft-plugin-installation-state.php
+/includes/models/class-cuft-update-check-request.php
+/includes/models/class-cuft-update-configuration.php
+/includes/models/class-cuft-update-history-entry.php
+/includes/models/class-cuft-update-log.php
+/includes/models/class-cuft-update-progress.php
+/includes/models/class-cuft-update-status.php
+/includes/update/class-cuft-backup-manager.php
+/includes/update/class-cuft-directory-fixer.php
+/includes/update/class-cuft-plugin-info.php
+/includes/update/class-cuft-update-logger.php
+/includes/update/class-cuft-update-validator.php
+/includes/admin/views/force-update-tab.php
+/assets/admin/cuft-force-update.js
+/assets/admin/cuft-force-update.css
+
+# Never referenced by any require: leftovers from earlier revisions of the
+# update system. They ship in the GitHub build only because .distignore does
+# not name them.
+/includes/class-cuft-ajax-upgrader-skin.php
+/includes/class-cuft-backup-manager.php
+/includes/update/class-cuft-update-security.php
+/includes/update/class-cuft-error-messages.php
+
+# 2. Code that cannot run.
+#
+# The Auto-BCC email system (Feature 010) is absent from the require list in
+# choice-universal-form-tracker.php and there is no autoloader, so none of
+# these classes are ever defined and the class_exists() guards around them
+# never fire. Shipping a mail interceptor that does nothing invites a
+# reviewer question it would not survive. Wire it up or delete it; until
+# then it stays out of the directory package.
+/includes/email
+/includes/ajax/class-cuft-auto-bcc-ajax.php
+/includes/admin/views/admin-auto-bcc-settings.php
+/assets/admin/css/cuft-auto-bcc-admin.css
+/assets/admin/js/cuft-auto-bcc-admin.js
+
+# 3. Material that belongs somewhere other than the package.
+#
+# Screenshots live in the SVN assets/ directory beside trunk/, never inside
+# it, and are referenced from the == Screenshots == readme section.
+/screenshot-1.png
+/screenshot-2.png
+
+# GTM container exports and a tag template: reference material for setting up
+# the container, not files WordPress loads.
+/gtm-server
+/gtm-web-client
+
+# readme.txt is the canonical user documentation for a directory listing.
+# Both of these describe the GitHub auto-update feature this package does not
+# contain, so shipping them would contradict the plugin itself.
+/README.md
+/CHANGELOG.md

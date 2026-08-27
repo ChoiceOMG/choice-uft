@@ -77,7 +77,7 @@ class CUFT_Event_Recorder {
             $event_type = isset( $_POST['event_type'] ) ? sanitize_text_field( $_POST['event_type'] ) : '';
             $ga_client_id = isset( $_POST['ga_client_id'] ) ? sanitize_text_field( $_POST['ga_client_id'] ) : '';
             if ( ! empty( $ga_client_id ) && ! preg_match( '/^\d+\.\d+$/', $ga_client_id ) ) {
-                $ga_client_id = ''; // Invalid format — discard
+                $ga_client_id = ''; // Invalid format; discard
             }
 
             // Validate click_id

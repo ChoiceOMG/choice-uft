@@ -233,7 +233,7 @@ class CUFT_WordPress_Updater {
 				<td colspan="4" class="plugin-update colspanchange">
 					<div class="update-message notice inline notice-warning notice-alt">
 						<p>
-							<strong><?php esc_html_e( 'Update in progress:', 'choice-uft' ); ?></strong>
+							<strong><?php esc_html_e( 'Update in progress:', 'choice-universal-form-tracker' ); ?></strong>
 							<?php echo esc_html( $progress['message'] ); ?>
 							<span class="cuft-progress-percentage">(<?php echo absint( $progress['percentage'] ); ?>%)</span>
 						</p>

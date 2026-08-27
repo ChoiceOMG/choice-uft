@@ -33,7 +33,7 @@ class CUFT_GTM {
 
         // Debug output for administrators
         if ( current_user_can( 'manage_options' ) && get_option( 'cuft_debug_enabled', false ) ) {
-            echo "<!-- CUFT Debug: sGTM enabled=" . var_export( $sgtm_enabled, true ) .
+            echo "<!-- CUFT Debug: sGTM enabled=" . esc_html( var_export( $sgtm_enabled, true ) ) .
                  ", URL='" . esc_html( $sgtm_url ) .
                  "', active_server='" . esc_html( $active_server ) . "' -->\n";
         }
@@ -52,15 +52,15 @@ class CUFT_GTM {
         }
 
         ?>
-        <!-- <?php echo $comment_prefix; ?> -->
-        <script<?php echo $data_attributes; ?>>
+        <!-- <?php echo esc_html( $comment_prefix ); ?> -->
+        <script<?php echo $data_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Assembled above from literals plus esc_attr() values. ?>>
         (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
         new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         '<?php echo esc_js( $gtm_base_url ); ?>/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','<?php echo esc_js( $gtm_id ); ?>');
         </script>
-        <!-- End <?php echo $comment_prefix; ?> -->
+        <!-- End <?php echo esc_html( $comment_prefix ); ?> -->
         <?php
     }
     
@@ -88,10 +88,10 @@ class CUFT_GTM {
         }
 
         ?>
-        <!-- <?php echo $comment_prefix; ?> (noscript) -->
+        <!-- <?php echo esc_html( $comment_prefix ); ?> (noscript) -->
         <noscript><iframe src="<?php echo esc_attr( $gtm_base_url ); ?>/ns.html?id=<?php echo esc_attr( $gtm_id ); ?>"
         height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-        <!-- End <?php echo $comment_prefix; ?> (noscript) -->
+        <!-- End <?php echo esc_html( $comment_prefix ); ?> (noscript) -->
         <?php
     }
     

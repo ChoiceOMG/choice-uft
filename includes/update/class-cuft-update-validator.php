@@ -161,7 +161,7 @@ class CUFT_Update_Validator {
 		if ( $actual_size === false ) {
 			return new WP_Error(
 				'file_size_unknown',
-				__( 'Could not determine downloaded file size.', 'choice-uft' )
+				__( 'Could not determine downloaded file size.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -186,7 +186,7 @@ class CUFT_Update_Validator {
 				'file_size_mismatch',
 				sprintf(
 					/* translators: 1: Expected size in MB, 2: Actual size in MB */
-					__( 'Download verification failed: File size mismatch. Expected %1$s MB, got %2$s MB. Please try again.', 'choice-uft' ),
+					__( 'Download verification failed: File size mismatch. Expected %1$s MB, got %2$s MB. Please try again.', 'choice-universal-form-tracker' ),
 					number_format( $expected_size / 1048576, 2 ),
 					number_format( $actual_size / 1048576, 2 )
 				)
@@ -236,7 +236,7 @@ class CUFT_Update_Validator {
 		if ( ! file_exists( $file_path ) ) {
 			return new WP_Error(
 				'zip_not_found',
-				__( 'Downloaded file not found.', 'choice-uft' )
+				__( 'Downloaded file not found.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -244,7 +244,7 @@ class CUFT_Update_Validator {
 		if ( ! is_readable( $file_path ) ) {
 			return new WP_Error(
 				'zip_not_readable',
-				__( 'Downloaded file is not readable.', 'choice-uft' )
+				__( 'Downloaded file is not readable.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -253,7 +253,7 @@ class CUFT_Update_Validator {
 		if ( $file_handle === false ) {
 			return new WP_Error(
 				'zip_open_failed',
-				__( 'Could not open downloaded file for validation.', 'choice-uft' )
+				__( 'Could not open downloaded file for validation.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -264,7 +264,7 @@ class CUFT_Update_Validator {
 		if ( substr( $magic_number, 0, 2 ) !== 'PK' ) {
 			return new WP_Error(
 				'invalid_zip_format',
-				__( 'Downloaded file is not a valid ZIP archive.', 'choice-uft' )
+				__( 'Downloaded file is not a valid ZIP archive.', 'choice-universal-form-tracker' )
 			);
 		}
 
@@ -288,7 +288,7 @@ class CUFT_Update_Validator {
 					'zip_validation_failed',
 					sprintf(
 						/* translators: %s: Error message */
-						__( 'Downloaded ZIP file validation failed: %s', 'choice-uft' ),
+						__( 'Downloaded ZIP file validation failed: %s', 'choice-universal-form-tracker' ),
 						$error_message
 					)
 				);
@@ -299,7 +299,7 @@ class CUFT_Update_Validator {
 				$zip->close();
 				return new WP_Error(
 					'zip_empty',
-					__( 'Downloaded ZIP file is empty.', 'choice-uft' )
+					__( 'Downloaded ZIP file is empty.', 'choice-universal-form-tracker' )
 				);
 			}
 
@@ -333,7 +333,7 @@ class CUFT_Update_Validator {
 				'zip_extraction_test_failed',
 				sprintf(
 					/* translators: %s: Error message */
-					__( 'ZIP file validation failed: %s', 'choice-uft' ),
+					__( 'ZIP file validation failed: %s', 'choice-universal-form-tracker' ),
 					$extract_result->get_error_message()
 				)
 			);
@@ -354,18 +354,18 @@ class CUFT_Update_Validator {
 	 */
 	private function get_zip_error_message( $error_code ) {
 		$messages = array(
-			ZipArchive::ER_EXISTS      => __( 'File already exists', 'choice-uft' ),
-			ZipArchive::ER_INCONS      => __( 'ZIP archive inconsistent', 'choice-uft' ),
-			ZipArchive::ER_INVAL       => __( 'Invalid argument', 'choice-uft' ),
-			ZipArchive::ER_MEMORY      => __( 'Memory allocation failure', 'choice-uft' ),
-			ZipArchive::ER_NOENT       => __( 'No such file', 'choice-uft' ),
-			ZipArchive::ER_NOZIP       => __( 'Not a ZIP archive', 'choice-uft' ),
-			ZipArchive::ER_OPEN        => __( "Can't open file", 'choice-uft' ),
-			ZipArchive::ER_READ        => __( 'Read error', 'choice-uft' ),
-			ZipArchive::ER_SEEK        => __( 'Seek error', 'choice-uft' ),
+			ZipArchive::ER_EXISTS      => __( 'File already exists', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_INCONS      => __( 'ZIP archive inconsistent', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_INVAL       => __( 'Invalid argument', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_MEMORY      => __( 'Memory allocation failure', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_NOENT       => __( 'No such file', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_NOZIP       => __( 'Not a ZIP archive', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_OPEN        => __( "Can't open file", 'choice-universal-form-tracker' ),
+			ZipArchive::ER_READ        => __( 'Read error', 'choice-universal-form-tracker' ),
+			ZipArchive::ER_SEEK        => __( 'Seek error', 'choice-universal-form-tracker' ),
 		);
 
-		return isset( $messages[ $error_code ] ) ? $messages[ $error_code ] : __( 'Unknown error', 'choice-uft' );
+		return isset( $messages[ $error_code ] ) ? $messages[ $error_code ] : __( 'Unknown error', 'choice-universal-form-tracker' );
 	}
 
 	/**

@@ -45,7 +45,8 @@ class CUFT_AI_Files {
      * the `cuft_ai_files_enabled` filter returns false.
      */
     public function maybe_serve_file() {
-        $path = rtrim( parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH ), '/' );
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+        $path = rtrim( (string) wp_parse_url( $request_uri, PHP_URL_PATH ), '/' );
 
         if ( ! isset( self::FILE_MAP[ $path ] ) ) {
             return;
@@ -68,8 +69,10 @@ class CUFT_AI_Files {
         }
 
         header( 'Content-Type: text/plain; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
         header( 'Cache-Control: public, max-age=86400' );
         header( 'X-Robots-Tag: noindex' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Served as text/plain with nosniff, so there is no HTML context to escape into; escaping would corrupt the file an administrator authored.
         echo $content;
         exit;
     }
