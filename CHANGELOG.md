@@ -5,6 +5,11 @@ All notable changes to Choice Universal Form Tracker will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- **Auto-BCC email system (Feature 010)**: Deleted the 11 files it left behind. The feature was dropped from the plugin loader in 3.22.0, which orphaned `includes/email/`, the AJAX handler, the settings view, and its CSS and JS in the tree. Nothing required them and there is no autoloader, so those classes were never defined, the `class_exists()` guards in `choice-universal-form-tracker.php` never fired, and the code could not run on any install. The dead init block went with it. `uninstall.php` already sweeps `cuft_%` options and transients, so a `cuft_auto_bcc_config` row left by a pre-3.22.0 install is still cleaned up on uninstall.
+
 ## [3.26.0] - 2026-08-27
 
 ### Added

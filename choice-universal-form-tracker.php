@@ -320,20 +320,6 @@ class Choice_Universal_Form_Tracker {
                 new CUFT_Backup_Manager();
             }
 
-            // Initialize Auto-BCC Email System (Feature 010)
-            if ( class_exists( 'CUFT_Auto_BCC_Manager' ) ) {
-                CUFT_Auto_BCC_Manager::get_instance()->init();
-            }
-            if ( class_exists( 'CUFT_Auto_BCC_Ajax' ) ) {
-                new CUFT_Auto_BCC_Ajax();
-            }
-
-            // Initialize Email Tracking Parameter Injector
-            if ( class_exists( 'CUFT_Email_Tracking_Injector' ) ) {
-                $tracking_injector = new CUFT_Email_Tracking_Injector();
-                $tracking_injector->init();
-            }
-
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
             add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
 

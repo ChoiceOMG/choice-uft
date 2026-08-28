@@ -57,21 +57,7 @@
 /includes/update/class-cuft-update-security.php
 /includes/update/class-cuft-error-messages.php
 
-# 2. Code that cannot run.
-#
-# The Auto-BCC email system (Feature 010) is absent from the require list in
-# choice-universal-form-tracker.php and there is no autoloader, so none of
-# these classes are ever defined and the class_exists() guards around them
-# never fire. Shipping a mail interceptor that does nothing invites a
-# reviewer question it would not survive. Wire it up or delete it; until
-# then it stays out of the directory package.
-/includes/email
-/includes/ajax/class-cuft-auto-bcc-ajax.php
-/includes/admin/views/admin-auto-bcc-settings.php
-/assets/admin/css/cuft-auto-bcc-admin.css
-/assets/admin/js/cuft-auto-bcc-admin.js
-
-# 3. Material that belongs somewhere other than the package.
+# 2. Material that belongs somewhere other than the package.
 #
 # Screenshots live in the SVN assets/ directory beside trunk/, never inside
 # it, and are referenced from the == Screenshots == readme section.
