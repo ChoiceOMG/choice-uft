@@ -103,44 +103,37 @@ When creating a new GitHub release, follow these steps IN ORDER:
    git push origin master
    ```
 
-4. **Create Release ZIP with CORRECT naming**:
+4. **Pre-flight the package locally**:
    ```bash
    ./build.sh
-   # CRITICAL: Use "v" prefix in the release asset filename
-   cp dist/choice-uft.zip /tmp/choice-uft-v3.x.x.zip
    ```
-   `build.sh` honours `.distignore`; `git archive` does not, and would ship `vendor/`,
-   `tests/`, and the `.git` directory.
+   Local check only. `release.yml` does NOT run `build.sh`: it rsyncs against
+   `.distignore` directly. The build gates (version consistency across the three
+   sources, hidden files, em-dashes, CDN references) therefore never run in CI, so
+   this step is the only place they catch anything.
 
-5. **Validate ZIP Structure**:
+5. **Tag and push. The release publishes itself**:
    ```bash
-   # Must extract to choice-uft/ directory (NOT choice-uft-v3.x.x/)
-   unzip -l /tmp/choice-uft-v3.x.x.zip | head -20
-
-   # Verify:
-   # ✅ All paths start with "choice-uft/"
-   # ✅ Main plugin file is at: choice-uft/choice-universal-form-tracker.php
-   # ✅ No development files (tests/, .github/, .specify/)
+   git tag -a v3.x.x -m "v3.x.x"
+   git push origin v3.x.x
    ```
+   `.github/workflows/release.yml` fires on any `v*.*.*` tag, builds
+   `choice-uft-v3.x.x.zip` with the required "v" prefix, extracts the matching
+   CHANGELOG section as release notes, and publishes as `github-actions[bot]`.
 
-6. **Create GitHub Release**:
-   ```bash
-   # Create tag and release
-   gh release create v3.x.x \
-     --title "v3.x.x" \
-     --notes "$(cat <<'EOF'
-   [Paste changelog content here]
-   EOF
-   )" \
-     /tmp/choice-uft-v3.x.x.zip
-   ```
+   Do NOT run `gh release create`. It creates the tag itself, which fires the same
+   workflow, so the two paths collide over the notes and the asset upload.
 
-7. **Verify Release**:
+6. **Verify the published release**:
    ```bash
-   # Confirm asset uploaded with correct name
+   gh run list --workflow='Build and Release' --limit 1
    gh release view v3.x.x --json assets --jq '.assets[] | .name'
+   # Expected: choice-uft-v3.x.x.zip (with "v" prefix)
 
-   # Expected output: choice-uft-v3.x.x.zip (with "v" prefix!)
+   # Inspect the artifact clients will actually install
+   gh release download v3.x.x --pattern 'choice-uft-v3.x.x.zip' --dir /tmp/rel
+   unzip -l /tmp/rel/choice-uft-v3.x.x.zip | head
+   # Every path starts with choice-uft/ ; no tests/, .github/, .specify/, vendor/
    ```
 
 ### Post-Release Validation
@@ -176,7 +169,8 @@ If you accidentally upload with the wrong name:
 
 ```bash
 # Upload corrected asset to existing release
-git archive --format=zip --prefix=choice-uft/ -o /tmp/choice-uft-v3.x.x.zip HEAD
+./build.sh
+cp dist/choice-uft.zip /tmp/choice-uft-v3.x.x.zip
 gh release upload v3.x.x /tmp/choice-uft-v3.x.x.zip --clobber
 
 # Verify both assets exist now
