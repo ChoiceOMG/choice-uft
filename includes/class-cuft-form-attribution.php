@@ -156,7 +156,7 @@ class CUFT_Form_Attribution {
         }
 
         // Lead identity (OPS-2210). Deterministic sha256 so every system (WP, n8n,
-        // Cliniko, Google EC, Meta CAPI) derives the SAME id from the same person.
+        // the client's booking system, Google EC, Meta CAPI) derives the SAME id from the same person.
         // Email is preferred; phone is the fallback when no email is submitted.
         // The caller passes the submitted email/phone in $context (the assembler
         // itself only reads cookies / the click table).

@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added to the Elementor server-side `form_submit` and `generate_lead` dataLayer pushes, and computed client-side via CryptoJS for the analytics event (PHP and JS produce identical digests).
 
 ### Why
-Closes OPS-2210 and unblocks downstream offline-conversion import (OPS-2211) and lead reporting (OPS-2212): a deterministic hash lets WordPress, n8n, Cliniko, QuickBooks, and the ad platforms all derive the same identifier from the same person without passing a generated UUID around, while keeping raw PII out of analytics.
+Closes OPS-2210 and unblocks downstream offline-conversion import (OPS-2211) and lead reporting (OPS-2212): a deterministic hash lets WordPress, n8n, the client's booking system, QuickBooks, and the ad platforms all derive the same identifier from the same person without passing a generated UUID around, while keeping raw PII out of analytics.
 
 ## [3.24.0] - 2026-06-29
 
@@ -56,7 +56,7 @@ Closes OPS-2210 and unblocks downstream offline-conversion import (OPS-2211) and
   - Service interest derived from the submitting page, configurable via the `cuft_service_interest_map` option and the `cuft_service_interest` / `cuft_form_attribution_payload` filters.
 
 ### Why
-Closes the persistence gap behind OPS-2209: CUFT already captured the full convention set to the dataLayer but only wrote a single `cuft_click_id` into the submitted form, so UTM, named click IDs, service interest, and timestamp never reached the stored entry or downstream (n8n/Cliniko/Google Ads). Enrichment is server-side to avoid the regression risk of injecting form fields into live lead forms.
+Closes the persistence gap behind OPS-2209: CUFT already captured the full convention set to the dataLayer but only wrote a single `cuft_click_id` into the submitted form, so UTM, named click IDs, service interest, and timestamp never reached the stored entry or downstream (n8n/booking system/Google Ads). Enrichment is server-side to avoid the regression risk of injecting form fields into live lead forms.
 
 ## [3.23.0] - 2026-04-23
 
