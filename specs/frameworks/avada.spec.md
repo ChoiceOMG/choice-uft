@@ -74,6 +74,13 @@ function setupAvadaEventListeners() {
 }
 ```
 
+### Success Detection Rules (normative, added 3.26.1)
+
+1. **Visibility MUST be read from computed style and layout**, never from `element.style`. Avada renders its response nodes into the static page markup and hides them with a CSS class carrying no style attribute, so `element.style.display` is `""` for a hidden node and any `!== "none"` test passes on an untouched page.
+2. **A success signal counts only when it transitions.** Every signal (response node visibility, success classes on the form or its parent, a success message in the wrapper) is snapshotted at submit time; a signal already present in that baseline is page furniture and MUST NOT register as a submission.
+3. **A submission with neither an email address nor a phone number MUST NOT push `form_submit` on this framework.** The module only tracks forms that carry an email field, so a contact-less success here is a false positive. This narrows the global rule in `specs/core/dataLayer.spec.md` for Avada alone, through the opt-in `require_contact` option on `trackFormSubmission()`.
+4. **Click watching binds to submit controls only** (`input[type="submit"]`, `button[type="submit"]`, a typeless `button` inside the form, `input[type="image"]`). `.fusion-button` matches ordinary page buttons in the dozens and MUST NOT be used as a submit signal.
+
 ### Success Detection Methods
 
 **Multiple Success Detection Approaches**:

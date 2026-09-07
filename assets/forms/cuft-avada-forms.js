@@ -330,90 +330,139 @@
     };
   }
 
+  var SUCCESS_SELECTORS = [
+    ".fusion-form-response-success",
+    ".fusion-alert.success",
+    ".fusion-form-success",
+    ".fusion-success",
+    ".avada-form-success",
+    ".fusion-form-success-message",
+    '[data-status="sent"]',
+    '[data-avada-form-status="success"]'
+  ];
+
+  var CONTAINER_SUCCESS_SELECTORS = [
+    ".fusion-form-response-success",
+    ".fusion-success",
+    ".success-message",
+    ".thank-you"
+  ];
+
+  var SUCCESS_CLASSES = [
+    "sent",
+    "is-success",
+    "form-success",
+    "successfully-submitted",
+    "fusion-form-response-success"
+  ];
+
   /**
-   * Check if Avada form is in success state with exponential backoff
+   * Is the element actually rendered to the user?
    */
-  function isAvadaSuccessState(form) {
+  function isVisible(element) {
+    try {
+      if (!element) return false;
+
+      // Avada ships its response nodes in the static markup and hides them with a
+      // CSS class carrying no style attribute, so element.style.display reads "".
+      // Only computed style plus layout distinguishes hidden from shown.
+      if (window.getComputedStyle) {
+        var style = window.getComputedStyle(element);
+        if (style && (style.display === "none" || style.visibility === "hidden")) {
+          return false;
+        }
+      }
+
+      if (element.offsetParent !== null) return true;
+      return !!(element.getClientRects && element.getClientRects().length > 0);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hasSuccessClass(element) {
+    if (!element || !element.classList) return false;
+    for (var i = 0; i < SUCCESS_CLASSES.length; i++) {
+      if (element.classList.contains(SUCCESS_CLASSES[i])) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Snapshot every success signal this form can raise, each as a boolean
+   */
+  function getAvadaSuccessSignals(form) {
+    var signals = {};
+
+    try {
+      var i;
+
+      for (i = 0; i < SUCCESS_SELECTORS.length; i++) {
+        var element = form.querySelector(SUCCESS_SELECTORS[i]);
+        signals["form:" + SUCCESS_SELECTORS[i]] = isVisible(element);
+      }
+
+      var container = form.closest(".fusion-form-wrapper, .avada-form-wrapper");
+      for (i = 0; i < CONTAINER_SUCCESS_SELECTORS.length; i++) {
+        var containerElement = container
+          ? container.querySelector(CONTAINER_SUCCESS_SELECTORS[i])
+          : null;
+        signals["container:" + CONTAINER_SUCCESS_SELECTORS[i]] = isVisible(containerElement);
+      }
+
+      signals["class:form"] = hasSuccessClass(form);
+      signals["class:parent"] = hasSuccessClass(form.parentNode);
+
+      var parentSuccess = false;
+      if (!isVisible(form) && form.parentNode && form.parentNode.querySelector) {
+        parentSuccess = isVisible(
+          form.parentNode.querySelector('.thank-you, .success, [role="alert"]')
+        );
+      }
+      signals["hidden-form-with-parent-success"] = parentSuccess;
+    } catch (e) {
+      log("Error reading Avada success signals:", e);
+    }
+
+    return signals;
+  }
+
+  /**
+   * Signals present before submission are page furniture, not a submission
+   */
+  function captureAvadaSuccessBaseline(form) {
+    var baseline = getAvadaSuccessSignals(form);
+    log("Captured Avada success baseline:", baseline);
+    return baseline;
+  }
+
+  /**
+   * Check if Avada form transitioned into a success state since the baseline
+   */
+  function isAvadaSuccessState(form, baseline) {
+    baseline = baseline || {};
+
     log("Checking Avada success state for form classes:", form.className);
 
     // Check if form fields have been reset (common success indicator)
     var emailField = form.querySelector('input[type="email"]');
-    var wasFilledNowEmpty = false;
     if (emailField) {
       var currentValue = (emailField.value || "").trim();
-      var hadValue = emailField.hasAttribute('data-cuft-had-value');
+      var hadValue = emailField.hasAttribute("data-cuft-had-value");
 
       if (hadValue && currentValue === "") {
-        log("Avada form fields were reset - likely successful submission");
-        wasFilledNowEmpty = true;
-      }
-    }
-
-    var successSelectors = [
-      ".fusion-form-response-success",
-      ".fusion-alert.success",
-      ".fusion-form-success",
-      ".fusion-success",
-      ".avada-form-success",
-      ".fusion-form-success-message",
-      '[data-status="sent"]',
-      '[data-avada-form-status="success"]'
-    ];
-
-    // Check for success elements in form
-    for (var i = 0; i < successSelectors.length; i++) {
-      var element = form.querySelector(successSelectors[i]);
-      if (element) {
-        log("Found element matching selector:", successSelectors[i], "display:", element.style.display);
-        if (element.style.display !== "none") {
-          log("Avada success state detected with selector:", successSelectors[i]);
-          return true;
-        }
-      }
-    }
-
-    // If form was reset, that's a success indicator
-    if (wasFilledNowEmpty) {
-      return true;
-    }
-
-    // Check if form is hidden with success message in parent
-    if (!form.offsetParent) {
-      var parent = form.parentNode;
-      if (parent && parent.querySelector('.thank-you, .success, [role="alert"]')) {
-        log("Avada success state: form hidden with success element");
+        log("Avada form fields were reset, likely successful submission");
         return true;
       }
     }
 
-    // Check for success-related CSS classes
-    var hasSuccessClass =
-      form.classList.contains("sent") ||
-      form.classList.contains("is-success") ||
-      form.classList.contains("form-success") ||
-      form.classList.contains("successfully-submitted") ||
-      form.classList.contains("fusion-form-response-success");
-
-    if (hasSuccessClass) {
-      log("Avada success state: form has success class");
-      return true;
-    }
-
-    // Check parent container for success class
-    var formParent = form.parentNode;
-    if (formParent && formParent.classList &&
-        formParent.classList.contains("fusion-form-response-success")) {
-      log("Avada success state: parent has success class");
-      return true;
-    }
-
-    // Check form container for success message
-    var container = form.closest(".fusion-form-wrapper, .avada-form-wrapper");
-    if (container && container.querySelector(
-        ".fusion-form-response-success, .fusion-success, .success-message, .thank-you"
-      )) {
-      log("Avada success state: success message in container");
-      return true;
+    var signals = getAvadaSuccessSignals(form);
+    for (var key in signals) {
+      if (!Object.prototype.hasOwnProperty.call(signals, key)) continue;
+      if (signals[key] && !baseline[key]) {
+        log("Avada success state detected, signal became visible:", key);
+        return true;
+      }
     }
 
     return false;
@@ -462,6 +511,7 @@
         form_name: formDetails.form_name,
         user_email: email,
         user_phone: phone,
+        require_contact: true,
         debug: DEBUG,
         lead_currency: window.cuftAvada && window.cuftAvada.lead_currency ? window.cuftAvada.lead_currency : 'CAD',
         lead_value: window.cuftAvada && window.cuftAvada.lead_value ? window.cuftAvada.lead_value : 100,
@@ -483,8 +533,10 @@
   /**
    * Setup MutationObserver for success detection with exponential backoff
    */
-  function observeAvadaSuccess(form, email, phone) {
+  function observeAvadaSuccess(form, email, phone, baseline) {
     log("Starting Avada success observation for form:", form.id || "unnamed");
+
+    baseline = baseline || captureAvadaSuccessBaseline(form);
 
     var observerConfig = {
       id: 'avada-success-observer',
@@ -504,7 +556,7 @@
       attempts++;
       log("Avada success check attempt " + attempts + " for form:", form.id || "unnamed");
 
-      if (!pushed && isAvadaSuccessState(form)) {
+      if (!pushed && isAvadaSuccessState(form, baseline)) {
         pushed = true;
         log("Avada success state confirmed, tracking submission");
         handleAvadaSuccess(form, email, phone);
@@ -542,7 +594,7 @@
 
         mutations.forEach(function(mutation) {
           if (mutation.type === "childList" || mutation.type === "attributes") {
-            if (isAvadaSuccessState(form)) {
+            if (isAvadaSuccessState(form, baseline)) {
               pushed = true;
               handleAvadaSuccess(form, email, phone);
               cleanup();
@@ -626,6 +678,9 @@
 
       form.setAttribute("data-cuft-avada-observing", "true");
 
+      // Baseline before the response can arrive
+      var baseline = captureAvadaSuccessBaseline(form);
+
       // Capture field values at submit time
       var email = getFieldValue(form, "email");
       var phone = getFieldValue(form, "phone");
@@ -643,7 +698,7 @@
       });
 
       // Start observing for success state
-      observeAvadaSuccess(form, email, phone);
+      observeAvadaSuccess(form, email, phone, baseline);
       return true;
     };
 
@@ -691,7 +746,7 @@
 
       // Watch for submit button clicks (for AJAX submissions)
       var submitButtons = form.querySelectorAll(
-        'input[type="submit"], button[type="submit"], .fusion-button'
+        'input[type="submit"], button[type="submit"], button:not([type]), input[type="image"]'
       );
 
       for (var j = 0; j < submitButtons.length; j++) {
@@ -706,6 +761,9 @@
             log("Avada submit button clicked, starting observation");
             clickedForm.setAttribute("data-cuft-avada-observing", "true");
 
+            // Baseline synchronously on the click, before any response can land
+            var baseline = captureAvadaSuccessBaseline(clickedForm);
+
             setTimeout(function () {
               var email = getFieldValue(clickedForm, "email");
               var phone = getFieldValue(clickedForm, "phone");
@@ -716,7 +774,7 @@
                 emailField.setAttribute('data-cuft-had-value', 'true');
               }
 
-              observeAvadaSuccess(clickedForm, email, phone);
+              observeAvadaSuccess(clickedForm, email, phone, baseline);
             }, 100);
           }
         });

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUFT Avada Success Detection Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #343a40; color: white; padding: 20px; border-radius: 5px; }
+        .test-passed { background: #d4edda; color: #155724; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .test-failed { background: #f8d7da; color: #721c24; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        button { padding: 10px 20px; font-size: 1em; margin: 10px 5px; cursor: pointer; }
+
+        /* Avada hides its response nodes with a class, never an inline style. */
+        .fusion-hidden { display: none; }
+
+        #fixtures { position: absolute; left: -10000px; top: 0; width: 600px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Avada Success Detection</h1>
+        <p>Regression cover for the phantom form_submit: a success node present in
+           static markup and hidden by a CSS class must not read as a submission.</p>
+    </div>
+
+    <button onclick="runAvadaTests()">Run Tests</button>
+    <div id="results"></div>
+    <div id="fixtures"></div>
+
+    <script src="../../assets/cuft-dataLayer-utils.js"></script>
+    <script src="../../assets/forms/cuft-avada-forms.js"></script>
+    <script>
+    (function () {
+      "use strict";
+
+      var results = [];
+      var formCounter = 0;
+
+      window.dataLayer = window.dataLayer || [];
+
+      function record(name, passed, detail) {
+        results.push({ name: name, passed: passed, detail: detail || "" });
+      }
+
+      function render() {
+        var html = "";
+        for (var i = 0; i < results.length; i++) {
+          var r = results[i];
+          html += '<div class="' + (r.passed ? "test-passed" : "test-failed") + '">' +
+                  (r.passed ? "PASS" : "FAIL") + ": " + r.name +
+                  (r.detail ? " (" + r.detail + ")" : "") + "</div>";
+        }
+        var failed = results.filter(function (r) { return !r.passed; }).length;
+        html += "<h3>" + (results.length - failed) + " passed, " + failed + " failed</h3>";
+        document.getElementById("results").innerHTML = html;
+        window.__cuftAvadaTestSummary = { total: results.length, failed: failed, results: results };
+      }
+
+      function makeForm(options) {
+        formCounter++;
+        var wrapper = document.createElement("div");
+        wrapper.className = "fusion-form-wrapper";
+        wrapper.innerHTML =
+          '<div class="fusion-form-response-success ' + (options.successVisible ? "" : "fusion-hidden") + '">' +
+          'Thank you</div>' +
+          '<form id="cuft-test-form-' + formCounter + '" class="fusion-form fusion-form-' + formCounter + '">' +
+          '  <input type="email" name="email" value="' + (options.email || "") + '">' +
+          '  <input type="tel" name="phone" value="' + (options.phone || "") + '">' +
+          '  <button type="submit" class="fusion-button">Send</button>' +
+          '  <a href="#" class="fusion-button">Not a submit control</a>' +
+          '</form>';
+        document.getElementById("fixtures").appendChild(wrapper);
+        return wrapper.querySelector("form");
+      }
+
+      function submitEventsFor(formId) {
+        return window.dataLayer.filter(function (entry) {
+          return entry && entry.event === "form_submit" && entry.form_id === formId;
+        });
+      }
+
+      function submit(form) {
+        form.addEventListener("submit", function (e) { e.preventDefault(); }, { once: true });
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      }
+
+      function wait(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
+      }
+
+      window.runAvadaTests = function () {
+        results = [];
+        document.getElementById("fixtures").innerHTML = "";
+        window.dataLayer = [];
+
+        // 1. The bug: success node in static markup, hidden by class, contact
+        //    details filled so only the heuristic can be responsible.
+        var hiddenForm = makeForm({ email: "test@example.com", phone: "5875551234" });
+        submit(hiddenForm);
+
+        // 2. A real success: the node becomes visible after submission.
+        var realForm = makeForm({ email: "real@example.com", phone: "5875551234" });
+        submit(realForm);
+
+        // 3. Contact gate: a success with no email and no phone.
+        var emptyForm = makeForm({});
+        submit(emptyForm);
+
+        // 4. Narrowed click listener: a non-submit .fusion-button starts nothing.
+        var clickForm = makeForm({ email: "click@example.com" });
+        var decoy = clickForm.querySelector("a.fusion-button");
+
+        return wait(300).then(function () {
+          var realSuccess = realForm.parentNode.querySelector(".fusion-form-response-success");
+          realSuccess.classList.remove("fusion-hidden");
+
+          var emptySuccess = emptyForm.parentNode.querySelector(".fusion-form-response-success");
+          emptySuccess.classList.remove("fusion-hidden");
+
+          decoy.click();
+          return wait(1200);
+        }).then(function () {
+          record(
+            "Success node hidden by class does not fire form_submit",
+            submitEventsFor(hiddenForm.id).length === 0,
+            submitEventsFor(hiddenForm.id).length + " events"
+          );
+
+          record(
+            "Success node becoming visible fires form_submit",
+            submitEventsFor(realForm.id).length === 1,
+            submitEventsFor(realForm.id).length + " events"
+          );
+
+          record(
+            "Success with no email and no phone is suppressed",
+            submitEventsFor(emptyForm.id).length === 0,
+            submitEventsFor(emptyForm.id).length + " events"
+          );
+
+          record(
+            "Click on a non-submit .fusion-button starts no observation",
+            !clickForm.hasAttribute("data-cuft-avada-observing")
+          );
+
+          render();
+          return window.__cuftAvadaTestSummary;
+        });
+      };
+    })();
+    </script>
+</body>
+</html>

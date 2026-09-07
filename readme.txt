@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 5.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.26.0
+Stable tag: 3.26.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,6 +228,11 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Changelog ==
 
+= 3.26.1 =
+* Fixed phantom `form_submit` events on Avada/Fusion forms. The success check read the inline `style` attribute, so a success message that Avada ships in the page markup and hides with a CSS class counted as a submission on any render, including ad-crawler and lock-screen renders that never touched the form. Detection now uses computed style plus layout and requires the success state to appear after the submission.
+* Avada submissions carrying neither an email address nor a phone number no longer push `form_submit`. Other form frameworks are unchanged.
+* Narrowed the Avada click watcher to real submit controls, so ordinary Fusion buttons elsewhere on the page no longer start submission tracking.
+
 = 3.26.0 =
 * Removed the CryptoJS dependency loaded from a third-party CDN. SHA-256 now ships with the plugin, which removes a network request, removes the race where a slow CDN response left `lead_id` off an event, and makes the hash available synchronously.
 * Fixed the GitHub updates setting being silently switched off every time the settings form was saved. The checkbox it read had been removed, so the saved value was always false.
@@ -275,6 +280,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.26.1 =
+Stops phantom form submissions on Avada/Fusion sites. If your Avada conversion counts have looked inflated, this is the fix. No settings change is needed.
 
 = 3.26.0 =
 Removes a third-party CDN request and makes `lead_id` reliable on fast submissions. No settings change is needed.

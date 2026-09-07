@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.1] - 2026-09-07
+
+### Fixed
+- **Avada forms pushed `form_submit` on pages nobody submitted.** `isAvadaSuccessState()` tested `element.style.display !== "none"`, which reads only the inline style attribute. Avada renders `.fusion-form-response-success` into the static markup and hides it with a CSS class carrying no style attribute, so the value was `""`, the check passed about 50 ms after the page loaded, and every render that started an observation produced a submission event. Measured on one client: 29 contact-less rows against 32 real leads in a month, driven by OEM lock-screen ad renderers (`com.samsung.android.dynamiclock`, `com.hihonor.magazine`, `com.heytap.pictorial`) and Meta's ad crawler re-rendering the landing page, each phantom carrying the ad's `gclid`. Visibility is now read from computed style plus layout, and every success signal must transition from absent to present after the submission, so a message that was already on the page cannot register as one.
+- Avada submissions with neither an email address nor a phone number no longer push `form_submit`. The framework module already requires an email field before it tracks a form at all, so a submission reaching this state is a false positive, not a name-only form.
+- The Avada click watcher listened on `.fusion-button`, which on a typical Avada page matches dozens of ordinary buttons (32 on the client contact page). It now binds to real submit controls only.
+
+### Added
+- `tests/standalone/test-avada-success-detection.html`: browser regression cover for the above. A hidden-by-class success node must not fire, a success node becoming visible must fire, a contact-less success must be suppressed, and a non-submit Fusion button must start no observation.
+
+### Changed
+- `trackFormSubmission()` accepts an opt-in `require_contact` option that suppresses a `form_submit` carrying neither email nor phone. Only the Avada module sets it. It is off by default because the dataLayer specification requires `form_submit` on every real submission, name-only and multi-step forms included, so the other frameworks are untouched.
+
 ### Removed
 - **Auto-BCC email system (Feature 010)**: Deleted the 11 files it left behind. The feature was dropped from the plugin loader in 3.22.0, which orphaned `includes/email/`, the AJAX handler, the settings view, and its CSS and JS in the tree. Nothing required them and there is no autoloader, so those classes were never defined, the `class_exists()` guards in `choice-universal-form-tracker.php` never fired, and the code could not run on any install. The dead init block went with it. `uninstall.php` already sweeps `cuft_%` options and transients, so a `cuft_auto_bcc_config` row left by a pre-3.22.0 install is still cleaned up on uninstall.
 

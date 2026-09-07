@@ -643,6 +643,22 @@ window.cuftDataLayerUtils = (function () {
         user_phone: options.user_phone
       });
 
+      // Opt-in contact gate. Frameworks whose success detection can misread a page
+      // as a submission set require_contact so a false positive cannot push a
+      // contact-less form_submit. Off by default: the dataLayer spec requires
+      // form_submit on every real submission, including name-only forms.
+      if (options.require_contact &&
+          !formSubmitPayload.user_email &&
+          !formSubmitPayload.user_phone) {
+        if (options.debug && window.console && window.console.log) {
+          window.console.log(
+            '[CUFT DataLayer] Suppressed form_submit with no email or phone for:',
+            framework
+          );
+        }
+        return false;
+      }
+
       // Push form_submit event to dataLayer
       var submitSuccess = pushToDataLayer(formSubmitPayload, {
         debug: options.debug,

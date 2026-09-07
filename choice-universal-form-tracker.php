@@ -3,7 +3,7 @@
  * Plugin Name:       Choice Universal Form Tracker
  * Plugin URI:        https://github.com/ChoiceOMG/choice-uft
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
- * Version:           3.26.0
+ * Version:           3.26.1
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            Choice OMG
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.26.0' );
+define( 'CUFT_VERSION', '3.26.1' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
