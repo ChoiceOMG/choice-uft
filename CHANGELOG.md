@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.27.0] - 2026-09-18
+
+### Fixed
+- **Attribution never reached the stored Elementor submission.** `add_attribution_to_record()` was hooked on `elementor_pro/forms/new_record`, which Elementor Pro fires after every submit action has already run, including the one that saves the entry. The hidden fields it added therefore arrived too late for the Submissions module and for the webhook, and had never appeared on a stored entry since 3.24.0. Attribution is now captured on `elementor_pro/forms/record/actions_before`, which runs in the visitor's request before any action.
+- **`submitted_at` reported the time a later action fired, not the submit time.** Elementor runs actions in sequence in one request, so a slow action ahead of the webhook pushed the timestamp out by however long it took; on one site a mail service added a steady 11 seconds. The payload is now assembled once per submission and reused, so `submitted_at`, the stored entry and the webhook all carry the same submit time.
+
+### Added
+- `tests/unit/test-elementor-attribution-capture.php`: drives Elementor's real hook sequence (`record/actions_before`, the actions, `new_record`) and covers the capture, the reuse of the captured payload when the cookies are gone, timestamp stability, the live-request fallback, and the field cleanup described below.
+
+### Security
+- Attribution added to the record for the Submissions module is removed again as soon as the entry is stored, so it cannot reach a notification email. Elementor's `[all-fields]` shortcode prints every field on the record with no filtering. The injection is also skipped entirely unless the form stores submissions and the Submissions action is ordered ahead of both email actions, verified per submission rather than assumed.
+
 ## [3.26.1] - 2026-09-07
 
 ### Fixed

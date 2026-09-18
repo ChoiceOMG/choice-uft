@@ -8,7 +8,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CUFT_Elementor_Forms {
-    
+
+    /**
+     * Attribution payloads captured during the visitor's submit request,
+     * keyed by record object id.
+     *
+     * @var array
+     */
+    private $captured = array();
+
+    /**
+     * Records that currently carry injected attribution fields, keyed by
+     * record object id, as array( 'record' => object, 'fields' => string[] ).
+     *
+     * @var array
+     */
+    private $injected = array();
+
     /**
      * Constructor
      */
@@ -24,12 +40,18 @@ class CUFT_Elementor_Forms {
         // Add response filter to inject tracking data into Elementor's response
         add_filter( 'elementor_pro/forms/ajax_response_data', array( $this, 'add_tracking_to_response' ), 10, 2 );
 
+        // Capture attribution once, before any submit action runs, so every
+        // consumer sees the same payload and submitted_at is the real submit
+        // time rather than whenever a later action got around to firing.
+        add_filter( 'elementor_pro/forms/record/actions_before', array( $this, 'capture_attribution' ), 10, 2 );
+
+        // Strip the injected entry fields again as soon as the submission has
+        // been stored, so they never reach the notification email.
+        add_action( 'elementor_pro/forms/actions/after_run', array( $this, 'remove_attribution_fields' ), 10, 2 );
+
         // Enrich the outgoing webhook payload (e.g. to n8n) with server-side
         // attribution, without injecting hidden form fields. (OPS-2209)
         add_filter( 'elementor_pro/forms/webhooks/request_args', array( $this, 'enrich_webhook_args' ), 10, 2 );
-
-        // Persist attribution onto the stored Elementor submission entry. (OPS-2209)
-        add_action( 'elementor_pro/forms/new_record', array( $this, 'add_attribution_to_record' ), 9, 2 );
     }
     
     /**
@@ -346,6 +368,21 @@ class CUFT_Elementor_Forms {
      * @return array Flat attribution payload (may be empty).
      */
     private function get_attribution_payload( $record ) {
+        $key = is_object( $record ) ? spl_object_hash( $record ) : '';
+        if ( '' !== $key && isset( $this->captured[ $key ] ) ) {
+            return $this->captured[ $key ];
+        }
+
+        return $this->build_attribution_payload( $record );
+    }
+
+    /**
+     * Assemble the attribution payload from the current request.
+     *
+     * @param object $record Elementor Pro form record.
+     * @return array Flat attribution payload (may be empty).
+     */
+    private function build_attribution_payload( $record ) {
         if ( ! class_exists( 'CUFT_Form_Attribution' ) ) {
             return array();
         }
@@ -446,22 +483,171 @@ class CUFT_Elementor_Forms {
     }
 
     /**
-     * Persist attribution onto the stored Elementor submission entry.
+     * Capture attribution while the visitor's submit request is still live.
      *
-     * Hooked early (priority 9) on elementor_pro/forms/new_record so the added
-     * hidden fields are present when Elementor's Submissions module saves the
-     * record. Fully guarded: a no-op if the record API differs, never fatal.
+     * Hooked on elementor_pro/forms/record/actions_before, which Elementor Pro
+     * fires in the submit request before any action runs. Two reasons this is
+     * the right moment:
+     *
+     *   1. submitted_at becomes the real submit time. Actions run in sequence,
+     *      and a slow one ahead of the webhook (a mail service taking seconds)
+     *      used to push the timestamp that far out.
+     *   2. Fields added here are on the record when the Submissions module
+     *      stores it. elementor_pro/forms/new_record, used previously, fires
+     *      after every action has already run, so nothing added there ever
+     *      reached the stored entry or the webhook.
      *
      * @param object $record       Elementor Pro form record.
      * @param object $ajax_handler Elementor Pro ajax handler.
+     * @return object The record, unchanged except for any injected fields.
      */
-    public function add_attribution_to_record( $record, $ajax_handler ) {
+    public function capture_attribution( $record, $ajax_handler = null ) {
+        try {
+            if ( ! is_object( $record ) ) {
+                return $record;
+            }
+
+            $attribution = $this->build_attribution_payload( $record );
+            if ( empty( $attribution ) ) {
+                return $record;
+            }
+
+            $this->captured[ spl_object_hash( $record ) ] = $attribution;
+
+            if ( $this->entry_injection_is_safe( $record ) ) {
+                $this->add_attribution_to_record( $record, $attribution );
+            }
+        } catch ( \Throwable $e ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'error', 'Elementor attribution capture failed: ' . $e->getMessage() );
+            }
+        }
+
+        return $record;
+    }
+
+    /**
+     * Whether attribution fields can be added to the record without leaking
+     * into a notification email.
+     *
+     * Elementor's [all-fields] shortcode prints every field on the record, so
+     * the injected fields are only safe when the Submissions action both runs
+     * and runs before any email action. That is Elementor Pro's own
+     * registration order, but a third party can change it, so it is verified
+     * per submission rather than assumed.
+     *
+     * @param object $record Elementor Pro form record.
+     * @return bool
+     */
+    private function entry_injection_is_safe( $record ) {
+        if ( ! method_exists( $record, 'get_form_settings' ) ) {
+            return false;
+        }
+
+        $selected = (array) $record->get_form_settings( 'submit_actions' );
+        if ( ! in_array( 'save-to-database', $selected, true ) ) {
+            return false; // Nothing stores the entry, so nothing to persist to.
+        }
+
+        $order = $this->get_registered_action_order();
+        if ( empty( $order ) ) {
+            return false;
+        }
+
+        $run_order = array_values( array_intersect( $order, $selected ) );
+
+        $save_position = array_search( 'save-to-database', $run_order, true );
+        if ( false === $save_position ) {
+            return false;
+        }
+
+        foreach ( array( 'email', 'email2' ) as $email_action ) {
+            $email_position = array_search( $email_action, $run_order, true );
+            if ( false !== $email_position && $email_position < $save_position ) {
+                return false; // An email would be sent before the fields are removed.
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The order Elementor Pro will run its registered actions in.
+     *
+     * Separated so the ordering guard can be tested without Elementor loaded.
+     *
+     * @return string[] Action names in registration order, empty if unknown.
+     */
+    protected function get_registered_action_order() {
+        if ( ! class_exists( '\ElementorPro\Modules\Forms\Module' ) ) {
+            return array();
+        }
+
+        $module = \ElementorPro\Modules\Forms\Module::instance();
+        if ( ! isset( $module->actions_registrar ) || ! method_exists( $module->actions_registrar, 'get' ) ) {
+            return array();
+        }
+
+        return array_keys( (array) $module->actions_registrar->get() );
+    }
+
+    /**
+     * Remove the injected attribution fields once the entry has been stored.
+     *
+     * Hooked on elementor_pro/forms/actions/after_run. The fields exist only
+     * for the Submissions action; every later consumer (email, webhook) sees
+     * the record exactly as the visitor submitted it. The webhook still gets
+     * attribution, through enrich_webhook_args.
+     *
+     * @param object          $action    The action that just ran.
+     * @param \Exception|null $exception Exception thrown by that action, if any.
+     */
+    public function remove_attribution_fields( $action = null, $exception = null ) {
+        if ( empty( $this->injected ) ) {
+            return;
+        }
+
+        if ( is_object( $action ) && method_exists( $action, 'get_name' ) && 'save-to-database' !== $action->get_name() ) {
+            return;
+        }
+
+        try {
+            foreach ( $this->injected as $key => $entry ) {
+                $record = $entry['record'];
+                if ( ! is_object( $record ) || ! method_exists( $record, 'get' ) || ! method_exists( $record, 'set' ) ) {
+                    continue;
+                }
+
+                $fields = (array) $record->get( 'fields' );
+                foreach ( $entry['fields'] as $field_id ) {
+                    unset( $fields[ $field_id ] );
+                }
+                $record->set( 'fields', $fields );
+
+                unset( $this->injected[ $key ] );
+            }
+        } catch ( \Throwable $e ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'error', 'Elementor attribution cleanup failed: ' . $e->getMessage() );
+            }
+        }
+    }
+
+    /**
+     * Add attribution to the record as hidden fields, so the stored Elementor
+     * submission entry carries it. Removed again by remove_attribution_fields()
+     * once the entry is saved. Fully guarded: a no-op if the record API
+     * differs, never fatal.
+     *
+     * @param object $record      Elementor Pro form record.
+     * @param array  $attribution Captured attribution payload.
+     */
+    private function add_attribution_to_record( $record, $attribution ) {
         try {
             if ( ! is_object( $record ) || ! method_exists( $record, 'get' ) || ! method_exists( $record, 'set' ) ) {
                 return;
             }
 
-            $attribution = $this->get_attribution_payload( $record );
             if ( empty( $attribution ) ) {
                 return;
             }
@@ -470,6 +656,7 @@ class CUFT_Elementor_Forms {
             // managed via get/set( 'fields' ). Merge attribution as hidden
             // fields without clobbering real form fields that share a key.
             $fields = (array) $record->get( 'fields' );
+            $added  = array();
 
             foreach ( $attribution as $key => $value ) {
                 $field_id = 'cuft_' . $key;
@@ -484,9 +671,17 @@ class CUFT_Elementor_Forms {
                     'raw_value' => (string) $value,
                     'required'  => false,
                 );
+                $added[] = $field_id;
             }
 
             $record->set( 'fields', $fields );
+
+            if ( ! empty( $added ) ) {
+                $this->injected[ spl_object_hash( $record ) ] = array(
+                    'record' => $record,
+                    'fields' => $added,
+                );
+            }
         } catch ( \Throwable $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'error', 'Elementor entry attribution failed: ' . $e->getMessage() );
