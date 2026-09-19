@@ -141,6 +141,71 @@
   }
 
   /**
+   * Write the attribution cookies from the page itself.
+   *
+   * The server also writes these, through cuft_store_utm, but that call
+   * carries a nonce printed into the page HTML. A page cache can serve that
+   * HTML for longer than WordPress keeps a nonce valid (24 hours), after
+   * which the call is rejected and the visitor's attribution is lost with no
+   * error anywhere. Writing here keeps attribution working on a stale cached
+   * page; the AJAX call stays nonce-protected, because dropping that check
+   * would let any site forge these cookies through the endpoint.
+   *
+   * The format matches CUFT_UTM_Tracker::store_utm_cookie() exactly, so the
+   * server reads either writer's cookie the same way. PHP URL-decodes cookie
+   * values, so the JSON is encoded to match setcookie()'s own encoding.
+   */
+  function writeCookie(name, value, maxAgeSeconds) {
+    try {
+      var parts = [
+        name + "=" + encodeURIComponent(value),
+        "path=/",
+        "max-age=" + maxAgeSeconds,
+        "SameSite=Lax",
+      ];
+      if (location.protocol === "https:") {
+        parts.push("Secure");
+      }
+      document.cookie = parts.join("; ");
+      return true;
+    } catch (e) {
+      log("Error writing cookie:", name, e);
+      return false;
+    }
+  }
+
+  function writeAttributionCookies(trackingData) {
+    var THIRTY_DAYS = 30 * 24 * 60 * 60;
+    var ONE_YEAR = 365 * 24 * 60 * 60;
+
+    // Last touch: overwritten on every attributed visit.
+    var written = writeCookie(
+      "cuft_utm_data",
+      JSON.stringify({
+        utm: trackingData,
+        timestamp: Math.floor(Date.now() / 1000),
+      }),
+      THIRTY_DAYS
+    );
+    if (written) {
+      log("Attribution cookie written client-side:", trackingData);
+    }
+
+    // First touch: written once, never overwritten.
+    if (!getCookie("cuft_first_touch")) {
+      writeCookie(
+        "cuft_first_touch",
+        JSON.stringify({
+          utm: trackingData,
+          landing_page: location.href,
+          timestamp: new Date().toISOString(),
+        }),
+        ONE_YEAR
+      );
+    }
+  }
+
+  /**
    * Store tracking data via AJAX
    */
   function storeTrackingData(trackingData) {
@@ -434,7 +499,12 @@
       // Store locally for immediate access
       storeTrackingLocally(trackingData);
 
-      // Store on server for persistence
+      // Write the server-readable cookies from here, so attribution survives
+      // a cached page whose nonce has expired.
+      writeAttributionCookies(trackingData);
+
+      // Best effort: the server writes the same cookies and logs the hit.
+      // A rejected nonce on a stale cached page no longer costs attribution.
       storeTrackingData(trackingData);
     } else {
       log("No tracking parameters in current URL");

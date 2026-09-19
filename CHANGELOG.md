@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.27.1] - 2026-09-18
+
+### Fixed
+- **A cached page could silently cost a visitor their attribution.** The `cuft_store_utm` call that writes the UTM and click-id cookies carries a nonce printed into the page HTML, and a page cache can serve that HTML for longer than WordPress keeps a nonce valid (24 hours). Past that point the call was rejected, no cookie was written, and every form submission from that page arrived with no attribution and no error recorded anywhere. The cookies are now written by the page itself, in the format the server already reads, so attribution survives a stale cached page. Verified against a page whose store call returns 403: the cookie is written and the webhook carries the full attribution set.
+
+### Security
+- The `cuft_store_utm` endpoint keeps its nonce check. Removing it would let any third-party site forge attribution cookies for a visitor through the endpoint, and the client-side write closes the cache gap without weakening that.
+
 ## [3.27.0] - 2026-09-18
 
 ### Fixed
