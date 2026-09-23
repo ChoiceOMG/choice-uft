@@ -20,7 +20,7 @@ class CUFT_Console_Logger {
                 return true;
                 
             case 'admin_only':
-                return current_user_can( 'administrator' );
+                return current_user_can( 'manage_options' );
                 
             case 'no':
             default:

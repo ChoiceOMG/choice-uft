@@ -26,10 +26,7 @@ class CUFT_Admin {
         // Cron job for scheduled health checks
         add_action( 'cuft_scheduled_health_check', array( $this, 'scheduled_health_check' ) );
         add_filter( 'cron_schedules', array( $this, 'add_cron_intervals' ) );
-        // Removed duplicate AJAX handlers - now handled by CUFT_Event_Recorder class
-        // add_action( 'wp_ajax_cuft_record_event', array( $this, 'ajax_record_event' ) );
-        // add_action( 'wp_ajax_nopriv_cuft_record_event', array( $this, 'ajax_record_event' ) );
-// Removed admin page test forms - use dedicated test page instead
+        // cuft_record_event is handled by CUFT_Event_Recorder.
         add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
@@ -40,24 +37,37 @@ class CUFT_Admin {
     public function handle_export_actions() {
         // Run on our admin pages
         $allowed_pages = array( 'choice-universal-form-tracker', 'cuft-click-tracking' );
-        if ( ! isset( $_GET['page'] ) || ! in_array( $_GET['page'], $allowed_pages ) ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing only: the page slug selects which nonce-checked action below may run; nothing is changed on this read.
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( ! in_array( $page, $allowed_pages, true ) ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing only: each action below verifies its own nonce before doing anything.
+        $action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+        if ( '' === $action ) {
+            return;
+        }
+
+        // Every action below changes state or returns private data.
+        if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
 
         // Handle CSV export
-        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_csv' && isset( $_GET['nonce'] ) && wp_verify_nonce( $_GET['nonce'], 'cuft_export_csv' ) ) {
+        if ( 'export_csv' === $action && isset( $_GET['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'cuft_export_csv' ) ) {
             $this->handle_csv_export();
             // handle_csv_export() will exit, so this won't be reached
         }
 
         // Handle Google Ads OCI export
-        if ( isset( $_GET['action'] ) && $_GET['action'] === 'export_google_ads_oci' && isset( $_GET['nonce'] ) && wp_verify_nonce( $_GET['nonce'], 'cuft_export_google_ads_oci' ) ) {
+        if ( 'export_google_ads_oci' === $action && isset( $_GET['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'cuft_export_google_ads_oci' ) ) {
             $this->handle_google_ads_oci_export();
             // handle_google_ads_oci_export() will exit, so this won't be reached
         }
 
         // Handle webhook key regeneration
-        if ( isset( $_GET['action'] ) && $_GET['action'] === 'regenerate_webhook_key' && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'regenerate_webhook_key' ) ) {
+        if ( 'regenerate_webhook_key' === $action && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'regenerate_webhook_key' ) ) {
             $this->regenerate_webhook_key();
             // This redirects, so won't be reached
         }
@@ -90,13 +100,17 @@ class CUFT_Admin {
      * Render admin page
      */
     public function admin_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'choice-universal-form-tracker' ) );
+        }
+
         // Handle form submission
-        if ( isset( $_POST['cuft_save'] ) && wp_verify_nonce( $_POST['cuft_nonce'], 'cuft_settings' ) ) {
+        if ( isset( $_POST['cuft_save'], $_POST['cuft_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['cuft_nonce'] ) ), 'cuft_settings' ) ) {
             $this->save_settings();
         }
-        
+
         // Note: Export actions and webhook regeneration are now handled in handle_export_actions() via admin_init hook
-        
+
         $gtm_id = get_option( 'cuft_gtm_id', '' );
         $debug_enabled = get_option( 'cuft_debug_enabled', false );
         $generate_lead_enabled = get_option( 'cuft_generate_lead_enabled', false );
@@ -106,7 +120,8 @@ class CUFT_Admin {
         $phone_validation_enabled = get_option( 'cuft_phone_validation_enabled', false );
 
         // Get current tab
-        $current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'settings';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector on a screen gated by manage_options above; nothing is changed.
+        $current_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'settings';
         ?>
         <div class="wrap cuft-admin-container">
             <div class="cuft-admin-header">
@@ -316,14 +331,14 @@ class CUFT_Admin {
                                     <p style="margin: 0 0 8px; color: #3a7c3a;">
                                         &#10003; Registered: <strong><?php echo esc_html( $registered_domain ); ?></strong>
                                         <?php if ( $registered_at ): ?>
-                                            &mdash; <?php echo esc_html( date_i18n( 'Y-m-d', $registered_at ) ); ?>
+                                            (<?php echo esc_html( date_i18n( 'Y-m-d', $registered_at ) ); ?>)
                                         <?php endif; ?>
                                     </p>
                                 <?php else: ?>
-                                    <p style="margin: 0 0 8px; color: #a00;">&#9679; Not registered &mdash; set the Registration Secret below (or define <code>CUFT_REGISTER_SECRET</code> in wp-config.php) then click Register.</p>
+                                    <p style="margin: 0 0 8px; color: #a00;">&#9679; Not registered: set the Registration Secret below (or define <code>CUFT_REGISTER_SECRET</code> in wp-config.php) then click Register.</p>
                                 <?php endif; ?>
                                 <button type="button" id="cuft-register-site" class="button button-secondary">
-                                    <?php echo $is_registered ? 'Re-register Site' : 'Register Site'; ?>
+                                    <?php echo esc_html( $is_registered ? 'Re-register Site' : 'Register Site' ); ?>
                                 </button>
                                 <span id="cuft-register-status" style="margin-left: 10px; display: none;"></span>
                             </div>
@@ -399,83 +414,7 @@ class CUFT_Admin {
             </form>
         </div>
 
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            // Phone Validation: Register Site
-            $('#cuft-register-site').on('click', function() {
-                var $btn = $(this);
-                var $status = $('#cuft-register-status');
-                $btn.prop('disabled', true).text('Registering…');
-                $status.hide();
-                $.post(ajaxurl, {
-                    action: 'cuft_token_register',
-                    nonce: '<?php echo esc_js( wp_create_nonce( 'cuft_token_register' ) ); ?>'
-                }, function(response) {
-                    if (response.success) {
-                        $status.css('color', '#3a7c3a').text('Registered: ' + response.data.domain).show();
-                        $btn.text('Re-register Site');
-                    } else {
-                        $status.css('color', '#a00').text('Error: ' + (response.data || 'Unknown error')).show();
-                    }
-                    $btn.prop('disabled', false);
-                }).fail(function() {
-                    $status.css('color', '#a00').text('Request failed').show();
-                    $btn.prop('disabled', false);
-                });
-            });
-
-            // GTM Template Download buttons
-            $('.cuft-download-template').on('click', function(e) {
-                e.preventDefault();
-                var $button = $(this);
-                var template = $button.data('template');
-                var originalText = $button.html();
-                
-                $button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Downloading...');
-
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'cuft_download_gtm_template',
-                        template: template,
-                        nonce: '<?php echo esc_js( wp_create_nonce( 'cuft_admin' ) ); ?>'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Decode base64 content
-                            var content = atob(response.data.content);
-                            var filename = response.data.filename;
-                            
-                            // Create blob and download
-                            var blob = new Blob([content], { type: 'application/json' });
-                            var url = window.URL.createObjectURL(blob);
-                            var a = document.createElement('a');
-                            a.href = url;
-                            a.download = filename;
-                            document.body.appendChild(a);
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(a);
-                            
-                            // Show success feedback
-                            $button.html('<span class="dashicons dashicons-yes"></span> Downloaded!');
-                            setTimeout(function() {
-                                $button.prop('disabled', false).html(originalText);
-                            }, 2000);
-                        } else {
-                            alert(response.data.message || 'Download failed');
-                            $button.prop('disabled', false).html(originalText);
-                        }
-                    },
-                    error: function() {
-                        alert('Download failed');
-                        $button.prop('disabled', false).html(originalText);
-                    }
-                });
-            });
-        });
-        </script>
+        <?php // Register Site and template download handlers live in assets/cuft-admin.js. ?>
         <?php
     }
     
@@ -497,7 +436,7 @@ class CUFT_Admin {
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                             <strong><?php echo esc_html( $framework['name'] ); ?></strong>
                             <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background: <?php echo $framework['detected'] ? '#28a745' : '#6c757d'; ?>;">
-                                <?php echo $framework['detected'] ? 'DETECTED' : 'NOT FOUND'; ?>
+                                <?php echo esc_html( $framework['detected'] ? 'DETECTED' : 'NOT FOUND' ); ?>
                             </span>
                         </div>
                         <?php if ( $framework['detected'] ): ?>
@@ -567,15 +506,15 @@ class CUFT_Admin {
         check_admin_referer( 'cuft_settings', 'cuft_nonce' );
 
         $gtm_id = isset( $_POST['gtm_id'] ) ? sanitize_text_field( wp_unslash( $_POST['gtm_id'] ) ) : '';
-        $debug_enabled = isset( $_POST['debug_enabled'] ) && $_POST['debug_enabled'];
-        $generate_lead_enabled = isset( $_POST['generate_lead_enabled'] ) && $_POST['generate_lead_enabled'];
-        $phone_validation_enabled = isset( $_POST['phone_validation_enabled'] ) && $_POST['phone_validation_enabled'];
+        $debug_enabled = ! empty( $_POST['debug_enabled'] );
+        $generate_lead_enabled = ! empty( $_POST['generate_lead_enabled'] );
+        $phone_validation_enabled = ! empty( $_POST['phone_validation_enabled'] );
         $lead_currency = isset( $_POST['lead_currency'] ) ? sanitize_text_field( wp_unslash( $_POST['lead_currency'] ) ) : 'CAD';
-        $lead_value = isset( $_POST['lead_value'] ) ? floatval( $_POST['lead_value'] ) : 100;
+        $lead_value = isset( $_POST['lead_value'] ) ? floatval( sanitize_text_field( wp_unslash( $_POST['lead_value'] ) ) ) : 100;
 
         // Validate currency (ensure it's one of the allowed values)
         $allowed_currencies = array( 'CAD', 'USD', 'EUR', 'GBP', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK' );
-        if ( ! in_array( $lead_currency, $allowed_currencies ) ) {
+        if ( ! in_array( $lead_currency, $allowed_currencies, true ) ) {
             $lead_currency = 'CAD';
         }
 
@@ -589,7 +528,7 @@ class CUFT_Admin {
         // Strip protocol/path if a user pastes a full URL - we only want the host.
         $collector_host = preg_replace( '#^https?://#i', '', $collector_host );
         $collector_host = trim( $collector_host, "/ \t\n\r\0\x0B" );
-        $sgtm_enabled = isset( $_POST['sgtm_enabled'] ) && $_POST['sgtm_enabled'];
+        $sgtm_enabled = ! empty( $_POST['sgtm_enabled'] );
         $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
 
         // Remove trailing slash from sGTM URL
@@ -702,19 +641,6 @@ class CUFT_Admin {
     }
     
     /**
-     * DEPRECATED: render_github_status() - Removed in Feature 008
-     *
-     * The GitHub Auto-Updates UI has been removed as part of Feature 008.
-     * Plugin now uses WordPress native update system via plugins_api filter.
-     *
-     * @deprecated 3.17.1 Use WordPress native update UI (Plugins page) instead
-     */
-    private function render_github_status() {
-        // Method deprecated - no longer renders UI
-        // Updates now handled by WordPress native system in Feature 008
-    }
-    
-    /**
      * Render UTM tracking status
      */
     private function render_utm_status() {
@@ -807,9 +733,11 @@ class CUFT_Admin {
         <?php
         
         // Handle log clearing
-        if ( isset( $_POST['cuft_clear_logs'] ) && wp_verify_nonce( $_POST['cuft_clear_nonce'], 'cuft_clear_logs' ) ) {
+        if ( isset( $_POST['cuft_clear_logs'], $_POST['cuft_clear_nonce'] )
+            && current_user_can( 'manage_options' )
+            && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['cuft_clear_nonce'] ) ), 'cuft_clear_logs' ) ) {
             CUFT_Logger::clear_logs();
-            echo '<div class="notice notice-success is-dismissible"><p>Debug logs cleared.</p></div>';
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Debug logs cleared.', 'choice-universal-form-tracker' ) . '</p></div>';
         }
     }
     
@@ -830,41 +758,56 @@ class CUFT_Admin {
      * Enqueue admin scripts
      */
     public function enqueue_admin_scripts( $hook ) {
-        // Always enqueue admin CSS for the notice styling
-        if ( function_exists( 'wp_enqueue_style' ) ) {
-            wp_enqueue_style( 
-                'cuft-admin', 
-                CUFT_URL . '/assets/cuft-admin.css', 
-                array(), 
-                CUFT_VERSION 
-            );
-        }
-        
-        // Only enqueue JS on the settings page
-        if ( $hook !== 'settings_page_choice-universal-form-tracker' ) {
-            return;
-        }
-        
-        // Check if WordPress functions exist before enqueuing
-        if ( function_exists( 'wp_enqueue_script' ) && function_exists( 'wp_localize_script' ) ) {
-            wp_enqueue_script(
+        $settings_hook = 'settings_page_choice-universal-form-tracker';
+        $click_hook    = 'toplevel_page_cuft-click-tracking';
+
+        // Plugin screens use the admin stylesheet. The GitHub build also styles
+        // its updater notices with it on other screens, so it keeps loading it
+        // everywhere; the WordPress.org build (no updater) loads it only here.
+        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) || Choice_Universal_Form_Tracker::has_updater() ) {
+            wp_enqueue_style(
                 'cuft-admin',
-                CUFT_URL . '/assets/cuft-admin.js',
-                array( 'jquery' ),
-                CUFT_VERSION,
-                true
+                CUFT_URL . '/assets/cuft-admin.css',
+                array(),
+                CUFT_VERSION
             );
-        } else {
-            return; // Exit early if WordPress functions aren't available
         }
 
+        // Dismiss handler for the informational notice rendered by admin_notices().
+        if ( $this->should_show_active_notice() ) {
+            wp_register_script( 'cuft-admin-notice', false, array( 'jquery' ), CUFT_VERSION, true );
+            wp_enqueue_script( 'cuft-admin-notice' );
+            wp_add_inline_script(
+                'cuft-admin-notice',
+                'jQuery(function($){$(document).on("click",".notice[data-dismiss-action=\"cuft-dismiss-notice\"] .notice-dismiss",function(){$.post(ajaxurl,{action:"cuft_dismiss_notice",nonce:' . wp_json_encode( wp_create_nonce( 'cuft_dismiss_notice' ) ) . '});});});'
+            );
+        }
+
+        // The admin script serves the settings page and the Click Tracking page.
+        if ( $hook !== $settings_hook && $hook !== $click_hook ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'cuft-admin',
+            CUFT_URL . '/assets/cuft-admin.js',
+            array( 'jquery' ),
+            CUFT_VERSION,
+            true
+        );
+
         wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'cuft_admin' ),
+            'ajax_url'        => admin_url( 'admin-ajax.php' ),
+            'nonce'           => wp_create_nonce( 'cuft_admin' ),
+            'register_nonce'  => wp_create_nonce( 'cuft_token_register' ),
             'current_version' => CUFT_VERSION,
-            'plugin_url' => CUFT_URL,
-            'admin_url' => admin_url( 'options-general.php?page=choice-universal-form-tracker' )
-        ));
+            'plugin_url'      => CUFT_URL,
+            'admin_url'       => admin_url( 'options-general.php?page=choice-universal-form-tracker' ),
+        ) );
+
+        if ( $hook !== $settings_hook ) {
+            return;
+        }
 
         // Enqueue Force Update assets (Feature 009 - v3.19.0). Skipped in the
         // WordPress.org build, which ships neither the tab nor its handlers.
@@ -898,11 +841,11 @@ class CUFT_Admin {
      */
     public function ajax_test_sgtm() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
-        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
+        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
         $gtm_id = get_option( 'cuft_gtm_id', '' );
 
         if ( empty( $sgtm_url ) ) {
@@ -955,12 +898,12 @@ class CUFT_Admin {
      */
     public function ajax_save_sgtm_config() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
-        $enabled = isset( $_POST['enabled'] ) ? (bool) $_POST['enabled'] : false;
-        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( $_POST['sgtm_url'] ) : '';
+        $enabled = ! empty( $_POST['enabled'] );
+        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
 
         // Validate URL if provided
         if ( $enabled && ! empty( $sgtm_url ) ) {
@@ -1015,7 +958,7 @@ class CUFT_Admin {
      */
     public function ajax_manual_health_check() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -1057,7 +1000,7 @@ class CUFT_Admin {
      */
     public function ajax_get_sgtm_status() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -1112,12 +1055,12 @@ class CUFT_Admin {
      */
     public function ajax_download_gtm_template() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
         // Get template type
-        $template_type = isset( $_POST['template'] ) ? sanitize_text_field( $_POST['template'] ) : '';
+        $template_type = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
         
         if ( empty( $template_type ) || ! in_array( $template_type, array( 'web', 'server' ), true ) ) {
             wp_send_json_error( array( 'message' => 'Invalid template type' ) );
@@ -1356,213 +1299,6 @@ class CUFT_Admin {
     }
 
     /**
-     * AJAX handler for test form submission - DEPRECATED
-     * Use dedicated test page instead: /test-forms/
-     */
-    public function ajax_test_form_submit() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
-        }
-
-        $framework = isset( $_POST['framework'] ) ? sanitize_text_field( $_POST['framework'] ) : '';
-
-        if ( empty( $framework ) ) {
-            wp_send_json_error( array( 'message' => 'No framework specified' ) );
-        }
-
-        // Always use WordPress admin email
-        $email = get_option( 'admin_email' );
-
-        if ( empty( $email ) || ! is_email( $email ) ) {
-            wp_send_json_error( array( 'message' => 'WordPress admin email not configured properly' ) );
-        }
-
-        // Test phone number
-        $phone = '1-555-555-5555';
-
-        // Get framework display name
-        $framework_names = CUFT_Form_Detector::get_framework_names();
-        $framework_name = isset( $framework_names[ $framework ] ) ? $framework_names[ $framework ] : $framework;
-
-        // Get GTM ID
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
-
-        // Generate realistic form_id based on framework
-        $form_id_map = array(
-            'avada' => 'fusion_form_1',
-            'elementor' => 'elementor-form-widget-7a2c4f9',
-            'contact_form_7' => 'wpcf7-f123-p456-o1',
-            'ninja_forms' => 'nf-form-3',
-            'gravity_forms' => 'gform_1'
-        );
-        $form_id = isset( $form_id_map[ $framework ] ) ? $form_id_map[ $framework ] : 'test_form_1';
-
-        // Prepare tracking data for JavaScript to use
-        // This data will be stored in sessionStorage and used by production tracking code
-        $tracking_data = array(
-            'click_id' => 'test_click_' . uniqid(),
-            'gclid' => 'test_gclid_' . uniqid(),
-            'utm_source' => 'cuft_test',
-            'utm_medium' => 'test_form',
-            'utm_campaign' => 'test_campaign_' . $framework,
-            'utm_term' => 'test_term',
-            'utm_content' => 'test_content'
-        );
-
-        // Add real UTM data if available (but preserve our test click IDs)
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        if ( ! empty( $utm_data ) ) {
-            // Merge real UTM data but keep our test click IDs
-            $preserve_fields = array(
-                'click_id' => $tracking_data['click_id'],
-                'gclid' => $tracking_data['gclid'],
-                'utm_campaign' => $tracking_data['utm_campaign']
-            );
-            $tracking_data = array_merge( $tracking_data, $utm_data, $preserve_fields );
-        }
-
-        // Prepare test data for email and logging (not for dataLayer push)
-        $test_data_for_email = array(
-            'event' => 'form_submit',
-            'user_email' => $email,
-            'user_phone' => $phone,
-            'form_type' => $framework,
-            'form_id' => $form_id,
-            'form_name' => 'Test ' . $framework_name . ' Form',
-            'timestamp' => current_time( 'mysql' )
-        );
-        $test_data_for_email = array_merge( $test_data_for_email, $tracking_data );
-
-        // Log the test submission
-        CUFT_Logger::log( 'info', 'Test form submission triggered', $test_data_for_email );
-
-        // Generate a tracking ID for this test
-        $tracking_id = 'test_' . wp_generate_password( 8, false );
-
-        // Send email notification to admin
-        $email_sent = $this->send_test_form_email( $email, $framework_name, $tracking_id, $test_data_for_email );
-
-        // If GTM is configured, we can't directly verify if it was pushed since it happens client-side
-        // But we can verify our tracking script is loaded
-        $tracking_active = ! empty( $gtm_id ) && $this->is_valid_gtm_id( $gtm_id );
-
-        // Return minimal response - JavaScript will handle the actual tracking
-        $response = array(
-            'success' => true,
-            'message' => 'Test form submission ready - JavaScript will handle tracking',
-            'framework' => $framework,
-            'framework_name' => $framework_name,
-            'form_id' => $form_id,
-            'form_name' => 'Test ' . $framework_name . ' Form',
-            'tracking_data' => $tracking_data,
-            'test_email' => $email,
-            'test_phone' => $phone,
-            'gtm_active' => $tracking_active,
-            'tracking_id' => $tracking_id,
-            'email_sent' => $email_sent
-        );
-
-        // Store test submission for verification
-        set_transient( 'cuft_test_' . $tracking_id, $test_data_for_email, 300 ); // 5 minutes
-
-        wp_send_json_success( $response );
-    }
-
-    /**
-     * Send test form email notification
-     */
-    private function send_test_form_email( $to, $framework_name, $tracking_id, $test_data ) {
-        $site_name = get_bloginfo( 'name' );
-        $site_url = home_url();
-
-        $subject = sprintf( '[%s] Test Form Submission - %s', $site_name, $framework_name );
-
-        $message = "You have received a test form submission from the Choice Universal Form Tracker plugin.\n\n";
-        $message .= "==================================================\n";
-        $message .= "FRAMEWORK: {$framework_name}\n";
-        $message .= "TRACKING ID: {$tracking_id}\n";
-        $message .= "==================================================\n\n";
-
-        $message .= "EVENTS TRIGGERED:\n";
-        $message .= "--------------------------------------------------\n";
-        $message .= "✓ form_submit (always fires)\n";
-        $message .= "✓ generate_lead (email + phone + click_id present)\n\n";
-
-        $message .= "FORM DATA:\n";
-        $message .= "--------------------------------------------------\n";
-        $message .= "Email: {$test_data['user_email']}\n";
-        $message .= "Phone: {$test_data['user_phone']}\n";
-        $message .= "Click ID: {$test_data['click_id']}\n";
-        $message .= "GCLID: {$test_data['gclid']}\n";
-        $message .= "Form ID: {$test_data['form_id']}\n";
-        $message .= "Timestamp: {$test_data['timestamp']}\n";
-        $message .= "\n";
-
-        // Add UTM data if present
-        if ( ! empty( $test_data['utm_source'] ) || ! empty( $test_data['utm_medium'] ) || ! empty( $test_data['utm_campaign'] ) ) {
-            $message .= "UTM TRACKING DATA:\n";
-            $message .= "--------------------------------------------------\n";
-            if ( ! empty( $test_data['utm_source'] ) ) {
-                $message .= "Source: {$test_data['utm_source']}\n";
-            }
-            if ( ! empty( $test_data['utm_medium'] ) ) {
-                $message .= "Medium: {$test_data['utm_medium']}\n";
-            }
-            if ( ! empty( $test_data['utm_campaign'] ) ) {
-                $message .= "Campaign: {$test_data['utm_campaign']}\n";
-            }
-            if ( ! empty( $test_data['utm_term'] ) ) {
-                $message .= "Term: {$test_data['utm_term']}\n";
-            }
-            if ( ! empty( $test_data['utm_content'] ) ) {
-                $message .= "Content: {$test_data['utm_content']}\n";
-            }
-            $message .= "\n";
-        }
-
-        // Add GTM status
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
-        $gtm_status = ! empty( $gtm_id ) && $this->is_valid_gtm_id( $gtm_id ) ? 'Active (ID: ' . $gtm_id . ')' : 'Not configured';
-
-        $message .= "TRACKING STATUS:\n";
-        $message .= "--------------------------------------------------\n";
-        $message .= "GTM Status: {$gtm_status}\n";
-        $message .= "Debug Mode: " . ( get_option( 'cuft_debug_enabled', false ) ? 'Enabled' : 'Disabled' ) . "\n";
-        $message .= "\n";
-
-        $message .= "==================================================\n";
-        $message .= "This is a test submission from the Choice Universal\n";
-        $message .= "Form Tracker plugin to verify form tracking is\n";
-        $message .= "working correctly.\n";
-        $message .= "\n";
-        $message .= "Site: {$site_url}\n";
-        $message .= "Admin: {$site_url}/wp-admin/options-general.php?page=choice-universal-form-tracker\n";
-
-        $headers = array(
-            'Content-Type: text/plain; charset=UTF-8',
-            'From: ' . $site_name . ' <' . $to . '>',
-            'Reply-To: ' . $to
-        );
-
-        // Send the email
-        $sent = wp_mail( $to, $subject, $message, $headers );
-
-        // Log the email send attempt
-        CUFT_Logger::log(
-            $sent ? 'info' : 'error',
-            $sent ? 'Test form email sent successfully' : 'Failed to send test form email',
-            array(
-                'to' => $to,
-                'framework' => $framework_name,
-                'tracking_id' => $tracking_id
-            )
-        );
-
-        return $sent;
-    }
-
-    /**
      * Render setup progress indicator
      */
     private function render_setup_progress() {
@@ -1598,8 +1334,8 @@ class CUFT_Admin {
                         <span><?php echo $steps['framework_detected'] ? '✓' : '○'; ?></span>
                         Framework Detected
                     </div>
-                    <div class="cuft-progress-step <?php echo $steps['testing_complete'] ? 'completed' : ''; ?>">
-                        <span><?php echo $steps['testing_complete'] ? '✓' : '○'; ?></span>
+                    <div class="cuft-progress-step <?php echo ! empty( $steps['testing_complete'] ) ? 'completed' : ''; ?>">
+                        <span><?php echo ! empty( $steps['testing_complete'] ) ? '✓' : '○'; ?></span>
                         Testing Complete
                     </div>
                 </div>
@@ -1641,7 +1377,7 @@ class CUFT_Admin {
         }
 
         // Handle POST actions
-        if ( isset( $_POST['cuft_click_action'] ) && wp_verify_nonce( $_POST['cuft_click_nonce'], 'cuft_click_tracking' ) ) {
+        if ( isset( $_POST['cuft_click_action'], $_POST['cuft_click_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['cuft_click_nonce'] ) ), 'cuft_click_tracking' ) ) {
             $this->handle_click_tracking_actions();
         }
 
@@ -1654,23 +1390,37 @@ class CUFT_Admin {
     }
 
     /**
+     * Read a GET display parameter (filter, sort, page number) for the Click
+     * Tracking screen, unslashed and sanitized. Only called on paths gated by
+     * manage_options.
+     *
+     * @param string $key     Query arg name.
+     * @param string $default Value when the arg is absent.
+     * @return string
+     */
+    private function get_query_param( $key, $default = '' ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter/sort/page value on screens gated by manage_options; export callers verify their nonce first.
+        return isset( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $key ] ) ) : $default;
+    }
+
+    /**
      * Render click tracking tab
      */
     private function render_click_tracking_tab() {
         // Handle pagination
-        $current_page = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+        $current_page = max( 1, absint( $this->get_query_param( 'paged', '1' ) ) );
         $per_page = 20;
         $offset = ( $current_page - 1 ) * $per_page;
         
         // Handle filters
-        $filter_qualified = isset( $_GET['filter_qualified'] ) ? sanitize_text_field( $_GET['filter_qualified'] ) : '';
-        $filter_event_type = isset( $_GET['filter_event_type'] ) ? sanitize_text_field( $_GET['filter_event_type'] ) : '';
-        $filter_date_from = isset( $_GET['filter_date_from'] ) ? sanitize_text_field( $_GET['filter_date_from'] ) : '';
-        $filter_date_to = isset( $_GET['filter_date_to'] ) ? sanitize_text_field( $_GET['filter_date_to'] ) : '';
-        $filter_ip_search = isset( $_GET['filter_ip_search'] ) ? sanitize_text_field( $_GET['filter_ip_search'] ) : '';
+        $filter_qualified = $this->get_query_param( 'filter_qualified' );
+        $filter_event_type = $this->get_query_param( 'filter_event_type' );
+        $filter_date_from = $this->get_query_param( 'filter_date_from' );
+        $filter_date_to = $this->get_query_param( 'filter_date_to' );
+        $filter_ip_search = $this->get_query_param( 'filter_ip_search' );
         // Default to showing only clicks with events; submit the filter form with "All" to see everything
-        $filter_has_events = isset( $_GET['filter_has_events'] ) ? sanitize_text_field( $_GET['filter_has_events'] ) : '1';
-        $sort_by = isset( $_GET['sort_by'] ) ? sanitize_text_field( $_GET['sort_by'] ) : 'date_created';
+        $filter_has_events = $this->get_query_param( 'filter_has_events', '1' );
+        $sort_by = $this->get_query_param( 'sort_by', 'date_created' );
 
         $args = array(
             'limit' => $per_page,
@@ -1750,7 +1500,8 @@ class CUFT_Admin {
         // Get a real click_id from the database for the example
         global $wpdb;
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
-        $sample_click_id = $wpdb->get_var( "SELECT click_id FROM {$table_name} ORDER BY date_created DESC LIMIT 1" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and the newest row is per-request admin display data.
+        $sample_click_id = $wpdb->get_var( $wpdb->prepare( 'SELECT click_id FROM %i ORDER BY date_created DESC LIMIT 1', $table_name ) );
         $has_data = ! empty( $sample_click_id );
 
         // Use placeholder for display if no data exists
@@ -1773,7 +1524,7 @@ class CUFT_Admin {
 
             <div style="margin-bottom: 15px;">
                 <label><strong>Webhook Base URL:</strong></label><br>
-                <input type="text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly class="regular-text" onclick="this.select();" style="font-family: monospace;" />
+                <input type="text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly class="regular-text cuft-select-on-click" style="font-family: monospace;" />
                 <p class="description">Use with action=cuft_webhook parameter</p>
             </div>
 
@@ -1813,41 +1564,13 @@ class CUFT_Admin {
                             <?php endif; ?>
                         </p>
                     </div>
-                    <button type="button" class="button button-secondary" onclick="testWebhook()" style="margin-top: 0;">
+                    <button type="button" class="button button-secondary" id="cuft-test-webhook" style="margin-top: 0;">
                         🧪 Test Endpoint
                     </button>
                 </div>
                 <div id="webhook-test-result" style="margin-top: 10px;"></div>
             </div>
 
-            <script>
-            function testWebhook() {
-                var resultDiv = document.getElementById('webhook-test-result');
-                var clickId = document.getElementById('test-click-id').value.trim();
-
-                if (!clickId) {
-                    resultDiv.innerHTML = '<span style="color: #dc3545;">❌ Please enter a click_id to test</span>';
-                    return;
-                }
-
-                resultDiv.innerHTML = '<em>Testing webhook...</em>';
-
-                var testUrl = '<?php echo esc_js( $webhook_url ); ?>?action=cuft_webhook&click_id=' + encodeURIComponent(clickId) + '&qualified=1&score=8';
-
-                fetch(testUrl)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            resultDiv.innerHTML = '<span style="color: #28a745;">✅ Webhook test successful! Click ID "' + clickId + '" updated.</span>';
-                        } else {
-                            resultDiv.innerHTML = '<span style="color: #dc3545;">❌ Webhook test failed: ' + (data.data ? data.data.message : 'Unknown error') + '</span>';
-                        }
-                    })
-                    .catch(error => {
-                        resultDiv.innerHTML = '<span style="color: #dc3545;">❌ Webhook test failed: ' + error.message + '</span>';
-                    });
-            }
-            </script>
             <?php if ( ! $has_data ): ?>
             <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 4px;">
                 <strong>⚠️ No Click Data Available</strong><br>
@@ -1954,15 +1677,15 @@ class CUFT_Admin {
         ?>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
             <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 24px; font-weight: bold; color: #1976d2;"><?php echo number_format( $total_clicks ); ?></div>
+                <div style="font-size: 24px; font-weight: bold; color: #1976d2;"><?php echo esc_html( number_format( $total_clicks ) ); ?></div>
                 <div style="color: #666;">Total Clicks</div>
             </div>
             <div style="background: #e8f5e8; padding: 15px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 24px; font-weight: bold; color: #388e3c;"><?php echo number_format( $qualified_clicks ); ?></div>
+                <div style="font-size: 24px; font-weight: bold; color: #388e3c;"><?php echo esc_html( number_format( $qualified_clicks ) ); ?></div>
                 <div style="color: #666;">Qualified Clicks</div>
             </div>
             <div style="background: #fff3e0; padding: 15px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 24px; font-weight: bold; color: #f57c00;"><?php echo number_format( $unqualified_clicks ); ?></div>
+                <div style="font-size: 24px; font-weight: bold; color: #f57c00;"><?php echo esc_html( number_format( $unqualified_clicks ) ); ?></div>
                 <div style="color: #666;">Unqualified Clicks</div>
             </div>
             <div style="background: #f3e5f5; padding: 15px; border-radius: 6px; text-align: center;">
@@ -2005,7 +1728,7 @@ class CUFT_Admin {
                                 <td style="max-width: 200px;">
                                     <span
                                         class="cuft-click-id-copy"
-                                        onclick="copyClickIdToTest('<?php echo esc_js( $click->click_id ); ?>')"
+                                        data-click-id="<?php echo esc_attr( $click->click_id ); ?>"
                                         style="cursor: pointer; display: inline-block; max-width: 100%;"
                                         title="<?php echo esc_attr( $click->click_id ); ?> (click to copy)"
                                     >
@@ -2059,7 +1782,7 @@ class CUFT_Admin {
 
                                         if ( ! empty( $hidden_events ) ) :
                                             ?>
-                                            <small style="color: #666;">+<?php echo count( $hidden_events ); ?> more</small>
+                                            <small style="color: #666;">+<?php echo esc_html( count( $hidden_events ) ); ?> more</small>
                                         <?php endif;
                                     else: ?>
                                         <span style="color: #999;">No events</span>
@@ -2067,7 +1790,7 @@ class CUFT_Admin {
                                 </td>
                                 <td>
                                     <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background: <?php echo $click->qualified ? '#28a745' : '#6c757d'; ?>;">
-                                        <?php echo $click->qualified ? 'YES' : 'NO'; ?>
+                                        <?php echo esc_html( $click->qualified ? 'YES' : 'NO' ); ?>
                                     </span>
                                 </td>
                                 <td>
@@ -2088,7 +1811,7 @@ class CUFT_Admin {
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <button type="button" class="button button-small" onclick="editClick('<?php echo esc_js( $click->click_id ); ?>', <?php echo (int) $click->qualified; ?>, <?php echo (int) $click->score; ?>)">
+                                    <button type="button" class="button button-small cuft-edit-click" data-click-id="<?php echo esc_attr( $click->click_id ); ?>" data-qualified="<?php echo (int) $click->qualified; ?>" data-score="<?php echo (int) $click->score; ?>">
                                         ✏️ Edit
                                     </button>
                                 </td>
@@ -2125,77 +1848,14 @@ class CUFT_Admin {
                     </table>
                     
                     <div style="text-align: right; margin-top: 20px;">
-                        <button type="button" class="button" onclick="closeEditModal()">Cancel</button>
+                        <button type="button" class="button cuft-close-edit-modal">Cancel</button>
                         <input type="submit" value="Update" class="button button-primary" />
                     </div>
                 </form>
             </div>
         </div>
         
-        <style>
-        .cuft-click-tracking table.widefat {
-            table-layout: fixed;
-            width: 100%;
-        }
-        .cuft-click-tracking table.widefat th:nth-child(1),
-        .cuft-click-tracking table.widefat td:nth-child(1) {
-            width: 200px;
-        }
-        .cuft-click-id-copy:hover {
-            background: #f0f6ff;
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-        .cuft-click-id-copy:hover strong {
-            color: #0073aa;
-        }
-        .cuft-click-id-copy:active {
-            background: #e0f0ff;
-        }
-        </style>
-
-        <script>
-        function copyClickIdToTest(clickId) {
-            var testInput = document.getElementById('test-click-id');
-            if (testInput) {
-                testInput.value = clickId;
-                testInput.focus();
-
-                // Visual feedback
-                testInput.style.background = '#e7f3ff';
-                setTimeout(function() {
-                    testInput.style.background = '';
-                }, 500);
-
-                // Scroll to webhook section if not visible
-                var webhookSection = testInput.closest('.cuft-click-tracking');
-                if (webhookSection) {
-                    var rect = testInput.getBoundingClientRect();
-                    if (rect.top < 0 || rect.bottom > window.innerHeight) {
-                        testInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
-            }
-        }
-
-        function editClick(clickId, qualified, score) {
-            document.getElementById('edit-click-id').value = clickId;
-            document.getElementById('edit-qualified-' + (qualified ? 'yes' : 'no')).checked = true;
-            document.getElementById('edit-score').value = score;
-            document.getElementById('edit-click-modal').style.display = 'block';
-        }
-
-        function closeEditModal() {
-            document.getElementById('edit-click-modal').style.display = 'none';
-        }
-        
-        // Close modal when clicking outside
-        document.getElementById('edit-click-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEditModal();
-            }
-        });
-        </script>
+        <?php // Table styles live in assets/cuft-admin.css; copy, edit and modal handlers in assets/cuft-admin.js. ?>
         <?php
     }
     
@@ -2212,8 +1872,9 @@ class CUFT_Admin {
         // Preserve current filters
         $filter_params = array();
         foreach ( array( 'filter_qualified', 'filter_event_type', 'filter_has_events', 'filter_date_from', 'filter_date_to', 'sort_by' ) as $param ) {
-            if ( isset( $_GET[ $param ] ) && $_GET[ $param ] !== '' ) {
-                $filter_params[ $param ] = sanitize_text_field( $_GET[ $param ] );
+            $value = $this->get_query_param( $param );
+            if ( '' !== $value ) {
+                $filter_params[ $param ] = $value;
             }
         }
         
@@ -2239,15 +1900,19 @@ class CUFT_Admin {
      */
     private function handle_click_tracking_actions() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Insufficient permissions' );
+            wp_die( esc_html__( 'Insufficient permissions', 'choice-universal-form-tracker' ) );
         }
+
+        // The caller already verified this nonce; checking it here keeps the
+        // check next to the code that trusts $_POST.
+        check_admin_referer( 'cuft_click_tracking', 'cuft_click_nonce' );
         
-        $action = isset( $_POST['cuft_click_action'] ) ? sanitize_text_field( $_POST['cuft_click_action'] ) : '';
+        $action = isset( $_POST['cuft_click_action'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_click_action'] ) ) : '';
         
         if ( $action === 'update_status' ) {
-            $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( $_POST['click_id'] ) : '';
-            $qualified = isset( $_POST['qualified'] ) ? (int) $_POST['qualified'] : null;
-            $score = isset( $_POST['score'] ) ? (int) $_POST['score'] : null;
+            $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( wp_unslash( $_POST['click_id'] ) ) : '';
+            $qualified = isset( $_POST['qualified'] ) ? (int) sanitize_text_field( wp_unslash( $_POST['qualified'] ) ) : null;
+            $score = isset( $_POST['score'] ) ? (int) sanitize_text_field( wp_unslash( $_POST['score'] ) ) : null;
             
             if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
                 $result = CUFT_Click_Tracker::update_click_status( $click_id, $qualified, $score );
@@ -2268,30 +1933,39 @@ class CUFT_Admin {
      */
     private function handle_csv_export() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Insufficient permissions' );
+            wp_die( esc_html__( 'Insufficient permissions', 'choice-universal-form-tracker' ) );
         }
+
+        // handle_export_actions() verified this nonce already; repeat it next
+        // to the code that reads the request.
+        check_admin_referer( 'cuft_export_csv', 'nonce' );
         
         if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
-            wp_die( 'Click tracker not available' );
+            wp_die( esc_html__( 'Click tracker not available', 'choice-universal-form-tracker' ) );
         }
         
         // Get filter parameters
         $args = array();
 
-        if ( isset( $_GET['filter_qualified'] ) && $_GET['filter_qualified'] !== '' ) {
-            $args['qualified'] = (int) $_GET['filter_qualified'];
+        $filter_qualified = $this->get_query_param( 'filter_qualified' );
+        if ( '' !== $filter_qualified ) {
+            $args['qualified'] = (int) $filter_qualified;
         }
-        if ( ! empty( $_GET['filter_event_type'] ) ) {
-            $args['event_type'] = sanitize_text_field( $_GET['filter_event_type'] );
+        $filter_event_type = $this->get_query_param( 'filter_event_type' );
+        if ( ! empty( $filter_event_type ) ) {
+            $args['event_type'] = $filter_event_type;
         }
-        if ( ! empty( $_GET['filter_date_from'] ) ) {
-            $args['date_from'] = sanitize_text_field( $_GET['filter_date_from'] ) . ' 00:00:00';
+        $filter_date_from = $this->get_query_param( 'filter_date_from' );
+        if ( ! empty( $filter_date_from ) ) {
+            $args['date_from'] = $filter_date_from . ' 00:00:00';
         }
-        if ( ! empty( $_GET['filter_date_to'] ) ) {
-            $args['date_to'] = sanitize_text_field( $_GET['filter_date_to'] ) . ' 23:59:59';
+        $filter_date_to = $this->get_query_param( 'filter_date_to' );
+        if ( ! empty( $filter_date_to ) ) {
+            $args['date_to'] = $filter_date_to . ' 23:59:59';
         }
-        if ( ! empty( $_GET['sort_by'] ) ) {
-            $args['sort_by'] = sanitize_text_field( $_GET['sort_by'] );
+        $sort_by = $this->get_query_param( 'sort_by' );
+        if ( ! empty( $sort_by ) ) {
+            $args['sort_by'] = $sort_by;
         }
         
         CUFT_Click_Tracker::export_csv( $args );
@@ -2302,24 +1976,31 @@ class CUFT_Admin {
      */
     private function handle_google_ads_oci_export() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Insufficient permissions' );
+            wp_die( esc_html__( 'Insufficient permissions', 'choice-universal-form-tracker' ) );
         }
 
+        // handle_export_actions() verified this nonce already; repeat it next
+        // to the code that reads the request.
+        check_admin_referer( 'cuft_export_google_ads_oci', 'nonce' );
+
         if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
-            wp_die( 'Click tracker not available' );
+            wp_die( esc_html__( 'Click tracker not available', 'choice-universal-form-tracker' ) );
         }
 
         // Get filter parameters (same as regular CSV export)
         $args = array();
 
-        if ( isset( $_GET['filter_qualified'] ) && $_GET['filter_qualified'] !== '' ) {
-            $args['qualified'] = (int) $_GET['filter_qualified'];
+        $filter_qualified = $this->get_query_param( 'filter_qualified' );
+        if ( '' !== $filter_qualified ) {
+            $args['qualified'] = (int) $filter_qualified;
         }
-        if ( ! empty( $_GET['filter_date_from'] ) ) {
-            $args['date_from'] = sanitize_text_field( $_GET['filter_date_from'] ) . ' 00:00:00';
+        $filter_date_from = $this->get_query_param( 'filter_date_from' );
+        if ( ! empty( $filter_date_from ) ) {
+            $args['date_from'] = $filter_date_from . ' 00:00:00';
         }
-        if ( ! empty( $_GET['filter_date_to'] ) ) {
-            $args['date_to'] = sanitize_text_field( $_GET['filter_date_to'] ) . ' 23:59:59';
+        $filter_date_to = $this->get_query_param( 'filter_date_to' );
+        if ( ! empty( $filter_date_to ) ) {
+            $args['date_to'] = $filter_date_to . ' 23:59:59';
         }
 
         CUFT_Click_Tracker::export_google_ads_oci_csv( $args );
@@ -2330,7 +2011,7 @@ class CUFT_Admin {
      */
     private function regenerate_webhook_key() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Insufficient permissions' );
+            wp_die( esc_html__( 'Insufficient permissions', 'choice-universal-form-tracker' ) );
         }
         
         $new_key = wp_generate_password( 32, false );
@@ -2340,7 +2021,7 @@ class CUFT_Admin {
         settings_errors( 'cuft_messages' );
         
         // Redirect back to click tracking tab
-        wp_redirect( admin_url( 'admin.php?page=cuft-click-tracking' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=cuft-click-tracking' ) );
         exit;
     }
     
@@ -2349,7 +2030,7 @@ class CUFT_Admin {
      */
     public function ajax_dismiss_notice() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_dismiss_notice' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_dismiss_notice' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -2365,12 +2046,12 @@ class CUFT_Admin {
      */
     public function ajax_dismiss_update_notice() {
         // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_dismiss_update_notice' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_dismiss_update_notice' ) || ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
         // Get version from request
-        $version = isset( $_POST['version'] ) ? sanitize_text_field( $_POST['version'] ) : '';
+        $version = isset( $_POST['version'] ) ? sanitize_text_field( wp_unslash( $_POST['version'] ) ) : '';
 
         if ( empty( $version ) ) {
             wp_send_json_error( array( 'message' => 'Version not specified' ) );
@@ -2386,84 +2067,116 @@ class CUFT_Admin {
 
 
     /**
-     * Display admin notices
+     * Screen IDs of the plugin's own admin pages: the settings page, the
+     * Click Tracking page, and the Testing Dashboard.
+     *
+     * @return string[]
+     */
+    private function get_plugin_screen_ids() {
+        return array(
+            'settings_page_choice-universal-form-tracker',
+            'toplevel_page_cuft-click-tracking',
+            'settings_page_cuft-testing-dashboard',
+        );
+    }
+
+    /**
+     * Current admin screen ID, or an empty string before the screen is set.
+     *
+     * @return string
+     */
+    private function get_current_screen_id() {
+        if ( ! function_exists( 'get_current_screen' ) ) {
+            return '';
+        }
+        $screen = get_current_screen();
+        return $screen ? (string) $screen->id : '';
+    }
+
+    /**
+     * Whether the informational "tracker is active" notice should render on
+     * this request: plugin screens only, valid GTM ID, not dismissed by this user.
+     *
+     * @return bool
+     */
+    private function should_show_active_notice() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return false;
+        }
+        if ( ! in_array( $this->get_current_screen_id(), $this->get_plugin_screen_ids(), true ) ) {
+            return false;
+        }
+        $gtm_id = get_option( 'cuft_gtm_id' );
+        if ( ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id ) ) {
+            return false;
+        }
+        return ! get_user_meta( get_current_user_id(), 'cuft_notice_dismissed', true );
+    }
+
+    /**
+     * Display admin notices.
+     *
+     * Scope, so nothing nags site-wide:
+     * - Missing or invalid GTM ID (a setup problem): the Plugins screen and the
+     *   plugin's own screens other than the settings page, which carries the
+     *   form and its own setup progress box.
+     * - "Tracker is active" (informational): the plugin's own screens only,
+     *   dismissible, and dismissal persists per user in the
+     *   cuft_notice_dismissed user meta.
+     * - Custom GTM server switched to fallback (operational warning): the
+     *   Plugins screen and the plugin's own screens.
+     * - Custom GTM server recovered (informational): the plugin's own screens.
      */
     public function admin_notices() {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
 
-        // Don't show on the plugin's own settings page
-        $current_screen = get_current_screen();
-        if ( $current_screen && $current_screen->id === 'settings_page_choice-universal-form-tracker' ) {
+        $screen_id      = $this->get_current_screen_id();
+        $is_plugin_page = in_array( $screen_id, $this->get_plugin_screen_ids(), true );
+        $is_plugins     = ( 'plugins' === $screen_id );
+
+        if ( ! $is_plugin_page && ! $is_plugins ) {
             return;
         }
 
         $gtm_id = get_option( 'cuft_gtm_id' );
-        $detected_count = count( array_filter( CUFT_Form_Detector::get_detected_frameworks() ) );
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
 
         // Check if GTM ID is missing or invalid
         $gtm_missing = ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id );
 
         if ( $gtm_missing ) {
-            // Show persistent warning notice for missing GTM ID (not dismissible)
-            echo '<div class="notice notice-warning">';
-            echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
-            echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
-            echo '</div>';
-        } else {
-            // Check if success notice has been dismissed by this user
-            $user_id = get_current_user_id();
-            $dismissed = get_user_meta( $user_id, 'cuft_notice_dismissed', true );
-
-            if ( ! $dismissed ) {
-                // Show dismissible success notice
-                echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
-                echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . esc_html( $detected_count ) . ' form framework(s) detected. ';
-                echo 'GTM container <code>' . esc_html( $gtm_id ) . '</code> is configured. ';
-                echo '<a href="' . esc_url( $settings_url ) . '">Settings</a></p>';
+            if ( 'settings_page_choice-universal-form-tracker' !== $screen_id ) {
+                echo '<div class="notice notice-warning">';
+                echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
+                echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
                 echo '</div>';
-
-                // Add inline script to handle dismiss
-                ?>
-                <script type="text/javascript">
-                jQuery(document).ready(function($) {
-                    $(document).on('click', '.notice[data-dismiss-action="cuft-dismiss-notice"] .notice-dismiss', function() {
-                        $.post(ajaxurl, {
-                            action: 'cuft_dismiss_notice',
-                            nonce: '<?php echo esc_js( wp_create_nonce( 'cuft_dismiss_notice' ) ); ?>'
-                        });
-                    });
-                });
-                </script>
-                <?php
             }
+        } elseif ( $this->should_show_active_notice() ) {
+            $detected_count = count( array_filter( CUFT_Form_Detector::get_detected_frameworks() ) );
+
+            // Dismissible success notice; the dismiss click is sent to
+            // cuft_dismiss_notice by the inline script added in enqueue_admin_scripts().
+            echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
+            echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . esc_html( $detected_count ) . ' form framework(s) detected. ';
+            echo 'GTM container <code>' . esc_html( $gtm_id ) . '</code> is configured. ';
+            echo '<a href="' . esc_url( $settings_url ) . '">Settings</a></p>';
+            echo '</div>';
         }
 
         // Check for custom server status change notices
-        $this->check_server_status_notices();
-    }
-
-    /**
-     * Check and display plugin update notices
-     *
-     * @deprecated 3.19.3 Removed redundant simple notice. Robust notice handled by CUFT_Admin_Notices.
-     */
-    private function check_update_notices() {
-        // Notice display now handled by CUFT_Admin_Notices class
-        // This method is kept for backward compatibility but does nothing
-        return;
+        $this->check_server_status_notices( $is_plugin_page );
     }
 
     /**
      * Check and display server status change notices
      */
-    private function check_server_status_notices() {
+    private function check_server_status_notices( $is_plugin_page = true ) {
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
         
-        // Check for server recovery notice
-        $server_recovered = get_option( 'cuft_sgtm_server_recovered', false );
+        // Check for server recovery notice (informational: plugin screens only)
+        $server_recovered = $is_plugin_page ? get_option( 'cuft_sgtm_server_recovered', false ) : false;
         if ( $server_recovered ) {
             echo '<div class="notice notice-success is-dismissible">';
             echo '<p><strong>✅ Custom GTM server is now active</strong><br>';
@@ -2486,41 +2199,6 @@ class CUFT_Admin {
             
             // Clean up the trigger
             delete_option( 'cuft_sgtm_server_failed' );
-        }
-    }
-
-    /**
-     * AJAX handler for recording events
-     */
-    public function ajax_record_event() {
-        // Verify nonce
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'cuft_admin' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
-        }
-
-        $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( $_POST['click_id'] ) : '';
-        $event_type = isset( $_POST['event_type'] ) ? sanitize_text_field( $_POST['event_type'] ) : '';
-
-        if ( empty( $click_id ) || empty( $event_type ) ) {
-            wp_send_json_error( array( 'message' => 'Missing required parameters' ) );
-        }
-
-        // Record the event
-        if ( class_exists( 'CUFT_Click_Tracker' ) ) {
-            $result = CUFT_Click_Tracker::add_event( $click_id, $event_type );
-
-            if ( $result ) {
-                wp_send_json_success( array(
-                    'message' => 'Event recorded successfully',
-                    'click_id' => $click_id,
-                    'event_type' => $event_type,
-                    'timestamp' => gmdate( 'c' )
-                ) );
-            } else {
-                wp_send_json_error( array( 'message' => 'Failed to record event' ) );
-            }
-        } else {
-            wp_send_json_error( array( 'message' => 'Click tracker not available' ) );
         }
     }
 

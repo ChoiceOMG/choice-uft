@@ -8,8 +8,8 @@
  */
 
 // Exit if accessed directly
-if ( ! defined( 'WPINC' ) ) {
-    die;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
 }
 
 /**
@@ -50,4 +50,4 @@ class CUFT_Feature_Flags {
 
         wp_localize_script( 'cuft-feature-flags', 'cuftMigrationConfig', $flags );
     }
-}
+}

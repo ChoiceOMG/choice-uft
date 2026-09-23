@@ -364,3 +364,24 @@
 .cuft-admin-notice p:last-child {
   margin-bottom: 0;
 }
+
+/* Click Tracking page table (moved from an inline <style> block) */
+.cuft-click-tracking table.widefat {
+  table-layout: fixed;
+  width: 100%;
+}
+.cuft-click-tracking table.widefat th:nth-child(1),
+.cuft-click-tracking table.widefat td:nth-child(1) {
+  width: 200px;
+}
+.cuft-click-id-copy:hover {
+  background: #f0f6ff;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.cuft-click-id-copy:hover strong {
+  color: #0073aa;
+}
+.cuft-click-id-copy:active {
+  background: #e0f0ff;
+}
