@@ -68,7 +68,6 @@ class CUFT_Legacy_Test_Forms {
             'post_status'      => array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' ),
             'numberposts'      => -1,
             'fields'           => 'ids',
-            'suppress_filters' => true,
             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One-time cleanup on upgrade and uninstall; the marker meta is the only safe way to find these posts.
             'meta_query'       => array(
                 array(
