@@ -40,13 +40,19 @@ class CUFT_Migration_3_21_0 {
 
         try {
             // Step 1: Check current column state
-            $ip_address_exists = $wpdb->get_results(
-                "SHOW COLUMNS FROM {$table} LIKE 'ip_address'"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
+            $ip_address_exists = $wpdb->get_results( $wpdb->prepare(
+                'SHOW COLUMNS FROM %i LIKE %s',
+                $table,
+                'ip_address'
+            ) );
 
-            $ip_hash_exists = $wpdb->get_results(
-                "SHOW COLUMNS FROM {$table} LIKE 'ip_hash'"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
+            $ip_hash_exists = $wpdb->get_results( $wpdb->prepare(
+                'SHOW COLUMNS FROM %i LIKE %s',
+                $table,
+                'ip_hash'
+            ) );
 
             // If ip_hash already exists, migration is complete
             if ( ! empty( $ip_hash_exists ) ) {
@@ -64,13 +70,16 @@ class CUFT_Migration_3_21_0 {
 
             // Step 2: Hash existing IP addresses before renaming column
             // Get all records with non-empty IP addresses
-            $records = $wpdb->get_results(
-                "SELECT id, ip_address FROM {$table} WHERE ip_address IS NOT NULL AND ip_address != '' AND ip_address != '0'"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-time read during migration, not cacheable.
+            $records = $wpdb->get_results( $wpdb->prepare(
+                "SELECT id, ip_address FROM %i WHERE ip_address IS NOT NULL AND ip_address != '' AND ip_address != '0'",
+                $table
+            ) );
 
             if ( ! empty( $records ) ) {
                 foreach ( $records as $record ) {
                     $hashed_ip = hash( 'sha256', $record->ip_address );
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; $wpdb->update() is the WP API, already parameterised.
                     $wpdb->update(
                         $table,
                         array( 'ip_address' => $hashed_ip ),
@@ -86,9 +95,11 @@ class CUFT_Migration_3_21_0 {
             }
 
             // Step 3: Rename column and change type
-            $result = $wpdb->query(
-                "ALTER TABLE {$table} CHANGE COLUMN ip_address ip_hash VARCHAR(64) DEFAULT NULL"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $result = $wpdb->query( $wpdb->prepare(
+                'ALTER TABLE %i CHANGE COLUMN ip_address ip_hash VARCHAR(64) DEFAULT NULL',
+                $table
+            ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to rename ip_address to ip_hash: ' . $wpdb->last_error );
@@ -126,9 +137,12 @@ class CUFT_Migration_3_21_0 {
 
         try {
             // Check if ip_hash column exists
-            $ip_hash_exists = $wpdb->get_results(
-                "SHOW COLUMNS FROM {$table} LIKE 'ip_hash'"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
+            $ip_hash_exists = $wpdb->get_results( $wpdb->prepare(
+                'SHOW COLUMNS FROM %i LIKE %s',
+                $table,
+                'ip_hash'
+            ) );
 
             if ( empty( $ip_hash_exists ) ) {
                 // Column doesn't exist, nothing to rollback
@@ -136,9 +150,11 @@ class CUFT_Migration_3_21_0 {
             }
 
             // Rename back to ip_address (data will remain as hashes)
-            $result = $wpdb->query(
-                "ALTER TABLE {$table} CHANGE COLUMN ip_hash ip_address VARCHAR(45) DEFAULT NULL"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $result = $wpdb->query( $wpdb->prepare(
+                'ALTER TABLE %i CHANGE COLUMN ip_hash ip_address VARCHAR(45) DEFAULT NULL',
+                $table
+            ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to rename ip_hash to ip_address: ' . $wpdb->last_error );
@@ -177,8 +193,9 @@ class CUFT_Migration_3_21_0 {
         $table = $wpdb->prefix . 'cuft_click_tracking';
 
         // Check if table exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; existence check, not cacheable.
         $table_exists = $wpdb->get_var(
-            $wpdb->prepare( "SHOW TABLES LIKE %s", $table )
+            $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
         );
 
         if ( ! $table_exists ) {
@@ -186,9 +203,12 @@ class CUFT_Migration_3_21_0 {
         }
 
         // Check if ip_address column exists (needs migration)
-        $ip_address_exists = $wpdb->get_results(
-            "SHOW COLUMNS FROM {$table} LIKE 'ip_address'"
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection, not cacheable.
+        $ip_address_exists = $wpdb->get_results( $wpdb->prepare(
+            'SHOW COLUMNS FROM %i LIKE %s',
+            $table,
+            'ip_address'
+        ) );
 
         return ! empty( $ip_address_exists );
     }

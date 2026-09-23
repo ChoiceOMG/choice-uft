@@ -41,17 +41,20 @@ class CUFT_Migration_3_12_0 {
             }
 
             // Step 2: Check if events column already exists
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
             $column_exists = $wpdb->get_results( $wpdb->prepare(
-                "SHOW COLUMNS FROM {$table} LIKE %s",
+                'SHOW COLUMNS FROM %i LIKE %s',
+                $table,
                 'events'
             ) );
 
             if ( empty( $column_exists ) ) {
                 // Add events column as JSON type
-                $result = $wpdb->query(
-                    "ALTER TABLE {$table}
-                     ADD COLUMN events JSON DEFAULT NULL AFTER utm_content"
-                );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+                $result = $wpdb->query( $wpdb->prepare(
+                    'ALTER TABLE %i ADD COLUMN events JSON DEFAULT NULL AFTER utm_content',
+                    $table
+                ) );
 
                 if ( $result === false ) {
                     throw new Exception( 'Failed to add events column: ' . $wpdb->last_error );
@@ -62,17 +65,20 @@ class CUFT_Migration_3_12_0 {
                 }
             } else {
                 // Column exists - check if it's correct type (JSON not LONGTEXT)
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
                 $column_info = $wpdb->get_row( $wpdb->prepare(
-                    "SHOW COLUMNS FROM {$table} LIKE %s",
+                    'SHOW COLUMNS FROM %i LIKE %s',
+                    $table,
                     'events'
                 ) );
 
                 // If column is LONGTEXT, convert to JSON
                 if ( $column_info && stripos( $column_info->Type, 'json' ) === false ) {
-                    $wpdb->query(
-                        "ALTER TABLE {$table}
-                         MODIFY COLUMN events JSON DEFAULT NULL"
-                    );
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+                    $wpdb->query( $wpdb->prepare(
+                        'ALTER TABLE %i MODIFY COLUMN events JSON DEFAULT NULL',
+                        $table
+                    ) );
 
                     if ( class_exists( 'CUFT_Logger' ) ) {
                         CUFT_Logger::log( 'info', 'Converted events column from ' . $column_info->Type . ' to JSON' );
@@ -81,15 +87,19 @@ class CUFT_Migration_3_12_0 {
             }
 
             // Step 3: Add date_updated index if it doesn't exist
-            $index_exists = $wpdb->get_results(
-                "SHOW INDEX FROM {$table} WHERE Key_name = 'idx_date_updated'"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
+            $index_exists = $wpdb->get_results( $wpdb->prepare(
+                'SHOW INDEX FROM %i WHERE Key_name = %s',
+                $table,
+                'idx_date_updated'
+            ) );
 
             if ( empty( $index_exists ) ) {
-                $result = $wpdb->query(
-                    "ALTER TABLE {$table}
-                     ADD INDEX idx_date_updated (date_updated)"
-                );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+                $result = $wpdb->query( $wpdb->prepare(
+                    'ALTER TABLE %i ADD INDEX idx_date_updated (date_updated)',
+                    $table
+                ) );
 
                 if ( $result === false ) {
                     throw new Exception( 'Failed to add date_updated index: ' . $wpdb->last_error );
@@ -143,20 +153,22 @@ class CUFT_Migration_3_12_0 {
             // 3. Discard all event data
 
             // Remove events column
-            $wpdb->query(
-                "ALTER TABLE {$table}
-                 DROP COLUMN IF EXISTS events"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $wpdb->query( $wpdb->prepare(
+                'ALTER TABLE %i DROP COLUMN IF EXISTS events',
+                $table
+            ) );
 
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'info', 'Dropped events column from ' . $table );
             }
 
             // Remove idx_date_updated index
-            $wpdb->query(
-                "ALTER TABLE {$table}
-                 DROP INDEX IF EXISTS idx_date_updated"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $wpdb->query( $wpdb->prepare(
+                'ALTER TABLE %i DROP INDEX IF EXISTS idx_date_updated',
+                $table
+            ) );
 
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'info', 'Dropped idx_date_updated index from ' . $table );
@@ -199,18 +211,24 @@ class CUFT_Migration_3_12_0 {
 
         try {
             // Create backup table structure
-            $result = $wpdb->query(
-                "CREATE TABLE {$backup_table} LIKE {$table}"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $result = $wpdb->query( $wpdb->prepare(
+                'CREATE TABLE %i LIKE %i',
+                $backup_table,
+                $table
+            ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to create backup table structure: ' . $wpdb->last_error );
             }
 
             // Copy all data to backup table
-            $result = $wpdb->query(
-                "INSERT INTO {$backup_table} SELECT * FROM {$table}"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-time backup copy during migration.
+            $result = $wpdb->query( $wpdb->prepare(
+                'INSERT INTO %i SELECT * FROM %i',
+                $backup_table,
+                $table
+            ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to copy data to backup table: ' . $wpdb->last_error );
@@ -232,7 +250,8 @@ class CUFT_Migration_3_12_0 {
             }
 
             // Clean up partially created backup table
-            $wpdb->query( "DROP TABLE IF EXISTS {$backup_table}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $backup_table ) );
 
             return false;
         }
@@ -262,21 +281,28 @@ class CUFT_Migration_3_12_0 {
 
         try {
             // Drop current table
-            $wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
 
             // Recreate from backup
-            $result = $wpdb->query(
-                "CREATE TABLE {$table} LIKE {$backup_table}"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $result = $wpdb->query( $wpdb->prepare(
+                'CREATE TABLE %i LIKE %i',
+                $table,
+                $backup_table
+            ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to recreate table structure: ' . $wpdb->last_error );
             }
 
             // Copy data from backup
-            $result = $wpdb->query(
-                "INSERT INTO {$table} SELECT * FROM {$backup_table}"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; catastrophic-failure restore during migration.
+            $result = $wpdb->query( $wpdb->prepare(
+                'INSERT INTO %i SELECT * FROM %i',
+                $table,
+                $backup_table
+            ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to restore data from backup: ' . $wpdb->last_error );
@@ -313,7 +339,8 @@ class CUFT_Migration_3_12_0 {
         }
 
         try {
-            $wpdb->query( "DROP TABLE IF EXISTS {$backup_table}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+            $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $backup_table ) );
 
             delete_option( self::MIGRATION_KEY . '_backup_table' );
             delete_option( self::MIGRATION_KEY . '_backup_timestamp' );
@@ -352,7 +379,8 @@ class CUFT_Migration_3_12_0 {
 
         if ( $backup_table ) {
             global $wpdb;
-            $result = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $backup_table ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own backup table; admin status display, existence check only.
+            $result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $backup_table ) ) );
             $backup_exists = ! empty( $result );
         }
 

@@ -86,7 +86,8 @@ class CUFT_DB_Migration {
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
 
         // Check if table exists
-        $table_exists = $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) === $table_name;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; existence check during migration, not cacheable.
+        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) ) === $table_name;
 
         if ( ! $table_exists ) {
             // Table doesn't exist yet, create it with events column
@@ -96,9 +97,11 @@ class CUFT_DB_Migration {
         }
 
         // Check if events column already exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during migration, not cacheable.
         $column_exists = $wpdb->get_results(
             $wpdb->prepare(
-                "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+                'SHOW COLUMNS FROM %i LIKE %s',
+                $table_name,
                 'events'
             )
         );
@@ -116,12 +119,11 @@ class CUFT_DB_Migration {
         global $wpdb;
 
         // Add events column after utm_content
-        $sql = "ALTER TABLE `{$table_name}`
-                ADD COLUMN `events` LONGTEXT DEFAULT NULL
-                AFTER `utm_content`";
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. Schema change with no user input.
-        $result = $wpdb->query( $sql );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
+        $result = $wpdb->query( $wpdb->prepare(
+            'ALTER TABLE %i ADD COLUMN events LONGTEXT DEFAULT NULL AFTER utm_content',
+            $table_name
+        ) );
 
         if ( $result === false ) {
             // Log error
@@ -192,8 +194,11 @@ class CUFT_DB_Migration {
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
 
         // Check if table exists
-        if ( $wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name ) {
-            error_log('CUFT Migration 3.14.0: Table does not exist, skipping index creation');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; existence check during migration, not cacheable.
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) ) != $table_name ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::debug_log( 'CUFT Migration 3.14.0: Table does not exist, skipping index creation' );
+            }
             return;
         }
 
@@ -211,15 +216,18 @@ class CUFT_DB_Migration {
         $success = true;
         foreach ($indexes as $index_name => $columns) {
             if (!self::index_exists($table_name, $index_name)) {
-                $sql = "ALTER TABLE $table_name ADD INDEX $index_name ($columns)";
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. Index name and columns come from the hardcoded $indexes map.
-                $result = $wpdb->query($sql);
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin's own table cuft_click_tracking, schema migration; $index_name/$columns come from the hardcoded $indexes map above, not user input, and %i cannot express a column-length index definition like "click_id(50)".
+                $result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX ' . $index_name . ' (' . $columns . ')', $table_name ) );
 
                 if ($wpdb->last_error) {
-                    error_log("CUFT Migration 3.14.0: Failed to add index $index_name: " . $wpdb->last_error);
+                    if ( class_exists( 'CUFT_Logger' ) ) {
+                        CUFT_Logger::debug_log( "CUFT Migration 3.14.0: Failed to add index $index_name: " . $wpdb->last_error );
+                    }
                     $success = false;
                 } else {
-                    error_log("CUFT Migration 3.14.0: Successfully added index $index_name");
+                    if ( class_exists( 'CUFT_Logger' ) ) {
+                        CUFT_Logger::debug_log( "CUFT Migration 3.14.0: Successfully added index $index_name" );
+                    }
                 }
             }
         }
@@ -248,9 +256,11 @@ class CUFT_DB_Migration {
      */
     private static function index_exists($table_name, $index_name) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection, not cacheable.
         $index = $wpdb->get_row(
             $wpdb->prepare(
-                "SHOW INDEX FROM $table_name WHERE Key_name = %s",
+                'SHOW INDEX FROM %i WHERE Key_name = %s',
+                $table_name,
                 $index_name
             )
         );
@@ -308,7 +318,7 @@ class CUFT_DB_Migration {
             return array('error' => 'Invalid query type');
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query text is selected by key from the hardcoded $queries map.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query text is selected by key from the hardcoded $queries map above (fixed WHERE clauses on the plugin's own table), not user input; admin diagnostic tool.
         $explain = $wpdb->get_results("EXPLAIN " . $queries[$query_type], ARRAY_A);
         return $explain;
     }
@@ -322,18 +332,19 @@ class CUFT_DB_Migration {
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
 
         // Check if events column exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection during rollback, not cacheable.
         $column_exists = $wpdb->get_results(
             $wpdb->prepare(
-                "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+                'SHOW COLUMNS FROM %i LIKE %s',
+                $table_name,
                 'events'
             )
         );
 
         if ( ! empty( $column_exists ) ) {
             // Remove events column
-            $sql = "ALTER TABLE `{$table_name}` DROP COLUMN `events`";
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. Schema change with no user input.
-            $wpdb->query( $sql );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table (dev/testing rollback).
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN events', $table_name ) );
 
             // Log rollback
             if ( class_exists( 'CUFT_Logger' ) ) {

@@ -110,6 +110,7 @@ class CUFT_Test_Events_Table {
         global $wpdb;
 
         try {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin's own table cuft_test_events; $wpdb->insert() is the WP API, already parameterised.
             $result = $wpdb->insert(
                 $this->table_name,
                 array(
@@ -124,7 +125,9 @@ class CUFT_Test_Events_Table {
 
             return $result ? $wpdb->insert_id : false;
         } catch (Exception $e) {
-            error_log('CUFT: Failed to insert test event - ' . $e->getMessage());
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::debug_log( 'CUFT: Failed to insert test event - ' . $e->getMessage() );
+            }
             return false;
         }
     }
@@ -138,9 +141,11 @@ class CUFT_Test_Events_Table {
     public function get_events_by_session($session_id) {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; per-session test-event read, not cacheable.
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$this->table_name} WHERE session_id = %s ORDER BY created_at ASC",
+                'SELECT * FROM %i WHERE session_id = %s ORDER BY created_at ASC',
+                $this->table_name,
                 sanitize_text_field($session_id)
             )
         );
@@ -181,26 +186,25 @@ class CUFT_Test_Events_Table {
 
         $where_clause = implode(' AND ', $where);
 
-        // Build query
-        $query = "SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY created_at DESC";
+        // Build query (table name goes through %i; $where_clause is built only from the
+        // fixed 'session_id = %s' / 'event_type = %s' fragments above, values bound below)
+        $query = "SELECT * FROM %i WHERE {$where_clause} ORDER BY created_at DESC";
+        array_unshift($values, $this->table_name);
 
         // Add pagination
         if (isset($filters['limit'])) {
-            $query .= $wpdb->prepare(' LIMIT %d', absint($filters['limit']));
+            $query .= ' LIMIT %d';
+            $values[] = absint($filters['limit']);
 
             if (isset($filters['offset'])) {
-                $query .= $wpdb->prepare(' OFFSET %d', absint($filters['offset']));
+                $query .= ' OFFSET %d';
+                $values[] = absint($filters['offset']);
             }
         }
 
         // Execute query
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Placeholders were built into $query above; user values are bound here.
-            $results = $wpdb->get_results($wpdb->prepare($query, $values));
-        } else {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. No user values in this branch.
-            $results = $wpdb->get_results($query);
-        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; filtered test-event list, not cacheable.
+        $results = $wpdb->get_results($wpdb->prepare($query, $values));
 
         // Decode JSON data
         if ($results) {
@@ -235,15 +239,13 @@ class CUFT_Test_Events_Table {
         }
 
         $where_clause = implode(' AND ', $where);
-        $query = "SELECT COUNT(*) FROM {$this->table_name} WHERE {$where_clause}";
+        // Table name goes through %i; $where_clause is built only from the fixed
+        // 'session_id = %s' / 'event_type = %s' fragments above, values bound below.
+        $query = "SELECT COUNT(*) FROM %i WHERE {$where_clause}";
+        array_unshift($values, $this->table_name);
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Placeholders were built into $query above; user values are bound here.
-            return (int) $wpdb->get_var($wpdb->prepare($query, $values));
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name is $wpdb->prefix plus a literal. No user values in this branch.
-        return (int) $wpdb->get_var($query);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; filtered test-event count, not cacheable.
+        return (int) $wpdb->get_var($wpdb->prepare($query, $values));
     }
 
     /**
@@ -262,10 +264,11 @@ class CUFT_Test_Events_Table {
         $ids = array_map('absint', $ids);
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; test-event cleanup delete, not cacheable.
         return $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$this->table_name} WHERE id IN ($placeholders)",
-                $ids
+                "DELETE FROM %i WHERE id IN ($placeholders)",
+                array_merge( array( $this->table_name ), $ids )
             )
         );
     }
@@ -279,9 +282,11 @@ class CUFT_Test_Events_Table {
     public function delete_by_session($session_id) {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; test-session cleanup delete, not cacheable.
         return $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$this->table_name} WHERE session_id = %s",
+                'DELETE FROM %i WHERE session_id = %s',
+                $this->table_name,
                 sanitize_text_field($session_id)
             )
         );
@@ -294,7 +299,8 @@ class CUFT_Test_Events_Table {
      */
     public function delete_all() {
         global $wpdb;
-        return $wpdb->query("TRUNCATE TABLE {$this->table_name}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_test_events; schema-affecting cleanup for the plugin's own table.
+        return $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $this->table_name ) );
     }
 
     /**
@@ -308,9 +314,11 @@ class CUFT_Test_Events_Table {
     public function cleanup_old_events($days = 30) {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; scheduled test-data cleanup delete, not cacheable.
         return $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$this->table_name} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+                'DELETE FROM %i WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)',
+                $this->table_name,
                 absint($days)
             )
         );
@@ -323,7 +331,8 @@ class CUFT_Test_Events_Table {
      */
     public function drop_table() {
         global $wpdb;
-        $wpdb->query("DROP TABLE IF EXISTS {$this->table_name}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_test_events; schema migration for the plugin's own table (uninstall).
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $this->table_name ) );
         delete_option($this->version_key);
     }
 
