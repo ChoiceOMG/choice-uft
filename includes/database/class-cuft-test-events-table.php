@@ -169,42 +169,39 @@ class CUFT_Test_Events_Table {
     public function get_events($filters = array()) {
         global $wpdb;
 
-        $where = array('1=1');
-        $values = array();
+        // An empty filter value matches every row, so one fully prepared
+        // statement covers all four filter combinations.
+        $session_id = !empty($filters['session_id']) ? sanitize_text_field($filters['session_id']) : '';
+        $event_type = !empty($filters['event_type']) ? sanitize_text_field($filters['event_type']) : '';
 
-        // Session ID filter
-        if (!empty($filters['session_id'])) {
-            $where[] = 'session_id = %s';
-            $values[] = sanitize_text_field($filters['session_id']);
-        }
-
-        // Event type filter
-        if (!empty($filters['event_type'])) {
-            $where[] = 'event_type = %s';
-            $values[] = sanitize_text_field($filters['event_type']);
-        }
-
-        $where_clause = implode(' AND ', $where);
-
-        // Build query (table name goes through %i; $where_clause is built only from the
-        // fixed 'session_id = %s' / 'event_type = %s' fragments above, values bound below)
-        $query = "SELECT * FROM %i WHERE {$where_clause} ORDER BY created_at DESC";
-        array_unshift($values, $this->table_name);
-
-        // Add pagination
         if (isset($filters['limit'])) {
-            $query .= ' LIMIT %d';
-            $values[] = absint($filters['limit']);
-
-            if (isset($filters['offset'])) {
-                $query .= ' OFFSET %d';
-                $values[] = absint($filters['offset']);
-            }
+            $offset = isset($filters['offset']) ? absint($filters['offset']) : 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; filtered test-event list, not cacheable.
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM %i WHERE ( %s = '' OR session_id = %s ) AND ( %s = '' OR event_type = %s ) ORDER BY created_at DESC LIMIT %d OFFSET %d",
+                    $this->table_name,
+                    $session_id,
+                    $session_id,
+                    $event_type,
+                    $event_type,
+                    absint($filters['limit']),
+                    $offset
+                )
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; filtered test-event list, not cacheable.
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT * FROM %i WHERE ( %s = '' OR session_id = %s ) AND ( %s = '' OR event_type = %s ) ORDER BY created_at DESC",
+                    $this->table_name,
+                    $session_id,
+                    $session_id,
+                    $event_type,
+                    $event_type
+                )
+            );
         }
-
-        // Execute query
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; filtered test-event list, not cacheable.
-        $results = $wpdb->get_results($wpdb->prepare($query, $values));
 
         // Decode JSON data
         if ($results) {
@@ -225,27 +222,20 @@ class CUFT_Test_Events_Table {
     public function get_events_count($filters = array()) {
         global $wpdb;
 
-        $where = array('1=1');
-        $values = array();
-
-        if (!empty($filters['session_id'])) {
-            $where[] = 'session_id = %s';
-            $values[] = sanitize_text_field($filters['session_id']);
-        }
-
-        if (!empty($filters['event_type'])) {
-            $where[] = 'event_type = %s';
-            $values[] = sanitize_text_field($filters['event_type']);
-        }
-
-        $where_clause = implode(' AND ', $where);
-        // Table name goes through %i; $where_clause is built only from the fixed
-        // 'session_id = %s' / 'event_type = %s' fragments above, values bound below.
-        $query = "SELECT COUNT(*) FROM %i WHERE {$where_clause}";
-        array_unshift($values, $this->table_name);
+        $session_id = !empty($filters['session_id']) ? sanitize_text_field($filters['session_id']) : '';
+        $event_type = !empty($filters['event_type']) ? sanitize_text_field($filters['event_type']) : '';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; filtered test-event count, not cacheable.
-        return (int) $wpdb->get_var($wpdb->prepare($query, $values));
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM %i WHERE ( %s = '' OR session_id = %s ) AND ( %s = '' OR event_type = %s )",
+                $this->table_name,
+                $session_id,
+                $session_id,
+                $event_type,
+                $event_type
+            )
+        );
     }
 
     /**
@@ -267,6 +257,7 @@ class CUFT_Test_Events_Table {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_test_events; test-event cleanup delete, not cacheable.
         return $wpdb->query(
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is only a run of %d tokens, one per id; every id is bound.
                 "DELETE FROM %i WHERE id IN ($placeholders)",
                 array_merge( array( $this->table_name ), $ids )
             )

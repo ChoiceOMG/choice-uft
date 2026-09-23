@@ -43,6 +43,7 @@ class CUFT_Migration_3_22_0 {
         if ( ! in_array( 'ga_client_id', $columns, true ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
             $result = $wpdb->query( $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table; runs only on activation or upgrade.
                 'ALTER TABLE %i ADD COLUMN ga_client_id varchar(255) DEFAULT NULL AFTER ip_hash',
                 $table
             ) );

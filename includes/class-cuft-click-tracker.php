@@ -545,9 +545,9 @@ class CUFT_Click_Tracker {
 
         // Get optional parameters (same public webhook as above; no nonce by design).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
-        $qualified = isset( $_GET['qualified'] ) ? (int) wp_unslash( $_GET['qualified'] ) : null;
+        $qualified = isset( $_GET['qualified'] ) ? intval( $_GET['qualified'] ) : null;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
-        $score     = isset( $_GET['score'] ) ? (int) wp_unslash( $_GET['score'] ) : null;
+        $score     = isset( $_GET['score'] ) ? intval( $_GET['score'] ) : null;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
         $status    = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
 

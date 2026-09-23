@@ -121,6 +121,7 @@ class CUFT_DB_Migration {
         // Add events column after utm_content
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
         $result = $wpdb->query( $wpdb->prepare(
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table; runs only on activation or upgrade.
             'ALTER TABLE %i ADD COLUMN events LONGTEXT DEFAULT NULL AFTER utm_content',
             $table_name
         ) );

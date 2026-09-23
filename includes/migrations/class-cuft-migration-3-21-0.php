@@ -97,6 +97,7 @@ class CUFT_Migration_3_21_0 {
             // Step 3: Rename column and change type
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
             $result = $wpdb->query( $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table; runs only on activation or upgrade.
                 'ALTER TABLE %i CHANGE COLUMN ip_address ip_hash VARCHAR(64) DEFAULT NULL',
                 $table
             ) );
@@ -152,6 +153,7 @@ class CUFT_Migration_3_21_0 {
             // Rename back to ip_address (data will remain as hashes)
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table cuft_click_tracking; schema migration for the plugin's own table.
             $result = $wpdb->query( $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table; runs only on activation or upgrade.
                 'ALTER TABLE %i CHANGE COLUMN ip_hash ip_address VARCHAR(45) DEFAULT NULL',
                 $table
             ) );

@@ -54,9 +54,9 @@ class CUFT_Click_Integration {
         }
         
         foreach ( $this->click_id_params as $param ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only capture of an ad click-id query param (gclid/fbclid/etc.) on any front-end page load; not a state-changing form action, so there is no nonce to check here.
-            if ( isset( $_GET[ $param ] ) && ! empty( $_GET[ $param ] ) ) {
-                $click_id = sanitize_text_field( wp_unslash( $_GET[ $param ] ) );
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Ad click ID (gclid, fbclid, ...) on the landing URL; the ad platform builds that link and cannot carry a nonce.
+            $click_id = isset( $_GET[ $param ] ) ? sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) : '';
+            if ( ! empty( $click_id ) ) {
                 $platform = $this->get_platform_from_param( $param );
                 
                 $this->track_click_id( $click_id, $platform );

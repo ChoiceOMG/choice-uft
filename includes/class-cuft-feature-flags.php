@@ -50,4 +50,4 @@ class CUFT_Feature_Flags {
 
         wp_localize_script( 'cuft-feature-flags', 'cuftMigrationConfig', $flags );
     }
-}
+}
