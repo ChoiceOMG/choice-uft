@@ -35,10 +35,8 @@ class CUFT_Event_Replay {
         global $wpdb;
         $table = $wpdb->prefix . 'cuft_click_tracking';
 
-        $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT events FROM $table WHERE click_id = %s",
-            sanitize_text_field( $click_id )
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and replay state must be read fresh on every request.
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT events FROM %i WHERE click_id = %s', $table, sanitize_text_field( $click_id ) ) );
 
         if ( ! $row || empty( $row->events ) ) {
             return array();
@@ -72,16 +70,18 @@ class CUFT_Event_Replay {
         global $wpdb;
         $table = $wpdb->prefix . 'cuft_click_tracking';
 
-        $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT events FROM $table WHERE click_id = %s",
-            sanitize_text_field( $click_id )
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and replay state must be read fresh on every request.
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT events FROM %i WHERE click_id = %s', $table, sanitize_text_field( $click_id ) ) );
 
         if ( ! $row || empty( $row->events ) ) {
             return;
         }
 
-        $events  = json_decode( $row->events, true );
+        $events = json_decode( $row->events, true );
+        if ( ! is_array( $events ) ) {
+            return;
+        }
+
         $updated = false;
 
         foreach ( $events as &$event ) {
@@ -97,6 +97,7 @@ class CUFT_Event_Replay {
         unset( $event );
 
         if ( $updated ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
             $wpdb->update(
                 $table,
                 array( 'events' => wp_json_encode( $events ) ),
@@ -120,20 +121,21 @@ class CUFT_Event_Replay {
         global $wpdb;
         $table = $wpdb->prefix . 'cuft_click_tracking';
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control for the SELECT ... FOR UPDATE on the plugin's own table; no WP API exists for it.
         $wpdb->query( 'START TRANSACTION' );
 
-        $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT events FROM $table WHERE click_id = %s FOR UPDATE",
-            sanitize_text_field( $click_id )
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and replay state must be read fresh on every request.
+        $row = $wpdb->get_row( $wpdb->prepare( 'SELECT events FROM %i WHERE click_id = %s FOR UPDATE', $table, sanitize_text_field( $click_id ) ) );
 
         if ( ! $row || empty( $row->events ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control for the SELECT ... FOR UPDATE on the plugin's own table; no WP API exists for it.
             $wpdb->query( 'COMMIT' );
             return array();
         }
 
         $events = json_decode( $row->events, true );
         if ( ! is_array( $events ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control for the SELECT ... FOR UPDATE on the plugin's own table; no WP API exists for it.
             $wpdb->query( 'COMMIT' );
             return array();
         }
@@ -151,6 +153,7 @@ class CUFT_Event_Replay {
         unset( $event );
 
         if ( $updated ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
             $wpdb->update(
                 $table,
                 array( 'events' => wp_json_encode( $events ) ),
@@ -160,6 +163,7 @@ class CUFT_Event_Replay {
             );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control for the SELECT ... FOR UPDATE on the plugin's own table; no WP API exists for it.
         $wpdb->query( 'COMMIT' );
 
         return $pending;

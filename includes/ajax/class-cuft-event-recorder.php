@@ -49,33 +49,27 @@ class CUFT_Event_Recorder {
      */
     public function record_event() {
         try {
-            // Debug logging
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'CUFT Event Recorder: Received nonce: ' . ( isset( $_POST['nonce'] ) ? $_POST['nonce'] : 'MISSING' ) );
-                error_log( 'CUFT Event Recorder: Current user ID: ' . get_current_user_id() );
-            }
-
-            // Verify nonce for security
+            // Verify nonce. The nonce is printed into cuftConfig for every visitor
+            // (logged-out visitors share the user-0 nonce), so this check stops
+            // cross-site request forgery for logged-in users and casual scripted
+            // abuse; it is not authentication.
             $nonce_check = check_ajax_referer( 'cuft-event-recorder', 'nonce', false );
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'CUFT Event Recorder: Nonce check result: ' . var_export( $nonce_check, true ) );
+
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::debug_log( 'CUFT Event Recorder: nonce ' . ( isset( $_POST['nonce'] ) ? 'received' : 'MISSING' ) . ', user ' . get_current_user_id() . ', check result ' . wp_json_encode( $nonce_check ) );
             }
 
             if ( ! $nonce_check ) {
                 wp_send_json_error( array(
                     'message' => 'Security check failed',
-                    'debug' => array(
-                        'user_id' => get_current_user_id(),
-                        'nonce_received' => isset( $_POST['nonce'] ) ? 'yes' : 'no'
-                    )
                 ), 403 );
                 return;
             }
 
-            // Sanitize and validate inputs
-            $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( $_POST['click_id'] ) : '';
-            $event_type = isset( $_POST['event_type'] ) ? sanitize_text_field( $_POST['event_type'] ) : '';
-            $ga_client_id = isset( $_POST['ga_client_id'] ) ? sanitize_text_field( $_POST['ga_client_id'] ) : '';
+            // Sanitize and validate inputs (nonce verified above).
+            $click_id     = isset( $_POST['click_id'] ) ? sanitize_text_field( wp_unslash( $_POST['click_id'] ) ) : '';
+            $event_type   = isset( $_POST['event_type'] ) ? sanitize_text_field( wp_unslash( $_POST['event_type'] ) ) : '';
+            $ga_client_id = isset( $_POST['ga_client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['ga_client_id'] ) ) : '';
             if ( ! empty( $ga_client_id ) && ! preg_match( '/^\d+\.\d+$/', $ga_client_id ) ) {
                 $ga_client_id = ''; // Invalid format; discard
             }
@@ -112,11 +106,11 @@ class CUFT_Event_Recorder {
                 // Store ga_client_id if provided (for Measurement Protocol)
                 if ( ! empty( $ga_client_id ) ) {
                     global $wpdb;
-                    $table_name = $wpdb->prefix . 'cuft_click_tracking';
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and this is a per-request write.
                     $wpdb->update(
-                        $table_name,
-                        array( 'ga_client_id' => sanitize_text_field( $ga_client_id ) ),
-                        array( 'click_id' => sanitize_text_field( $click_id ) ),
+                        $wpdb->prefix . 'cuft_click_tracking',
+                        array( 'ga_client_id' => $ga_client_id ),
+                        array( 'click_id' => $click_id ),
                         array( '%s' ),
                         array( '%s' )
                     );
@@ -141,7 +135,7 @@ class CUFT_Event_Recorder {
         } catch ( Exception $e ) {
             // Log error but don't expose details to client
             if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                CUFT_Logger::log( 'error', 'Event recording exception: ' . $e->getMessage() );
+                CUFT_Logger::log( 'Event recording exception: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
 
             wp_send_json_error( array(

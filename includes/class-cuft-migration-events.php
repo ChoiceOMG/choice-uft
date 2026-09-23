@@ -31,10 +31,8 @@ class CUFT_Migration_Events {
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
 
         // Check if events column exists
-        $column_exists = $wpdb->get_results( $wpdb->prepare(
-            "SHOW COLUMNS FROM {$table_name} LIKE %s",
-            'events'
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+        $column_exists = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, 'events' ) );
 
         if ( empty( $column_exists ) ) {
             return true; // Need to add events column
@@ -72,7 +70,7 @@ class CUFT_Migration_Events {
 
         // Log status update
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', 'Migration status updated', $updates );
+            CUFT_Logger::log( 'Migration status updated', CUFT_Logger::INFO, $updates );
         }
 
         return $status;
@@ -88,32 +86,27 @@ class CUFT_Migration_Events {
 
         try {
             // Add events column if it doesn't exist
-            $column_exists = $wpdb->get_results( $wpdb->prepare(
-                "SHOW COLUMNS FROM {$table_name} LIKE %s",
-                'events'
-            ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+            $column_exists = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, 'events' ) );
 
             if ( empty( $column_exists ) ) {
-                $result = $wpdb->query(
-                    "ALTER TABLE {$table_name}
-                     ADD COLUMN events JSON DEFAULT NULL AFTER utm_content"
-                );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+                $result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN events JSON DEFAULT NULL AFTER utm_content', $table_name ) );
 
                 if ( $result === false ) {
                     throw new Exception( 'Failed to add events column: ' . $wpdb->last_error );
                 }
             }
 
-            // Add date_updated index if it doesn't exist
-            $index_exists = $wpdb->get_results(
-                "SHOW INDEX FROM {$table_name} WHERE Key_name = 'date_updated'"
-            );
+            // Add date_updated index if it doesn't exist (under either name; this
+            // method creates it as idx_date_updated, so checking only 'date_updated'
+            // made a second run fail with a duplicate key error).
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+            $index_exists = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name IN (%s, %s)', $table_name, 'date_updated', 'idx_date_updated' ) );
 
             if ( empty( $index_exists ) ) {
-                $result = $wpdb->query(
-                    "ALTER TABLE {$table_name}
-                     ADD INDEX idx_date_updated (date_updated)"
-                );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+                $result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_date_updated (date_updated)', $table_name ) );
 
                 if ( $result === false ) {
                     throw new Exception( 'Failed to add date_updated index: ' . $wpdb->last_error );
@@ -121,14 +114,14 @@ class CUFT_Migration_Events {
             }
 
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'info', 'Schema migration completed successfully' );
+                CUFT_Logger::log( 'Schema migration completed successfully', CUFT_Logger::INFO );
             }
 
             return true;
 
         } catch ( Exception $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'error', 'Schema migration failed: ' . $e->getMessage() );
+                CUFT_Logger::log( 'Schema migration failed: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
             return false;
         }
@@ -148,9 +141,8 @@ class CUFT_Migration_Events {
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
 
         // Count total records to migrate
-        $total_records = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table_name} WHERE events IS NULL"
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+        $total_records = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE events IS NULL', $table_name ) );
 
         // Initialize migration status
         self::update_migration_status( array(
@@ -165,7 +157,7 @@ class CUFT_Migration_Events {
         ) );
 
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', "Migration started for {$total_records} records" );
+            CUFT_Logger::log( "Migration started for {$total_records} records", CUFT_Logger::INFO );
         }
 
         return true;
@@ -188,15 +180,8 @@ class CUFT_Migration_Events {
         $offset = ( $batch_number - 1 ) * self::BATCH_SIZE;
 
         // Get batch of records without events
-        $records = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id, click_id, utm_source, platform, qualified, date_created, date_updated
-             FROM {$table_name}
-             WHERE events IS NULL
-             ORDER BY id ASC
-             LIMIT %d OFFSET %d",
-            self::BATCH_SIZE,
-            $offset
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+        $records = $wpdb->get_results( $wpdb->prepare( 'SELECT id, click_id, utm_source, platform, qualified, date_created, date_updated FROM %i WHERE events IS NULL ORDER BY id ASC LIMIT %d OFFSET %d', $table_name, self::BATCH_SIZE, $offset ) );
 
         if ( empty( $records ) ) {
             // Migration complete
@@ -212,9 +197,10 @@ class CUFT_Migration_Events {
                 $events = self::reconstruct_events( $record );
 
                 // Update record with reconstructed events
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; migration write, no WP API covers it.
                 $result = $wpdb->update(
                     $table_name,
-                    array( 'events' => json_encode( $events ) ),
+                    array( 'events' => wp_json_encode( $events ) ),
                     array( 'id' => $record->id ),
                     array( '%s' ),
                     array( '%d' )
@@ -235,7 +221,7 @@ class CUFT_Migration_Events {
                 );
 
                 if ( class_exists( 'CUFT_Logger' ) ) {
-                    CUFT_Logger::log( 'error', "Migration error for record {$record->id}: " . $e->getMessage() );
+                    CUFT_Logger::log( "Migration error for record {$record->id}: " . $e->getMessage(), CUFT_Logger::ERROR );
                 }
             }
         }
@@ -254,7 +240,7 @@ class CUFT_Migration_Events {
         ) );
 
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', "Processed batch {$batch_number}: {$processed_count} records, {$progress}% complete" );
+            CUFT_Logger::log( "Processed batch {$batch_number}: {$processed_count} records, {$progress}% complete", CUFT_Logger::INFO );
         }
 
         return count( $records ) === self::BATCH_SIZE; // Return true if more batches remain
@@ -325,7 +311,7 @@ class CUFT_Migration_Events {
         ) );
 
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', 'Migration completed successfully' );
+            CUFT_Logger::log( 'Migration completed successfully', CUFT_Logger::INFO );
         }
     }
 
@@ -336,7 +322,7 @@ class CUFT_Migration_Events {
         delete_option( self::MIGRATION_KEY );
 
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'info', 'Migration status reset' );
+            CUFT_Logger::log( 'Migration status reset', CUFT_Logger::INFO );
         }
     }
 
@@ -350,31 +336,29 @@ class CUFT_Migration_Events {
 
         try {
             // Remove events column
-            $result = $wpdb->query(
-                "ALTER TABLE {$table_name} DROP COLUMN events"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+            $result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN events', $table_name ) );
 
             if ( $result === false ) {
                 throw new Exception( 'Failed to drop events column: ' . $wpdb->last_error );
             }
 
             // Remove date_updated index if it was added by migration
-            $wpdb->query(
-                "ALTER TABLE {$table_name} DROP INDEX IF EXISTS idx_date_updated"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX IF EXISTS idx_date_updated', $table_name ) );
 
             // Reset migration status
             self::reset_migration();
 
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'info', 'Migration rolled back successfully' );
+                CUFT_Logger::log( 'Migration rolled back successfully', CUFT_Logger::INFO );
             }
 
             return true;
 
         } catch ( Exception $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'error', 'Migration rollback failed: ' . $e->getMessage() );
+                CUFT_Logger::log( 'Migration rollback failed: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
             return false;
         }
@@ -396,17 +380,14 @@ class CUFT_Migration_Events {
 
         try {
             // Drop utm_source column
-            $wpdb->query(
-                "ALTER TABLE {$table_name} DROP COLUMN IF EXISTS utm_source"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN IF EXISTS utm_source', $table_name ) );
 
             // Drop platform column and its index
-            $wpdb->query(
-                "ALTER TABLE {$table_name} DROP INDEX IF EXISTS platform"
-            );
-            $wpdb->query(
-                "ALTER TABLE {$table_name} DROP COLUMN IF EXISTS platform"
-            );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX IF EXISTS platform', $table_name ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration of the plugin's own table cuft_click_tracking.
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN IF EXISTS platform', $table_name ) );
 
             // Update migration status
             self::update_migration_status( array(
@@ -415,14 +396,14 @@ class CUFT_Migration_Events {
             ) );
 
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'info', 'Deprecated columns cleaned up successfully' );
+                CUFT_Logger::log( 'Deprecated columns cleaned up successfully', CUFT_Logger::INFO );
             }
 
             return true;
 
         } catch ( Exception $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'error', 'Column cleanup failed: ' . $e->getMessage() );
+                CUFT_Logger::log( 'Column cleanup failed: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
             return false;
         }
@@ -438,32 +419,24 @@ class CUFT_Migration_Events {
         $errors = array();
 
         // Check for records with NULL events that should have data
-        $null_events_with_data = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table_name}
-             WHERE events IS NULL AND (utm_source IS NOT NULL OR platform IS NOT NULL OR qualified = 1)"
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+        $null_events_with_data = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE events IS NULL AND (utm_source IS NOT NULL OR platform IS NOT NULL OR qualified = 1)', $table_name ) );
 
         if ( $null_events_with_data > 0 ) {
             $errors[] = "{$null_events_with_data} records have NULL events but contain migratable data";
         }
 
         // Check for invalid JSON in events column
-        $invalid_json = $wpdb->get_results(
-            "SELECT id, click_id, events FROM {$table_name}
-             WHERE events IS NOT NULL AND NOT JSON_VALID(events)"
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+        $invalid_json = $wpdb->get_results( $wpdb->prepare( 'SELECT id, click_id, events FROM %i WHERE events IS NOT NULL AND NOT JSON_VALID(events)', $table_name ) );
 
         if ( ! empty( $invalid_json ) ) {
             $errors[] = count( $invalid_json ) . " records have invalid JSON in events column";
         }
 
         // Check for events with invalid structure
-        $invalid_events = $wpdb->get_results(
-            "SELECT id, click_id FROM {$table_name}
-             WHERE events IS NOT NULL
-             AND NOT JSON_VALID(events)
-             OR JSON_TYPE(events) != 'ARRAY'"
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; one-off migration read that must see live schema/data.
+        $invalid_events = $wpdb->get_results( $wpdb->prepare( "SELECT id, click_id FROM %i WHERE events IS NOT NULL AND NOT JSON_VALID(events) OR JSON_TYPE(events) != 'ARRAY'", $table_name ) );
 
         if ( ! empty( $invalid_events ) ) {
             $errors[] = count( $invalid_events ) . " records have events that are not valid arrays";
@@ -477,9 +450,9 @@ class CUFT_Migration_Events {
 
         if ( class_exists( 'CUFT_Logger' ) ) {
             if ( $validation_result['valid'] ) {
-                CUFT_Logger::log( 'info', 'Migration validation passed' );
+                CUFT_Logger::log( 'Migration validation passed', CUFT_Logger::INFO );
             } else {
-                CUFT_Logger::log( 'error', 'Migration validation failed', $validation_result );
+                CUFT_Logger::log( 'Migration validation failed', CUFT_Logger::ERROR, $validation_result );
             }
         }
 

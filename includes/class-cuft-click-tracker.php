@@ -104,7 +104,7 @@ class CUFT_Click_Tracker {
             'qualified' => 0,
             'score' => 0,
             'ip_hash' => self::hash_ip( self::get_client_ip() ),
-            'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] ) : '',
+            'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
             'additional_data' => ''
         );
         
@@ -125,21 +125,20 @@ class CUFT_Click_Tracker {
         $data['user_agent'] = sanitize_textarea_field( $data['user_agent'] );
         
         if ( is_array( $data['additional_data'] ) ) {
-            $data['additional_data'] = json_encode( $data['additional_data'] );
+            $data['additional_data'] = wp_json_encode( $data['additional_data'] );
         }
         $data['additional_data'] = sanitize_textarea_field( $data['additional_data'] );
 
         // Initialize empty events array if events column exists
-        $columns = $wpdb->get_results( "SHOW COLUMNS FROM $table_name LIKE 'events'" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        $columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, 'events' ) );
         if ( ! empty( $columns ) && ! isset( $data['events'] ) ) {
-            $data['events'] = json_encode( array() );
+            $data['events'] = wp_json_encode( array() );
         }
 
         // Check if record exists
-        $existing = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id FROM $table_name WHERE click_id = %s",
-            $data['click_id']
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        $existing = $wpdb->get_row( $wpdb->prepare( 'SELECT id FROM %i WHERE click_id = %s', $table_name, $data['click_id'] ) );
 
         if ( $existing ) {
             // Update existing record (preserve events if they exist)
@@ -151,6 +150,7 @@ class CUFT_Click_Tracker {
 
             $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
             $result = $wpdb->update(
                 $table_name,
                 $data,
@@ -166,6 +166,7 @@ class CUFT_Click_Tracker {
                 ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
                 : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' );
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin's own table cuft_click_tracking; no WP API covers it.
             $result = $wpdb->insert(
                 $table_name,
                 $data,
@@ -237,10 +238,8 @@ class CUFT_Click_Tracker {
         $table_name = $wpdb->prefix . self::$table_name;
 
         // Get current record to check for score increase and MP firing
-        $current_record = $wpdb->get_row( $wpdb->prepare(
-            "SELECT qualified, score, platform, ga_client_id FROM $table_name WHERE click_id = %s",
-            sanitize_text_field( $click_id )
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT qualified, score, platform, ga_client_id FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
 
         $old_score = $current_record ? (int) $current_record->score : 0;
 
@@ -266,7 +265,7 @@ class CUFT_Click_Tracker {
                 }
             } catch ( Exception $e ) {
                 if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    CUFT_Logger::log( 'error', 'Failed to record webhook event: ' . $e->getMessage() );
+                    CUFT_Logger::log( 'Failed to record webhook event: ' . $e->getMessage(), CUFT_Logger::ERROR );
                 }
             }
             return true;
@@ -276,6 +275,7 @@ class CUFT_Click_Tracker {
             return false;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
         $result = $wpdb->update(
             $table_name,
             $update_data,
@@ -301,7 +301,7 @@ class CUFT_Click_Tracker {
                 }
             } catch ( Exception $e ) {
                 if ( class_exists( 'CUFT_Logger' ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    CUFT_Logger::log( 'error', 'Failed to record webhook event: ' . $e->getMessage() );
+                    CUFT_Logger::log( 'Failed to record webhook event: ' . $e->getMessage(), CUFT_Logger::ERROR );
                 }
             }
 
@@ -356,7 +356,7 @@ class CUFT_Click_Tracker {
                 $where_clauses[] = '(events IS NULL OR JSON_LENGTH(events) = 0)';
             } else {
                 $where_clauses[] = 'JSON_CONTAINS(events, %s)';
-                $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+                $where_values[] = wp_json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
             }
         }
 
@@ -385,25 +385,19 @@ class CUFT_Click_Tracker {
 
         $where_sql = implode( ' AND ', $where_clauses );
 
-        // Handle sort_by parameter (v3.12.0+)
+        // Handle sort_by parameter (v3.12.0+). Column and direction are whitelisted.
         $orderby_column = ( $args['sort_by'] === 'date_updated' ) ? 'date_updated' : 'date_created';
-        $orderby = sanitize_sql_orderby( $orderby_column . ' ' . $args['order'] );
-        if ( ! $orderby ) {
-            $orderby = 'date_created DESC';
-        }
+        $order          = ( 'ASC' === strtoupper( (string) $args['order'] ) ) ? 'ASC' : 'DESC';
 
         $limit = absint( $args['limit'] );
         $offset = absint( $args['offset'] );
 
-        $sql = "SELECT * FROM $table_name WHERE $where_sql ORDER BY $orderby LIMIT $limit OFFSET $offset";
+        // $where_sql holds only the fixed fragments above with %d/%s placeholders; every value is bound by prepare().
+        $sql        = "SELECT * FROM %i WHERE {$where_sql} ORDER BY %i {$order} LIMIT %d OFFSET %d";
+        $query_args = array_merge( array( $table_name ), $where_values, array( $orderby_column, $limit, $offset ) );
 
-        if ( ! empty( $where_values ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled above from a $wpdb->prefix table name plus %s placeholders; the user values are bound here.
-            $sql = $wpdb->prepare( $sql, $where_values );
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
-        return $wpdb->get_results( $sql );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is built from fixed WHERE fragments and whitelisted ORDER BY direction; table, column and all values are bound via %i/%s/%d here. Plugin's own table; admin list data read fresh.
+        return $wpdb->get_results( $wpdb->prepare( $sql, $query_args ) );
     }
 
     /**
@@ -421,10 +415,8 @@ class CUFT_Click_Tracker {
 
         $table_name = $wpdb->prefix . self::$table_name;
 
-        return $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM $table_name WHERE click_id = %s",
-            sanitize_text_field( $click_id )
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        return $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
     }
 
     /**
@@ -465,7 +457,7 @@ class CUFT_Click_Tracker {
                 $where_clauses[] = '(events IS NULL OR JSON_LENGTH(events) = 0)';
             } else {
                 $where_clauses[] = 'JSON_CONTAINS(events, %s)';
-                $where_values[] = json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
+                $where_values[] = wp_json_encode( array( 'event' => sanitize_text_field( $args['event_type'] ) ) );
             }
         }
 
@@ -493,15 +485,12 @@ class CUFT_Click_Tracker {
         }
 
         $where_sql = implode( ' AND ', $where_clauses );
-        $sql = "SELECT COUNT(*) FROM $table_name WHERE $where_sql";
+        // $where_sql holds only the fixed fragments above with %d/%s placeholders; every value is bound by prepare().
+        $sql        = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
+        $query_args = array_merge( array( $table_name ), $where_values );
 
-        if ( ! empty( $where_values ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled above from a $wpdb->prefix table name plus %s placeholders; the user values are bound here.
-            $sql = $wpdb->prepare( $sql, $where_values );
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
-        return (int) $wpdb->get_var( $sql );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is built from fixed WHERE fragments; the table and all values are bound via %i/%s/%d here. Plugin's own table; admin list data read fresh.
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, $query_args ) );
     }
     
     /**
@@ -533,8 +522,11 @@ class CUFT_Click_Tracker {
      * @since 3.13.0 Changed from key-based auth to public obscure endpoint
      */
     public function handle_webhook() {
-        // Get required parameters
-        $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( $_GET['click_id'] ) : '';
+        // Get required parameters.
+        // No nonce by design: this endpoint is called from emails and CRM integrations
+        // that cannot hold a WordPress nonce. It only updates rows whose click_id already exists.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public webhook for external systems (email links, CRM); a nonce cannot be issued to them. Access is keyed by an existing click_id.
+        $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( wp_unslash( $_GET['click_id'] ) ) : '';
 
         if ( empty( $click_id ) ) {
             wp_send_json_error( array( 'message' => 'Missing click_id parameter' ), 400 );
@@ -543,20 +535,21 @@ class CUFT_Click_Tracker {
         // Verify the click_id exists (security: only allow updates to existing records)
         global $wpdb;
         $table_name = $wpdb->prefix . self::$table_name;
-        $exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table_name} WHERE click_id = %s",
-            $click_id
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        $exists = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE click_id = %s', $table_name, $click_id ) );
 
         if ( ! $exists ) {
             // Don't reveal whether record exists (return generic error)
             wp_send_json_error( array( 'message' => 'Invalid request' ), 400 );
         }
 
-        // Get optional parameters
-        $qualified = isset( $_GET['qualified'] ) ? (int) $_GET['qualified'] : null;
-        $score = isset( $_GET['score'] ) ? (int) $_GET['score'] : null;
-        $status = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
+        // Get optional parameters (same public webhook as above; no nonce by design).
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        $qualified = isset( $_GET['qualified'] ) ? (int) wp_unslash( $_GET['qualified'] ) : null;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        $score     = isset( $_GET['score'] ) ? (int) wp_unslash( $_GET['score'] ) : null;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        $status    = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
 
         // Validate status if provided
         if ( $status && ! in_array( $status, self::get_valid_webhook_statuses(), true ) ) {
@@ -605,7 +598,7 @@ class CUFT_Click_Tracker {
 
         foreach ( $ip_keys as $key ) {
             if ( ! empty( $_SERVER[ $key ] ) ) {
-                $ip = sanitize_text_field( $_SERVER[ $key ] );
+                $ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
                 // Handle comma-separated IPs (X-Forwarded-For)
                 if ( strpos( $ip, ',' ) !== false ) {
                     $ip = trim( explode( ',', $ip )[0] );
@@ -685,25 +678,43 @@ class CUFT_Click_Tracker {
             fputcsv( $output, array(
                 $click->id,
                 $click->click_id,
-                $click->platform,
-                $click->campaign,
-                $click->utm_source,
-                $click->utm_medium,
-                $click->utm_campaign,
-                $click->utm_term,
-                $click->utm_content,
+                self::csv_safe_cell( $click->platform ),
+                self::csv_safe_cell( $click->campaign ),
+                self::csv_safe_cell( $click->utm_source ),
+                self::csv_safe_cell( $click->utm_medium ),
+                self::csv_safe_cell( $click->utm_campaign ),
+                self::csv_safe_cell( $click->utm_term ),
+                self::csv_safe_cell( $click->utm_content ),
                 $click->qualified ? 'Yes' : 'No',
                 $click->score,
                 $click->date_created,
                 $click->date_updated,
                 $click->ip_hash,
-                $click->user_agent
+                self::csv_safe_cell( $click->user_agent )
             ) );
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing the php://output stream opened above.
         fclose( $output );
         exit;
+    }
+
+    /**
+     * Neutralise a visitor-supplied value so a spreadsheet does not run it as a formula.
+     *
+     * UTM values and user agents come from the visitor's URL and browser, and the
+     * export is opened in Excel or Sheets. A leading =, +, -, @, tab or carriage
+     * return is prefixed with a single quote (OWASP CSV injection guidance).
+     *
+     * @param mixed $value Cell value.
+     * @return string Safe cell value.
+     */
+    private static function csv_safe_cell( $value ) {
+        $value = (string) $value;
+        if ( '' !== $value && in_array( $value[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
+            $value = "'" . $value;
+        }
+        return $value;
     }
 
     /**
@@ -729,7 +740,9 @@ class CUFT_Click_Tracker {
         $where_values = array();
 
         // Filter for GCLID only (common patterns: Cj0K, EAIaIQ)
-        $where_clauses[] = "(click_id LIKE 'Cj0K%' OR click_id LIKE 'EAIaIQ%')";
+        $where_clauses[] = '(click_id LIKE %s OR click_id LIKE %s)';
+        $where_values[]  = $wpdb->esc_like( 'Cj0K' ) . '%';
+        $where_values[]  = $wpdb->esc_like( 'EAIaIQ' ) . '%';
 
         // Apply additional filters from $args
         if ( isset( $args['qualified'] ) && $args['qualified'] !== null ) {
@@ -749,16 +762,12 @@ class CUFT_Click_Tracker {
 
         $where_sql = implode( ' AND ', $where_clauses );
 
-        // Limit to 10000 records
-        $sql = "SELECT * FROM $table_name WHERE $where_sql ORDER BY date_created DESC LIMIT 10000";
+        // Limit to 10000 records. $where_sql holds only the fixed fragments above with placeholders.
+        $sql        = "SELECT * FROM %i WHERE {$where_sql} ORDER BY date_created DESC LIMIT 10000";
+        $query_args = array_merge( array( $table_name ), $where_values );
 
-        if ( ! empty( $where_values ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled above from a $wpdb->prefix table name plus %s placeholders; the user values are bound here.
-            $sql = $wpdb->prepare( $sql, $where_values );
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
-        $clicks = $wpdb->get_results( $sql );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is built from fixed WHERE fragments; the table and all values are bound via %i/%s/%d here. Plugin's own table; one-off admin export.
+        $clicks = $wpdb->get_results( $wpdb->prepare( $sql, $query_args ) );
 
         if ( empty( $clicks ) ) {
             return false;
@@ -907,12 +916,11 @@ class CUFT_Click_Tracker {
         global $wpdb;
         
         $table_name = $wpdb->prefix . self::$table_name;
+        $days        = absint( $days );
         $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-        
-        $result = $wpdb->query( $wpdb->prepare(
-            "DELETE FROM $table_name WHERE date_created < %s",
-            $cutoff_date
-        ) );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
+        $result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE date_created < %s', $table_name, $cutoff_date ) );
         
         if ( class_exists( 'CUFT_Logger' ) ) {
             CUFT_Logger::log( "Cleaned up {$result} old click tracking records", 'info' );
@@ -955,17 +963,15 @@ class CUFT_Click_Tracker {
         );
         if ( ! in_array( $event_type, $valid_events ) ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'error', 'Invalid event type: ' . $event_type );
+                CUFT_Logger::log( 'Invalid event type: ' . $event_type, CUFT_Logger::ERROR );
             }
             return false;
         }
 
         try {
             // Get current events or initialize empty array
-            $current_record = $wpdb->get_row( $wpdb->prepare(
-                "SELECT id, events FROM $table_name WHERE click_id = %s",
-                sanitize_text_field( $click_id )
-            ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+            $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
 
             if ( ! $current_record ) {
                 // Create new record if it doesn't exist
@@ -975,10 +981,8 @@ class CUFT_Click_Tracker {
                 }
 
                 // Get the newly created record
-                $current_record = $wpdb->get_row( $wpdb->prepare(
-                    "SELECT id, events FROM $table_name WHERE click_id = %s",
-                    sanitize_text_field( $click_id )
-                ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+                $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
             }
 
             // Parse existing events
@@ -1035,10 +1039,11 @@ class CUFT_Click_Tracker {
             } );
 
             // Update record with new events
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
             $result = $wpdb->update(
                 $table_name,
                 array(
-                    'events' => json_encode( $events ),
+                    'events' => wp_json_encode( $events ),
                     'date_updated' => current_time( 'mysql', true )
                 ),
                 array( 'id' => $current_record->id ),
@@ -1047,14 +1052,14 @@ class CUFT_Click_Tracker {
             );
 
             if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'info', "Event added: {$event_type} for click_id: {$click_id}" );
+                CUFT_Logger::log( "Event added: {$event_type} for click_id: {$click_id}", CUFT_Logger::INFO );
             }
 
             return $result !== false;
 
         } catch ( Exception $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( 'error', 'Failed to add event: ' . $e->getMessage() );
+                CUFT_Logger::log( 'Failed to add event: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
             return false;
         }
@@ -1075,10 +1080,8 @@ class CUFT_Click_Tracker {
 
         $table_name = $wpdb->prefix . self::$table_name;
 
-        $events_json = $wpdb->get_var( $wpdb->prepare(
-            "SELECT events FROM $table_name WHERE click_id = %s",
-            sanitize_text_field( $click_id )
-        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        $events_json = $wpdb->get_var( $wpdb->prepare( 'SELECT events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
 
         if ( empty( $events_json ) ) {
             return array();
@@ -1125,9 +1128,10 @@ class CUFT_Click_Tracker {
         global $wpdb;
         $table_name = $wpdb->prefix . self::$table_name;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
         $result = $wpdb->update(
             $table_name,
-            array( 'events' => json_encode( $events ) ),
+            array( 'events' => wp_json_encode( $events ) ),
             array( 'click_id' => sanitize_text_field( $click_id ) ),
             array( '%s' ),
             array( '%s' )
@@ -1159,26 +1163,22 @@ class CUFT_Click_Tracker {
         $args = wp_parse_args( $args, $defaults );
         $table_name = $wpdb->prefix . self::$table_name;
 
-        $orderby = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
-        if ( ! $orderby ) {
-            $orderby = 'date_updated DESC';
-        }
+        // Whitelist the ORDER BY column and direction.
+        $allowed_orderby = array( 'id', 'click_id', 'platform', 'qualified', 'score', 'date_created', 'date_updated' );
+        $orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'date_updated';
+        $order           = ( 'ASC' === strtoupper( (string) $args['order'] ) ) ? 'ASC' : 'DESC';
 
         $limit = absint( $args['limit'] );
         $offset = absint( $args['offset'] );
 
-        // Use JSON_CONTAINS for MySQL 5.7+ compatibility
-        $sql = $wpdb->prepare(
-            "SELECT * FROM $table_name
-             WHERE events IS NOT NULL
-             AND JSON_CONTAINS(events, %s)
-             ORDER BY $orderby
-             LIMIT $limit OFFSET $offset",
-            json_encode( array( 'event' => $event_type ) )
-        );
+        // Use JSON_CONTAINS for MySQL 5.7+ compatibility. ORDER BY direction is one of two literals.
+        if ( 'ASC' === $order ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+            return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE events IS NOT NULL AND JSON_CONTAINS(events, %s) ORDER BY %i ASC LIMIT %d OFFSET %d', $table_name, wp_json_encode( array( 'event' => $event_type ) ), $orderby, $limit, $offset ) );
+        }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql was prepared above.
-        return $wpdb->get_results( $sql );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE events IS NOT NULL AND JSON_CONTAINS(events, %s) ORDER BY %i DESC LIMIT %d OFFSET %d', $table_name, wp_json_encode( array( 'event' => $event_type ) ), $orderby, $limit, $offset ) );
     }
 
 }
