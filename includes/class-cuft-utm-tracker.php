@@ -170,11 +170,12 @@ class CUFT_UTM_Tracker {
         $utm_data = array();
 
         if ( isset( $_COOKIE['cuft_utm_data'] ) ) {
-            $cookie_data = json_decode( sanitize_text_field( wp_unslash( $_COOKIE['cuft_utm_data'] ) ), true );
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON document; sanitize_text_field would strip %XX sequences and could break the JSON, so each decoded value is sanitized below instead.
+            $cookie_data = json_decode( wp_unslash( $_COOKIE['cuft_utm_data'] ), true );
             if ( is_array( $cookie_data ) && isset( $cookie_data['utm'] ) ) {
                 $timestamp = isset( $cookie_data['timestamp'] ) ? $cookie_data['timestamp'] : 0;
                 if ( ( current_time( 'timestamp' ) - $timestamp ) < ( 30 * DAY_IN_SECONDS ) ) {
-                    $utm_data = $cookie_data['utm'];
+                    $utm_data = is_array( $cookie_data['utm'] ) ? map_deep( $cookie_data['utm'], 'sanitize_text_field' ) : array();
                 }
             }
         }
@@ -194,14 +195,15 @@ class CUFT_UTM_Tracker {
         $data = array();
 
         if ( isset( $_COOKIE['cuft_first_touch'] ) ) {
-            $decoded = json_decode( sanitize_text_field( wp_unslash( $_COOKIE['cuft_first_touch'] ) ), true );
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON document; sanitize_text_field would strip %XX sequences and could break the JSON, so each decoded value is sanitized below instead.
+            $decoded = json_decode( wp_unslash( $_COOKIE['cuft_first_touch'] ), true );
             if ( is_array( $decoded ) ) {
-                $data = ( isset( $decoded['utm'] ) && is_array( $decoded['utm'] ) ) ? $decoded['utm'] : array();
+                $data = ( isset( $decoded['utm'] ) && is_array( $decoded['utm'] ) ) ? map_deep( $decoded['utm'], 'sanitize_text_field' ) : array();
                 if ( isset( $decoded['landing_page'] ) ) {
-                    $data['landing_page'] = $decoded['landing_page'];
+                    $data['landing_page'] = esc_url_raw( (string) $decoded['landing_page'] );
                 }
                 if ( isset( $decoded['timestamp'] ) ) {
-                    $data['timestamp'] = $decoded['timestamp'];
+                    $data['timestamp'] = is_numeric( $decoded['timestamp'] ) ? (int) $decoded['timestamp'] : sanitize_text_field( (string) $decoded['timestamp'] );
                 }
             }
         }

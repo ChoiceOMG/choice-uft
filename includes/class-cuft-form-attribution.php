@@ -346,7 +346,7 @@ class CUFT_Form_Attribution {
      * @return string
      */
     private static function current_page_url() {
-        $request_uri      = ! empty( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+        $request_uri      = ! empty( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
         $is_ajax_request = ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() )
             || ( $request_uri && false !== strpos( $request_uri, 'admin-ajax.php' ) );
 
@@ -364,7 +364,7 @@ class CUFT_Form_Attribution {
         $scheme = ( function_exists( 'is_ssl' ) && is_ssl() ) ? 'https' : 'http';
         return $scheme . '://'
             . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) )
-            . sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+            . esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
     }
 
     /**
