@@ -1,7 +1,7 @@
 === Choice Universal Form Tracker ===
 Contributors: jaffray
 Tags: forms, form tracking, analytics, conversion tracking, utm
-Requires at least: 5.0
+Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 3.27.1
@@ -79,9 +79,11 @@ plugins at once and each one needed its own analytics plumbing.
 
 == External services ==
 
-This plugin can connect to external services. All of them are optional, all
-are off until you configure them, and the plugin tracks forms to the dataLayer
-without any of them.
+This plugin can connect to the external services below. Every one of them is
+off on a new install and stays off until an administrator configures it on
+the settings screen. With none configured, the plugin only pushes events to
+the `window.dataLayer` array in the visitor's own browser and sends nothing
+anywhere.
 
 = Google Tag Manager =
 
@@ -90,12 +92,13 @@ field empty and no request is made; the plugin then pushes events to a
 dataLayer supplied by your own GTM installation instead.
 
 *What is sent:* the visitor's browser requests the container script from
-`https://www.googletagmanager.com/gtm.js`. As with any GTM installation,
-Google receives the request and whatever your own container tags choose to
-send, which will include the form and campaign data described above if you
-configure tags to forward it.
+`https://www.googletagmanager.com/gtm.js` (and, for visitors without
+JavaScript, the `ns.html` frame). As with any GTM installation, Google
+receives the request, the visitor's IP address and browser details, and
+whatever your own container tags choose to send, which will include the form
+and campaign data described above if you configure tags to forward it.
 
-*When:* on every page load, once a container ID is set.
+*When:* on every front-end page load, once a container ID is set.
 
 * Service: [Google Tag Manager](https://marketingplatform.google.com/about/tag-manager/)
 * Terms of service: [https://www.google.com/analytics/terms/tag-manager/](https://www.google.com/analytics/terms/tag-manager/)
@@ -103,10 +106,22 @@ configure tags to forward it.
 
 = Server-side Google Tag Manager (optional custom host) =
 
-If you enable server-side GTM and supply your own tagging server URL, the
-container script is requested from that host instead of from Google. You
-choose the host, so you decide who receives the request. The plugin falls back
-to `www.googletagmanager.com` when the configured host fails its health check.
+Used only when you enable server-side GTM and enter your own tagging server
+URL. Off by default.
+
+*What is sent:* the container script is requested from the host you entered
+instead of from Google, so that host receives the same page-load request
+described above. To decide whether the host is healthy, the plugin also
+requests `gtm.js` and `ns.html` from it, server to server, when you press
+the test button and on a six-hour schedule. Those checks carry the container
+ID and no visitor data. When the custom host fails its check, the plugin
+falls back to `www.googletagmanager.com`.
+
+*When:* on every front-end page load, and on the six-hour health check, while
+server-side GTM is enabled.
+
+You choose the host, so you decide who receives the request and which terms
+apply.
 
 = Google Analytics Measurement Protocol =
 
@@ -118,43 +133,55 @@ settings screen. Without both, no request is made.
 read from the visitor's `_ga` cookie, the event name, the configured lead
 value and currency, and the event parameters for that submission.
 
-*When:* at webhook time, when a lead event is recorded.
+*When:* when a lead's status is updated through the plugin's webhook (for
+example, a lead marked qualified).
 
 * Service: [Google Analytics](https://marketingplatform.google.com/about/analytics/)
 * Terms of service: [https://marketingplatform.google.com/about/analytics/terms/us/](https://marketingplatform.google.com/about/analytics/terms/us/)
 * Privacy policy: [https://policies.google.com/privacy](https://policies.google.com/privacy)
 
-= Choice OMG click collector (optional custom host) =
+= Click collector (optional custom host) =
 
 Used only when you enter a Click Collector Host on the settings screen. Empty
 by default, in which case nothing is sent.
 
-*What is sent:* a POST to `https://<the host you entered>/p` carrying the
-advertising click ID and its platform, the five UTM parameters, the referring
-URL, the landing page URL, and the GA client ID from the `_ga` cookie.
+*What is sent:* the visitor's browser sends a POST (`navigator.sendBeacon`)
+to `https://<the host you entered>/p` carrying the advertising click ID and
+its platform, the five UTM parameters, the referring URL, the landing page
+URL, and the GA client ID from the `_ga` cookie.
 
 *When:* on page load, only when a click ID is present in the URL or in the
 plugin's own click cookie.
 
 You choose the host. Point it at your own collector, or at the one Choice OMG
-operates for its clients, and the operator of that host receives the data
-above.
+operates for its clients, in which case Choice OMG receives the data above
+under the terms and privacy policy linked in the next section.
 
-= Choice OMG phone validator =
+= Choice OMG phone validation service =
 
-Used only when phone validation is switched on and the site has been
-registered with a registration secret that Choice OMG issues to its clients.
-Both are empty by default, so this service is unreachable on a standard
-install.
+Used only when an administrator switches phone validation on and registers
+the site with a registration secret that Choice OMG issues to its clients.
+Both are off and empty by default, so this service is never contacted on a
+standard install.
 
-*What is sent:* a POST to `https://phone-validator.choice.zone/validate-phone`
-containing the phone number to check and the site's registration token.
-Registration itself sends the site's domain name.
+*What is sent:* registering the site (the Register Site button) sends the
+site's domain name and the registration secret to
+`https://phone-validator.choice.zone`. After that, each phone number to be
+checked is sent from your server to
+`https://phone-validator.choice.zone/validate-phone` together with the
+site's registration token. Choice OMG's service looks the number up with its
+own providers, Twilio Lookup and Abstract API, and returns whether the number
+is valid, its line type, and a quality score.
 
-*When:* when a submitted phone number is validated. Results are cached for 24
-hours per number.
+*When:* when a submitted phone number is validated. Results are cached on your
+site for 24 hours per number, so a repeated number is not sent again within
+that window.
 
-* Service and privacy policy: [Choice OMG](https://choice.marketing/)
+* Service: [Choice OMG](https://choice.marketing/tools/choice-uft/)
+* Terms of service: [https://choice.marketing/terms/](https://choice.marketing/terms/)
+* Privacy policy: [https://choice.marketing/privacy-policy/](https://choice.marketing/privacy-policy/)
+* Sub-processor Twilio: [terms](https://www.twilio.com/en-us/legal/tos), [privacy policy](https://www.twilio.com/en-us/legal/privacy)
+* Sub-processor Abstract API: [terms and privacy policy](https://www.abstractapi.com/legal/legal)
 
 Because form submissions can carry personal data, review your own privacy
 policy and any applicable data-protection obligations (GDPR, CCPA, PIPEDA and
@@ -162,7 +189,7 @@ similar) before enabling any of these services.
 
 == Installation ==
 
-1. Install the plugin through the Plugins screen, or upload it to `/wp-content/plugins/choice-uft/`.
+1. Install the plugin through the Plugins screen, or upload the `choice-universal-form-tracker` folder to `/wp-content/plugins/`.
 2. Activate it through the Plugins screen.
 3. Go to **Settings > Universal Form Tracker**.
 4. Enter your Google Tag Manager container ID, or leave it empty to use your own GTM installation.

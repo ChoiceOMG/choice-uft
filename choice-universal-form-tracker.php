@@ -1,15 +1,15 @@
 <?php
 /**
  * Plugin Name:       Choice Universal Form Tracker
- * Plugin URI:        https://github.com/ChoiceOMG/choice-uft
+ * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
  * Version:           3.27.1
- * Requires at least: 5.0
+ * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Choice OMG
  * Author URI:        https://choice.marketing
  * Text Domain:       choice-universal-form-tracker
- * License:           GPL-2.0-or-later
+ * License:           GPLv2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  */
 
@@ -178,7 +178,9 @@ class Choice_Universal_Form_Tracker {
                 require_once $filepath;
             } else {
                 // Log missing file error but don't break the plugin
-                error_log( "CUFT Warning: Missing file {$file}" );
+                if ( class_exists( 'CUFT_Logger' ) ) {
+                    CUFT_Logger::debug_log( "CUFT Warning: Missing file {$file}" );
+                }
             }
         }
     }
@@ -221,8 +223,9 @@ class Choice_Universal_Form_Tracker {
             return;
         }
         
-        // Check WordPress version compatibility  
-        if ( version_compare( get_bloginfo( 'version' ), '5.0', '<' ) ) {
+        // Check WordPress version compatibility. 6.2 is the floor because the
+        // plugin's queries use the %i identifier placeholder in $wpdb->prepare().
+        if ( version_compare( get_bloginfo( 'version' ), '6.2', '<' ) ) {
             if ( is_admin() ) {
                 add_action( 'admin_notices', array( $this, 'wp_version_notice' ) );
             }
@@ -329,7 +332,7 @@ class Choice_Universal_Form_Tracker {
             // See: includes/class-cuft-wordpress-updater.php (initialized automatically)
 
         } catch ( Exception $e ) {
-            error_log( "CUFT Error during initialization: " . $e->getMessage() );
+            CUFT_Logger::debug_log( 'CUFT Error during initialization: ' . $e->getMessage() );
             if ( is_admin() ) {
                 add_action( 'admin_notices', array( $this, 'init_error_notice' ) );
             }
@@ -502,7 +505,7 @@ class Choice_Universal_Form_Tracker {
      * Add plugin action links
      */
     public function add_action_links( $links ) {
-        $settings_link = '<a href="' . admin_url( 'options-general.php?page=choice-universal-form-tracker' ) . '">Settings</a>';
+        $settings_link = '<a href="' . esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker' ) ) . '">' . esc_html__( 'Settings', 'choice-universal-form-tracker' ) . '</a>';
 
         // Add settings link at the beginning
         array_unshift( $links, $settings_link );
@@ -519,7 +522,7 @@ class Choice_Universal_Form_Tracker {
         }
 
         $row_meta = array(
-            'support' => '<a href="https://github.com/ChoiceOMG/choice-uft/issues" target="_blank">Support</a>'
+            'support' => '<a href="' . esc_url( 'https://github.com/ChoiceOMG/choice-uft/issues' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Support', 'choice-universal-form-tracker' ) . '</a>',
         );
 
         return array_merge( $plugin_meta, $row_meta );
@@ -537,8 +540,8 @@ class Choice_Universal_Form_Tracker {
 
         echo ' ';
         echo 'Version ' . esc_html( $new_version ) . ' is available. ';
-        echo '<a href="' . esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker' ) ) . '">Go to Settings → Force Update</a> | ';
-        echo '<a href="https://github.com/ChoiceOMG/choice-uft/releases/tag/v' . esc_attr( $new_version ) . '" target="_blank">View release notes</a>';
+        echo '<a href="' . esc_url( admin_url( 'options-general.php?page=choice-universal-form-tracker' ) ) . '">Go to Settings &rarr; Force Update</a> | ';
+        echo '<a href="' . esc_url( 'https://github.com/ChoiceOMG/choice-uft/releases/tag/v' . $new_version ) . '" target="_blank" rel="noopener noreferrer">View release notes</a>';
     }
 
     /**
@@ -547,7 +550,7 @@ class Choice_Universal_Form_Tracker {
     public function php_version_notice() {
         echo '<div class="notice notice-error"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires PHP 7.4 or higher. ';
-        echo 'You are running PHP ' . PHP_VERSION . '. Please contact your hosting provider to upgrade PHP.';
+        echo 'You are running PHP ' . esc_html( PHP_VERSION ) . '. Please contact your hosting provider to upgrade PHP.';
         echo '</p></div>';
     }
     
@@ -556,7 +559,7 @@ class Choice_Universal_Form_Tracker {
      */
     public function wp_version_notice() {
         echo '<div class="notice notice-error"><p>';
-        echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires WordPress 5.0 or higher. ';
+        echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires WordPress 6.2 or higher. ';
         echo 'You are running WordPress ' . esc_html( get_bloginfo( 'version' ) ) . '. Please update WordPress.';
         echo '</p></div>';
     }
