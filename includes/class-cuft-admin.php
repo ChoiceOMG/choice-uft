@@ -66,11 +66,6 @@ class CUFT_Admin {
             // handle_google_ads_oci_export() will exit, so this won't be reached
         }
 
-        // Handle webhook key regeneration
-        if ( 'regenerate_webhook_key' === $action && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'regenerate_webhook_key' ) ) {
-            $this->regenerate_webhook_key();
-            // This redirects, so won't be reached
-        }
     }
 
     /**
@@ -272,10 +267,10 @@ class CUFT_Admin {
                         <td>
                             <label>
                                 <input type="checkbox" name="generate_lead_enabled" value="1" <?php checked( $generate_lead_enabled ); ?> id="cuft-generate-lead-enabled" />
-                                Fire generate_lead events for qualified form submissions
+                                Fire generate_lead events
                             </label>
                             <p class="description">
-                                Automatically creates generate_lead events when forms are submitted with email, phone, and click ID data. Ideal for conversion tracking in GA4.
+                                Pushes a generate_lead event, and records it on the click, for every submission that includes a valid email address. When unchecked, no generate_lead event is pushed or recorded; form_submit and qualify_lead are not affected.
                             </p>
 
                             <div id="cuft-lead-settings" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; <?php echo $generate_lead_enabled ? '' : 'display:none;'; ?>">
@@ -1513,26 +1508,57 @@ class CUFT_Admin {
         // Use placeholder for display if no data exists
         $display_click_id = $has_data ? $sample_click_id : 'YOUR_CLICK_ID';
 
-        $example_url = add_query_arg( array(
-            'action' => 'cuft_webhook',
+        $require_key = class_exists( 'CUFT_Click_Tracker' ) && CUFT_Click_Tracker::webhook_key_required();
+        $webhook_key = $require_key ? CUFT_Click_Tracker::get_webhook_key() : '';
+
+        $base_args = array( 'action' => 'cuft_webhook' );
+        if ( $require_key ) {
+            $base_args['key'] = $webhook_key;
+        }
+        $endpoint_url = add_query_arg( $base_args, $webhook_url );
+
+        $example_url = add_query_arg( array_merge( $base_args, array(
             'click_id' => $display_click_id,
             'qualified' => '1',
             'score' => '8'
-        ), $webhook_url );
+        ) ), $webhook_url );
 
         ?>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-            <h3 style="margin-top: 0;">📡 Public Webhook Endpoint</h3>
+            <h3 style="margin-top: 0;">📡 Webhook Endpoint</h3>
             <p style="color: #666; margin-top: 0;">
-                <strong>Public, obscure endpoint for updating click status from email messages.</strong><br>
-                Security through obscurity: The click_id itself acts as the authorization token.
+                <strong>Updates a click's lead status from an email link, a CRM, or any system that can request a URL.</strong><br>
+                <?php if ( $require_key ) : ?>
+                    Every request must carry this site's webhook key in the <code>key</code> parameter. Requests without it are rejected with HTTP 403.
+                <?php else : ?>
+                    The webhook key is not required, so anyone who knows a click ID can update that click's status. Turn on "Require webhook key" below to close that.
+                <?php endif; ?>
             </p>
 
+            <form method="post" style="margin-bottom: 15px;">
+                <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
+                <input type="hidden" name="cuft_click_action" value="webhook_settings" />
+                <label>
+                    <input type="checkbox" name="cuft_webhook_require_key" value="1" <?php checked( $require_key ); ?> />
+                    <strong>Require webhook key</strong>
+                </label>
+                <?php submit_button( 'Save', 'secondary', 'cuft_webhook_settings_save', false ); ?>
+                <p class="description">When on, the webhook accepts only requests whose <code>key</code> matches the key shown below. Existing integrations must add <code>&amp;key=...</code> to their URLs before you turn this on.</p>
+            </form>
+
             <div style="margin-bottom: 15px;">
-                <label><strong>Webhook Base URL:</strong></label><br>
-                <input type="text" value="<?php echo esc_attr( $webhook_url ); ?>" readonly class="regular-text cuft-select-on-click" style="font-family: monospace;" />
-                <p class="description">Use with action=cuft_webhook parameter</p>
+                <label><strong>Webhook URL:</strong></label><br>
+                <input type="text" value="<?php echo esc_attr( $endpoint_url ); ?>" readonly class="large-text cuft-select-on-click" style="font-family: monospace;" />
+                <p class="description">Append <code>click_id</code> and the status parameters below.<?php echo $require_key ? ' Treat this URL as a secret: it contains the key.' : ''; ?></p>
             </div>
+
+            <?php if ( $require_key ) : ?>
+            <form method="post" style="margin-bottom: 15px;" class="cuft-confirm-regenerate-key">
+                <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
+                <input type="hidden" name="cuft_click_action" value="regenerate_webhook_key" />
+                <?php submit_button( 'Regenerate webhook key', 'secondary', 'cuft_regenerate_webhook_key', false ); ?>
+            </form>
+            <?php endif; ?>
 
             <div style="margin-bottom: 15px;">
                 <strong>Example Usage:</strong><br>
@@ -1542,19 +1568,14 @@ class CUFT_Admin {
                 <p class="description" style="margin-top: 8px;">
                     <strong>Parameters:</strong><br>
                     • <code>action</code> = cuft_webhook (required)<br>
-                    • <code>click_id</code> = The click ID to update (required, acts as auth token)<br>
+                    <?php if ( $require_key ) : ?>
+                    • <code>key</code> = this site's webhook key (required)<br>
+                    <?php endif; ?>
+                    • <code>click_id</code> = the click ID to update (required; only existing clicks can be updated)<br>
                     • <code>qualified</code> = 0 or 1 (optional)<br>
-                    • <code>score</code> = 0-10 (optional)
+                    • <code>score</code> = 0-10 (optional)<br>
+                    • <code>status</code> = qualify_lead, disqualify_lead, working_lead, close_convert_lead or close_unconvert_lead (optional)
                 </p>
-            </div>
-
-            <div style="background: white; padding: 12px; border-left: 4px solid #3b82f6; margin-bottom: 15px;">
-                <strong>💡 For Email Messages:</strong><br>
-                <small style="color: #666;">
-                    Embed the webhook URL in email links/images to track lead status updates.
-                    The click_id is already obscure (e.g., gclid, fbclid, or generated hash),
-                    providing security through obscurity without requiring additional authentication.
-                </small>
             </div>
 
             <div>
@@ -1570,7 +1591,7 @@ class CUFT_Admin {
                             <?php endif; ?>
                         </p>
                     </div>
-                    <button type="button" class="button button-secondary" id="cuft-test-webhook" style="margin-top: 0;">
+                    <button type="button" class="button button-secondary" id="cuft-test-webhook" data-webhook-key="<?php echo esc_attr( $webhook_key ); ?>" style="margin-top: 0;">
                         🧪 Test Endpoint
                     </button>
                 </div>
@@ -1915,6 +1936,20 @@ class CUFT_Admin {
         
         $action = isset( $_POST['cuft_click_action'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_click_action'] ) ) : '';
         
+        if ( 'webhook_settings' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
+            $require_key = ! empty( $_POST['cuft_webhook_require_key'] );
+            update_option( CUFT_Click_Tracker::OPTION_REQUIRE_KEY, $require_key ? 1 : 0 );
+            if ( $require_key ) {
+                CUFT_Click_Tracker::get_webhook_key(); // Generates a key if none exists yet.
+            }
+            add_settings_error( 'cuft_messages', 'cuft_message', $require_key ? 'Webhook key is now required.' : 'Webhook key is no longer required.', 'updated' );
+        }
+
+        if ( 'regenerate_webhook_key' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
+            update_option( CUFT_Click_Tracker::OPTION_WEBHOOK_KEY, wp_generate_password( 32, false ), false );
+            add_settings_error( 'cuft_messages', 'cuft_message', 'Webhook key regenerated. Update every integration that calls the webhook.', 'updated' );
+        }
+
         if ( $action === 'update_status' ) {
             $click_id = isset( $_POST['click_id'] ) ? sanitize_text_field( wp_unslash( $_POST['click_id'] ) ) : '';
             $qualified = isset( $_POST['qualified'] ) ? (int) sanitize_text_field( wp_unslash( $_POST['qualified'] ) ) : null;
@@ -2012,25 +2047,6 @@ class CUFT_Admin {
         CUFT_Click_Tracker::export_google_ads_oci_csv( $args );
     }
 
-    /**
-     * Regenerate webhook key
-     */
-    private function regenerate_webhook_key() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Insufficient permissions', 'choice-universal-form-tracker' ) );
-        }
-        
-        $new_key = wp_generate_password( 32, false );
-        update_option( 'cuft_webhook_key', $new_key );
-        
-        add_settings_error( 'cuft_messages', 'cuft_message', 'Webhook key regenerated successfully!', 'updated' );
-        settings_errors( 'cuft_messages' );
-        
-        // Redirect back to click tracking tab
-        wp_safe_redirect( admin_url( 'admin.php?page=cuft-click-tracking' ) );
-        exit;
-    }
-    
     /**
      * AJAX handler for dismissing the admin notice
      */

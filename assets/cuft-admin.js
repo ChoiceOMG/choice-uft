@@ -455,11 +455,13 @@ jQuery(document).ready(function ($) {
       resultDiv.appendChild(em);
     }
 
+    var webhookKey = $(this).attr("data-webhook-key") || "";
     var testUrl =
       cuftAdmin.ajax_url +
       "?action=cuft_webhook&click_id=" +
       encodeURIComponent(clickId) +
-      "&qualified=1&score=8";
+      "&qualified=1&score=8" +
+      (webhookKey ? "&key=" + encodeURIComponent(webhookKey) : "");
 
     fetch(testUrl)
       .then(function (response) {
@@ -482,6 +484,13 @@ jQuery(document).ready(function ($) {
       .catch(function (error) {
         showWebhookResult("#dc3545", "❌ Webhook test failed: " + error.message);
       });
+  });
+
+  // Click Tracking page: confirm before regenerating the webhook key
+  $(document).on("submit", "form.cuft-confirm-regenerate-key", function () {
+    return window.confirm(
+      "Regenerate the webhook key? Every integration using the current key will stop working until it is updated."
+    );
   });
 
   // Click Tracking page: copy a Click ID into the webhook test field
