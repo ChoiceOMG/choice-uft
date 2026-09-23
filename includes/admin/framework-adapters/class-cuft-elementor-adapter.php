@@ -21,7 +21,7 @@ require_once __DIR__ . '/abstract-cuft-adapter.php';
  *
  * Creates and manages Elementor Pro test forms.
  */
-class CUFT_Elementor_Adapter extends Abstract_CUFT_Adapter {
+class CUFT_Elementor_Adapter extends CUFT_Abstract_Adapter {
 
     /**
      * Constructor

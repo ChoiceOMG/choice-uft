@@ -77,13 +77,13 @@ class CUFT_Test_Data_Generator {
 
             // Performance check: Must be under 500ms
             if ($execution_time > 500) {
-                error_log('CUFT Test Data Generator: Performance warning - execution time ' . $execution_time . 'ms');
+                CUFT_Logger::debug_log('CUFT Test Data Generator: Performance warning - execution time ' . $execution_time . 'ms');
             }
 
             wp_send_json_success($response);
 
         } catch (Exception $e) {
-            error_log('CUFT Test Data Generator Error: ' . $e->getMessage());
+            CUFT_Logger::debug_log('CUFT Test Data Generator Error: ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => __('Failed to generate test data.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()

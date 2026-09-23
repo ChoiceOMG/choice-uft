@@ -310,11 +310,12 @@ class CUFT_Test_Session {
         $count = 0;
 
         // Get all cuft_test_session transients
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- No WP API lists transients by name prefix; admin-only test tooling, results used once.
         $transients = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT option_name FROM {$wpdb->options}
                 WHERE option_name LIKE %s",
-                '_transient_' . self::TRANSIENT_PREFIX . '%'
+                $wpdb->esc_like('_transient_' . self::TRANSIENT_PREFIX) . '%'
             )
         );
 
@@ -341,11 +342,12 @@ class CUFT_Test_Session {
         $sessions = array();
 
         // Get all cuft_test_session transients
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- No WP API lists transients by name prefix; admin-only test tooling, results used once.
         $transients = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT option_name, option_value FROM {$wpdb->options}
                 WHERE option_name LIKE %s",
-                '_transient_' . self::TRANSIENT_PREFIX . '%'
+                $wpdb->esc_like('_transient_' . self::TRANSIENT_PREFIX) . '%'
             )
         );
 

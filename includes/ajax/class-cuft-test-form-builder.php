@@ -50,9 +50,13 @@ class CUFT_Test_Form_Builder {
             $start_time = microtime(true);
 
             // Get request parameters
-            $framework = isset($_POST['framework']) ? sanitize_text_field($_POST['framework']) : 'elementor';
-            $session_id = isset($_POST['session_id']) ? sanitize_text_field($_POST['session_id']) : 'test_' . uniqid();
-            $test_data = isset($_POST['test_data']) ? json_decode(stripslashes($_POST['test_data']), true) : array();
+            $framework = isset($_POST['framework']) ? sanitize_key(wp_unslash($_POST['framework'])) : 'elementor';
+            $session_id = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : 'test_' . uniqid();
+            $test_data = array();
+            if (isset($_POST['test_data'])) {
+                $test_data = json_decode(wp_unslash($_POST['test_data']), true); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON string; every decoded value is sanitized by map_deep() on the next line.
+                $test_data = is_array($test_data) ? map_deep($test_data, 'sanitize_text_field') : array();
+            }
 
             // Validate framework
             $allowed_frameworks = array('elementor', 'cf7', 'ninja', 'gravity', 'avada');
@@ -68,13 +72,13 @@ class CUFT_Test_Form_Builder {
 
             // Ensure under 500ms threshold
             if ($response['performance_ms'] > 500) {
-                error_log('CUFT: Test form builder exceeded 500ms threshold: ' . $response['performance_ms'] . 'ms');
+                CUFT_Logger::debug_log('CUFT: Test form builder exceeded 500ms threshold: ' . $response['performance_ms'] . 'ms');
             }
 
             wp_send_json_success($response);
 
         } catch (Exception $e) {
-            error_log('CUFT: Test form builder error - ' . $e->getMessage());
+            CUFT_Logger::debug_log('CUFT: Test form builder error - ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => __('Failed to build test form.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
@@ -250,31 +254,16 @@ class CUFT_Test_Form_Builder {
             return $this->get_fallback_form_response('cf7', $session_id, __('No Contact Form 7 forms available.', 'choice-universal-form-tracker'));
         }
 
-        // Pre-fill data using JavaScript (CF7 doesn't support server-side pre-population easily)
-        $prefill_script = '';
-        if (!empty($test_data)) {
-            $prefill_script = sprintf(
-                '<script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    setTimeout(function() {
-                        var emailField = document.querySelector(".wpcf7 input[type=email]");
-                        var phoneField = document.querySelector(".wpcf7 input[type=tel]");
-                        if (emailField) emailField.value = %s;
-                        if (phoneField) phoneField.value = %s;
-                    }, 100);
-                });
-                </script>',
-                json_encode(isset($test_data['email']) ? $test_data['email'] : ''),
-                json_encode(isset($test_data['phone']) ? $test_data['phone'] : '')
-            );
-        }
+        // Pre-fill data is applied by assets/admin/cuft-testing-dashboard.js after the form is inserted.
+        $prefill = $this->get_prefill_data('.wpcf7', $test_data);
 
         return array(
             'framework' => 'cf7',
             'session_id' => $session_id,
             'form_id' => $form_id,
             'shortcode' => '[contact-form-7 id="' . $form_id . '"]',
-            'rendered_html' => do_shortcode('[contact-form-7 id="' . $form_id . '"]') . $prefill_script,
+            'rendered_html' => do_shortcode('[contact-form-7 id="' . $form_id . '"]'),
+            'prefill' => $prefill,
             'message' => __('Contact Form 7 test form ready.', 'choice-universal-form-tracker')
         );
     }
@@ -308,31 +297,16 @@ class CUFT_Test_Form_Builder {
             return $this->get_fallback_form_response('ninja', $session_id, __('No Ninja Forms available.', 'choice-universal-form-tracker'));
         }
 
-        // Pre-fill data using JavaScript
-        $prefill_script = '';
-        if (!empty($test_data)) {
-            $prefill_script = sprintf(
-                '<script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    setTimeout(function() {
-                        var emailField = document.querySelector(".nf-form-cont input[type=email]");
-                        var phoneField = document.querySelector(".nf-form-cont input[type=tel]");
-                        if (emailField) emailField.value = %s;
-                        if (phoneField) phoneField.value = %s;
-                    }, 500);
-                });
-                </script>',
-                json_encode(isset($test_data['email']) ? $test_data['email'] : ''),
-                json_encode(isset($test_data['phone']) ? $test_data['phone'] : '')
-            );
-        }
+        // Pre-fill data is applied by assets/admin/cuft-testing-dashboard.js after the form is inserted.
+        $prefill = $this->get_prefill_data('.nf-form-cont', $test_data);
 
         return array(
             'framework' => 'ninja',
             'session_id' => $session_id,
             'form_id' => $form_id,
             'shortcode' => '[ninja_form id=' . $form_id . ']',
-            'rendered_html' => do_shortcode('[ninja_form id=' . $form_id . ']') . $prefill_script,
+            'rendered_html' => do_shortcode('[ninja_form id=' . $form_id . ']'),
+            'prefill' => $prefill,
             'message' => __('Ninja Forms test form ready.', 'choice-universal-form-tracker')
         );
     }
@@ -358,7 +332,7 @@ class CUFT_Test_Form_Builder {
             $pages = get_posts(array(
                 'post_type' => 'page',
                 'posts_per_page' => 1,
-                'meta_key' => '_fusion',
+                'meta_key' => '_fusion', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off admin lookup (limit 1) for an existing Avada page, cached in an option afterwards.
                 'meta_compare' => 'EXISTS'
             ));
 
@@ -368,33 +342,17 @@ class CUFT_Test_Form_Builder {
             }
         }
 
-        // Pre-fill data using JavaScript
-        $prefill_script = '';
-        if (!empty($test_data)) {
-            $prefill_script = sprintf(
-                '<script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    setTimeout(function() {
-                        var emailField = document.querySelector(".fusion-form input[type=email]");
-                        var phoneField = document.querySelector(".fusion-form input[type=tel]");
-                        if (emailField) emailField.value = %s;
-                        if (phoneField) phoneField.value = %s;
-                    }, 500);
-                });
-                </script>',
-                json_encode(isset($test_data['email']) ? $test_data['email'] : ''),
-                json_encode(isset($test_data['phone']) ? $test_data['phone'] : '')
-            );
-        }
+        // Pre-fill data is applied by assets/admin/cuft-testing-dashboard.js after the form is inserted.
+        $prefill = $this->get_prefill_data('.fusion-form', $test_data);
 
         return array(
             'framework' => 'avada',
             'session_id' => $session_id,
             'page_id' => $page_id,
             'page_url' => $page_id ? get_permalink($page_id) : '',
-            'rendered_html' => '<p>' . __('Avada forms must be tested on their page.', 'choice-universal-form-tracker') . '</p>' .
-                              ($page_id ? '<a href="' . get_permalink($page_id) . '" target="_blank" class="button">' . __('Open Test Page', 'choice-universal-form-tracker') . '</a>' : '') .
-                              $prefill_script,
+            'rendered_html' => '<p>' . esc_html__('Avada forms must be tested on their page.', 'choice-universal-form-tracker') . '</p>' .
+                              ($page_id ? '<a href="' . esc_url(get_permalink($page_id)) . '" target="_blank" class="button">' . esc_html__('Open Test Page', 'choice-universal-form-tracker') . '</a>' : ''),
+            'prefill' => $prefill,
             'message' => __('Avada test form ready.', 'choice-universal-form-tracker')
         );
     }
@@ -420,8 +378,8 @@ class CUFT_Test_Form_Builder {
             $pages = get_posts(array(
                 'post_type' => 'page',
                 'posts_per_page' => 1,
-                'meta_key' => '_elementor_edit_mode',
-                'meta_value' => 'builder'
+                'meta_key' => '_elementor_edit_mode', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off admin lookup (limit 1) for an existing Elementor page, cached in an option afterwards.
+                'meta_value' => 'builder' // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Same one-off admin lookup as above.
             ));
 
             if (!empty($pages)) {
@@ -430,34 +388,37 @@ class CUFT_Test_Form_Builder {
             }
         }
 
-        // Pre-fill data using JavaScript
-        $prefill_script = '';
-        if (!empty($test_data)) {
-            $prefill_script = sprintf(
-                '<script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    setTimeout(function() {
-                        var emailField = document.querySelector(".elementor-form input[type=email]");
-                        var phoneField = document.querySelector(".elementor-form input[type=tel]");
-                        if (emailField) emailField.value = %s;
-                        if (phoneField) phoneField.value = %s;
-                    }, 500);
-                });
-                </script>',
-                json_encode(isset($test_data['email']) ? $test_data['email'] : ''),
-                json_encode(isset($test_data['phone']) ? $test_data['phone'] : '')
-            );
-        }
+        // Pre-fill data is applied by assets/admin/cuft-testing-dashboard.js after the form is inserted.
+        $prefill = $this->get_prefill_data('.elementor-form', $test_data);
 
         return array(
             'framework' => 'elementor',
             'session_id' => $session_id,
             'page_id' => $page_id,
             'page_url' => $page_id ? get_permalink($page_id) : '',
-            'rendered_html' => '<p>' . __('Elementor forms must be tested on their page.', 'choice-universal-form-tracker') . '</p>' .
-                              ($page_id ? '<a href="' . get_permalink($page_id) . '" target="_blank" class="button">' . __('Open Test Page', 'choice-universal-form-tracker') . '</a>' : '') .
-                              $prefill_script,
+            'rendered_html' => '<p>' . esc_html__('Elementor forms must be tested on their page.', 'choice-universal-form-tracker') . '</p>' .
+                              ($page_id ? '<a href="' . esc_url(get_permalink($page_id)) . '" target="_blank" class="button">' . esc_html__('Open Test Page', 'choice-universal-form-tracker') . '</a>' : ''),
+            'prefill' => $prefill,
             'message' => __('Elementor test form ready.', 'choice-universal-form-tracker')
+        );
+    }
+
+    /**
+     * Build the pre-fill payload the dashboard script applies to the rendered form
+     *
+     * @param string $container_selector CSS selector of the form container
+     * @param array  $test_data Test data (already sanitized)
+     * @return array|null Pre-fill data, or null when there is no test data
+     */
+    private function get_prefill_data($container_selector, $test_data) {
+        if (empty($test_data)) {
+            return null;
+        }
+
+        return array(
+            'selector' => $container_selector,
+            'email' => isset($test_data['email']) ? $test_data['email'] : '',
+            'phone' => isset($test_data['phone']) ? $test_data['phone'] : '',
         );
     }
 

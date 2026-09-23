@@ -223,8 +223,8 @@ class CUFT_Form_Builder {
 
         // Query test forms
         $query_args = array(
-            'meta_key' => '_cuft_test_form',
-            'meta_value' => '1',
+            'meta_key' => '_cuft_test_form', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Test forms are only identified by this meta; admin-only listing.
+            'meta_value' => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Same admin-only listing as above.
             'post_type' => 'any',
             'posts_per_page' => -1,
             'post_status' => 'publish',

@@ -16,8 +16,8 @@ if (!defined('ABSPATH')) {
     <h1><?php esc_html_e('CUFT Testing Dashboard', 'choice-universal-form-tracker'); ?></h1>
 
     <?php
-    $gtm_id = get_option('cuft_gtm_id');
-    if (empty($gtm_id)) {
+    $cuft_gtm_id = get_option('cuft_gtm_id');
+    if (empty($cuft_gtm_id)) {
         ?>
         <div class="notice notice-warning">
             <p>
@@ -32,13 +32,12 @@ if (!defined('ABSPATH')) {
         <div class="notice notice-success">
             <p>
                 <strong><?php esc_html_e('GTM Active:', 'choice-universal-form-tracker'); ?></strong>
-                /* translators: %s: Google Tag Manager container ID */
                 <?php
                 echo wp_kses(
                     sprintf(
                         /* translators: %s: Google Tag Manager container ID, wrapped in a code element */
                         __('Google Tag Manager is loaded with ID: %s. Open browser console to see dataLayer events.', 'choice-universal-form-tracker'),
-                        '<code>' . esc_html($gtm_id) . '</code>'
+                        '<code>' . esc_html($cuft_gtm_id) . '</code>'
                     ),
                     array( 'code' => array() )
                 );
@@ -104,7 +103,7 @@ if (!defined('ABSPATH')) {
         <!-- Loading Indicator -->
         <div id="cuft-loader" class="cuft-loader" style="display:none;">
             <span class="spinner is-active"></span>
-            <span id="cuft-loader-text">Loading...</span>
+            <span id="cuft-loader-text"><?php esc_html_e('Loading...', 'choice-universal-form-tracker'); ?></span>
         </div>
 
         <!-- Form Builder Controls -->
@@ -117,37 +116,37 @@ if (!defined('ABSPATH')) {
                     <option value=""><?php esc_html_e('-- Select Framework --', 'choice-universal-form-tracker'); ?></option>
                     <?php
                     // Dynamically detect which form frameworks are active
-                    $available_frameworks = array();
+                    $cuft_available_frameworks = array();
 
                     // Check Elementor Pro
                     if (defined('ELEMENTOR_PRO_VERSION')) {
-                        $available_frameworks['elementor'] = __('Elementor Pro', 'choice-universal-form-tracker');
+                        $cuft_available_frameworks['elementor'] = __('Elementor Pro', 'choice-universal-form-tracker');
                     }
 
                     // Check Contact Form 7
                     if (class_exists('WPCF7')) {
-                        $available_frameworks['cf7'] = __('Contact Form 7', 'choice-universal-form-tracker');
+                        $cuft_available_frameworks['cf7'] = __('Contact Form 7', 'choice-universal-form-tracker');
                     }
 
                     // Check Ninja Forms
                     if (function_exists('Ninja_Forms')) {
-                        $available_frameworks['ninja'] = __('Ninja Forms', 'choice-universal-form-tracker');
+                        $cuft_available_frameworks['ninja'] = __('Ninja Forms', 'choice-universal-form-tracker');
                     }
 
                     // Check Gravity Forms
                     if (class_exists('GFAPI')) {
-                        $available_frameworks['gravity'] = __('Gravity Forms', 'choice-universal-form-tracker');
+                        $cuft_available_frameworks['gravity'] = __('Gravity Forms', 'choice-universal-form-tracker');
                     }
 
                     // Check Avada/Fusion Builder
                     if (class_exists('FusionBuilder')) {
-                        $available_frameworks['avada'] = __('Avada Forms', 'choice-universal-form-tracker');
+                        $cuft_available_frameworks['avada'] = __('Avada Forms', 'choice-universal-form-tracker');
                     }
 
                     // Display available options
-                    if (!empty($available_frameworks)) {
-                        foreach ($available_frameworks as $value => $label) {
-                            printf('<option value="%s">%s</option>', esc_attr($value), esc_html($label));
+                    if (!empty($cuft_available_frameworks)) {
+                        foreach ($cuft_available_frameworks as $cuft_framework_value => $cuft_framework_label) {
+                            printf('<option value="%s">%s</option>', esc_attr($cuft_framework_value), esc_html($cuft_framework_label));
                         }
                     } else {
                         ?>
@@ -178,7 +177,7 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
 
-        <?php if (empty($available_frameworks)) : ?>
+        <?php if (empty($cuft_available_frameworks)) : ?>
             <div class="notice notice-warning inline">
                 <p>
                     <?php esc_html_e('No form framework plugins are currently active. Please install and activate at least one supported form plugin:', 'choice-universal-form-tracker'); ?>
@@ -197,11 +196,11 @@ if (!defined('ABSPATH')) {
                     esc_html( _n(
                         'Detected %1$d active form framework: %2$s',
                         'Detected %1$d active form frameworks: %2$s',
-                        count($available_frameworks),
+                        count($cuft_available_frameworks),
                         'choice-universal-form-tracker'
                     ) ),
-                    count($available_frameworks),
-                    esc_html( implode(', ', $available_frameworks) )
+                    count($cuft_available_frameworks),
+                    esc_html( implode(', ', $cuft_available_frameworks) )
                 );
                 ?>
             </p>

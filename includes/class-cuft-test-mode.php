@@ -49,6 +49,17 @@ class CUFT_Test_Mode {
      * Constructor
      */
     private function __construct() {
+        // Detection needs the current user, which is not available until pluggable
+        // functions load, so it runs on init rather than when this file is included.
+        add_action('init', array($this, 'maybe_enable_test_mode'), 0);
+    }
+
+    /**
+     * Enable test mode for this request when an administrator asks for it
+     *
+     * @return void
+     */
+    public function maybe_enable_test_mode() {
         $this->detect_test_mode();
 
         if ($this->test_mode_enabled) {
@@ -59,11 +70,21 @@ class CUFT_Test_Mode {
     /**
      * Detect if test mode is enabled
      *
+     * Test mode suppresses form notification emails and actions, so only an
+     * administrator (the testing dashboard user) can switch it on. A visitor
+     * adding ?test_mode=1 to a URL must not be able to silence a site's forms.
+     *
      * @return void
      */
     private function detect_test_mode() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
         // Check URL parameter
-        if (isset($_GET['test_mode']) && $_GET['test_mode'] === '1') {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only mode flag, honoured only after the manage_options check above.
+        $test_mode = isset($_GET['test_mode']) ? sanitize_text_field(wp_unslash($_GET['test_mode'])) : '';
+        if ($test_mode === '1') {
             $this->test_mode_enabled = true;
         }
 
@@ -93,10 +114,8 @@ class CUFT_Test_Mode {
         add_action('elementor_pro/forms/validation', array($this, 'prevent_elementor_actions'), 10, 2);
 
         // Add test mode indicator
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_test_mode_indicator_style'));
         add_action('wp_footer', array($this, 'add_test_mode_indicator'));
-
-        // Prevent real form actions
-        add_action('init', array($this, 'register_prevention_hooks'));
     }
 
     /**
@@ -183,29 +202,23 @@ class CUFT_Test_Mode {
     }
 
     /**
-     * Register prevention hooks for all forms
+     * Enqueue the styles for the test mode indicator bar
      *
      * @return void
      */
-    public function register_prevention_hooks() {
+    public function enqueue_test_mode_indicator_style() {
         if (!$this->test_mode_enabled) {
             return;
         }
 
-        // Prevent mail() function calls in test mode
-        if (!function_exists('wp_mail')) {
-            /**
-             * Override wp_mail in test mode
-             *
-             * @return bool
-             */
-            function wp_mail() {
-                if (CUFT_Test_Mode::get_instance()->is_test_mode()) {
-                    return true; // Fake success
-                }
-                return false;
-            }
-        }
+        $handle = 'cuft-test-mode-indicator';
+        wp_register_style($handle, false, array(), CUFT_VERSION);
+        wp_enqueue_style($handle);
+        wp_add_inline_style(
+            $handle,
+            '.cuft-test-mode-indicator{position:fixed;top:0;left:0;right:0;background:#ff9800;color:#fff;padding:10px;text-align:center;font-weight:bold;z-index:99999;box-shadow:0 2px 4px rgba(0,0,0,0.2);}' .
+            '.cuft-test-mode-indicator::before{content:"\\1F9EA  ";}'
+        );
     }
 
     /**
@@ -219,26 +232,8 @@ class CUFT_Test_Mode {
         }
 
         ?>
-        <style>
-            .cuft-test-mode-indicator {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: #ff9800;
-                color: #fff;
-                padding: 10px;
-                text-align: center;
-                font-weight: bold;
-                z-index: 99999;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
-            .cuft-test-mode-indicator::before {
-                content: "🧪 ";
-            }
-        </style>
         <div class="cuft-test-mode-indicator">
-            TEST MODE ACTIVE - No emails will be sent, no real actions will be performed
+            <?php esc_html_e('TEST MODE ACTIVE - No emails will be sent, no real actions will be performed', 'choice-universal-form-tracker'); ?>
         </div>
         <?php
     }

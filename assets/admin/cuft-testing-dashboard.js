@@ -258,6 +258,9 @@
                     // Display the form
                     container.innerHTML = result.data.rendered_html || '<p>Form HTML not available</p>';
 
+                    // Apply pre-fill values (previously an inline script in the HTML, which innerHTML never runs)
+                    this.applyPrefill(container, result.data.prefill);
+
                     // Show success message
                     this.showStatus(result.data.message || 'Test form ready!', 'success');
 
@@ -283,6 +286,19 @@
                 container.innerHTML = '<div class="notice notice-error"><p>Failed to build test form: ' + error.message + '</p></div>';
                 this.showStatus('Failed to build test form: ' + error.message, 'error');
             }
+        }
+
+        /**
+         * Apply server-provided pre-fill values to a rendered test form
+         */
+        applyPrefill(container, prefill) {
+            if (!prefill || !prefill.selector) return;
+
+            const scope = container.querySelector(prefill.selector) || container;
+            const emailField = scope.querySelector('input[type=email]');
+            const phoneField = scope.querySelector('input[type=tel]');
+            if (emailField && prefill.email) emailField.value = prefill.email;
+            if (phoneField && prefill.phone) phoneField.value = prefill.phone;
         }
 
         /**

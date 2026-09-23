@@ -19,7 +19,7 @@ require_once __DIR__ . '/abstract-cuft-adapter.php';
 /**
  * CUFT Avada Forms Adapter Class
  */
-class CUFT_Avada_Adapter extends Abstract_CUFT_Adapter {
+class CUFT_Avada_Adapter extends CUFT_Abstract_Adapter {
 
     public function __construct() {
         parent::__construct();
@@ -110,8 +110,8 @@ class CUFT_Avada_Adapter extends Abstract_CUFT_Adapter {
         $instance_id = get_post_meta($post_id, '_cuft_instance_id', true);
         if ($instance_id) {
             $page_query = new WP_Query(array(
-                'meta_key' => '_cuft_instance_id',
-                'meta_value' => $instance_id,
+                'meta_key' => '_cuft_instance_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Test forms are only identified by this meta; admin-only delete path.
+                'meta_value' => $instance_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Same admin-only lookup as above.
                 'post_type' => 'page'
             ));
 

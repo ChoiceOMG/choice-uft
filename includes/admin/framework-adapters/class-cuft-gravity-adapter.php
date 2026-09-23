@@ -19,7 +19,7 @@ require_once __DIR__ . '/abstract-cuft-adapter.php';
 /**
  * CUFT Gravity Forms Adapter Class
  */
-class CUFT_Gravity_Adapter extends Abstract_CUFT_Adapter {
+class CUFT_Gravity_Adapter extends CUFT_Abstract_Adapter {
 
     public function __construct() {
         parent::__construct();

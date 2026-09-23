@@ -61,11 +61,11 @@ class CUFT_Test_Events_Ajax {
             $filters = array();
 
             if (isset($_POST['session_id'])) {
-                $filters['session_id'] = sanitize_text_field($_POST['session_id']);
+                $filters['session_id'] = sanitize_text_field(wp_unslash($_POST['session_id']));
             }
 
             if (isset($_POST['event_type'])) {
-                $filters['event_type'] = sanitize_text_field($_POST['event_type']);
+                $filters['event_type'] = sanitize_text_field(wp_unslash($_POST['event_type']));
             }
 
             if (isset($_POST['limit'])) {
@@ -102,7 +102,7 @@ class CUFT_Test_Events_Ajax {
             wp_send_json_success($response);
 
         } catch (Exception $e) {
-            error_log('CUFT: Failed to get test events - ' . $e->getMessage());
+            CUFT_Logger::debug_log('CUFT: Failed to get test events - ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => __('Failed to retrieve test events.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
@@ -131,14 +131,14 @@ class CUFT_Test_Events_Ajax {
         }
 
         try {
-            $delete_type = isset($_POST['delete_type']) ? sanitize_text_field($_POST['delete_type']) : '';
+            $delete_type = isset($_POST['delete_type']) ? sanitize_text_field(wp_unslash($_POST['delete_type'])) : '';
             $deleted_count = 0;
 
             switch ($delete_type) {
                 case 'by_ids':
                     // Delete specific event IDs
                     if (isset($_POST['event_ids']) && is_array($_POST['event_ids'])) {
-                        $ids = array_map('absint', $_POST['event_ids']);
+                        $ids = array_map('absint', wp_unslash($_POST['event_ids']));
                         $deleted_count = $this->events_table->delete_by_id($ids);
                     }
                     break;
@@ -146,7 +146,7 @@ class CUFT_Test_Events_Ajax {
                 case 'by_session':
                     // Delete all events from a session
                     if (isset($_POST['session_id'])) {
-                        $session_id = sanitize_text_field($_POST['session_id']);
+                        $session_id = sanitize_text_field(wp_unslash($_POST['session_id']));
                         $deleted_count = $this->events_table->delete_by_session($session_id);
                     }
                     break;
@@ -187,7 +187,7 @@ class CUFT_Test_Events_Ajax {
             wp_send_json_success($response);
 
         } catch (Exception $e) {
-            error_log('CUFT: Failed to delete test events - ' . $e->getMessage());
+            CUFT_Logger::debug_log('CUFT: Failed to delete test events - ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => __('Failed to delete test events.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()

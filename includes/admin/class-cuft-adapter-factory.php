@@ -50,7 +50,7 @@ class CUFT_Adapter_Factory {
      * Implements lazy loading - only instantiates adapters when needed.
      *
      * @param string $framework Framework identifier
-     * @return Abstract_CUFT_Adapter|WP_Error Adapter instance or error
+     * @return CUFT_Abstract_Adapter|WP_Error Adapter instance or error
      */
     public static function get_adapter($framework) {
         // Validate framework exists in registry
@@ -94,11 +94,11 @@ class CUFT_Adapter_Factory {
         $adapter = new $class_name();
 
         // Verify adapter extends base class
-        if (!($adapter instanceof Abstract_CUFT_Adapter)) {
+        if (!($adapter instanceof CUFT_Abstract_Adapter)) {
             return new WP_Error(
                 'invalid_adapter',
                 /* translators: %s: adapter class name */
-                sprintf(__('Adapter must extend Abstract_CUFT_Adapter: %s', 'choice-universal-form-tracker'), $class_name)
+                sprintf(__('Adapter must extend CUFT_Abstract_Adapter: %s', 'choice-universal-form-tracker'), $class_name)
             );
         }
 

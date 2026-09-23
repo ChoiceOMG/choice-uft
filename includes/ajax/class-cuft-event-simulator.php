@@ -46,9 +46,14 @@ class CUFT_Event_Simulator {
         }
 
         // Get event type from request
-        $event_type = isset($_POST['event_type']) ? sanitize_text_field($_POST['event_type']) : '';
-        $session_id = isset($_POST['session_id']) ? sanitize_text_field($_POST['session_id']) : 'test_' . uniqid();
-        $test_data = isset($_POST['test_data']) ? json_decode(stripslashes($_POST['test_data']), true) : array();
+        $event_type = isset($_POST['event_type']) ? sanitize_text_field(wp_unslash($_POST['event_type'])) : '';
+        $session_id = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : 'test_' . uniqid();
+        $test_data = array();
+        if (isset($_POST['test_data'])) {
+            // JSON payload: unslash, decode, then sanitize every scalar in the decoded structure.
+            $test_data = json_decode(wp_unslash($_POST['test_data']), true); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON string; every decoded value is sanitized by map_deep() on the next line.
+            $test_data = is_array($test_data) ? map_deep($test_data, 'sanitize_text_field') : array();
+        }
 
         // Validate event type
         $valid_event_types = array('phone_click', 'email_click', 'form_submit', 'generate_lead');
@@ -90,13 +95,13 @@ class CUFT_Event_Simulator {
 
             // Performance check: Must be under 500ms
             if ($execution_time > 500) {
-                error_log('CUFT Event Simulator: Performance warning - execution time ' . $execution_time . 'ms');
+                CUFT_Logger::debug_log('CUFT Event Simulator: Performance warning - execution time ' . $execution_time . 'ms');
             }
 
             wp_send_json_success($response);
 
         } catch (Exception $e) {
-            error_log('CUFT Event Simulator Error: ' . $e->getMessage());
+            CUFT_Logger::debug_log('CUFT Event Simulator Error: ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => __('Failed to simulate event.', 'choice-universal-form-tracker'),
                 'error' => $e->getMessage()
@@ -247,6 +252,7 @@ class CUFT_Event_Simulator {
         $table_name = $wpdb->prefix . 'cuft_test_events';
 
         // Insert event
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert into the plugin's own table cuft_test_events; no WP API covers it.
         $result = $wpdb->insert(
             $table_name,
             array(
@@ -260,7 +266,7 @@ class CUFT_Event_Simulator {
         );
 
         if ($result === false) {
-            error_log('CUFT Event Simulator: Failed to save event to database - ' . $wpdb->last_error);
+            CUFT_Logger::debug_log('CUFT Event Simulator: Failed to save event to database - ' . $wpdb->last_error);
             return false;
         }
 

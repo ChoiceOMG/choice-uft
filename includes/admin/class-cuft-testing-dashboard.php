@@ -34,7 +34,6 @@ class CUFT_Testing_Dashboard {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_menu_page'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
-        add_action('admin_head', array($this, 'inject_gtm_script'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_test_mode_assets'));
     }
 
@@ -70,28 +69,27 @@ class CUFT_Testing_Dashboard {
     }
 
     /**
-     * Inject GTM script in admin head for testing dashboard
+     * Add the GTM loader for the testing dashboard as an inline script
+     *
+     * Registered as a header script handle with no source so the loader still
+     * runs in the admin head, as it did when it was echoed from admin_head.
      *
      * @return void
      */
-    public function inject_gtm_script() {
-        // Only inject on our testing dashboard page
-        if (!isset($_GET['page']) || $_GET['page'] !== $this->page_slug) {
-            return;
-        }
+    private function enqueue_gtm_script() {
+        $handle = 'cuft-testing-dashboard-gtm';
+        wp_register_script($handle, false, array(), CUFT_VERSION, false);
+        wp_enqueue_script($handle);
 
         $gtm_id = get_option('cuft_gtm_id');
 
         // Skip if no GTM ID configured
         if (empty($gtm_id) || !preg_match('/^GTM-[A-Z0-9]+$/', $gtm_id)) {
-            ?>
-            <!-- GTM Not Configured - Please set GTM ID in CUFT Settings -->
-            <script>
-            // Initialize empty dataLayer for testing
-            window.dataLayer = window.dataLayer || [];
-            console.log('CUFT Testing Dashboard: GTM not configured. Please set GTM ID in plugin settings.');
-            </script>
-            <?php
+            wp_add_inline_script(
+                $handle,
+                "window.dataLayer = window.dataLayer || [];\n" .
+                "console.log('CUFT Testing Dashboard: GTM not configured. Please set GTM ID in plugin settings.');"
+            );
             return;
         }
 
@@ -103,34 +101,24 @@ class CUFT_Testing_Dashboard {
         // Determine GTM URL
         $gtm_base_url = 'https://www.googletagmanager.com';
         if ($sgtm_enabled && $sgtm_url && $sgtm_validated) {
-            $gtm_base_url = rtrim($sgtm_url, '/');
+            $gtm_base_url = rtrim(esc_url_raw($sgtm_url), '/');
         }
 
-        ?>
-        <!-- Google Tag Manager for Testing Dashboard -->
-        <script>
-        // Initialize dataLayer
-        window.dataLayer = window.dataLayer || [];
+        $script = 'window.dataLayer = window.dataLayer || [];' . "\n" .
+            '(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':' . "\n" .
+            'new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],' . "\n" .
+            'j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=' . "\n" .
+            wp_json_encode($gtm_base_url . '/gtm.js?id=') . '+i+dl;f.parentNode.insertBefore(j,f);' . "\n" .
+            '})(window,document,\'script\',\'dataLayer\',' . wp_json_encode($gtm_id) . ');' . "\n" .
+            'window.dataLayer.push({' .
+            '\'event\': \'testing_dashboard_loaded\',' .
+            '\'page_type\': \'admin_testing_dashboard\',' .
+            '\'test_mode\': true,' .
+            '\'gtm_id\': ' . wp_json_encode($gtm_id) .
+            '});' . "\n" .
+            'console.log(' . wp_json_encode('CUFT Testing Dashboard: GTM initialized with ID ' . $gtm_id) . ');';
 
-        // GTM script
-        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        '<?php echo esc_js($gtm_base_url); ?>/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','<?php echo esc_js($gtm_id); ?>');
-
-        // Add testing dashboard marker
-        window.dataLayer.push({
-            'event': 'testing_dashboard_loaded',
-            'page_type': 'admin_testing_dashboard',
-            'test_mode': true,
-            'gtm_id': '<?php echo esc_js($gtm_id); ?>'
-        });
-
-        console.log('CUFT Testing Dashboard: GTM initialized with ID <?php echo esc_js($gtm_id); ?>');
-        </script>
-        <!-- End Google Tag Manager for Testing Dashboard -->
-        <?php
+        wp_add_inline_script($handle, $script);
     }
 
     /**
@@ -144,6 +132,9 @@ class CUFT_Testing_Dashboard {
         if ($hook !== 'settings_page_' . $this->page_slug) {
             return;
         }
+
+        // GTM loader for the dashboard (header, before the dashboard modules)
+        $this->enqueue_gtm_script();
 
         // Enqueue styles
         wp_enqueue_style(
@@ -243,13 +234,15 @@ class CUFT_Testing_Dashboard {
      * @return void
      */
     public function enqueue_test_mode_assets() {
-        // Only enqueue if test_mode parameter is set
-        if (!isset($_GET['test_mode']) || $_GET['test_mode'] !== '1') {
+        // Only for admin users
+        if (!current_user_can('manage_options')) {
             return;
         }
 
-        // Only for admin users
-        if (!current_user_can('manage_options')) {
+        // Only enqueue if test_mode parameter is set
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display flag, checked after the manage_options capability check; changes no state.
+        $test_mode = isset($_GET['test_mode']) ? sanitize_text_field(wp_unslash($_GET['test_mode'])) : '';
+        if ($test_mode !== '1') {
             return;
         }
 

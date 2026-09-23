@@ -71,7 +71,7 @@ class CUFT_Form_Builder_Ajax {
      */
     public function handle_create_test_form() {
         // Verify nonce
-        if (!$this->verify_nonce()) {
+        if (!check_ajax_referer('cuft_form_builder_nonce', 'nonce', false)) {
             $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
@@ -83,8 +83,8 @@ class CUFT_Form_Builder_Ajax {
         }
 
         // Get parameters
-        $framework = sanitize_text_field($_POST['framework'] ?? '');
-        $template_id = sanitize_text_field($_POST['template_id'] ?? 'basic_contact_form');
+        $framework = isset($_POST['framework']) ? sanitize_key(wp_unslash($_POST['framework'])) : '';
+        $template_id = isset($_POST['template_id']) ? sanitize_text_field(wp_unslash($_POST['template_id'])) : 'basic_contact_form';
 
         // Validate framework
         if (empty($framework)) {
@@ -132,7 +132,7 @@ class CUFT_Form_Builder_Ajax {
      */
     public function handle_get_test_forms() {
         // Verify nonce
-        if (!$this->verify_nonce()) {
+        if (!check_ajax_referer('cuft_form_builder_nonce', 'nonce', false)) {
             $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
@@ -144,7 +144,7 @@ class CUFT_Form_Builder_Ajax {
         }
 
         // Get status filter
-        $status = sanitize_text_field($_GET['status'] ?? 'active');
+        $status = isset($_GET['status']) ? sanitize_key(wp_unslash($_GET['status'])) : 'active';
 
         // Query test forms
         $form_builder = CUFT_Form_Builder::get_instance();
@@ -163,7 +163,7 @@ class CUFT_Form_Builder_Ajax {
      */
     public function handle_delete_test_form() {
         // Verify nonce
-        if (!$this->verify_nonce()) {
+        if (!check_ajax_referer('cuft_form_builder_nonce', 'nonce', false)) {
             $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
@@ -175,7 +175,7 @@ class CUFT_Form_Builder_Ajax {
         }
 
         // Get instance_id
-        $instance_id = sanitize_text_field($_POST['instance_id'] ?? '');
+        $instance_id = isset($_POST['instance_id']) ? sanitize_text_field(wp_unslash($_POST['instance_id'])) : '';
 
         if (empty($instance_id)) {
             $this->send_error('missing_instance_id', __('Instance ID is required.', 'choice-universal-form-tracker'), 400);
@@ -184,8 +184,8 @@ class CUFT_Form_Builder_Ajax {
 
         // Find form by instance_id
         $query = new WP_Query(array(
-            'meta_key' => '_cuft_instance_id',
-            'meta_value' => $instance_id,
+            'meta_key' => '_cuft_instance_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Test forms are only identified by this meta; admin-only, limit 1.
+            'meta_value' => $instance_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Same admin-only lookup as above.
             'post_type' => 'any',
             'posts_per_page' => 1,
         ));
@@ -230,7 +230,7 @@ class CUFT_Form_Builder_Ajax {
      */
     public function handle_populate_form() {
         // Verify nonce
-        if (!$this->verify_nonce()) {
+        if (!check_ajax_referer('cuft_form_builder_nonce', 'nonce', false)) {
             $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
@@ -242,8 +242,8 @@ class CUFT_Form_Builder_Ajax {
         }
 
         // Get parameters
-        $instance_id = sanitize_text_field($_POST['instance_id'] ?? '');
-        $use_test_data = filter_var($_POST['use_test_data'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $instance_id = isset($_POST['instance_id']) ? sanitize_text_field(wp_unslash($_POST['instance_id'])) : '';
+        $use_test_data = isset($_POST['use_test_data']) ? filter_var(sanitize_text_field(wp_unslash($_POST['use_test_data'])), FILTER_VALIDATE_BOOLEAN) : true;
 
         // Generate test data
         $timestamp = time();
@@ -267,7 +267,7 @@ class CUFT_Form_Builder_Ajax {
      */
     public function handle_test_submit() {
         // Verify nonce
-        if (!$this->verify_nonce()) {
+        if (!check_ajax_referer('cuft_form_builder_nonce', 'nonce', false)) {
             $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
@@ -279,9 +279,18 @@ class CUFT_Form_Builder_Ajax {
         }
 
         // Get submission data
-        $instance_id = sanitize_text_field($_POST['instance_id'] ?? '');
-        $form_data = isset($_POST['form_data']) ? json_decode(stripslashes($_POST['form_data']), true) : array();
-        $tracking_event = isset($_POST['tracking_event']) ? json_decode(stripslashes($_POST['tracking_event']), true) : array();
+        $instance_id = isset($_POST['instance_id']) ? sanitize_text_field(wp_unslash($_POST['instance_id'])) : '';
+        $form_data = array();
+        if (isset($_POST['form_data'])) {
+            $form_data = json_decode(wp_unslash($_POST['form_data']), true); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON string; every decoded value is sanitized by map_deep() on the next line.
+            $form_data = is_array($form_data) ? map_deep($form_data, 'sanitize_text_field') : array();
+        }
+        $tracking_event = array();
+        if (isset($_POST['tracking_event'])) {
+            // Decoded values are sanitized as text, except booleans, which the compliance check below compares strictly.
+            $tracking_event = json_decode(wp_unslash($_POST['tracking_event']), true); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON string; every decoded value is sanitized by map_deep() on the next line.
+            $tracking_event = is_array($tracking_event) ? map_deep($tracking_event, array($this, 'sanitize_json_scalar')) : array();
+        }
 
         // Validate constitutional compliance
         $validation = $this->validate_tracking_event($tracking_event);
@@ -364,7 +373,7 @@ class CUFT_Form_Builder_Ajax {
      */
     public function handle_get_frameworks() {
         // Verify nonce
-        if (!$this->verify_nonce()) {
+        if (!check_ajax_referer('cuft_form_builder_nonce', 'nonce', false)) {
             $this->send_error('invalid_nonce', __('Security check failed.', 'choice-universal-form-tracker'), 403);
             return;
         }
@@ -387,13 +396,16 @@ class CUFT_Form_Builder_Ajax {
     }
 
     /**
-     * Verify AJAX nonce
+     * Sanitize one decoded JSON scalar, keeping booleans, integers and floats intact
      *
-     * @return bool True if valid
+     * @param mixed $value Decoded value
+     * @return mixed Sanitized value
      */
-    private function verify_nonce() {
-        $nonce = $_REQUEST['nonce'] ?? '';
-        return wp_verify_nonce($nonce, 'cuft_form_builder_nonce');
+    public function sanitize_json_scalar($value) {
+        if (is_bool($value) || is_int($value) || is_float($value) || is_null($value)) {
+            return $value;
+        }
+        return sanitize_text_field($value);
     }
 
     /**

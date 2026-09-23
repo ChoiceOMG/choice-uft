@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  *
  * Provides base functionality for framework-specific form generation adapters.
  */
-abstract class Abstract_CUFT_Adapter {
+abstract class CUFT_Abstract_Adapter {
 
     /**
      * Framework identifier
@@ -238,10 +238,10 @@ abstract class Abstract_CUFT_Adapter {
         $log_message = sprintf('[CUFT %s Adapter] %s', $this->framework_name, $message);
 
         if ($data !== null) {
-            $log_message .= ' | Data: ' . print_r($data, true);
+            $log_message .= ' | Data: ' . wp_json_encode($data);
         }
 
-        error_log($log_message);
+        CUFT_Logger::debug_log($log_message);
     }
 
     /**
