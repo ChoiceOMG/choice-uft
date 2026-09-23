@@ -130,6 +130,22 @@ window.cuftDataLayerUtils = (function () {
   }
 
   /**
+   * Whether the "Generate Lead Events" setting is on.
+   *
+   * window.cuftLeadSettings is printed by the plugin before this script. When
+   * it is absent (a page cached before 3.28.0 whose HTML predates the setting
+   * being passed to the browser), keep the behaviour that page was built
+   * with, which pushed generate_lead unconditionally.
+   */
+  function isGenerateLeadEnabled() {
+    var settings = window.cuftLeadSettings;
+    if (!settings || typeof settings.generate_lead_enabled === "undefined") {
+      return true;
+    }
+    return !!settings.generate_lead_enabled;
+  }
+
+  /**
    * Get UTM and tracking parameters from existing utilities
    */
   function getTrackingParameters() {
@@ -676,8 +692,9 @@ window.cuftDataLayerUtils = (function () {
         recordEvent(clickId, 'form_submit', options.debug, gaClientId);
       }
 
-      // Fire generate_lead if email is present (broad GA4 meaning)
-      if (meetsGenerateLeadConditions(formSubmitPayload)) {
+      // Fire generate_lead if the setting is on and email is present (broad GA4 meaning)
+      var generateLeadEnabled = isGenerateLeadEnabled();
+      if (generateLeadEnabled && meetsGenerateLeadConditions(formSubmitPayload)) {
         var generateLeadPayload = createGenerateLeadPayload(formSubmitPayload, framework, {
           lead_currency: options.lead_currency,
           lead_value: options.lead_value
@@ -713,21 +730,24 @@ window.cuftDataLayerUtils = (function () {
           recordEvent(clickId, 'qualify_lead', options.debug, gaClientId);
         }
 
-        // DEPRECATED: Dual-fire old generate_lead with strict payload for one version
-        var deprecatedPayload = createQualifyLeadPayload(formSubmitPayload, framework, {
-          lead_currency: options.lead_currency,
-          lead_value: options.lead_value
-        });
-        deprecatedPayload.event = "generate_lead";
-        deprecatedPayload.cuft_deprecated = true;
-        deprecatedPayload.cuft_migrate_to = "qualify_lead";
-        pushToDataLayer(deprecatedPayload, {
-          debug: options.debug,
-          framework: framework
-        });
+        // DEPRECATED: Dual-fire old generate_lead with strict payload for one version.
+        // Also gated on the "Generate Lead Events" setting.
+        if (generateLeadEnabled) {
+          var deprecatedPayload = createQualifyLeadPayload(formSubmitPayload, framework, {
+            lead_currency: options.lead_currency,
+            lead_value: options.lead_value
+          });
+          deprecatedPayload.event = "generate_lead";
+          deprecatedPayload.cuft_deprecated = true;
+          deprecatedPayload.cuft_migrate_to = "qualify_lead";
+          pushToDataLayer(deprecatedPayload, {
+            debug: options.debug,
+            framework: framework
+          });
 
-        if ((options.console_logging === "yes" || options.debug) && window.console && window.console.warn) {
-          window.console.warn('[CUFT] "generate_lead" with strict criteria is deprecated. Update your GTM trigger to use "qualify_lead" instead.');
+          if ((options.console_logging === "yes" || options.debug) && window.console && window.console.warn) {
+            window.console.warn('[CUFT] "generate_lead" with strict criteria is deprecated. Update your GTM trigger to use "qualify_lead" instead.');
+          }
         }
 
         if (options.debug && window.console && window.console.log) {

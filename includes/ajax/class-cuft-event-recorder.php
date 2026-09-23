@@ -99,6 +99,16 @@ class CUFT_Event_Recorder {
                 return;
             }
 
+            // generate_lead is recorded only while the "Generate Lead Events"
+            // setting is on, matching the dataLayer push it mirrors.
+            if ( 'generate_lead' === $event_type && ! get_option( 'cuft_generate_lead_enabled', false ) ) {
+                wp_send_json_success( array(
+                    'message' => 'generate_lead events are disabled',
+                    'skipped' => true,
+                ) );
+                return;
+            }
+
             // Record event using Click Tracker
             $result = CUFT_Click_Tracker::add_event( $click_id, $event_type );
 
