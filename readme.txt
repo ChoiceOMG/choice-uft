@@ -250,8 +250,10 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Screenshots ==
 
-1. Settings screen, framework detection status, and a summary of which tracking features are active.
-2. UTM campaign tracking panel and the debug log viewer.
+1. Settings: Google Tag Manager container, server-side GTM, lead events and phone validation.
+2. Framework detection for Avada, Elementor Pro, Contact Form 7, Ninja Forms and Gravity Forms, with the active tracking features.
+3. Click Tracking: click IDs, qualification status and export for Google Ads offline conversions.
+4. Testing Dashboard: generate sample data, simulate events and build test forms to validate tracking.
 
 == Changelog ==
 
