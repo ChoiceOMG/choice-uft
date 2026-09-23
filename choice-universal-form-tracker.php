@@ -27,7 +27,7 @@ define( 'CUFT_PLUGIN_FILE', __FILE__ );
 /**
  * Main plugin class
  */
-class Choice_Universal_Form_Tracker {
+class CUFT_Plugin {
     
     /**
      * Plugin instance
@@ -576,4 +576,4 @@ class Choice_Universal_Form_Tracker {
 }
 
 // Initialize the plugin
-Choice_Universal_Form_Tracker::get_instance();
+CUFT_Plugin::get_instance();

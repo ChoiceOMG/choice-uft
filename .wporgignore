@@ -10,7 +10,7 @@
 # "serving updates or otherwise installing plugins, themes, or add-ons from
 # servers other than WordPress.org's". Directory installs get their updates
 # from core, so the whole GitHub updater stays out of this package.
-# Choice_Universal_Form_Tracker::has_updater() detects the absence and skips
+# CUFT_Plugin::has_updater() detects the absence and skips
 # loading, registering the Force Update tab, and enqueueing its assets.
 /includes/admin/class-cuft-admin-notices.php
 /includes/ajax/class-cuft-updater-ajax.php
@@ -48,6 +48,12 @@
 /includes/admin/views/force-update-tab.php
 /assets/admin/cuft-force-update.js
 /assets/admin/cuft-force-update.css
+# Admin scripts that only the update notices load (class-cuft-admin-notices.php,
+# excluded above), plus three that nothing in either build enqueues.
+/assets/admin/js/cuft-admin-notices.js
+/assets/admin/js/cuft-lazy-loader.js
+/assets/admin/js/cuft-progress-indicator.js
+/assets/admin/js/cuft-error-handler.js
 
 # Never referenced by any require: leftovers from earlier revisions of the
 # update system. They ship in the GitHub build only because .distignore does

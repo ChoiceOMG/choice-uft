@@ -40,7 +40,7 @@ Before committing any code changes, ALWAYS verify using [.specify/memory/review-
 The WordPress.org package applies `.wporgignore` on top of `.distignore` and **strips the
 self-update subsystem**. Directory guideline 8 forbids a hosted plugin from "serving updates
 or otherwise installing plugins from servers other than WordPress.org's", so directory
-installs get their updates from core. `Choice_Universal_Form_Tracker::has_updater()` detects
+installs get their updates from core. `CUFT_Plugin::has_updater()` detects
 the missing files at runtime and skips loading them, the Force Update tab, and its assets.
 
 The directory names differ on purpose: the GitHub updater matches releases against the

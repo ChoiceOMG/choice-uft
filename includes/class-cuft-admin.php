@@ -141,7 +141,7 @@ class CUFT_Admin {
                 <?php // render_github_status() removed in Feature 008 - using WordPress native updates ?>
                 <?php $this->render_utm_status(); ?>
                 <?php $this->render_debug_section(); ?>
-            <?php elseif ( $current_tab === 'force-update' && Choice_Universal_Form_Tracker::has_updater() ): ?>
+            <?php elseif ( $current_tab === 'force-update' && CUFT_Plugin::has_updater() ): ?>
                 <?php include CUFT_PATH . 'includes/admin/views/force-update-tab.php'; ?>
             <?php endif; ?>
         </div>
@@ -161,11 +161,14 @@ class CUFT_Admin {
                     <tr>
                         <th scope="row">
                             Google Tag Manager ID
+                            <?php // The WordPress.org package ships without the GTM container exports, so the button only appears where the file exists. ?>
+                            <?php if ( file_exists( CUFT_PATH . 'gtm-web-client/CUFT - Web Defaults.json' ) ) : ?>
                             <br><br>
                             <button type="button" class="button button-secondary cuft-download-template" data-template="web" style="font-size: 12px;">
                                 <span class="dashicons dashicons-download" style="font-size: 14px; vertical-align: middle;"></span>
                                 Download Web GTM Template
                             </button>
+                            <?php endif; ?>
                         </th>
                         <td>
                             <input type="text" name="gtm_id" value="<?php echo esc_attr( $gtm_id ); ?>" 
@@ -196,11 +199,14 @@ class CUFT_Admin {
                     <tr id="cuft-sgtm-url-row" style="<?php echo $sgtm_enabled ? '' : 'display:none;'; ?>">
                         <th scope="row">
                             Server GTM URL
+                            <?php // The WordPress.org package ships without the GTM container exports, so the button only appears where the file exists. ?>
+                            <?php if ( file_exists( CUFT_PATH . 'gtm-server/CUFT - Server Defaults.json' ) ) : ?>
                             <br><br>
                             <button type="button" class="button button-secondary cuft-download-template" data-template="server" style="font-size: 12px;">
                                 <span class="dashicons dashicons-download" style="font-size: 14px; vertical-align: middle;"></span>
                                 Download Server GTM Template
                             </button>
+                            <?php endif; ?>
                         </th>
                         <td>
                             <?php
@@ -764,7 +770,7 @@ class CUFT_Admin {
         // Plugin screens use the admin stylesheet. The GitHub build also styles
         // its updater notices with it on other screens, so it keeps loading it
         // everywhere; the WordPress.org build (no updater) loads it only here.
-        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) || Choice_Universal_Form_Tracker::has_updater() ) {
+        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) || CUFT_Plugin::has_updater() ) {
             wp_enqueue_style(
                 'cuft-admin',
                 CUFT_URL . '/assets/cuft-admin.css',
@@ -811,7 +817,7 @@ class CUFT_Admin {
 
         // Enqueue Force Update assets (Feature 009 - v3.19.0). Skipped in the
         // WordPress.org build, which ships neither the tab nor its handlers.
-        if ( Choice_Universal_Form_Tracker::has_updater() ) {
+        if ( CUFT_Plugin::has_updater() ) {
             wp_enqueue_script(
                 'cuft-force-update',
                 CUFT_URL . '/assets/admin/cuft-force-update.js',
@@ -1355,7 +1361,7 @@ class CUFT_Admin {
 
         // Force Update drives the self-update subsystem, which the
         // WordPress.org build does not ship. See has_updater().
-        if ( Choice_Universal_Form_Tracker::has_updater() ) {
+        if ( CUFT_Plugin::has_updater() ) {
             $tabs['force-update'] = __( 'Force Update', 'choice-universal-form-tracker' );
         }
         

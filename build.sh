@@ -12,7 +12,7 @@
 #                         .wporgignore, which strips the update subsystem.
 #                         Directory guideline 8 forbids a hosted plugin from
 #                         serving its own updates, so core handles them there.
-#                         Choice_Universal_Form_Tracker::has_updater() detects
+#                         CUFT_Plugin::has_updater() detects
 #                         the missing files at runtime.
 #
 # The two packages also use different directory names, on purpose. The GitHub
