@@ -58,18 +58,6 @@
                     btn.addEventListener('click', () => this.simulateEvent(eventType));
                 }
             });
-
-            // Build test form button
-            const buildFormBtn = document.getElementById('cuft-build-test-form');
-            if (buildFormBtn) {
-                buildFormBtn.addEventListener('click', () => this.buildTestForm());
-            }
-
-            // Change form data button
-            const changeDataBtn = document.getElementById('cuft-change-form-data');
-            if (changeDataBtn) {
-                changeDataBtn.addEventListener('click', () => this.generateTestData());
-            }
         }
 
         /**
@@ -207,98 +195,6 @@
                 console.error('CUFT: Failed to simulate event:', error);
                 this.showStatus('Failed to simulate event: ' + error.message, 'error');
             }
-        }
-
-        /**
-         * Build test form
-         */
-        async buildTestForm() {
-            const frameworkSelect = document.getElementById('cuft-form-framework');
-            const container = document.getElementById('cuft-test-form-container');
-
-            if (!frameworkSelect || !container) {
-                console.error('CUFT: Required form builder elements not found');
-                return;
-            }
-
-            const framework = frameworkSelect.value;
-            if (!framework) {
-                this.showStatus('Please select a form framework first!', 'error');
-                return;
-            }
-
-            // Generate test data if not already available
-            if (!this.testData) {
-                await this.generateTestData();
-            }
-
-            try {
-                container.innerHTML = '<p>Loading form...</p>';
-
-                // Prepare request
-                const formData = new FormData();
-                formData.append('action', 'cuft_build_test_form');
-                formData.append('nonce', cuftConfig.nonce);
-                formData.append('framework', framework);
-                formData.append('session_id', this.sessionId || 'test_' + Date.now());
-                if (this.testData) {
-                    formData.append('test_data', JSON.stringify(this.testData));
-                }
-
-                // Make AJAX request
-                const response = await fetch(cuftConfig.ajaxUrl, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin'
-                });
-
-                const result = await response.json();
-
-                if (result.success && result.data) {
-                    // Display the form
-                    container.innerHTML = result.data.rendered_html || '<p>Form HTML not available</p>';
-
-                    // Apply pre-fill values (previously an inline script in the HTML, which innerHTML never runs)
-                    this.applyPrefill(container, result.data.prefill);
-
-                    // Show success message
-                    this.showStatus(result.data.message || 'Test form ready!', 'success');
-
-                    // Show the change data button
-                    const changeBtn = document.getElementById('cuft-change-form-data');
-                    if (changeBtn) {
-                        changeBtn.style.display = 'inline-block';
-                    }
-
-                    // Log form info
-                    console.log('CUFT: Test form built', {
-                        framework: result.data.framework,
-                        form_id: result.data.form_id,
-                        session_id: result.data.session_id
-                    });
-
-                } else {
-                    throw new Error(result.data?.message || 'Failed to build test form');
-                }
-
-            } catch (error) {
-                console.error('CUFT: Failed to build test form:', error);
-                container.innerHTML = '<div class="notice notice-error"><p>Failed to build test form: ' + error.message + '</p></div>';
-                this.showStatus('Failed to build test form: ' + error.message, 'error');
-            }
-        }
-
-        /**
-         * Apply server-provided pre-fill values to a rendered test form
-         */
-        applyPrefill(container, prefill) {
-            if (!prefill || !prefill.selector) return;
-
-            const scope = container.querySelector(prefill.selector) || container;
-            const emailField = scope.querySelector('input[type=email]');
-            const phoneField = scope.querySelector('input[type=tel]');
-            if (emailField && prefill.email) emailField.value = prefill.email;
-            if (phoneField && prefill.phone) phoneField.value = prefill.phone;
         }
 
         /**

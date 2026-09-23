@@ -96,40 +96,6 @@
     color: #0c5460;
 }
 
-/* Form Builder Controls */
-.form-builder-controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
-}
-
-.form-builder-controls label {
-    font-weight: 600;
-    margin: 0;
-}
-
-.form-builder-controls select {
-    min-width: 200px;
-}
-
-/* Test Form Container */
-.test-form-container {
-    margin-top: 20px;
-    padding: 20px;
-    background: #f6f7f7;
-    border: 1px dashed #8c8f94;
-    border-radius: 2px;
-    min-height: 100px;
-}
-
-.test-form-container:empty::after {
-    content: 'No test form generated yet. Select a framework and click "Build Test Form" to begin.';
-    color: #8c8f94;
-    font-style: italic;
-}
-
 /* Event Viewer */
 .event-viewer-controls {
     display: flex;
@@ -276,15 +242,10 @@
 
 /* Responsive Design */
 @media (max-width: 782px) {
-    .form-builder-controls,
     .event-viewer-controls,
     .db-events-controls {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .form-builder-controls select {
-        width: 100%;
     }
 
     .button-group {
@@ -319,8 +280,7 @@
     .button,
     .button-group,
     .event-viewer-controls,
-    .db-events-controls,
-    .form-builder-controls {
+    .db-events-controls {
         display: none;
     }
 }

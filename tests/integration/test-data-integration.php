@@ -82,41 +82,6 @@ class CUFT_Test_Data_Integration extends WP_UnitTestCase {
     }
 
     /**
-     * Test data format compatibility
-     *
-     * @expected FAIL - data format not standardized
-     */
-    public function test_data_format_compatibility() {
-        $test_data = $this->generate_mock_test_data();
-
-        // Test data should be compatible with postMessage protocol
-        $message = array(
-            'action' => 'cuft_populate_fields',
-            'nonce' => wp_create_nonce('cuft_form_builder_nonce'),
-            'timestamp' => time() * 1000,
-            'data' => array(
-                'fields' => $test_data,
-                'options' => array(
-                    'trigger_events' => true,
-                    'clear_first' => true
-                )
-            )
-        );
-
-        // Validate message can be JSON encoded
-        $json = json_encode($message);
-        $this->assertNotFalse($json, 'Message should be JSON encodable');
-
-        // Validate can be decoded back
-        $decoded = json_decode($json, true);
-        $this->assertEquals($message, $decoded, 'Message should survive JSON round-trip');
-
-        // Validate fields are accessible
-        $this->assertArrayHasKey('fields', $decoded['data']);
-        $this->assertEquals($test_data, $decoded['data']['fields']);
-    }
-
-    /**
      * Test UTM and click ID inclusion
      *
      * @expected FAIL - UTM/click ID generation not integrated

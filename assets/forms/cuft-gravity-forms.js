@@ -356,48 +356,6 @@
         phone: phone || "not found"
       });
 
-      // Test mode: Add click IDs if on test page and none exist
-      var isTestMode = window.location.pathname.indexOf('-test-form') > -1 ||
-                       window.location.search.indexOf('test=1') > -1 ||
-                       window.location.search.indexOf('cuft_test=1') > -1;
-
-      if (isTestMode && email && phone) {
-        try {
-          // Check if tracking data already has click IDs
-          var currentTracking = window.cuftGetTrackingData ? window.cuftGetTrackingData() : {};
-          var hasClickId = currentTracking.click_id || currentTracking.gclid ||
-                          currentTracking.fbclid || currentTracking.wbraid || currentTracking.gbraid;
-
-          if (!hasClickId) {
-            // Store test click ID in sessionStorage for generate_lead testing
-            var testData = {
-              tracking: {
-                click_id: 'test_gravity_' + Date.now(),
-                gclid: 'test_gclid_gravity_' + formDetails.form_id,
-                utm_source: 'test_gravity',
-                utm_medium: 'test_form',
-                utm_campaign: 'gravity_forms_test',
-                utm_term: 'gravity_test',
-                utm_content: 'form_test'
-              },
-              timestamp: Date.now()
-            };
-
-            try {
-              sessionStorage.setItem('cuft_tracking_data', JSON.stringify(testData));
-              log('Test mode: Added test tracking data for generate_lead testing');
-              log('Test tracking data:', testData.tracking);
-            } catch (storageError) {
-              log('Test mode: Could not store test data in sessionStorage:', storageError);
-            }
-          } else {
-            log('Test mode: Click IDs already exist, using existing tracking data');
-          }
-        } catch (e) {
-          log('Test mode: Error adding test tracking data:', e);
-        }
-      }
-
       // Use standardized tracking function
       var success = window.cuftDataLayerUtils.trackFormSubmission('gravity', form, {
         form_id: formDetails.form_id,
@@ -698,56 +656,6 @@
       log("Attempting to capture phone field...");
       var phone = getFieldValue(form, "phone");
       log("Phone captured:", phone || "not found");
-
-      // Test mode: Add click IDs if on test page and none exist
-      var isTestMode = window.location.pathname.indexOf('-test-form') > -1 ||
-                       window.location.search.indexOf('test=1') > -1 ||
-                       window.location.search.indexOf('cuft_test=1') > -1;
-
-      if (isTestMode && email && phone) {
-        try {
-          // Check if tracking data already has click IDs
-          var currentTracking = window.cuftGetTrackingData ? window.cuftGetTrackingData() : {};
-          var hasClickId = currentTracking.click_id || currentTracking.gclid ||
-                          currentTracking.fbclid || currentTracking.wbraid || currentTracking.gbraid;
-
-          if (!hasClickId) {
-            // Store test click ID in sessionStorage EARLY (during capture phase)
-            var testData = {
-              tracking: {
-                click_id: 'test_gravity_capture_' + Date.now(),
-                gclid: 'test_gclid_gravity_' + formId,
-                utm_source: 'test_gravity',
-                utm_medium: 'test_form_capture',
-                utm_campaign: 'gravity_forms_test',
-                utm_term: 'gravity_test',
-                utm_content: 'form_test'
-              },
-              timestamp: Date.now()
-            };
-
-            try {
-              sessionStorage.setItem('cuft_tracking_data', JSON.stringify(testData));
-              log('Test mode (CAPTURE PHASE): Added test tracking data to sessionStorage');
-              log('Test tracking data:', testData.tracking);
-            } catch (storageError) {
-              log('Test mode (CAPTURE PHASE): Could not store test data in sessionStorage:', storageError);
-            }
-
-            // ALSO store in localStorage for traditional (page reload) submissions
-            try {
-              localStorage.setItem('cuft_tracking_data', JSON.stringify(testData));
-              log('Test mode (CAPTURE PHASE): Added test tracking data to localStorage (for page reload)');
-            } catch (storageError) {
-              log('Test mode (CAPTURE PHASE): Could not store test data in localStorage:', storageError);
-            }
-          } else {
-            log('Test mode (CAPTURE PHASE): Click IDs already exist, using existing tracking data');
-          }
-        } catch (e) {
-          log('Test mode (CAPTURE PHASE): Error adding test tracking data:', e);
-        }
-      }
 
       // Store the data for use after confirmation
       gravityFormData[formId] = {

@@ -80,16 +80,6 @@
         }
 
         /**
-         * Build test form
-         */
-        async buildTestForm(framework, testData) {
-            return this.request('cuft_build_test_form', {
-                framework: framework,
-                test_data: testData
-            });
-        }
-
-        /**
          * Get test events
          */
         async getTestEvents(filters = {}) {

@@ -93,29 +93,13 @@ class CUFT_Plugin {
             'includes/class-cuft-utils.php',
             'includes/class-cuft-migration-events.php',
             'includes/class-cuft-measurement-protocol.php',
-            // Form Builder Infrastructure
-            'includes/admin/framework-adapters/abstract-cuft-adapter.php',  // Base adapter
-            'includes/admin/framework-adapters/class-cuft-elementor-adapter.php',
-            'includes/admin/framework-adapters/class-cuft-cf7-adapter.php',
-            'includes/admin/framework-adapters/class-cuft-gravity-adapter.php',
-            'includes/admin/framework-adapters/class-cuft-ninja-adapter.php',
-            'includes/admin/framework-adapters/class-cuft-avada-adapter.php',
-            'includes/admin/class-cuft-adapter-factory.php',  // Adapter factory
-            'includes/admin/class-cuft-form-builder.php',  // Form builder core
-            // Form Builder Supporting Classes
-            'includes/class-cuft-test-mode.php',  // Test mode manager
-            'includes/class-cuft-test-routing.php',  // Test form routing
-            'includes/class-cuft-form-template.php',  // Form templates
-            'includes/class-cuft-test-session.php',  // Test sessions
-            'includes/class-cuft-form-builder-validator.php',  // Compliance validator
+            'includes/class-cuft-legacy-test-forms.php',  // Removes test forms left by the retired Test Form Builder
             // AJAX Handlers
             'includes/ajax/class-cuft-event-recorder.php',  // AJAX event recording handler
             'includes/ajax/class-cuft-event-replay.php',    // AJAX event replay for webhook events
             'includes/ajax/class-cuft-test-data-generator.php',  // Test data generator AJAX
             'includes/ajax/class-cuft-event-simulator.php',  // Event simulator AJAX
-            'includes/ajax/class-cuft-test-form-builder.php',  // Test form builder AJAX
             'includes/ajax/class-cuft-test-events-ajax.php',  // Test events retrieval/deletion AJAX
-            'includes/ajax/class-cuft-form-builder-ajax.php',  // Form builder AJAX endpoints
             'includes/database/class-cuft-test-events-table.php',  // Test events database table
             // Migrations
             'includes/migrations/class-cuft-migration-3-12-0.php',
@@ -308,9 +292,6 @@ class CUFT_Plugin {
             if ( class_exists( 'CUFT_Event_Simulator' ) ) {
                 new CUFT_Event_Simulator();
             }
-            if ( class_exists( 'CUFT_Test_Form_Builder' ) ) {
-                new CUFT_Test_Form_Builder();
-            }
             if ( class_exists( 'CUFT_Test_Events_Ajax' ) ) {
                 new CUFT_Test_Events_Ajax();
             }
@@ -325,6 +306,11 @@ class CUFT_Plugin {
 
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
             add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
+
+            // Tell the shared dataLayer script whether generate_lead may fire.
+            // Late priority: the form framework classes register that script
+            // on the default priority.
+            add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_lead_settings' ), 100 );
 
             // Legacy GitHub updater disabled in favor of CUFT_WordPress_Updater (v3.16.0+)
             // The new system uses CUFT_Update_Checker, CUFT_GitHub_API, and CUFT_WordPress_Updater
@@ -343,6 +329,14 @@ class CUFT_Plugin {
      * Plugin activation
      */
     public function activate() {
+        // Record whether this site already ran the plugin before the defaults
+        // below are written; the 3.28.0 migration keys its defaults on it.
+        if ( class_exists( 'CUFT_DB_Migration' ) ) {
+            CUFT_DB_Migration::note_activation(
+                false !== get_option( 'cuft_db_version' ) || false !== get_option( 'cuft_gtm_id' )
+            );
+        }
+
         // Set default options if they don't exist
         if ( false === get_option( 'cuft_gtm_id' ) ) {
             add_option( 'cuft_gtm_id', '' );
@@ -499,6 +493,26 @@ class CUFT_Plugin {
                 )
             );
         }
+    }
+
+    /**
+     * Pass the "Generate Lead Events" setting to cuft-dataLayer-utils.js.
+     *
+     * The script pushes generate_lead only when window.cuftLeadSettings says
+     * the setting is on. Printed before the script so it is always defined
+     * first.
+     */
+    public function enqueue_lead_settings() {
+        if ( ! wp_script_is( 'cuft-dataLayer-utils', 'registered' ) ) {
+            return;
+        }
+        wp_add_inline_script(
+            'cuft-dataLayer-utils',
+            'window.cuftLeadSettings = ' . wp_json_encode( array(
+                'generate_lead_enabled' => (bool) get_option( 'cuft_generate_lead_enabled', false ),
+            ) ) . ';',
+            'before'
+        );
     }
 
     /**

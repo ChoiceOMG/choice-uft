@@ -42,7 +42,8 @@ plugin is not affiliated with, endorsed by, or supported by their makers.
 
 * `form_submit` on every detected submission, carrying the form type, form ID,
   and the email address and phone number the visitor entered
-* `generate_lead` when a submission includes a valid email address
+* `generate_lead` when a submission includes a valid email address and the
+  Generate Lead Events setting is on (off by default on new installs)
 * `qualify_lead` when a submission carries an email address, a phone number,
   and an advertising click ID
 * `phone_click` when a visitor clicks a `tel:` link
@@ -241,6 +242,15 @@ The tracking scripts are plain JavaScript with no jQuery dependency, and each
 form plugin's handler loads only when that form plugin is present. Tracking
 errors are caught so a failure cannot block a form submission.
 
+= Can my CRM or email platform update a lead's status? =
+
+Yes. The Click Tracking screen shows a webhook URL that marks a tracked click
+as qualified, scores it, or records a lifecycle status such as `qualify_lead`.
+Each request must carry the site's webhook key, which the same screen displays
+and can regenerate. Sites that installed a version before 3.28.0 keep the key
+optional until an administrator switches on "Require webhook key", so their
+existing links keep working.
+
 = Can I change what is tracked? =
 
 Yes. Filters cover the computed `lead_id` (`cuft_lead_id`), the phone country
@@ -253,7 +263,7 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 1. Settings: Google Tag Manager container, server-side GTM, lead events and phone validation.
 2. Framework detection for Avada, Elementor Pro, Contact Form 7, Ninja Forms and Gravity Forms, with the active tracking features.
 3. Click Tracking: click IDs, qualification status and export for Google Ads offline conversions.
-4. Testing Dashboard: generate sample data, simulate events and build test forms to validate tracking.
+4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
 

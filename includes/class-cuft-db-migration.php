@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '3.22.0';
+    const CURRENT_VERSION = '3.28.0';
 
     /**
      * Option name for storing database version
@@ -21,10 +21,56 @@ class CUFT_DB_Migration {
     const VERSION_OPTION = 'cuft_db_version';
 
     /**
+     * Whether the site already carried plugin data when the activation hook
+     * ran. Null outside an activation request. Set by
+     * CUFT_Plugin::activate() before it writes default options, because
+     * those defaults would otherwise make a brand-new install look old.
+     *
+     * @var bool|null
+     */
+    private static $activation_found_existing = null;
+
+    /**
+     * Record, at the start of activation, whether plugin data already existed.
+     *
+     * @param bool $existing True when cuft_db_version or cuft_gtm_id was present.
+     */
+    public static function note_activation( $existing ) {
+        self::$activation_found_existing = (bool) $existing;
+    }
+
+    /**
+     * Whether this site ran the plugin before the current migration pass.
+     *
+     * 1. A stored cuft_db_version means an earlier version ran its
+     *    migrations: every release since the migration runner was added
+     *    writes it on activation and on the first request after an upgrade.
+     * 2. Inside an activation request, use what activate() saw before writing
+     *    its defaults (covers a deactivate/reactivate of a pre-migration
+     *    version).
+     * 3. Otherwise (an upgrade from a version older than the runner, with no
+     *    activation), cuft_gtm_id, which activation has written since 3.0,
+     *    marks an existing install.
+     *
+     * @param string|false $stored_version Raw cuft_db_version option value.
+     * @return bool
+     */
+    private static function is_existing_install( $stored_version ) {
+        if ( false !== $stored_version && '' !== $stored_version ) {
+            return true;
+        }
+        if ( null !== self::$activation_found_existing ) {
+            return self::$activation_found_existing;
+        }
+        return false !== get_option( 'cuft_gtm_id' );
+    }
+
+    /**
      * Run all pending migrations
      */
     public static function run_migrations() {
-        $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
+        $stored_version  = get_option( self::VERSION_OPTION, false );
+        $current_version = ( false === $stored_version || '' === $stored_version ) ? '0.0.0' : $stored_version;
 
         // If we're already up to date, skip migrations
         if ( version_compare( $current_version, self::CURRENT_VERSION, '>=' ) ) {
@@ -60,19 +106,68 @@ class CUFT_DB_Migration {
             }
         }
 
+        // 3.28.0: settings defaults that differ between new and existing installs,
+        // and removal of the retired Test Form Builder's pages and rewrite rule.
+        if ( version_compare( $current_version, '3.28.0', '<' ) ) {
+            self::migrate_to_3_28_0( self::is_existing_install( $stored_version ) );
+        }
+
         // Update version
         update_option( self::VERSION_OPTION, self::CURRENT_VERSION );
 
         // Log successful migration
         if ( class_exists( 'CUFT_Logger' ) ) {
             CUFT_Logger::log(
-                'info',
                 'Database migrated successfully',
+                CUFT_Logger::INFO,
                 array(
                     'from_version' => $current_version,
                     'to_version' => self::CURRENT_VERSION
                 )
             );
+        }
+    }
+
+    /**
+     * Migration to version 3.28.0
+     *
+     * New installs get the stricter defaults: the webhook requires its key and
+     * generate_lead stays off until an administrator turns it on. Existing
+     * installs keep behaving exactly as before the upgrade: the webhook key
+     * stays optional, and generate_lead is switched on, because before 3.28.0
+     * the client script pushed generate_lead whatever the setting said.
+     *
+     * @param bool $existing_install Whether the site ran an earlier version.
+     */
+    private static function migrate_to_3_28_0( $existing_install ) {
+        if ( $existing_install ) {
+            if ( false === get_option( 'cuft_webhook_require_key' ) ) {
+                add_option( 'cuft_webhook_require_key', 0 );
+            }
+            if ( ! get_option( 'cuft_generate_lead_enabled', false ) ) {
+                update_option( 'cuft_generate_lead_enabled', 1 );
+            }
+        } else {
+            if ( false === get_option( 'cuft_webhook_require_key' ) ) {
+                add_option( 'cuft_webhook_require_key', 1 );
+            }
+            if ( false === get_option( 'cuft_generate_lead_enabled' ) ) {
+                add_option( 'cuft_generate_lead_enabled', 0 );
+            }
+        }
+
+        if ( get_option( 'cuft_webhook_require_key', false ) && class_exists( 'CUFT_Click_Tracker' ) ) {
+            CUFT_Click_Tracker::get_webhook_key();
+        }
+
+        if ( $existing_install ) {
+            if ( class_exists( 'CUFT_Legacy_Test_Forms' ) ) {
+                CUFT_Legacy_Test_Forms::remove_all();
+            }
+            // The Test Form Builder registered a /cuft-test-form/ rewrite rule.
+            // Deleting the stored rules makes WordPress rebuild them on the next
+            // request, without it.
+            delete_option( 'rewrite_rules' );
         }
     }
 

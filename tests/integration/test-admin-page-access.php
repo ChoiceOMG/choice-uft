@@ -87,7 +87,6 @@ class Test_Admin_Page_Access extends WP_UnitTestCase {
         $this->assertContains('CUFT Testing Dashboard', $output);
         $this->assertContains('Test Data Generator', $output);
         $this->assertContains('Event Simulator', $output);
-        $this->assertContains('Test Form Builder', $output);
         $this->assertContains('Event Viewer', $output);
     }
 

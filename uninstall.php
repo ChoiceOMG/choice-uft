@@ -26,8 +26,17 @@ if ( ! current_user_can( 'activate_plugins' ) ) {
     exit;
 }
 
+// Remove test forms created by the Test Form Builder in versions before 3.28.0.
+// Identified only by the plugin's own marker meta; see the class for the rules.
+if ( file_exists( __DIR__ . '/includes/class-cuft-legacy-test-forms.php' ) ) {
+    require_once __DIR__ . '/includes/class-cuft-legacy-test-forms.php';
+    CUFT_Legacy_Test_Forms::remove_all();
+}
+
 // Clean up plugin options
 $cuft_options_to_remove = array(
+    'cuft_webhook_require_key',
+    'cuft_webhook_key',
     'cuft_gtm_id',
     'cuft_debug_enabled',
     'cuft_generate_lead_enabled',
@@ -55,7 +64,6 @@ $cuft_options_to_remove = array(
     'cuft_register_secret',
     'cuft_measurement_id',
     'cuft_measurement_api_secret',
-    'cuft_webhook_key',
     'cuft_update_log',
     'cuft_update_config',
     'cuft_update_history',

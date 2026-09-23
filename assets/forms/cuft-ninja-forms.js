@@ -360,49 +360,6 @@
         phone: phone || "not found"
       });
 
-      // Test mode: Add click IDs if on test page and none exist
-      var isTestMode = window.location.pathname.indexOf('-test-form') > -1 ||
-                       window.location.search.indexOf('test=1') > -1 ||
-                       window.location.search.indexOf('cuft_test=1') > -1;
-
-      if (isTestMode && email && phone) {
-        try {
-          // Check if tracking data already has click IDs
-          var currentTracking = window.cuftGetTrackingData ? window.cuftGetTrackingData() : {};
-          var hasClickId = currentTracking.click_id || currentTracking.gclid ||
-                          currentTracking.fbclid || currentTracking.wbraid || currentTracking.gbraid;
-
-          if (!hasClickId) {
-            // Store test click ID in sessionStorage for generate_lead testing
-            var testData = {
-              tracking: {
-                click_id: 'test_ninja_' + Date.now(),
-                gclid: 'test_gclid_ninja_' + formDetails.form_id,
-                fbclid: 'test_fbclid_ninja_' + formDetails.form_id,
-                utm_source: 'test_ninja',
-                utm_medium: 'test_form',
-                utm_campaign: 'ninja_forms_test',
-                utm_term: 'ninja_test',
-                utm_content: 'form_test'
-              },
-              timestamp: Date.now()
-            };
-
-            try {
-              sessionStorage.setItem('cuft_tracking_data', JSON.stringify(testData));
-              log('Test mode: Added test tracking data for generate_lead testing');
-              log('Test tracking data:', testData.tracking);
-            } catch (storageError) {
-              log('Test mode: Could not store test data in sessionStorage:', storageError);
-            }
-          } else {
-            log('Test mode: Click IDs already exist, using existing tracking data');
-          }
-        } catch (e) {
-          log('Test mode: Error adding test tracking data:', e);
-        }
-      }
-
       // Use standardized tracking function
       var success = window.cuftDataLayerUtils.trackFormSubmission('ninja', form, {
         form_id: formDetails.form_id,
