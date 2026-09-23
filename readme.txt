@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.27.1
+Stable tag: 3.27.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -255,6 +255,22 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Changelog ==
 
+= 3.27.2 =
+* Requires WordPress 6.2 or later. Every database query now goes through `$wpdb->prepare()`, with table and column names bound through the `%i` placeholder that 6.2 introduced.
+* Hardened input handling across the plugin: every request, cookie and server value is unslashed and sanitized before use, and every admin action and AJAX handler checks both a nonce and the `manage_options` capability.
+* Test mode and the test-form URLs now respond to administrators only. Previously any visitor could add `?test_mode=1` to a request and suppress form notification emails.
+* The plugin's admin notices appear only on its own screens and the Plugins screen, and the informational notice can be dismissed permanently.
+* Inline scripts and styles in the admin screens moved into enqueued assets; the Google Tag Manager loader is now enqueued rather than echoed, and prints with the other head scripts.
+* CSV exports prefix a leading apostrophe to visitor-supplied values that start with `=`, `+`, `-` or `@`, so a spreadsheet cannot run them as formulas.
+* Fixed a stray translator comment printed on the Testing Dashboard, a migration index check that failed on its second run, and debug log entries that recorded the log level as the message.
+* Uninstall now removes the test events table, transient timeouts, and the scheduled events the plugin actually registers.
+
+= 3.27.1 =
+* Attribution cookies are written by the page itself, so a page served from cache after its nonce expired still records UTM and click-ID attribution.
+
+= 3.27.0 =
+* Attribution now reaches stored Elementor Pro submissions: it is captured before any submit action runs, and `submitted_at` reports the submit time rather than the time a later action fired.
+
 = 3.26.1 =
 * Fixed phantom `form_submit` events on Avada/Fusion forms. The success check read the inline `style` attribute, so a success message that Avada ships in the page markup and hides with a CSS class counted as a submission on any render, including ad-crawler and lock-screen renders that never touched the form. Detection now uses computed style plus layout and requires the success state to appear after the submission.
 * Avada submissions carrying neither an email address nor a phone number no longer push `form_submit`. Other form frameworks are unchanged.
@@ -307,6 +323,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.27.2 =
+Security and review hardening. Requires WordPress 6.2 or later. Test mode is now administrator-only. No settings change is needed.
 
 = 3.26.1 =
 Stops phantom form submissions on Avada/Fusion sites. If your Avada conversion counts have looked inflated, this is the fix. No settings change is needed.

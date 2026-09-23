@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.27.2] - 2026-09-23
+
+WordPress.org directory review preparation. Plugin Check (general, plugin_repo, security, performance, accessibility) on the directory package went from 635 warnings to none.
+
+### Changed
+- **Requires WordPress 6.2.** Every query goes through `$wpdb->prepare()` with identifiers bound by `%i`.
+- Main class renamed `Choice_Universal_Form_Tracker` to `CUFT_Plugin`, and `Abstract_CUFT_Adapter` to `CUFT_Abstract_Adapter`, for the directory's prefix rule.
+- Plugin URI now points at https://choice.marketing/tools/choice-uft/; License header reads `GPLv2 or later`.
+- Admin notices show only on the plugin's screens and the Plugins screen; the informational notice is dismissible per user.
+- Inline admin scripts and styles moved to `assets/cuft-admin.js` and `assets/cuft-admin.css`; the GTM loader is enqueued through `wp_add_inline_script`.
+- `error_log()` calls route through `CUFT_Logger::debug_log()`, which writes only under `WP_DEBUG`.
+- readme `== External services ==` rewritten per service, with terms and privacy links for the Choice OMG phone validation service and its sub-processors.
+
+### Security
+- Test mode and test-form routing are administrator-only. Any visitor could previously append `?test_mode=1` and suppress form notification emails.
+- Nonce plus `manage_options` on every admin action and AJAX handler; request, cookie and server input unslashed and sanitized.
+- CSV exports neutralise spreadsheet formulas in visitor-supplied columns.
+
+### Fixed
+- Stray translator comment printed on the Testing Dashboard.
+- Migration index check looked for `date_updated` while creating `idx_date_updated`, so a second run failed.
+- `CUFT_Logger::log()` was called with its arguments reversed in the click tracker and event recorder.
+- Uninstall cleared a cron hook the plugin never scheduled and left the real ones, the test events table, and transient timeouts behind.
+- The directory package hides the GTM template download buttons, whose files it does not ship.
+
 ## [3.27.1] - 2026-09-18
 
 ### Fixed
