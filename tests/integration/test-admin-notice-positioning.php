@@ -310,6 +310,10 @@ class Test_Admin_Notice_Positioning extends WP_UnitTestCase {
         );
         set_site_transient('cuft_update_completed', $completion_status, 5 * MINUTE_IN_SECONDS);
 
+        // Plugin notices are scoped to the plugin's own screens and the
+        // Plugins screen since 3.27.2, so render on one of them.
+        set_current_screen('plugins');
+
         // Capture all notices
         ob_start();
         do_action('admin_notices');
