@@ -54,8 +54,9 @@ class CUFT_Click_Integration {
         }
         
         foreach ( $this->click_id_params as $param ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only capture of an ad click-id query param (gclid/fbclid/etc.) on any front-end page load; not a state-changing form action, so there is no nonce to check here.
             if ( isset( $_GET[ $param ] ) && ! empty( $_GET[ $param ] ) ) {
-                $click_id = sanitize_text_field( $_GET[ $param ] );
+                $click_id = sanitize_text_field( wp_unslash( $_GET[ $param ] ) );
                 $platform = $this->get_platform_from_param( $param );
                 
                 $this->track_click_id( $click_id, $platform );
@@ -86,8 +87,8 @@ class CUFT_Click_Integration {
             'utm_content' => isset( $utm_data['utm_content'] ) ? $utm_data['utm_content'] : '',
             'qualified' => 0, // Default to unqualified
             'score' => 0,     // Default score
-            'additional_data' => json_encode( array(
-                'referrer' => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( $_SERVER['HTTP_REFERER'] ) : '',
+            'additional_data' => wp_json_encode( array(
+                'referrer' => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '',
                 'landing_page' => home_url( add_query_arg( null, null ) ),
                 'timestamp' => current_time( 'mysql', true )
             ) )
@@ -157,7 +158,7 @@ class CUFT_Click_Integration {
         $platform = '';
 
         if ( isset( $_COOKIE['cuft_click_id'] ) ) {
-            $click_id = sanitize_text_field( $_COOKIE['cuft_click_id'] );
+            $click_id = sanitize_text_field( wp_unslash( $_COOKIE['cuft_click_id'] ) );
 
             // Fetch additional tracking data from database
             if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
@@ -182,7 +183,7 @@ class CUFT_Click_Integration {
      * Get current click ID from cookie
      */
     public static function get_current_click_id() {
-        return isset( $_COOKIE['cuft_click_id'] ) ? sanitize_text_field( $_COOKIE['cuft_click_id'] ) : '';
+        return isset( $_COOKIE['cuft_click_id'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['cuft_click_id'] ) ) : '';
     }
 
     /**

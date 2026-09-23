@@ -149,7 +149,7 @@ class CUFT_Utils {
 
         foreach ( $ip_keys as $key ) {
             if ( ! empty( $_SERVER[ $key ] ) ) {
-                $ip = sanitize_text_field( $_SERVER[ $key ] );
+                $ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
                 // Handle comma-separated IPs (X-Forwarded-For)
                 if ( strpos( $ip, ',' ) !== false ) {
                     $ip = trim( explode( ',', $ip )[0] );
@@ -337,10 +337,12 @@ class CUFT_Utils {
         $log_message = '[CUFT] ' . $message;
 
         if ( $data !== null ) {
-            $log_message .= ' | Data: ' . print_r( $data, true );
+            $log_message .= ' | Data: ' . wp_json_encode( $data );
         }
 
-        error_log( $log_message );
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::debug_log( $log_message );
+        }
     }
 
     /**
@@ -353,8 +355,10 @@ class CUFT_Utils {
 
         $table_name = $wpdb->prefix . 'cuft_click_tracking';
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection has no WP API and results are per-request admin data.
         $column_exists = $wpdb->get_results( $wpdb->prepare(
-            "SHOW COLUMNS FROM {$table_name} LIKE %s",
+            'SHOW COLUMNS FROM %i LIKE %s',
+            $table_name,
             'events'
         ) );
 
@@ -372,6 +376,7 @@ class CUFT_Utils {
         return array(
             'wordpress_version' => get_bloginfo( 'version' ),
             'php_version' => PHP_VERSION,
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Static, no user input; one-off MySQL version read for a diagnostics snapshot, not worth caching.
             'mysql_version' => $wpdb->get_var( 'SELECT VERSION()' ),
             'cuft_version' => defined( 'CUFT_VERSION' ) ? CUFT_VERSION : 'unknown',
             'has_events_column' => self::has_events_column(),

@@ -127,7 +127,7 @@ class CUFT_Ninja_Forms {
             'submitted_at' => gmdate( 'c' ),
             'cuft_tracked' => true,
             'cuft_source' => 'ninja_forms_server',
-            'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
+            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
             'page_title' => get_the_title(),
             'language' => get_locale()
         );
@@ -169,7 +169,7 @@ class CUFT_Ninja_Forms {
             'form_type' => 'ninja_forms',
             'form_id' => $data['form_id'],
             'form_name' => $data['form_name'],
-            'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
+            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
             'page_title' => get_the_title(),
             'language' => get_locale(),
             'submitted_at' => gmdate( 'c' )

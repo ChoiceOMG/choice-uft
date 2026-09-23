@@ -77,14 +77,14 @@ class CUFT_UTM_Tracker {
         // Extract UTM parameters
         foreach ( $this->utm_params as $param ) {
             if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) ) {
-                $tracking_data[ $param ] = sanitize_text_field( $_POST[ $param ] );
+                $tracking_data[ $param ] = sanitize_text_field( wp_unslash( $_POST[ $param ] ) );
             }
         }
-        
+
         // Extract Click ID parameters
         foreach ( $this->click_id_params as $param ) {
             if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) ) {
-                $tracking_data[ $param ] = sanitize_text_field( $_POST[ $param ] );
+                $tracking_data[ $param ] = sanitize_text_field( wp_unslash( $_POST[ $param ] ) );
             }
         }
         
@@ -170,7 +170,7 @@ class CUFT_UTM_Tracker {
         $utm_data = array();
 
         if ( isset( $_COOKIE['cuft_utm_data'] ) ) {
-            $cookie_data = json_decode( stripslashes( $_COOKIE['cuft_utm_data'] ), true );
+            $cookie_data = json_decode( sanitize_text_field( wp_unslash( $_COOKIE['cuft_utm_data'] ) ), true );
             if ( is_array( $cookie_data ) && isset( $cookie_data['utm'] ) ) {
                 $timestamp = isset( $cookie_data['timestamp'] ) ? $cookie_data['timestamp'] : 0;
                 if ( ( current_time( 'timestamp' ) - $timestamp ) < ( 30 * DAY_IN_SECONDS ) ) {
@@ -194,7 +194,7 @@ class CUFT_UTM_Tracker {
         $data = array();
 
         if ( isset( $_COOKIE['cuft_first_touch'] ) ) {
-            $decoded = json_decode( stripslashes( $_COOKIE['cuft_first_touch'] ), true );
+            $decoded = json_decode( sanitize_text_field( wp_unslash( $_COOKIE['cuft_first_touch'] ) ), true );
             if ( is_array( $decoded ) ) {
                 $data = ( isset( $decoded['utm'] ) && is_array( $decoded['utm'] ) ) ? $decoded['utm'] : array();
                 if ( isset( $decoded['landing_page'] ) ) {

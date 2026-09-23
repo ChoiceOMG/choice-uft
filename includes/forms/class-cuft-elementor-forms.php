@@ -243,7 +243,7 @@ class CUFT_Elementor_Forms {
             'submitted_at' => gmdate( 'c' ),
             'cuft_tracked' => true,
             'cuft_source' => 'elementor_pro_server',
-            'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
+            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
             'page_title' => get_the_title(),
             'language' => get_locale()
         );
@@ -297,7 +297,7 @@ class CUFT_Elementor_Forms {
             'form_type' => 'elementor',
             'form_id' => $data['form_id'],
             'form_name' => $data['form_name'],
-            'page_location' => home_url( $_SERVER['REQUEST_URI'] ),
+            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
             'page_title' => get_the_title(),
             'language' => get_locale(),
             'submitted_at' => gmdate( 'c' )
@@ -399,8 +399,8 @@ class CUFT_Elementor_Forms {
         // During an AJAX submit the page is admin-ajax.php; the form's page URL
         // is the referer. Elementor posts it as $_POST['referrer'] too.
         $page_url = '';
-        if ( ! empty( $_POST['referrer'] ) ) {
-            $page_url = esc_url_raw( wp_unslash( $_POST['referrer'] ) );
+        if ( ! empty( $_POST['referrer'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only; this callback only runs from the elementor_pro/forms/record/actions_before hook, fired after Elementor Pro's own AJAX form-submit handler has already verified its nonce.
+            $page_url = esc_url_raw( wp_unslash( $_POST['referrer'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same request as above; Elementor Pro already verified the nonce before this hook fires.
         } elseif ( function_exists( 'wp_get_referer' ) ) {
             $page_url = wp_get_referer();
         }
