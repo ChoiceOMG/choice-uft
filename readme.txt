@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.27.2
+Stable tag: 3.28.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -267,10 +267,12 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Changelog ==
 
-= 3.27.2 =
+= 3.28.0 =
+* `generate_lead` now fires only when the Generate Lead Events setting is on, covering the dataLayer push, the deprecated strict dual-fire, and the event recorded on the click. Earlier versions pushed it whatever the setting said. Sites upgrading from an earlier version have the setting switched on automatically so nothing changes for them; new installs start with it off.
+* The webhook can now require a shared key (Require webhook key, on the Click Tracking screen). Requests without the right `key` are rejected with HTTP 403. On by default for new installs; sites upgrading keep it off until an administrator turns it on, so existing links keep working.
+* Removed the Test Form Builder and its test mode. Test forms and pages created by earlier versions are deleted on upgrade and on uninstall, identified only by the plugin's own marker meta. The Gravity Forms and Ninja Forms scripts no longer inject test click IDs on URLs containing `test=1`, `cuft_test=1` or `-test-form`.
 * Requires WordPress 6.2 or later. Every database query now goes through `$wpdb->prepare()`, with table and column names bound through the `%i` placeholder that 6.2 introduced.
 * Hardened input handling across the plugin: every request, cookie and server value is unslashed and sanitized before use, and every admin action and AJAX handler checks both a nonce and the `manage_options` capability.
-* Test mode and the test-form URLs now respond to administrators only. Previously any visitor could add `?test_mode=1` to a request and suppress form notification emails.
 * The plugin's admin notices appear only on its own screens and the Plugins screen, and the informational notice can be dismissed permanently.
 * Inline scripts and styles in the admin screens moved into enqueued assets; the Google Tag Manager loader is now enqueued rather than echoed, and prints with the other head scripts.
 * CSV exports prefix a leading apostrophe to visitor-supplied values that start with `=`, `+`, `-` or `@`, so a spreadsheet cannot run them as formulas.
@@ -336,8 +338,8 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Upgrade Notice ==
 
-= 3.27.2 =
-Security and review hardening. Requires WordPress 6.2 or later. Test mode is now administrator-only. No settings change is needed.
+= 3.28.0 =
+Requires WordPress 6.2 or later. Existing sites keep generate_lead firing and the webhook open; new installs start with generate_lead off and the webhook key required. The Test Form Builder is removed and its test pages are deleted.
 
 = 3.26.1 =
 Stops phantom form submissions on Avada/Fusion sites. If your Avada conversion counts have looked inflated, this is the fix. No settings change is needed.

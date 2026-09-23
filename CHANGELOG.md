@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.27.2] - 2026-09-23
+## [3.28.0] - 2026-09-23
 
 WordPress.org directory review preparation. Plugin Check (general, plugin_repo, security, performance, accessibility) on the directory package went from 635 warnings to none.
 
 ### Changed
+- **`generate_lead` obeys the Generate Lead Events setting.** `cuft-dataLayer-utils.js` pushed it on every submission with an email address whatever `cuft_generate_lead_enabled` said. The setting now reaches the browser as `window.cuftLeadSettings` (inline before `cuft-dataLayer-utils`), and gates the push, the deprecated strict dual-fire, and the `recordEvent` call; `cuft_record_event` also refuses `generate_lead` while the setting is off. A page cached before the upgrade, with no `cuftLeadSettings`, keeps pushing as it did.
+- **Upgrade defaults (migration 3.28.0, `cuft_db_version` now 3.28.0).** An existing install gets `cuft_generate_lead_enabled = 1` and `cuft_webhook_require_key = 0`, so it behaves as before; a new install gets `cuft_generate_lead_enabled = 0` and `cuft_webhook_require_key = 1` with a generated key. Existing means: a stored `cuft_db_version`; or, during activation, `cuft_db_version` or `cuft_gtm_id` present before activation wrote its defaults; or, outside activation, `cuft_gtm_id` present.
 - **Requires WordPress 6.2.** Every query goes through `$wpdb->prepare()` with identifiers bound by `%i`.
 - Main class renamed `Choice_Universal_Form_Tracker` to `CUFT_Plugin`, and `Abstract_CUFT_Adapter` to `CUFT_Abstract_Adapter`, for the directory's prefix rule.
 - Plugin URI now points at https://choice.marketing/tools/choice-uft/; License header reads `GPLv2 or later`.
@@ -21,9 +23,14 @@ WordPress.org directory review preparation. Plugin Check (general, plugin_repo, 
 - readme `== External services ==` rewritten per service, with terms and privacy links for the Choice OMG phone validation service and its sub-processors.
 
 ### Security
-- Test mode and test-form routing are administrator-only. Any visitor could previously append `?test_mode=1` and suppress form notification emails.
+- **Webhook key.** New setting "Require webhook key" on the Click Tracking screen. When on, `cuft_webhook` rejects any request whose `key` does not match `cuft_webhook_key` (`hash_equals`), with HTTP 403. The screen shows the full keyed URL and a nonce-checked Regenerate button; the "security through obscurity" wording is gone.
+- Test mode, which let any visitor append `?test_mode=1` and suppress form notification emails, is removed with the Test Form Builder.
 - Nonce plus `manage_options` on every admin action and AJAX handler; request, cookie and server input unslashed and sanitized.
 - CSV exports neutralise spreadsheet formulas in visitor-supplied columns.
+
+### Removed
+- **Test Form Builder.** Framework adapters, adapter factory, form builder and its AJAX endpoints, the test form templates, sessions and validator, test mode (`?test_mode=1`), the `/cuft-test-form/` rewrite rule and the `form_id`/`test_mode` query vars, and their Testing Dashboard card and scripts. The sample data generator, event simulator and test events table remain. Test forms made by earlier versions are deleted on upgrade and uninstall by `CUFT_Legacy_Test_Forms`, which matches only posts carrying `_cuft_test_form = 1` and a `cuft_test_<time>_<4 digits>` instance ID, never titles.
+- The Gravity Forms and Ninja Forms scripts' test-mode blocks, which wrote fake `gclid` and UTM values into session storage on any URL containing `test=1`, `cuft_test=1` or `-test-form`.
 
 ### Fixed
 - Stray translator comment printed on the Testing Dashboard.
