@@ -98,7 +98,7 @@ class CUFT_Click_Tracker {
             user_agent text DEFAULT NULL,
             additional_data longtext DEFAULT NULL,
             PRIMARY KEY (id),
-            UNIQUE KEY click_id (click_id),
+            UNIQUE KEY click_id (click_id(191)),
             KEY platform (platform),
             KEY qualified (qualified),
             KEY score (score),

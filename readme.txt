@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.28.3
+Stable tag: 3.28.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.28.4 =
+* Click tracking table now installs on hosts whose default storage engine is MyISAM (or InnoDB with the old 767/1000-byte index limit). The unique index on click_id covered all 255 utf8mb4 characters (1,020 bytes), which MySQL rejects there with "Specified key was too long; max key length is 1000 bytes", so the table was never created and no clicks were recorded. The index now covers the first 191 characters; click IDs are far shorter, so uniqueness is unchanged, and existing tables are not altered.
 
 = 3.28.3 =
 * Click table repair now records MySQL's own error text. 3.28.2 read the error after running its existence check, which clears it, so failures showed "Unknown database error". When the table is still missing after dbDelta(), the CREATE is run once directly to capture the error, and a failed repair waits an hour before retrying instead of retrying on every admin page load.

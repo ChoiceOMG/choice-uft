@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.28.4] - 2026-09-24
+
+### Fixed
+- Click tracking table now installs on hosts whose default storage engine is MyISAM (or InnoDB with the old 767/1000-byte index limit). The unique index on click_id covered all 255 utf8mb4 characters (1,020 bytes), which MySQL rejects there with "Specified key was too long; max key length is 1000 bytes", so the table was never created and no clicks were recorded. The index now covers the first 191 characters; click IDs are far shorter, so uniqueness is unchanged, and existing tables are not altered.
+
 ## [3.28.3] - 2026-09-24
 
 ### Fixed
