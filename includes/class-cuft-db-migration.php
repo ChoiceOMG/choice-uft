@@ -112,6 +112,16 @@ class CUFT_DB_Migration {
             self::migrate_to_3_28_0( self::is_existing_install( $stored_version ) );
         }
 
+        // Verify the click tracking table itself (not just the migration
+        // bookkeeping above) actually carries every column the code
+        // depends on. A version bump is exactly the moment a previous
+        // dbDelta()/ALTER TABLE could have silently failed on a host that
+        // restricts DDL, so force a real check here rather than trusting
+        // the cached self-heal result from before the bump.
+        if ( class_exists( 'CUFT_Click_Tracker' ) ) {
+            CUFT_Click_Tracker::self_heal_schema( true );
+        }
+
         // Update version
         update_option( self::VERSION_OPTION, self::CURRENT_VERSION );
 

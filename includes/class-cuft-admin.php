@@ -1405,6 +1405,45 @@ class CUFT_Admin {
     }
 
     /**
+     * Render a notice for the most recent click-write failure, if any.
+     *
+     * Reads CUFT_Click_Tracker::get_last_write_error(), a small option kept
+     * independent of the debug log so a database write failure (e.g. a
+     * missing table or column, or a host-level write restriction) is
+     * visible here even with debug logging off.
+     */
+    private function render_click_write_error_notice() {
+        if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
+            return;
+        }
+
+        $error = CUFT_Click_Tracker::get_last_write_error();
+        if ( empty( $error ) || empty( $error['message'] ) ) {
+            return;
+        }
+
+        $timestamp = isset( $error['timestamp'] ) ? $error['timestamp'] : '';
+        $context   = isset( $error['context'] ) ? $error['context'] : '';
+
+        ?>
+        <div class="notice notice-error" style="margin: 0 0 20px 0;">
+            <p>
+                <strong>Click tracking write failed.</strong>
+                Clicks may not be recording.
+                <?php if ( $timestamp ) : ?>
+                    Last failure: <code><?php echo esc_html( $timestamp ); ?> UTC</code>
+                <?php endif; ?>
+                <?php if ( $context ) : ?>
+                    (<code><?php echo esc_html( $context ); ?></code>)
+                <?php endif; ?>
+                <br>
+                <code><?php echo esc_html( $error['message'] ); ?></code>
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
      * Render click tracking tab
      */
     private function render_click_tracking_tab() {
@@ -1419,8 +1458,13 @@ class CUFT_Admin {
         $filter_date_from = $this->get_query_param( 'filter_date_from' );
         $filter_date_to = $this->get_query_param( 'filter_date_to' );
         $filter_ip_search = $this->get_query_param( 'filter_ip_search' );
-        // Default to showing only clicks with events; submit the filter form with "All" to see everything
-        $filter_has_events = $this->get_query_param( 'filter_has_events', '1' );
+        // Default to showing every click, including gclid-only visits that
+        // never received an event; the filter is still available for
+        // narrowing to clicks that did fire an event. Was defaulted to '1'
+        // (has events only) before 3.28.2, which could make a site with real
+        // click rows look empty here even though the export and stats used
+        // the same restrictive default underneath it.
+        $filter_has_events = $this->get_query_param( 'filter_has_events', '' );
         $sort_by = $this->get_query_param( 'sort_by', 'date_created' );
 
         $args = array(
@@ -1455,6 +1499,7 @@ class CUFT_Admin {
         
         ?>
         <div class="cuft-click-tracking" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <?php $this->render_click_write_error_notice(); ?>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                 <h2 style="margin: 0;">
                     <span style="margin-right: 8px;">🎯</span>

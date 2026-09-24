@@ -8,19 +8,55 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CUFT_Click_Tracker {
-    
+
     /**
      * Database table name
      */
     private static $table_name = 'cuft_click_tracking';
-    
+
+    /**
+     * Option holding the most recent click-write failure.
+     *
+     * A small, independent record of the last error, separate from the
+     * debug log: it survives with debug logging off, it never grows
+     * unbounded, and it carries no PII (no IP, no user agent, and only a
+     * short prefix of the click id).
+     */
+    const OPTION_LAST_WRITE_ERROR = 'cuft_last_click_write_error';
+
+    /**
+     * Option/transient family used by the schema self-heal check.
+     */
+    const OPTION_SCHEMA_VERIFIED_VERSION = 'cuft_click_schema_verified_version';
+    const TRANSIENT_SCHEMA_CHECK_PREFIX  = 'cuft_click_schema_ok_';
+
+    /**
+     * Columns the current code depends on, beyond what create_table() ships
+     * with, added by later migrations. Keyed by column name, valued by the
+     * SQL fragment used to add it (without the leading ADD COLUMN).
+     *
+     * @var array<string,string>
+     */
+    private static function get_expected_added_columns() {
+        return array(
+            'events'       => 'events LONGTEXT DEFAULT NULL AFTER utm_content',
+            'ga_client_id' => 'ga_client_id varchar(255) DEFAULT NULL AFTER ip_hash',
+        );
+    }
+
     /**
      * Constructor
      */
     public function __construct() {
         add_action( 'init', array( $this, 'init_hooks' ) );
+
+        // Schema self-heal: admin screens only, never on a front-end
+        // request. self_heal_schema() itself is cheap after the first check
+        // per version (cached in a transient), so this is safe on every
+        // wp-admin page load.
+        add_action( 'admin_init', array( __CLASS__, 'self_heal_schema' ) );
     }
-    
+
     /**
      * Initialize hooks
      */
@@ -28,22 +64,22 @@ class CUFT_Click_Tracker {
         // Register webhook endpoint
         add_action( 'wp_ajax_nopriv_cuft_webhook', array( $this, 'handle_webhook' ) );
         add_action( 'wp_ajax_cuft_webhook', array( $this, 'handle_webhook' ) );
-        
+
         // Add rewrite rule for cleaner webhook URLs
         $this->add_webhook_rewrite_rules();
         add_action( 'template_redirect', array( $this, 'handle_webhook_request' ) );
     }
-    
+
     /**
      * Create database table
      */
     public static function create_table() {
         global $wpdb;
-        
+
         $table_name = $wpdb->prefix . self::$table_name;
-        
+
         $charset_collate = $wpdb->get_charset_collate();
-        
+
         $sql = "CREATE TABLE $table_name (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             click_id varchar(255) NOT NULL,
@@ -68,16 +104,179 @@ class CUFT_Click_Tracker {
             KEY score (score),
             KEY date_created (date_created)
         ) $charset_collate;";
-        
+
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
         $result = dbDelta( $sql );
-        
+
+        // dbDelta() reports what it attempted, not what actually landed: it
+        // logs "Created table" before running the query and does not
+        // surface a failed CREATE. Confirm the table is really there.
+        $exists = self::table_exists( $table_name );
+
+        if ( ! $exists ) {
+            self::record_click_write_error(
+                'create_table',
+                $wpdb->last_error,
+                ''
+            );
+        }
+
         // Log table creation
         if ( class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'Click tracking table created/updated', 'info', array( 'result' => $result ) );
+            CUFT_Logger::log(
+                'Click tracking table created/updated',
+                $exists ? CUFT_Logger::INFO : CUFT_Logger::ERROR,
+                array(
+                    'result'        => $result,
+                    'table_exists'  => $exists,
+                    'wpdb_error'    => $exists ? '' : $wpdb->last_error,
+                )
+            );
         }
-        
-        return $result;
+
+        return $exists ? $result : false;
+    }
+
+    /**
+     * Whether a table exists, verified with a real SHOW TABLES query.
+     *
+     * @param string $table_name Fully prefixed table name.
+     * @return bool
+     */
+    private static function table_exists( $table_name ) {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; existence check, not cacheable.
+        return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) ) === $table_name;
+    }
+
+    /**
+     * Record a click-write failure so it is visible even with debug logging off.
+     *
+     * Writes an ERROR-level entry to CUFT_Logger (always recorded regardless
+     * of the debug logging setting since 3.28.2) and a small, capped, PII-free
+     * summary to its own option for the admin notice on the Click Tracking
+     * page. No IP, no user agent; the click id is truncated to a short
+     * prefix, since a raw click id can itself be sensitive-adjacent data
+     * pulled off a URL.
+     *
+     * @param string $context   Short label for where the failure happened (e.g. 'insert', 'update', 'create_table').
+     * @param string $db_error  $wpdb->last_error at the point of failure.
+     * @param string $click_id  The click id involved, if any.
+     */
+    private static function record_click_write_error( $context, $db_error, $click_id = '' ) {
+        $click_id_prefix = '' !== $click_id ? substr( sanitize_text_field( $click_id ), 0, 12 ) . '...' : '';
+
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::log(
+                'Click tracking write failed: ' . $context,
+                CUFT_Logger::ERROR,
+                array(
+                    'context'  => $context,
+                    'db_error' => $db_error,
+                    'click_id' => $click_id_prefix,
+                )
+            );
+        }
+
+        $message = $db_error ? substr( (string) $db_error, 0, 300 ) : 'Unknown database error';
+
+        update_option(
+            self::OPTION_LAST_WRITE_ERROR,
+            array(
+                'timestamp'  => current_time( 'mysql', true ),
+                'context'    => $context,
+                'message'    => $message,
+                'click_id'   => $click_id_prefix,
+            ),
+            false
+        );
+    }
+
+    /**
+     * Get the most recently recorded click-write failure, if any.
+     *
+     * @return array|null
+     */
+    public static function get_last_write_error() {
+        $error = get_option( self::OPTION_LAST_WRITE_ERROR, null );
+        return is_array( $error ) ? $error : null;
+    }
+
+    /**
+     * Clear the recorded click-write failure (e.g. after an admin dismisses it).
+     */
+    public static function clear_last_write_error() {
+        delete_option( self::OPTION_LAST_WRITE_ERROR );
+    }
+
+    /**
+     * Verify the click tracking table exists and carries every column the
+     * current code depends on, creating or repairing it if not.
+     *
+     * Cheap on the common path: once a given plugin version has been
+     * verified on this site, the result is cached in a transient and every
+     * later call returns immediately with no query. Call this from
+     * admin_init (not on every front-end request) and after a version
+     * change.
+     *
+     * @param bool $force Skip the cache and check for real.
+     * @return bool True if the schema is (now) healthy.
+     */
+    public static function self_heal_schema( $force = false ) {
+        global $wpdb;
+
+        $version_key      = defined( 'CUFT_VERSION' ) ? CUFT_VERSION : 'unknown';
+        $transient_key     = self::TRANSIENT_SCHEMA_CHECK_PREFIX . md5( $version_key );
+
+        if ( ! $force && false !== get_transient( $transient_key ) ) {
+            return true;
+        }
+
+        $table_name = $wpdb->prefix . self::$table_name;
+        $healthy    = true;
+
+        if ( ! self::table_exists( $table_name ) ) {
+            self::create_table();
+            if ( ! self::table_exists( $table_name ) ) {
+                // create_table() already recorded the failure.
+                return false;
+            }
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection, not cacheable, and gated by the transient above.
+        $existing_columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table_name ) );
+
+        foreach ( self::get_expected_added_columns() as $column => $add_fragment ) {
+            if ( in_array( $column, $existing_columns, true ) ) {
+                continue;
+            }
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin's own table cuft_click_tracking; $add_fragment comes from the hardcoded map above, not user input, and %i cannot express a full ADD COLUMN definition.
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN ' . $add_fragment, $table_name ) );
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; verifying the ALTER above landed.
+            $now_has_column = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table_name ) );
+
+            if ( ! in_array( $column, $now_has_column, true ) ) {
+                $healthy = false;
+                self::record_click_write_error( 'self_heal_add_column_' . $column, $wpdb->last_error, '' );
+            } elseif ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log(
+                    'Click tracking self-heal: added missing column ' . $column,
+                    CUFT_Logger::INFO,
+                    array( 'column' => $column )
+                );
+            }
+        }
+
+        if ( $healthy ) {
+            // Cache success for a day; a version bump invalidates the key
+            // automatically since it is part of the transient name.
+            set_transient( $transient_key, true, DAY_IN_SECONDS );
+            update_option( self::OPTION_SCHEMA_VERIFIED_VERSION, $version_key, false );
+        }
+
+        return $healthy;
     }
     
     /**
@@ -174,10 +373,18 @@ class CUFT_Click_Tracker {
             );
         }
         
-        if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
-            CUFT_Logger::log( 'Click tracked: ' . $click_id, 'info', $data );
+        if ( $result !== false ) {
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( 'Click tracked: ' . $click_id, CUFT_Logger::INFO, $data );
+            }
+        } else {
+            self::record_click_write_error(
+                $existing ? 'update' : 'insert',
+                $wpdb->last_error,
+                $click_id
+            );
         }
-        
+
         return $result;
     }
     

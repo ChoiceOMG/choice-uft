@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.28.2] - 2026-09-24
+
+### Fixed
+- **Click writes that fail leave no trace.** `CUFT_Click_Tracker::track_click()` only logged on success; a failed insert or update returned `false` silently, and `CUFT_Click_Tracker::create_table()` trusted dbDelta's own report (which logs "Created table" before it runs the query and does not surface a failed `CREATE TABLE`). A write failure is now logged through `CUFT_Logger` at error level and recorded, with no PII (no IP, no user agent, only a short prefix of the click id), in a small `cuft_last_click_write_error` option, surfaced as a notice on the Click Tracking admin page.
+- **Error-level log entries are now recorded even with debug logging off.** `CUFT_Logger::log()` previously discarded every entry, including failures, unless "Enable Debug Logging" was already on, so a site had to be reconfigured before a failure could be seen. Error-level entries now bypass that gate; every other level still requires debug logging.
+- **Schema self-heal.** A site whose click tracking table went missing, or whose table predates the `events` (3.12.0) or `ga_client_id` (3.22.0) columns, is repaired automatically: `CUFT_Click_Tracker::self_heal_schema()` runs on `admin_init` and after a version change, verifies with a real `SHOW TABLES`/`SHOW COLUMNS` check (not just what a migration recorded), and creates or alters what is missing. The result is cached per plugin version so a healthy site costs no extra query on repeat admin page loads.
+- **Click Tracking admin list hid real rows by default.** `filter_has_events` defaulted to "Has Events", which excludes a gclid-only visit that never fired a form event; a site with real click rows could look empty. Defaults to "All" now; the filter is still available. The stats tiles and CSV exports already shared the same query, so they are consistent by construction.
+
+### Fixed (internal)
+- `CUFT_Logger::log()` now tolerates the historical call shape used across this codebase, `CUFT_Logger::log( 'error', 'message' )` (level and message reversed from the documented signature), by detecting and normalising it, so those entries are stored under the level the caller meant.
+
 ## [3.28.1] - 2026-09-23
 
 ### Fixed

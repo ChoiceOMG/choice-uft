@@ -24,12 +24,29 @@ class CUFT_Logger {
     
     /**
      * Log an entry
+     *
+     * Error-level entries are always recorded, even when debug logging is
+     * off, so a write failure is visible in the Debug Logs admin view
+     * without an administrator having had to turn debug logging on in
+     * advance. Every other level still requires debug logging to be on.
      */
     public static function log( $message, $level = self::INFO, $context = array() ) {
-        if ( ! get_option( 'cuft_debug_enabled', false ) ) {
+        // A number of call sites in this codebase historically pass the
+        // level as the first argument, e.g. CUFT_Logger::log( 'error', 'Save
+        // failed' ). Detect that shape and normalise it, so those entries
+        // are stored under the level the caller meant instead of under a
+        // level literally named "Save failed".
+        $known_levels = array( self::ERROR, self::WARNING, self::INFO, self::DEBUG );
+        if ( in_array( $message, $known_levels, true ) && is_string( $level ) && ! in_array( $level, $known_levels, true ) ) {
+            $swap    = $message;
+            $message = $level;
+            $level   = $swap;
+        }
+
+        if ( self::ERROR !== $level && ! get_option( 'cuft_debug_enabled', false ) ) {
             return;
         }
-        
+
         $logs = get_option( 'cuft_debug_logs', array() );
         
         $entry = array(
