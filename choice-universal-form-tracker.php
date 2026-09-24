@@ -3,7 +3,7 @@
  * Plugin Name:       Choice Universal Form Tracker
  * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
- * Version:           3.29.0
+ * Version:           3.29.1
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Choice OMG
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.29.0' );
+define( 'CUFT_VERSION', '3.29.1' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -306,7 +306,7 @@ class CUFT_Plugin {
             }
 
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
-            add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
+            add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ), 0 );
 
             // Tell the shared dataLayer script whether generate_lead may fire.
             // Late priority: the form framework classes register that script
@@ -452,11 +452,16 @@ class CUFT_Plugin {
             'custom_server_enabled' => $custom_server_enabled,
         );
 
-        // Add inline script to make config globally available
+        // Print the config from a handle of our own, in the head. It used to
+        // ride on 'jquery', but WordPress prints jQuery on the front end only
+        // when some script depends on it, and Contact Form 7 does not. On a
+        // CF7 page without jQuery cuftConfig was never printed, so every
+        // event recording request was silently skipped.
+        wp_register_script( 'cuft-config', false, array(), CUFT_VERSION, false );
+        wp_enqueue_script( 'cuft-config' );
         wp_add_inline_script(
-            'jquery', // Attach to jQuery since it's always loaded
-            'var cuftConfig = ' . CUFT_Utils::js_encode( $cuft_config ) . ';',
-            'before'
+            'cuft-config',
+            'var cuftConfig = ' . CUFT_Utils::js_encode( $cuft_config ) . ';'
         );
 
         // Enqueue passive-ping emitter when a collector host is configured.

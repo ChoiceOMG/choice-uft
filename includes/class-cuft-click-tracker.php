@@ -25,6 +25,16 @@ class CUFT_Click_Tracker {
     const OPTION_LAST_WRITE_ERROR = 'cuft_last_click_write_error';
 
     /**
+     * Compare-and-swap attempts add_event() makes before giving up.
+     */
+    const EVENT_WRITE_ATTEMPTS = 25;
+
+    /**
+     * Seconds add_event() waits for the per-click GET_LOCK.
+     */
+    const EVENT_LOCK_TIMEOUT = 5;
+
+    /**
      * Option/transient family used by the schema self-heal check.
      */
     const OPTION_SCHEMA_VERIFIED_VERSION = 'cuft_click_schema_verified_version';
@@ -1307,104 +1317,224 @@ class CUFT_Click_Tracker {
             return false;
         }
 
-        try {
-            // Get current events or initialize empty array
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
-            $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
+        $click_id = sanitize_text_field( $click_id );
+        $locked   = self::acquire_events_lock( $click_id );
 
-            if ( ! $current_record ) {
-                // Create new record if it doesn't exist
-                $result = self::track_click( $click_id, array() );
-                if ( ! $result ) {
+        try {
+            // The browser sends form_submit, generate_lead and qualify_lead as
+            // three requests within milliseconds. A plain read-modify-write
+            // lets them overwrite each other, so the write below is a
+            // compare-and-swap: it only lands if the events value is still the
+            // one this request read, and a lost race re-reads and retries. The
+            // named lock serializes writers so retries are rare; the
+            // compare-and-swap keeps the write lossless where GET_LOCK is
+            // unavailable (Galera, some proxies) and on MyISAM, which has no
+            // row locks.
+            for ( $attempt = 1; $attempt <= self::EVENT_WRITE_ATTEMPTS; $attempt++ ) {
+                $current_record = self::get_events_row( $table_name, $click_id );
+
+                if ( ! $current_record ) {
+                    // Create new record if it doesn't exist. A concurrent
+                    // request may win the insert (unique click_id), so read
+                    // again before treating a failed insert as an error.
+                    $created        = self::track_click( $click_id, array() );
+                    $current_record = self::get_events_row( $table_name, $click_id );
+                    if ( ! $current_record ) {
+                        return false;
+                    }
+                    if ( ! $created ) {
+                        self::clear_stale_write_error();
+                    }
+                }
+
+                $old_value = $current_record->events;
+                $events    = self::merge_event( self::decode_events( $old_value ), $event_type, gmdate( 'c' ), $source );
+                $new_value = wp_json_encode( $events );
+
+                if ( null === $old_value ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; compare-and-swap write that no WP API covers.
+                    $result = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET events = %s, date_updated = %s WHERE id = %d AND events IS NULL', $table_name, $new_value, current_time( 'mysql', true ), $current_record->id ) );
+                } else {
+                    // MD5 of the stored text compares byte for byte on JSON and
+                    // LONGTEXT columns alike; a JSON column never equals a
+                    // string literal, and a _ci collation would ignore case.
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; compare-and-swap write that no WP API covers.
+                    $result = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET events = %s, date_updated = %s WHERE id = %d AND MD5(events) = %s', $table_name, $new_value, current_time( 'mysql', true ), $current_record->id, md5( $old_value ) ) );
+                }
+
+                if ( false === $result ) {
                     return false;
                 }
 
-                // Get the newly created record
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
-                $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
-            }
-
-            // Parse existing events
-            $events = array();
-            if ( ! empty( $current_record->events ) ) {
-                $events = json_decode( $current_record->events, true );
-                if ( ! is_array( $events ) ) {
-                    $events = array();
+                if ( $result < 1 ) {
+                    // Zero rows: either another request changed the value
+                    // (retry) or this write matched but changed nothing.
+                    $check = self::get_events_row( $table_name, $click_id );
+                    if ( ! $check || $check->events !== $old_value ) {
+                        if ( ! $locked ) {
+                            usleep( wp_rand( 2000, 20000 ) );
+                        }
+                        continue;
+                    }
                 }
-            }
 
-            // Create new event timestamp
-            $new_timestamp = gmdate( 'c' ); // ISO 8601 UTC format
-
-            // Check for duplicate event type (deduplication)
-            $event_exists = false;
-            foreach ( $events as &$existing_event ) {
-                if ( $existing_event['event'] === $event_type ) {
-                    // Update timestamp for duplicate event type
-                    $existing_event['timestamp'] = $new_timestamp;
-                    $event_exists = true;
-                    break;
-                }
-            }
-            unset( $existing_event ); // Break reference
-
-            // If event type doesn't exist, append it
-            if ( ! $event_exists ) {
-                $new_event = array(
-                    'event'     => $event_type,
-                    'timestamp' => $new_timestamp,
-                );
-                if ( $source ) {
-                    $new_event['source']      = $source;
-                    $new_event['replayed_at'] = null;
-                }
-                $events[] = $new_event;
-            }
-
-            // FIFO cleanup: Limit to 100 events (remove oldest if exceeded)
-            if ( count( $events ) > 100 ) {
-                // Sort by timestamp to identify oldest
-                usort( $events, function( $a, $b ) {
-                    return strcmp( $a['timestamp'], $b['timestamp'] );
-                } );
-
-                // Keep only newest 100
-                $events = array_slice( $events, -100 );
-            }
-
-            // Sort by timestamp (newest last)
-            usort( $events, function( $a, $b ) {
-                return strcmp( $a['timestamp'], $b['timestamp'] );
-            } );
-
-            // Update record with new events
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
-            $result = $wpdb->update(
-                $table_name,
-                array(
-                    'events' => wp_json_encode( $events ),
-                    'date_updated' => current_time( 'mysql', true )
-                ),
-                array( 'id' => $current_record->id ),
-                array( '%s', '%s' ),
-                array( '%d' )
-            );
-
-            if ( $result !== false ) {
                 self::clear_stale_write_error();
                 if ( class_exists( 'CUFT_Logger' ) ) {
                     CUFT_Logger::log( "Event added: {$event_type} for click_id: {$click_id}", CUFT_Logger::INFO );
                 }
+                return true;
             }
 
-            return $result !== false;
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( "Event {$event_type} for click_id {$click_id} lost the write race " . self::EVENT_WRITE_ATTEMPTS . ' times', CUFT_Logger::ERROR );
+            }
+            return false;
 
         } catch ( Exception $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'Failed to add event: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
             return false;
+        } finally {
+            if ( $locked ) {
+                self::release_events_lock( $click_id );
+            }
         }
+    }
+
+    /**
+     * Read the id and events columns of one click row, uncached.
+     *
+     * @param string $table_name Full table name.
+     * @param string $click_id   Sanitized click ID.
+     * @return object|null Row with id and events, or null.
+     */
+    private static function get_events_row( $table_name, $click_id ) {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        return $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, $click_id ) );
+    }
+
+    /**
+     * Decode a stored events value into a list of event arrays.
+     *
+     * NULL, empty strings and legacy non-JSON or non-array values all decode
+     * to an empty list, as they did before 3.29.1; entries that are not
+     * arrays with an event name are dropped.
+     *
+     * @param string|null $value Raw events column value.
+     * @return array
+     */
+    public static function decode_events( $value ) {
+        if ( null === $value || '' === $value ) {
+            return array();
+        }
+        $events = json_decode( $value, true );
+        if ( ! is_array( $events ) ) {
+            return array();
+        }
+        return array_values(
+            array_filter(
+                $events,
+                function ( $event ) {
+                    return is_array( $event ) && isset( $event['event'] );
+                }
+            )
+        );
+    }
+
+    /**
+     * Merge one event into an events list (pure; no database access).
+     *
+     * Semantics unchanged from earlier versions: an event type already in
+     * the list gets its timestamp refreshed instead of a second entry, the
+     * list keeps the newest 100 entries, and it is sorted oldest first.
+     *
+     * @param array       $events     Decoded events.
+     * @param string      $event_type Event type.
+     * @param string      $timestamp  ISO 8601 UTC timestamp.
+     * @param string|null $source     Optional origin tag; adds source and replayed_at.
+     * @return array
+     */
+    public static function merge_event( array $events, $event_type, $timestamp, $source = null ) {
+        $event_exists = false;
+        foreach ( $events as &$existing_event ) {
+            if ( $existing_event['event'] === $event_type ) {
+                $existing_event['timestamp'] = $timestamp;
+                $event_exists                = true;
+                break;
+            }
+        }
+        unset( $existing_event );
+
+        if ( ! $event_exists ) {
+            $new_event = array(
+                'event'     => $event_type,
+                'timestamp' => $timestamp,
+            );
+            if ( $source ) {
+                $new_event['source']      = $source;
+                $new_event['replayed_at'] = null;
+            }
+            $events[] = $new_event;
+        }
+
+        // Sort by timestamp (newest last), then keep only the newest 100.
+        usort(
+            $events,
+            function ( $a, $b ) {
+                return strcmp( isset( $a['timestamp'] ) ? (string) $a['timestamp'] : '', isset( $b['timestamp'] ) ? (string) $b['timestamp'] : '' );
+            }
+        );
+        if ( count( $events ) > 100 ) {
+            $events = array_slice( $events, -100 );
+        }
+
+        return $events;
+    }
+
+    /**
+     * Name of the MySQL user lock guarding one click row's events.
+     *
+     * User locks are server-wide, so the name includes the table (and with it
+     * the site prefix). Always 44 characters, under MySQL's 64 limit.
+     *
+     * @param string $click_id Click ID.
+     * @return string
+     */
+    public static function events_lock_name( $click_id ) {
+        global $wpdb;
+        return 'cuft_events_' . md5( $wpdb->prefix . self::$table_name . '|' . $click_id );
+    }
+
+    /**
+     * Take the per-click events lock (GET_LOCK). Works on InnoDB and MyISAM.
+     *
+     * @param string $click_id Click ID.
+     * @return bool True when the lock is held; false on timeout or when the
+     *              server does not support user locks (callers fall back to
+     *              compare-and-swap alone).
+     */
+    public static function acquire_events_lock( $click_id ) {
+        global $wpdb;
+        $suppress = $wpdb->suppress_errors( true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL user lock; no WP API exists for it.
+        $got = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', self::events_lock_name( $click_id ), self::EVENT_LOCK_TIMEOUT ) );
+        $wpdb->suppress_errors( $suppress );
+        return '1' === (string) $got;
+    }
+
+    /**
+     * Release the per-click events lock.
+     *
+     * @param string $click_id Click ID.
+     */
+    public static function release_events_lock( $click_id ) {
+        global $wpdb;
+        $suppress = $wpdb->suppress_errors( true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL user lock; no WP API exists for it.
+        $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', self::events_lock_name( $click_id ) ) );
+        $wpdb->suppress_errors( $suppress );
     }
 
     /**

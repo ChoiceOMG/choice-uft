@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.29.0
+Stable tag: 3.29.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -269,6 +269,10 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Changelog ==
 
+= 3.29.1 =
+* Lead events are no longer lost on the click record. The browser sends form_submit, generate_lead and qualify_lead as three requests within milliseconds; each one read the saved events, added its own and wrote the list back, so they overwrote each other and the record kept one or two of the three. Writes now take a per-click database lock and only land if the saved list is unchanged since it was read, retrying otherwise. Works on InnoDB and MyISAM tables and on hosts without user locks.
+* Contact Form 7 submissions now record their events on the click record. The script settings the recorder needs were attached to jQuery, which WordPress does not load on a page where nothing depends on it, and Contact Form 7 does not. The settings now load on every page from the plugin's own script handle.
+
 = 3.29.0 =
 * Server-side GTM: the setting now takes a bare hostname (for example `gtm.example.com`) instead of a URL. The plugin builds `https://<host>/gtm.js?id=<container ID>` itself; hostnames with a scheme other than https, a path, a query, a port, credentials, an IP address, localhost or an internal suffix are rejected. A URL saved by an earlier version is converted to its host automatically. A URL that carried a path keeps its host but falls back to Google's endpoint until you test the connection again.
 * Server-side GTM health checks always verify TLS certificates; the `.localnet` exception is removed. A new or changed host must pass its own health checks before pages load from it.
@@ -361,6 +365,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.29.1 =
+Fixes lead events missing from click records (concurrent writes, and every Contact Form 7 submission). No settings change.
 
 = 3.29.0 =
 The server-side GTM setting now takes a hostname only; a saved URL is converted automatically. A saved URL that included a path falls back to Google's endpoint until you test the connection again.

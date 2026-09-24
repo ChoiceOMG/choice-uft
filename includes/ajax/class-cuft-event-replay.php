@@ -67,6 +67,24 @@ class CUFT_Event_Replay {
      * @param string $click_id Click identifier.
      */
     public static function mark_events_replayed( string $click_id ): void {
+        // Same per-click lock as CUFT_Click_Tracker::add_event(), so a lead
+        // event arriving mid-write is not overwritten (MyISAM has no row locks).
+        $locked = CUFT_Click_Tracker::acquire_events_lock( sanitize_text_field( $click_id ) );
+        try {
+            self::mark_events_replayed_unlocked( $click_id );
+        } finally {
+            if ( $locked ) {
+                CUFT_Click_Tracker::release_events_lock( sanitize_text_field( $click_id ) );
+            }
+        }
+    }
+
+    /**
+     * Body of mark_events_replayed(); caller holds the events lock.
+     *
+     * @param string $click_id Click identifier.
+     */
+    private static function mark_events_replayed_unlocked( string $click_id ): void {
         global $wpdb;
         $table = $wpdb->prefix . 'cuft_click_tracking';
 
@@ -118,6 +136,25 @@ class CUFT_Event_Replay {
      * @return array Pending event objects (already marked as replayed in DB).
      */
     public static function get_and_mark_pending_events( string $click_id ): array {
+        // Same per-click lock as CUFT_Click_Tracker::add_event(): the
+        // transaction below protects nothing on MyISAM.
+        $locked = CUFT_Click_Tracker::acquire_events_lock( sanitize_text_field( $click_id ) );
+        try {
+            return self::get_and_mark_pending_events_unlocked( $click_id );
+        } finally {
+            if ( $locked ) {
+                CUFT_Click_Tracker::release_events_lock( sanitize_text_field( $click_id ) );
+            }
+        }
+    }
+
+    /**
+     * Body of get_and_mark_pending_events(); caller holds the events lock.
+     *
+     * @param string $click_id Click identifier.
+     * @return array Pending event objects (already marked as replayed in DB).
+     */
+    private static function get_and_mark_pending_events_unlocked( string $click_id ): array {
         global $wpdb;
         $table = $wpdb->prefix . 'cuft_click_tracking';
 

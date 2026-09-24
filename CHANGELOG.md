@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.1] - 2026-09-24
+
+### Fixed
+- Lost event writes on the click row. `CUFT_Click_Tracker::add_event()` read the `events` JSON, changed it in PHP and wrote it back with no lock; the three lead events arrive as parallel `cuft_record_event` requests, so the row kept one or two of them. The write is now a compare-and-swap (`UPDATE ... WHERE id = %d AND MD5(events) = md5(<value read>)`, or `events IS NULL`), re-read and retried up to 25 times, inside a per-click `GET_LOCK()` (`cuft_events_<md5(table|click_id)>`, 5 s timeout). If the lock is unavailable (Galera, proxies) or times out, the compare-and-swap alone still keeps every write. Works on JSON and LONGTEXT columns and on InnoDB and MyISAM. Dedupe by event type, the 100-entry cap and timestamp order are unchanged; the logic moved to `CUFT_Click_Tracker::merge_event()` and `decode_events()`. A duplicate-key failure when two first events race to create the row no longer fails the request.
+- `CUFT_Event_Replay::mark_events_replayed()` and `get_and_mark_pending_events()` take the same per-click lock, since their transaction protects nothing on MyISAM.
+- Contact Form 7 submissions recorded no events on the click row. `cuftConfig` (AJAX URL and nonce) was printed as an inline script on the `jquery` handle, and jQuery is not loaded on a CF7 page with nothing else needing it, so `recordEvent()` returned early. It now prints from a src-less `cuft-config` handle in the head, enqueued at priority 0.
+
 ## [3.29.0] - 2026-09-24
 
 ### Changed
