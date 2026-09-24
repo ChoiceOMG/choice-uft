@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.28.0
+Stable tag: 3.28.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,10 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.28.1 =
+* Removed the deprecated strict `generate_lead` dual-fire that 3.28.0 kept for one version. A submission with an email, a phone number and a click ID was pushing `generate_lead` twice (once broad, once with the strict payload and `cuft_deprecated: true`) and recording it once, so a GTM trigger on `generate_lead` counted that lead twice. `generate_lead` now fires at most once per submission; `qualify_lead` is unchanged. Update any GTM trigger that matched on `cuft_deprecated` equals `true`, since that copy no longer fires; a trigger on the event name `generate_lead` alone needs no change beyond seeing one event per lead instead of two.
+* Removed a second, independent source of the same double-count: Gravity Forms also pushed `generate_lead` from the server (`gform_after_submission`) in addition to the client-side push every form framework already fires. Only Gravity Forms submissions that complete as a full page render (not an AJAX/iframe confirmation) were affected.
 
 = 3.28.0 =
 * `generate_lead` now fires only when the Generate Lead Events setting is on, covering the dataLayer push, the deprecated strict dual-fire, and the event recorded on the click. Earlier versions pushed it whatever the setting said. Sites upgrading from an earlier version have the setting switched on automatically so nothing changes for them; new installs start with it off.

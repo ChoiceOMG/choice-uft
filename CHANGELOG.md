@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.28.1] - 2026-09-23
+
+### Fixed
+- **`generate_lead` fired twice for any lead with email, phone and a click ID.** `cuft-dataLayer-utils.js` pushed the broad `generate_lead` (email present) and then, inside the `qualify_lead` block, dual-fired a second `generate_lead` with the strict payload and `cuft_deprecated: true` / `cuft_migrate_to: "qualify_lead"`. That dual-fire was meant to last one version after the April 2026 event rename (3.27.0) and was never removed. It is gone; `generate_lead` now pushes and records at most once per submission. `qualify_lead` is unchanged, and the `cuft_generate_lead_enabled` gating added in 3.28.0 still applies. A GTM trigger on the event name `generate_lead` alone needs no change beyond seeing one event per lead instead of two; a trigger conditioned on `cuft_deprecated` equals `true` will stop firing and should be migrated to `qualify_lead`, which was always the intended replacement.
+- **Gravity Forms pushed `generate_lead` a second, independent way.** `CUFT_Gravity_Forms::track_submission()` (PHP, hooked to `gform_after_submission`) also generated an inline `generate_lead` dataLayer push, on top of the client-side push every framework already fires via `cuft-dataLayer-utils.js`. For Elementor Pro, CF7 and Ninja Forms the equivalent server-side inline script never reaches the browser (their forms submit by AJAX, so the hook fires on a request whose response carries no enqueued script tag), but Gravity Forms can complete the same request as a full page render, in which case the inline script did print and run. Removed the server-side `generate_lead_event()` push; Gravity's server-side `form_submit` push is unaffected.
+
 ## [3.28.0] - 2026-09-23
 
 WordPress.org directory review preparation. Plugin Check (general, plugin_repo, security, performance, accessibility) on the directory package went from 635 warnings to none.
