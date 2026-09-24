@@ -47,6 +47,11 @@ class CUFT_Click_Integration {
     
     /**
      * Capture click IDs from URL parameters
+     *
+     * Reads the ad platform's click ID from the landing URL (the ad network
+     * builds that link, so it cannot carry a nonce). The value is sanitized,
+     * limited to 255 characters (the click_id column), and written only as
+     * one click row plus the visitor's own cuft_click_id cookie.
      */
     public function capture_click_ids() {
         if ( is_admin() || wp_doing_ajax() || wp_doing_cron() ) {
@@ -55,8 +60,8 @@ class CUFT_Click_Integration {
         
         foreach ( $this->click_id_params as $param ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Ad click ID (gclid, fbclid, ...) on the landing URL; the ad platform builds that link and cannot carry a nonce.
-            $click_id = isset( $_GET[ $param ] ) ? sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) : '';
-            if ( ! empty( $click_id ) ) {
+            $click_id = isset( $_GET[ $param ] ) && is_string( $_GET[ $param ] ) ? sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) : '';
+            if ( ! empty( $click_id ) && strlen( $click_id ) <= 255 ) {
                 $platform = $this->get_platform_from_param( $param );
                 
                 $this->track_click_id( $click_id, $platform );

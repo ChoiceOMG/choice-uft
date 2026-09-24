@@ -171,6 +171,13 @@ class CUFT_Event_Replay {
 
     /**
      * AJAX handler: return pending events and mark them replayed atomically.
+     *
+     * Public by design: the visitor's own page asks for the lifecycle events
+     * recorded against the click ID in its own cuft_click_id cookie, so it
+     * can push them into its dataLayer. It returns only event names and
+     * timestamps for that one click ID and its only write is the replayed_at
+     * mark on those events. The shared visitor nonce is a CSRF guard, not
+     * authentication.
      */
     public function ajax_get_pending(): void {
         // Verify nonce.
@@ -182,7 +189,7 @@ class CUFT_Event_Replay {
 
         $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( wp_unslash( $_GET['click_id'] ) ) : '';
 
-        if ( empty( $click_id ) ) {
+        if ( empty( $click_id ) || strlen( $click_id ) > 255 || ! preg_match( '/^[a-zA-Z0-9_\-\.=+]+$/', $click_id ) ) {
             wp_send_json_success( array( 'events' => array() ) );
             return;
         }

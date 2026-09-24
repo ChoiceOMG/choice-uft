@@ -800,10 +800,15 @@ class CUFT_Click_Tracker {
     /**
      * Handle webhook requests
      *
-     * Public endpoint for updating click status. Security through obscurity:
-     * - No authentication required (for use in email messages)
-     * - click_id acts as the obscure identifier
-     * - Only allows updates to existing records
+     * Public endpoint for updating a lead's status from outside WordPress
+     * (a CRM, an automation tool, or a link in an email). Those callers
+     * cannot hold a WordPress nonce or session, so what protects it is:
+     * - the shared webhook key, compared with hash_equals(), when the
+     *   "require key" setting is on (the default for new installs);
+     * - it only updates rows whose click_id already exists, and returns the
+     *   same generic error for unknown IDs;
+     * - it writes only qualified (0/1), score (0-10) and one of five
+     *   whitelisted lifecycle statuses.
      *
      * @since 3.13.0 Changed from key-based auth to public obscure endpoint
      * @since 3.28.0 Optional shared key (cuft_webhook_require_key), on by default for new installs

@@ -16,7 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CUFT_Event_Recorder {
 
     /**
-     * Valid event types whitelist
+     * Event types this public endpoint accepts: only the ones a visitor's own
+     * browser produces (cuft-links.js and cuft-dataLayer-utils.js). CRM
+     * lifecycle statuses (disqualify_lead, working_lead, close_*_lead,
+     * score_updated) reach the click table only through the webhook.
      */
     const VALID_EVENT_TYPES = array(
         'phone_click',
@@ -24,12 +27,12 @@ class CUFT_Event_Recorder {
         'form_submit',
         'generate_lead',
         'qualify_lead',
-        'disqualify_lead',
-        'working_lead',
-        'close_convert_lead',
-        'close_unconvert_lead',
-        'score_updated',
     );
+
+    /**
+     * Longest click ID accepted; matches the click_id column (varchar 255).
+     */
+    const MAX_CLICK_ID_LENGTH = 255;
 
     /**
      * Constructor - register AJAX hooks
@@ -49,7 +52,14 @@ class CUFT_Event_Recorder {
      */
     public function record_event() {
         try {
-            // Verify nonce. The nonce is printed into cuftConfig for every visitor
+            // Public by design: visitors' browsers report their own clicks and
+            // form submissions here, and visitors are not logged in. What keeps
+            // it safe is scope, not identity: the only write is one
+            // de-duplicated event entry (or a new click row) for a click ID of
+            // at most 255 safe characters, drawn from the five browser event
+            // types above; nothing else is read or returned.
+            //
+            // The nonce is printed into cuftConfig for every visitor
             // (logged-out visitors share the user-0 nonce), so this check stops
             // cross-site request forgery for logged-in users and casual scripted
             // abuse; it is not authentication.
@@ -83,7 +93,7 @@ class CUFT_Event_Recorder {
             }
 
             // Validate click_id format (alphanumeric + common click ID characters)
-            if ( ! preg_match( '/^[a-zA-Z0-9_\-\.=+]+$/', $click_id ) ) {
+            if ( strlen( $click_id ) > self::MAX_CLICK_ID_LENGTH || ! preg_match( '/^[a-zA-Z0-9_\-\.=+]+$/', $click_id ) ) {
                 wp_send_json_error( array(
                     'message' => 'Invalid click_id format'
                 ), 400 );
