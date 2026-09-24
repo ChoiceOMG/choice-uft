@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.28.4
+Stable tag: 3.29.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -269,6 +269,14 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Changelog ==
 
+= 3.29.0 =
+* Server-side GTM: the setting now takes a bare hostname (for example `gtm.example.com`) instead of a URL. The plugin builds `https://<host>/gtm.js?id=<container ID>` itself; hostnames with a scheme other than https, a path, a query, a port, credentials, an IP address, localhost or an internal suffix are rejected. A URL saved by an earlier version is converted to its host automatically. A URL that carried a path keeps its host but falls back to Google's endpoint until you test the connection again.
+* Server-side GTM health checks always verify TLS certificates; the `.localnet` exception is removed. A new or changed host must pass its own health checks before pages load from it.
+* Every value printed inside an inline script is now encoded so it cannot close the script element. Removed unused server-side dataLayer code in the Contact Form 7, Elementor, Ninja Forms and Gravity Forms integrations; it never reached the page, and the browser scripts fire the same events.
+* The visitor event endpoint accepts only the events a browser produces (`phone_click`, `email_click`, `form_submit`, `generate_lead`, `qualify_lead`). CRM statuses reach the click table only through the webhook. Click IDs and UTM values longer than 255 characters are ignored or cut.
+* Removed the "is active with N form framework(s) detected" admin notice. The remaining notices appear only on the plugin's own screens and can be dismissed.
+* A click-write error shown on the Click Tracking screen now clears after the next successful write or table repair, and can be dismissed.
+
 = 3.28.4 =
 * Click tracking table now installs on hosts whose default storage engine is MyISAM (or InnoDB with the old 767/1000-byte index limit). The unique index on click_id covered all 255 utf8mb4 characters (1,020 bytes), which MySQL rejects there with "Specified key was too long; max key length is 1000 bytes", so the table was never created and no clicks were recorded. The index now covers the first 191 characters; click IDs are far shorter, so uniqueness is unchanged, and existing tables are not altered.
 
@@ -353,6 +361,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.29.0 =
+The server-side GTM setting now takes a hostname only; a saved URL is converted automatically. A saved URL that included a path falls back to Google's endpoint until you test the connection again.
 
 = 3.28.0 =
 Requires WordPress 6.2 or later. Existing sites keep generate_lead firing and the webhook open; new installs start with generate_lead off and the webhook key required. The Test Form Builder is removed and its test pages are deleted.

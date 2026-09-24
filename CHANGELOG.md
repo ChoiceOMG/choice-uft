@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.0] - 2026-09-24
+
+### Changed
+- Server-side GTM setting takes a bare hostname (`gtm.example.com`), validated with `FILTER_VALIDATE_DOMAIN` and `FILTER_FLAG_HOSTNAME`. Schemes other than a leading `https://`, paths, queries, ports, credentials, IP addresses, `localhost` and internal suffixes (`.local`, `.localnet`, `.internal`) are rejected. `CUFT_SGTM` builds `https://<host>/gtm.js?id=<GTM-ID>` and `ns.html` from the validated host and container ID; nothing else user-supplied reaches the URL. Stored in `cuft_sgtm_host`; the pre-3.29.0 `cuft_sgtm_url` is migrated on first read and deleted. A legacy URL with a path keeps its host and falls back to Google until retested.
+- A changed sGTM host resets validation and the active server to the fallback until it passes its own health checks.
+- `cuft_record_event` accepts only `phone_click`, `email_click`, `form_submit`, `generate_lead` and `qualify_lead`. Lifecycle statuses come only through the webhook.
+- Admin notices render only on the plugin's own screens and are dismissible. Requirement and init-failure notices render on the Plugins screen and the settings screen only. GitHub build: update notices likewise.
+
+### Removed
+- The "is active with N form framework(s) detected" notice, its dismiss script and the `cuft_dismiss_notice` handler.
+- Server-side `form_submit`/`generate_lead` inline scripts in the CF7, Elementor, Ninja Forms and Gravity Forms classes. The hooks run on the submission request before any front-end script is registered, so the scripts were never printed.
+- The TLS verification bypass for `.localnet` sGTM hosts.
+- Unused `cuft_save_sgtm_config` handler, `CUFT_Admin::get_gtm_server_url()`, a duplicate `cuft_dismiss_update_notice` handler, and `assets/cuft-health-check.js` (it read a config key that does not exist, so it never ran).
+
+### Security
+- Every value embedded in inline JavaScript goes through `CUFT_Utils::js_encode()` (`JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT`); `wp_localize_script()` calls are replaced by `CUFT_Utils::localize()`, which keeps core's value handling.
+- Click IDs over 255 characters are rejected by the event recorder and replay endpoints and ignored on capture; `cuft_store_utm` cuts each value to 255 characters.
+- The collector host setting is validated as a hostname.
+
+### Fixed
+- `cuft_last_click_write_error` is cleared after a successful click write or table repair, so a fixed site stops showing a stale error. The notice also has a Dismiss button.
+
 ## [3.28.4] - 2026-09-24
 
 ### Fixed
