@@ -65,13 +65,17 @@ class CUFT_Gravity_Forms {
         // Push to dataLayer if GTM is configured
         if ( get_option( 'cuft_gtm_id' ) ) {
             wp_add_inline_script( 'cuft-gravity-forms', $this->generate_datalayer_push( $data ), 'after' );
-            
-            if ( get_option( 'cuft_generate_lead_enabled', false ) ) {
-                $lead_script = $this->generate_lead_event( $data );
-                if ( $lead_script ) {
-                    wp_add_inline_script( 'cuft-gravity-forms', $lead_script, 'after' );
-                }
-            }
+
+            // generate_lead itself is NOT pushed here. Unlike Elementor/CF7/Ninja,
+            // whose forms only ever submit by AJAX (this hook fires on a separate
+            // request whose response never carries an enqueued script tag, so
+            // their equivalent inline push never reaches the browser), Gravity
+            // Forms can complete this same request with a full page render, in
+            // which case this inline script DOES print and run. The client-side
+            // cuft-gravity-forms.js already pushes generate_lead for every
+            // submission (AJAX and full-page) via the shared dataLayer utils, so
+            // a server-side push here would double-fire generate_lead for any
+            // full-page Gravity submission. Removed 3.28.1; see CHANGELOG.
         }
     }
     
@@ -131,40 +135,6 @@ class CUFT_Gravity_Forms {
                 $payload[ $key ] = $value;
             }
         }
-        
-        return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
-    }
-    
-    private function generate_lead_event( $data ) {
-        if ( empty( $data['user_email'] ) ) {
-            return false;
-        }
-        
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        if ( empty( $utm_data['utm_campaign'] ) ) {
-            return false;
-        }
-        
-        $payload = array(
-            'event' => 'generate_lead',
-            'currency' => 'USD',
-            'value' => 0,
-            'cuft_tracked' => true,
-            'cuft_source' => 'gravity_forms_server_lead',
-            'form_type' => 'gravity_forms',
-            'form_id' => $data['form_id'],
-            'form_name' => $data['form_name'],
-            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
-            'page_title' => get_the_title(),
-            'language' => get_locale(),
-            'submitted_at' => gmdate( 'c' )
-        );
-        
-        foreach ( $utm_data as $key => $value ) {
-            $payload[ $key ] = $value;
-        }
-        
-        CUFT_Logger::log_form_submission( 'gravity_generate_lead', $payload );
         
         return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
     }
