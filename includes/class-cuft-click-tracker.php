@@ -238,6 +238,27 @@ class CUFT_Click_Tracker {
     }
 
     /**
+     * Whether a recorded failure came from creating or repairing the table.
+     *
+     * @param string $context Context label passed to record_click_write_error().
+     * @return bool
+     */
+    private static function is_schema_error_context( $context ) {
+        return 'create_table' === $context || 0 === strpos( (string) $context, 'self_heal_' );
+    }
+
+    /**
+     * Clear a recorded failure once a write or repair has succeeded, so a
+     * fixed site stops showing a stale error. Reads before deleting, so the
+     * common case (no recorded error) costs one cached option lookup.
+     */
+    private static function clear_stale_write_error() {
+        if ( null !== self::get_last_write_error() ) {
+            self::clear_last_write_error();
+        }
+    }
+
+    /**
      * Verify the click tracking table exists and carries every column the
      * current code depends on, creating or repairing it if not.
      *
@@ -270,6 +291,7 @@ class CUFT_Click_Tracker {
 
         $table_name = $wpdb->prefix . self::$table_name;
         $healthy    = true;
+        $repaired   = false;
 
         if ( ! self::table_exists( $table_name ) ) {
             self::create_table();
@@ -278,6 +300,7 @@ class CUFT_Click_Tracker {
                 set_transient( $failure_key, true, HOUR_IN_SECONDS );
                 return false;
             }
+            $repaired = true;
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection, not cacheable, and gated by the transient above.
@@ -298,7 +321,11 @@ class CUFT_Click_Tracker {
             if ( ! in_array( $column, $now_has_column, true ) ) {
                 $healthy = false;
                 self::record_click_write_error( 'self_heal_add_column_' . $column, $alter_error, '' );
-            } elseif ( class_exists( 'CUFT_Logger' ) ) {
+            } else {
+                $repaired = true;
+            }
+
+            if ( in_array( $column, $now_has_column, true ) && class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log(
                     'Click tracking self-heal: added missing column ' . $column,
                     CUFT_Logger::INFO,
@@ -316,6 +343,14 @@ class CUFT_Click_Tracker {
             // automatically since it is part of the transient name.
             set_transient( $transient_key, true, DAY_IN_SECONDS );
             update_option( self::OPTION_SCHEMA_VERIFIED_VERSION, $version_key, false );
+            delete_transient( $failure_key );
+
+            // A repair fixes whatever write failed before it; a healthy check
+            // with nothing to repair only clears errors about the schema itself.
+            $last_error = self::get_last_write_error();
+            if ( $last_error && ( $repaired || self::is_schema_error_context( isset( $last_error['context'] ) ? $last_error['context'] : '' ) ) ) {
+                self::clear_last_write_error();
+            }
         }
 
         return $healthy;
@@ -416,6 +451,7 @@ class CUFT_Click_Tracker {
         }
         
         if ( $result !== false ) {
+            self::clear_stale_write_error();
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'Click tracked: ' . $click_id, CUFT_Logger::INFO, $data );
             }
@@ -1354,8 +1390,11 @@ class CUFT_Click_Tracker {
                 array( '%d' )
             );
 
-            if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( "Event added: {$event_type} for click_id: {$click_id}", CUFT_Logger::INFO );
+            if ( $result !== false ) {
+                self::clear_stale_write_error();
+                if ( class_exists( 'CUFT_Logger' ) ) {
+                    CUFT_Logger::log( "Event added: {$event_type} for click_id: {$click_id}", CUFT_Logger::INFO );
+                }
             }
 
             return $result !== false;
