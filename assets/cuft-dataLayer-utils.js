@@ -730,26 +730,6 @@ window.cuftDataLayerUtils = (function () {
           recordEvent(clickId, 'qualify_lead', options.debug, gaClientId);
         }
 
-        // DEPRECATED: Dual-fire old generate_lead with strict payload for one version.
-        // Also gated on the "Generate Lead Events" setting.
-        if (generateLeadEnabled) {
-          var deprecatedPayload = createQualifyLeadPayload(formSubmitPayload, framework, {
-            lead_currency: options.lead_currency,
-            lead_value: options.lead_value
-          });
-          deprecatedPayload.event = "generate_lead";
-          deprecatedPayload.cuft_deprecated = true;
-          deprecatedPayload.cuft_migrate_to = "qualify_lead";
-          pushToDataLayer(deprecatedPayload, {
-            debug: options.debug,
-            framework: framework
-          });
-
-          if ((options.console_logging === "yes" || options.debug) && window.console && window.console.warn) {
-            window.console.warn('[CUFT] "generate_lead" with strict criteria is deprecated. Update your GTM trigger to use "qualify_lead" instead.');
-          }
-        }
-
         if (options.debug && window.console && window.console.log) {
           window.console.log('[CUFT DataLayer] qualify_lead event fired for:', framework);
         }

@@ -385,7 +385,7 @@
                     utils.cleanupTestContainer(form.parentElement);
                 });
 
-                utils.test('trackFormSubmission() fires generate_lead, qualify_lead, and deprecated generate_lead when all conditions met', function() {
+                utils.test('trackFormSubmission() fires exactly one generate_lead and one qualify_lead when all conditions met', function() {
                     const form = utils.createFormFromTemplate(testData.formTemplates.elementor);
                     const mockDL = utils.setupMockDataLayer();
 
@@ -401,27 +401,22 @@
                     });
 
                     utils.assertEqual(result, true, 'Tracking should succeed');
-                    utils.assertEqual(mockDL.events.length, 4, 'Should fire four events (form_submit, generate_lead, qualify_lead, deprecated generate_lead)');
+                    utils.assertEqual(mockDL.events.length, 3, 'Should fire three events (form_submit, generate_lead, qualify_lead); the deprecated dual-fire generate_lead was removed in 3.28.1');
 
                     const formEvent = mockDL.events[0];
                     const generateLeadEvent = mockDL.events[1];
                     const qualifyLeadEvent = mockDL.events[2];
-                    const deprecatedEvent = mockDL.events[3];
 
                     utils.assertEqual(formEvent.event, 'form_submit');
 
                     // Broad generate_lead (fires because email present)
                     utils.assertEqual(generateLeadEvent.event, 'generate_lead');
                     utils.assertEqual(generateLeadEvent.cuft_source, 'elementor_pro_lead');
+                    utils.assertEqual(generateLeadEvent.cuft_deprecated, undefined, 'generate_lead should never carry cuft_deprecated any more');
 
                     // Strict qualify_lead (fires because email + phone + click_id)
                     utils.assertEqual(qualifyLeadEvent.event, 'qualify_lead');
                     utils.assertEqual(qualifyLeadEvent.cuft_source, 'elementor_pro_lead');
-
-                    // Deprecated dual-fire generate_lead with strict payload
-                    utils.assertEqual(deprecatedEvent.event, 'generate_lead');
-                    utils.assertEqual(deprecatedEvent.cuft_deprecated, true);
-                    utils.assertEqual(deprecatedEvent.cuft_migrate_to, 'qualify_lead');
 
                     // Cleanup
                     delete window.cuftGetTrackingData;
