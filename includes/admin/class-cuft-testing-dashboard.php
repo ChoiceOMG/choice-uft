@@ -80,10 +80,10 @@ class CUFT_Testing_Dashboard {
         wp_register_script($handle, false, array(), CUFT_VERSION, false);
         wp_enqueue_script($handle);
 
-        $gtm_id = get_option('cuft_gtm_id');
+        $gtm_id = CUFT_SGTM::sanitize_gtm_id((string) get_option('cuft_gtm_id', ''));
 
         // Skip if no GTM ID configured
-        if (empty($gtm_id) || !preg_match('/^GTM-[A-Z0-9]+$/', $gtm_id)) {
+        if (!$gtm_id) {
             wp_add_inline_script(
                 $handle,
                 "window.dataLayer = window.dataLayer || [];\n" .
@@ -92,30 +92,25 @@ class CUFT_Testing_Dashboard {
             return;
         }
 
-        // Check for server-side GTM settings
-        $sgtm_enabled = get_option('cuft_sgtm_enabled', false);
-        $sgtm_url = get_option('cuft_sgtm_url', '');
-        $sgtm_validated = get_option('cuft_sgtm_validated', false);
-
-        // Determine GTM URL
-        $gtm_base_url = 'https://www.googletagmanager.com';
-        if ($sgtm_enabled && $sgtm_url && $sgtm_validated) {
-            $gtm_base_url = rtrim(esc_url_raw($sgtm_url), '/');
+        // Server-side GTM host once it has been validated, otherwise Google.
+        $host = CUFT_SGTM::DEFAULT_HOST;
+        if (get_option('cuft_sgtm_enabled', false) && get_option('cuft_sgtm_validated', false) && '' !== CUFT_SGTM::get_host()) {
+            $host = CUFT_SGTM::get_host();
         }
+        $src = esc_url(CUFT_SGTM::script_url($host, $gtm_id), array('https'));
 
         $script = 'window.dataLayer = window.dataLayer || [];' . "\n" .
-            '(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':' . "\n" .
+            '(function(w,d,s,l){w[l]=w[l]||[];w[l].push({\'gtm.start\':' . "\n" .
             'new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],' . "\n" .
-            'j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=' . "\n" .
-            wp_json_encode($gtm_base_url . '/gtm.js?id=') . '+i+dl;f.parentNode.insertBefore(j,f);' . "\n" .
-            '})(window,document,\'script\',\'dataLayer\',' . wp_json_encode($gtm_id) . ');' . "\n" .
+            'j=d.createElement(s);j.async=true;j.src=' . CUFT_Utils::js_encode($src) . ';f.parentNode.insertBefore(j,f);' . "\n" .
+            '})(window,document,\'script\',\'dataLayer\');' . "\n" .
             'window.dataLayer.push({' .
             '\'event\': \'testing_dashboard_loaded\',' .
             '\'page_type\': \'admin_testing_dashboard\',' .
             '\'test_mode\': true,' .
-            '\'gtm_id\': ' . wp_json_encode($gtm_id) .
+            '\'gtm_id\': ' . CUFT_Utils::js_encode($gtm_id) .
             '});' . "\n" .
-            'console.log(' . wp_json_encode('CUFT Testing Dashboard: GTM initialized with ID ' . $gtm_id) . ');';
+            'console.log(' . CUFT_Utils::js_encode('CUFT Testing Dashboard: GTM initialized with ID ' . $gtm_id) . ');';
 
         wp_add_inline_script($handle, $script);
     }
@@ -186,7 +181,7 @@ class CUFT_Testing_Dashboard {
         );
 
         // Localize script with AJAX data
-        wp_localize_script('cuft-testing-dashboard', 'cuftConfig', array(
+        CUFT_Utils::localize('cuft-testing-dashboard', 'cuftConfig', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('cuft-testing-dashboard'),
             'debug' => defined('WP_DEBUG') && WP_DEBUG,

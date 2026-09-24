@@ -51,6 +51,7 @@ $cuft_options_to_remove = array(
     'cuft_collector_host',
     'cuft_sgtm_enabled',
     'cuft_sgtm_url',
+    'cuft_sgtm_host',
     'cuft_sgtm_validated',
     'cuft_sgtm_active_server',
     'cuft_sgtm_server_recovered',

@@ -78,6 +78,7 @@ class CUFT_Plugin {
             'includes/class-cuft-db-migration.php',   // Load migration handler
             'includes/class-cuft-admin.php',
             'includes/admin/class-cuft-testing-dashboard.php',  // Testing dashboard
+            'includes/class-cuft-sgtm.php',          // Server-side GTM host validation and URL building
             'includes/class-cuft-gtm.php',
             'includes/class-cuft-form-detector.php',
             'includes/class-cuft-form-tracker.php',
@@ -433,15 +434,13 @@ class CUFT_Plugin {
      * Enqueue cuftConfig JavaScript object (v3.12.0)
      *
      * Provides AJAX URL and nonce for client-side event recording.
-     * Also enqueues frontend health check script when custom server is enabled.
      */
     public function enqueue_cuft_config() {
         // Create nonce for event recording
         $nonce = wp_create_nonce( 'cuft-event-recorder' );
 
-        // Check if custom server is enabled
-        $custom_server_enabled = get_option( 'cuft_sgtm_enabled', false ) && 
-                                get_option( 'cuft_sgtm_active_server', 'fallback' ) === 'custom';
+        // Whether gtm.js is currently served from the server-side GTM host.
+        $custom_server_enabled = class_exists( 'CUFT_SGTM' ) && CUFT_SGTM::custom_host_active();
 
         // Prepare config object
         $console_logging = CUFT_Console_Logger::get_console_logging_setting();
@@ -456,20 +455,9 @@ class CUFT_Plugin {
         // Add inline script to make config globally available
         wp_add_inline_script(
             'jquery', // Attach to jQuery since it's always loaded
-            'var cuftConfig = ' . wp_json_encode( $cuft_config ) . ';',
+            'var cuftConfig = ' . CUFT_Utils::js_encode( $cuft_config ) . ';',
             'before'
         );
-
-        // Enqueue frontend health check script when custom server is enabled
-        if ( $custom_server_enabled ) {
-            wp_enqueue_script(
-                'cuft-health-check',
-                CUFT_URL . '/assets/cuft-health-check.js',
-                array(),
-                CUFT_VERSION,
-                true
-            );
-        }
 
         // Enqueue passive-ping emitter when a collector host is configured.
         // Posts click context to https://<collector_host>/p on every page load
@@ -484,7 +472,7 @@ class CUFT_Plugin {
                 CUFT_VERSION,
                 true
             );
-            wp_localize_script(
+            CUFT_Utils::localize(
                 'cuft-passive-ping',
                 'cuftPing',
                 array(
@@ -508,7 +496,7 @@ class CUFT_Plugin {
         }
         wp_add_inline_script(
             'cuft-dataLayer-utils',
-            'window.cuftLeadSettings = ' . wp_json_encode( array(
+            'window.cuftLeadSettings = ' . CUFT_Utils::js_encode( array(
                 'generate_lead_enabled' => (bool) get_option( 'cuft_generate_lead_enabled', false ),
             ) ) . ';',
             'before'

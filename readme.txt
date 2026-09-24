@@ -108,7 +108,9 @@ and campaign data described above if you configure tags to forward it.
 = Server-side Google Tag Manager (optional custom host) =
 
 Used only when you enable server-side GTM and enter your own tagging server
-URL. Off by default.
+hostname. Off by default. The setting accepts a bare hostname only (for
+example `gtm.example.com`); the plugin builds the script address itself as
+`https://<host>/gtm.js?id=<container ID>`.
 
 *What is sent:* the container script is requested from the host you entered
 instead of from Google, so that host receives the same page-load request

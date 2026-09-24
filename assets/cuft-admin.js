@@ -231,91 +231,62 @@ jQuery(document).ready(function ($) {
 
     var $button = $(this);
     var $status = $("#cuft-sgtm-status");
-    var sgtmUrl = $("#cuft-sgtm-url").val();
+    var sgtmHost = $("#cuft-sgtm-host").val();
 
-    if (!sgtmUrl) {
-      $status.html(
-        '<span style="color: #dc3545;">✗ Please enter a Server GTM URL</span>'
-      );
+    // Messages are inserted as text, never as HTML.
+    function showStatus(ok, message, details) {
+      var $line = $("<span>")
+        .css("color", ok ? "#28a745" : "#dc3545")
+        .text((ok ? "\u2713 " : "\u2717 ") + message);
+      $status.empty().append($line);
+      if (details && (details.gtm_js || details.ns_html)) {
+        var parts = [];
+        if (details.gtm_js) {
+          parts.push("gtm.js: " + details.gtm_js);
+        }
+        if (details.ns_html) {
+          parts.push("ns.html: " + details.ns_html);
+        }
+        $status.append($("<br>"), $("<small>").text(parts.join(" | ")));
+      }
+    }
+
+    if (!sgtmHost) {
+      showStatus(false, "Please enter a Server GTM host");
       return;
     }
 
-    // Disable button and show loading
     $button.prop("disabled", true).text("Testing...");
-    $status.html(
-      '<span style="color: #666;">🔄 Testing connection to server GTM endpoints...</span>'
+    $status.empty().append(
+      $("<span>").css("color", "#666").text("Testing connection to server GTM endpoints...")
     );
 
-    // Make AJAX request
     $.ajax({
       url: cuftAdmin.ajax_url,
       type: "POST",
       data: {
         action: "cuft_test_sgtm",
         nonce: cuftAdmin.nonce,
-        sgtm_url: sgtmUrl,
+        sgtm_host: sgtmHost,
       },
       dataType: "json",
-      timeout: 15000, // 15 second timeout
+      timeout: 15000,
       success: function (response) {
-        if (response.success && response.data) {
-          var detailsHtml = "";
-          if (response.data.details) {
-            detailsHtml = "<br><small>";
-            if (response.data.details.gtm_js) {
-              detailsHtml += "gtm.js: " + response.data.details.gtm_js;
-            }
-            if (response.data.details.ns_html) {
-              detailsHtml += " | ns.html: " + response.data.details.ns_html;
-            }
-            detailsHtml += "</small>";
-          }
-
-          $status.html(
-            '<span style="color: #28a745;">✓ ' +
-              response.data.message +
-              detailsHtml +
-              "</span>"
-          );
-        } else {
-          var errorMessage =
-            response.data && response.data.message
-              ? response.data.message
-              : response.message
-              ? response.message
-              : "Connection test failed";
-          var errorHtml = '<span style="color: #dc3545;">✗ ' + errorMessage;
-          if (response.data && response.data.details) {
-            errorHtml += "<br><small>";
-            if (response.data.details.gtm_js) {
-              errorHtml += "gtm.js: " + response.data.details.gtm_js;
-            }
-            if (response.data.details.ns_html) {
-              errorHtml += " | ns.html: " + response.data.details.ns_html;
-            }
-            errorHtml += "</small>";
-          }
-          errorHtml += "</span>";
-          $status.html(errorHtml);
-        }
+        var data = response && response.data ? response.data : {};
+        var ok = !!(response && response.success && data.valid);
+        var message = data.message || (ok ? "Validated" : "Connection test failed");
+        showStatus(ok, message, data.details);
       },
-      error: function (xhr, status, error) {
+      error: function (xhr, status) {
         var errorMsg = "Network error occurred";
         if (status === "timeout") {
           errorMsg = "Request timed out - server may be unreachable";
-        } else if (xhr.responseText) {
-          try {
-            var response = JSON.parse(xhr.responseText);
-            errorMsg = response.message || errorMsg;
-          } catch (e) {
-            // Keep default error message
-          }
+        } else if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+          errorMsg = xhr.responseJSON.data.message;
         }
-
-        $status.html('<span style="color: #dc3545;">✗ ' + errorMsg + "</span>");
+        showStatus(false, errorMsg);
       },
       complete: function () {
-        // Re-enable button
         $button.prop("disabled", false).text("Test Connection");
       },
     });
