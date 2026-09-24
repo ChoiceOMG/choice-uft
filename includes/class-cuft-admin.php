@@ -20,13 +20,11 @@ class CUFT_Admin {
         add_action( 'wp_ajax_cuft_manual_health_check', array( $this, 'ajax_manual_health_check' ) );
         add_action( 'wp_ajax_cuft_get_sgtm_status', array( $this, 'ajax_get_sgtm_status' ) );
         add_action( 'wp_ajax_cuft_download_gtm_template', array( $this, 'ajax_download_gtm_template' ) );
-        add_action( 'wp_ajax_cuft_dismiss_update_notice', array( $this, 'ajax_dismiss_update_notice' ) );
         
         // Cron job for scheduled health checks
         add_action( 'cuft_scheduled_health_check', array( $this, 'scheduled_health_check' ) );
         add_filter( 'cron_schedules', array( $this, 'add_cron_intervals' ) );
         // cuft_record_event is handled by CUFT_Event_Recorder.
-        add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
@@ -732,25 +730,13 @@ class CUFT_Admin {
         $settings_hook = 'settings_page_choice-universal-form-tracker';
         $click_hook    = 'toplevel_page_cuft-click-tracking';
 
-        // Plugin screens use the admin stylesheet. The GitHub build also styles
-        // its updater notices with it on other screens, so it keeps loading it
-        // everywhere; the WordPress.org build (no updater) loads it only here.
-        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) || CUFT_Plugin::has_updater() ) {
+        // The admin stylesheet loads on the plugin's own screens only.
+        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) ) {
             wp_enqueue_style(
                 'cuft-admin',
                 CUFT_URL . '/assets/cuft-admin.css',
                 array(),
                 CUFT_VERSION
-            );
-        }
-
-        // Dismiss handler for the informational notice rendered by admin_notices().
-        if ( $this->should_show_active_notice() ) {
-            wp_register_script( 'cuft-admin-notice', false, array( 'jquery' ), CUFT_VERSION, true );
-            wp_enqueue_script( 'cuft-admin-notice' );
-            wp_add_inline_script(
-                'cuft-admin-notice',
-                'jQuery(function($){$(document).on("click",".notice[data-dismiss-action=\"cuft-dismiss-notice\"] .notice-dismiss",function(){$.post(ajaxurl,{action:"cuft_dismiss_notice",nonce:' . wp_json_encode( wp_create_nonce( 'cuft_dismiss_notice' ) ) . '});});});'
             );
         }
 
@@ -1289,6 +1275,11 @@ class CUFT_Admin {
                 <br>
                 <code><?php echo esc_html( $error['message'] ); ?></code>
             </p>
+            <form method="post" style="margin: 0 0 10px 0;">
+                <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
+                <input type="hidden" name="cuft_click_action" value="dismiss_write_error" />
+                <button type="submit" class="button button-small"><?php esc_html_e( 'Dismiss', 'choice-universal-form-tracker' ); ?></button>
+            </form>
         </div>
         <?php
     }
@@ -1840,6 +1831,10 @@ class CUFT_Admin {
             add_settings_error( 'cuft_messages', 'cuft_message', $require_key ? 'Webhook key is now required.' : 'Webhook key is no longer required.', 'updated' );
         }
 
+        if ( 'dismiss_write_error' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
+            CUFT_Click_Tracker::clear_last_write_error();
+        }
+
         if ( 'regenerate_webhook_key' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
             update_option( CUFT_Click_Tracker::OPTION_WEBHOOK_KEY, wp_generate_password( 32, false ), false );
             add_settings_error( 'cuft_messages', 'cuft_message', 'Webhook key regenerated. Update every integration that calls the webhook.', 'updated' );
@@ -1943,47 +1938,6 @@ class CUFT_Admin {
     }
 
     /**
-     * AJAX handler for dismissing the admin notice
-     */
-    public function ajax_dismiss_notice() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_dismiss_notice' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
-        }
-
-        // Save user meta to remember dismissal
-        $user_id = get_current_user_id();
-        update_user_meta( $user_id, 'cuft_notice_dismissed', true );
-
-        wp_send_json_success( array( 'message' => 'Notice dismissed' ) );
-    }
-
-    /**
-     * AJAX handler for dismissing update notice (per version)
-     */
-    public function ajax_dismiss_update_notice() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_dismiss_update_notice' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
-        }
-
-        // Get version from request
-        $version = isset( $_POST['version'] ) ? sanitize_text_field( wp_unslash( $_POST['version'] ) ) : '';
-
-        if ( empty( $version ) ) {
-            wp_send_json_error( array( 'message' => 'Version not specified' ) );
-        }
-
-        // Save user meta to remember dismissal for this specific version
-        $user_id = get_current_user_id();
-        $dismissed_version_key = 'cuft_notice_dismissed_v' . str_replace( '.', '_', $version );
-        update_user_meta( $user_id, $dismissed_version_key, true );
-
-        wp_send_json_success( array( 'message' => 'Update notice dismissed for version ' . $version ) );
-    }
-
-
-    /**
      * Screen IDs of the plugin's own admin pages: the settings page, the
      * Click Tracking page, and the Testing Dashboard.
      *
@@ -2011,89 +1965,45 @@ class CUFT_Admin {
     }
 
     /**
-     * Whether the informational "tracker is active" notice should render on
-     * this request: plugin screens only, valid GTM ID, not dismissed by this user.
-     *
-     * @return bool
-     */
-    private function should_show_active_notice() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return false;
-        }
-        if ( ! in_array( $this->get_current_screen_id(), $this->get_plugin_screen_ids(), true ) ) {
-            return false;
-        }
-        $gtm_id = get_option( 'cuft_gtm_id' );
-        if ( ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id ) ) {
-            return false;
-        }
-        return ! get_user_meta( get_current_user_id(), 'cuft_notice_dismissed', true );
-    }
-
-    /**
      * Display admin notices.
      *
-     * Scope, so nothing nags site-wide:
-     * - Missing or invalid GTM ID (a setup problem): the Plugins screen and the
-     *   plugin's own screens other than the settings page, which carries the
-     *   form and its own setup progress box.
-     * - "Tracker is active" (informational): the plugin's own screens only,
-     *   dismissible, and dismissal persists per user in the
-     *   cuft_notice_dismissed user meta.
-     * - Custom GTM server switched to fallback (operational warning): the
-     *   Plugins screen and the plugin's own screens.
-     * - Custom GTM server recovered (informational): the plugin's own screens.
+     * Every notice renders only on the plugin's own screens (Settings >
+     * Universal Form Tracker, Click Tracking, Testing Dashboard), only when
+     * there is something to act on, and is dismissible:
+     * - Missing or invalid GTM ID: on the Click Tracking and Testing
+     *   Dashboard screens; the settings screen carries the form itself.
+     * - Custom GTM server switched to fallback, or recovered: shown once.
      */
     public function admin_notices() {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
 
-        $screen_id      = $this->get_current_screen_id();
-        $is_plugin_page = in_array( $screen_id, $this->get_plugin_screen_ids(), true );
-        $is_plugins     = ( 'plugins' === $screen_id );
-
-        if ( ! $is_plugin_page && ! $is_plugins ) {
+        $screen_id = $this->get_current_screen_id();
+        if ( ! in_array( $screen_id, $this->get_plugin_screen_ids(), true ) ) {
             return;
         }
 
-        $gtm_id = get_option( 'cuft_gtm_id' );
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
 
-        // Check if GTM ID is missing or invalid
-        $gtm_missing = ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id );
-
-        if ( $gtm_missing ) {
-            if ( 'settings_page_choice-universal-form-tracker' !== $screen_id ) {
-                echo '<div class="notice notice-warning">';
-                echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
-                echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
-                echo '</div>';
-            }
-        } elseif ( $this->should_show_active_notice() ) {
-            $detected_count = count( array_filter( CUFT_Form_Detector::get_detected_frameworks() ) );
-
-            // Dismissible success notice; the dismiss click is sent to
-            // cuft_dismiss_notice by the inline script added in enqueue_admin_scripts().
-            echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
-            echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . esc_html( $detected_count ) . ' form framework(s) detected. ';
-            echo 'GTM container <code>' . esc_html( $gtm_id ) . '</code> is configured. ';
-            echo '<a href="' . esc_url( $settings_url ) . '">Settings</a></p>';
+        if ( ! $this->is_valid_gtm_id( get_option( 'cuft_gtm_id', '' ) ) && 'settings_page_choice-universal-form-tracker' !== $screen_id ) {
+            echo '<div class="notice notice-warning is-dismissible">';
+            echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
+            echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
             echo '</div>';
         }
 
-        // Check for custom server status change notices
-        $this->check_server_status_notices( $is_plugin_page );
+        $this->check_server_status_notices();
     }
 
     /**
      * Check and display server status change notices
      */
-    private function check_server_status_notices( $is_plugin_page = true ) {
+    private function check_server_status_notices() {
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
-        
-        // Check for server recovery notice (informational: plugin screens only)
-        $server_recovered = $is_plugin_page ? get_option( 'cuft_sgtm_server_recovered', false ) : false;
+
+        // Check for server recovery notice
+        $server_recovered = get_option( 'cuft_sgtm_server_recovered', false );
         if ( $server_recovered ) {
             echo '<div class="notice notice-success is-dismissible">';
             echo '<p><strong>✅ Custom GTM server is now active</strong><br>';

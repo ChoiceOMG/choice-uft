@@ -547,10 +547,30 @@ class CUFT_Plugin {
     }
 
     /**
+     * Whether a requirement or initialisation error notice may render here.
+     *
+     * These notices report that the plugin itself is not running, so they
+     * appear on the Plugins screen, where the plugin is managed, and on the
+     * plugin's own settings screen; never on the Dashboard or other screens.
+     *
+     * @return bool
+     */
+    private function on_plugin_management_screen() {
+        if ( ! current_user_can( 'activate_plugins' ) || ! function_exists( 'get_current_screen' ) ) {
+            return false;
+        }
+        $screen = get_current_screen();
+        return $screen && in_array( $screen->id, array( 'plugins', 'settings_page_choice-universal-form-tracker' ), true );
+    }
+
+    /**
      * PHP version compatibility notice
      */
     public function php_version_notice() {
-        echo '<div class="notice notice-error"><p>';
+        if ( ! $this->on_plugin_management_screen() ) {
+            return;
+        }
+        echo '<div class="notice notice-error is-dismissible"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires PHP 7.4 or higher. ';
         echo 'You are running PHP ' . esc_html( PHP_VERSION ) . '. Please contact your hosting provider to upgrade PHP.';
         echo '</p></div>';
@@ -560,7 +580,10 @@ class CUFT_Plugin {
      * WordPress version compatibility notice
      */
     public function wp_version_notice() {
-        echo '<div class="notice notice-error"><p>';
+        if ( ! $this->on_plugin_management_screen() ) {
+            return;
+        }
+        echo '<div class="notice notice-error is-dismissible"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires WordPress 6.2 or higher. ';
         echo 'You are running WordPress ' . esc_html( get_bloginfo( 'version' ) ) . '. Please update WordPress.';
         echo '</p></div>';
@@ -570,7 +593,10 @@ class CUFT_Plugin {
      * Initialization error notice
      */
     public function init_error_notice() {
-        echo '<div class="notice notice-error"><p>';
+        if ( ! $this->on_plugin_management_screen() ) {
+            return;
+        }
+        echo '<div class="notice notice-error is-dismissible"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> Plugin initialization failed. ';
         echo 'Please check error logs for details or contact support.';
         echo '</p></div>';
