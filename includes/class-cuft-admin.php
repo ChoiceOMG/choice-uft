@@ -767,7 +767,7 @@ class CUFT_Admin {
             true
         );
 
-        wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
+        CUFT_Utils::localize( 'cuft-admin', 'cuftAdmin', array(
             'ajax_url'        => admin_url( 'admin-ajax.php' ),
             'nonce'           => wp_create_nonce( 'cuft_admin' ),
             'register_nonce'  => wp_create_nonce( 'cuft_token_register' ),
@@ -791,7 +791,7 @@ class CUFT_Admin {
                 true
             );
 
-            wp_localize_script( 'cuft-force-update', 'cuftForceUpdate', array(
+            CUFT_Utils::localize( 'cuft-force-update', 'cuftForceUpdate', array(
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                 'nonce' => wp_create_nonce( 'cuft_force_update' ),
             ) );

@@ -252,7 +252,7 @@ class CUFT_Admin_Notices {
 			true
 		);
 
-		wp_localize_script( 'cuft-admin-notices', 'cuftNotices', array(
+		CUFT_Utils::localize( 'cuft-admin-notices', 'cuftNotices', array(
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'cuft_updater_nonce' ),
 			'dismissing' => __( 'Dismissing...', 'choice-universal-form-tracker' ),

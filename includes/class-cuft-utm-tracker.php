@@ -59,7 +59,7 @@ class CUFT_UTM_Tracker {
             false // Load in head to capture UTMs early
         );
         
-        wp_localize_script( 'cuft-utm-tracker', 'cuftUTM', array(
+        CUFT_Utils::localize( 'cuft-utm-tracker', 'cuftUTM', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_utm_tracking' ),
             'debug' => apply_filters( 'cuft_debug', get_option( 'cuft_debug_enabled', false ) )

@@ -121,18 +121,11 @@ class CUFT_Elementor_Forms {
             }
         }
 
-        // Push to dataLayer if GTM is configured
-        if ( get_option( 'cuft_gtm_id' ) ) {
-            wp_add_inline_script( 'cuft-elementor-forms', $this->generate_datalayer_push( $form_data ), 'after' );
-            
-            // Generate lead event if enabled and conditions are met
-            if ( get_option( 'cuft_generate_lead_enabled', false ) ) {
-                $lead_script = $this->generate_lead_event( $form_data );
-                if ( $lead_script ) {
-                    wp_add_inline_script( 'cuft-elementor-forms', $lead_script, 'after' );
-                }
-            }
-        }
+        // No dataLayer script is emitted from PHP. This hook runs on the
+        // submission request (Elementor Pro forms submit only over admin-ajax),
+        // before any front-end script is registered, so a
+        // wp_add_inline_script() here never reached a page. The front-end
+        // script pushes form_submit, generate_lead and qualify_lead.
     }
     
     /**
@@ -197,130 +190,14 @@ class CUFT_Elementor_Forms {
         return $data;
     }
     
-    /**
-     * Build the shared lead identity (lead_id + lead_id_source) for a submission.
-     *
-     * Email is preferred; phone is the fallback. Returns an empty array when
-     * neither is present so callers can array_merge it unconditionally. (OPS-2210)
-     *
-     * @param array $data Extracted form data (user_email, user_phone).
-     * @return array { lead_id, lead_id_source } or empty.
-     */
-    private function lead_identity( $data ) {
-        if ( ! class_exists( 'CUFT_Form_Attribution' ) ) {
-            return array();
-        }
 
-        $lead_id = '';
-        $source  = '';
-        if ( ! empty( $data['user_email'] ) ) {
-            $lead_id = CUFT_Form_Attribution::lead_id_from_email( $data['user_email'] );
-            $source  = 'email';
-        }
-        if ( '' === $lead_id && ! empty( $data['user_phone'] ) ) {
-            $lead_id = CUFT_Form_Attribution::lead_id_from_phone( $data['user_phone'] );
-            $source  = 'phone';
-        }
-        if ( '' === $lead_id ) {
-            return array();
-        }
-
-        return array(
-            'lead_id'        => $lead_id,
-            'lead_id_source' => $source,
-        );
-    }
-
-    /**
-     * Generate dataLayer push JavaScript
-     */
-    private function generate_datalayer_push( $data ) {
-        $payload = array(
-            'event' => 'form_submit',
-            'form_type' => 'elementor',
-            'form_id' => $data['form_id'],
-            'form_name' => $data['form_name'],
-            'submitted_at' => gmdate( 'c' ),
-            'cuft_tracked' => true,
-            'cuft_source' => 'elementor_pro_server',
-            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
-            'page_title' => get_the_title(),
-            'language' => get_locale()
-        );
-        
-        if ( ! empty( $data['user_email'] ) ) {
-            $payload['user_email'] = $data['user_email'];
-        }
-        if ( ! empty( $data['user_phone'] ) ) {
-            $payload['user_phone'] = $data['user_phone'];
-        }
-        if ( ! empty( $data['phone_quality'] ) ) {
-            $payload['phone_line_type']     = $data['phone_quality']['line_type'];
-            $payload['phone_quality_score'] = $data['phone_quality']['quality_score'];
-            $payload['phone_is_valid']      = $data['phone_quality']['is_valid'];
-        }
-
-        // Shared cross-system lead identity (OPS-2210).
-        $payload = array_merge( $payload, $this->lead_identity( $data ) );
-
-        // Add UTM data if available
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        if ( ! empty( $utm_data ) ) {
-            foreach ( $utm_data as $key => $value ) {
-                $payload[ $key ] = $value;
-            }
-        }
-        
-        return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
-    }
     
-    /**
-     * Generate lead event if conditions are met
-     */
-    private function generate_lead_event( $data ) {
-        // Check if we have email and UTM campaign
-        if ( empty( $data['user_email'] ) ) {
-            return false;
-        }
-        
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        if ( empty( $utm_data['utm_campaign'] ) ) {
-            return false;
-        }
-        
-        $payload = array(
-            'event' => 'generate_lead',
-            'currency' => 'USD',
-            'value' => 0,
-            'cuft_tracked' => true,
-            'cuft_source' => 'elementor_pro_server_lead',
-            'form_type' => 'elementor',
-            'form_id' => $data['form_id'],
-            'form_name' => $data['form_name'],
-            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
-            'page_title' => get_the_title(),
-            'language' => get_locale(),
-            'submitted_at' => gmdate( 'c' )
-        );
-
-        // Shared cross-system lead identity (OPS-2210).
-        $payload = array_merge( $payload, $this->lead_identity( $data ) );
-
-        // Add UTM data
-        foreach ( $utm_data as $key => $value ) {
-            $payload[ $key ] = $value;
-        }
-
-        CUFT_Logger::log_form_submission( 'elementor_generate_lead', $payload );
-        
-        return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
-    }
     
     /**
      * Localize script with configuration
      */
     private function localize_script() {
-        wp_localize_script( 'cuft-elementor-forms', 'cuftElementor', array(
+        CUFT_Utils::localize( 'cuft-elementor-forms', 'cuftElementor', array(
             'debug' => apply_filters( 'cuft_debug', false ),
             'console_logging' => CUFT_Console_Logger::get_console_logging_setting(),
             'generate_lead_enabled' => get_option( 'cuft_generate_lead_enabled', false ),

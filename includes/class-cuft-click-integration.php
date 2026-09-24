@@ -170,7 +170,7 @@ class CUFT_Click_Integration {
             }
         }
 
-        wp_localize_script( 'cuft-click-integration', 'cuftClickData', array(
+        CUFT_Utils::localize( 'cuft-click-integration', 'cuftClickData', array(
             'click_id' => $click_id,
             'ip_hash' => $ip_hash,
             'platform' => $platform,

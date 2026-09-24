@@ -48,6 +48,6 @@ class CUFT_Feature_Flags {
         // Allow filter to modify flags
         $flags = apply_filters( 'cuft_feature_flags', $flags );
 
-        wp_localize_script( 'cuft-feature-flags', 'cuftMigrationConfig', $flags );
+        CUFT_Utils::localize( 'cuft-feature-flags', 'cuftMigrationConfig', $flags );
     }
 }

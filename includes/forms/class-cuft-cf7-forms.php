@@ -62,19 +62,12 @@ class CUFT_CF7_Forms {
     public function track_submission( $contact_form ) {
         $form_data = $this->extract_form_data( $contact_form );
         CUFT_Logger::log_form_submission( 'contact_form_7', $form_data );
-        
-        // Push to dataLayer if GTM is configured
-        if ( get_option( 'cuft_gtm_id' ) ) {
-            wp_add_inline_script( 'cuft-cf7-forms', $this->generate_datalayer_push( $form_data ), 'after' );
-            
-            // Generate lead event if enabled and conditions are met
-            if ( get_option( 'cuft_generate_lead_enabled', false ) ) {
-                $lead_script = $this->generate_lead_event( $form_data );
-                if ( $lead_script ) {
-                    wp_add_inline_script( 'cuft-cf7-forms', $lead_script, 'after' );
-                }
-            }
-        }
+
+        // No dataLayer script is emitted from PHP. This hook runs on the
+        // submission request (AJAX, REST, or the early 'wp' action of a
+        // no-JS post), before any front-end script is registered, so a
+        // wp_add_inline_script() here never reached a page. The front-end
+        // script pushes form_submit, generate_lead and qualify_lead.
     }
     
     /**
@@ -125,85 +118,13 @@ class CUFT_CF7_Forms {
         return $data;
     }
     
-    /**
-     * Generate dataLayer push JavaScript
-     */
-    private function generate_datalayer_push( $data ) {
-        $payload = array(
-            'event' => 'form_submit',
-            'form_type' => 'contact_form_7',
-            'form_id' => $data['form_id'],
-            'form_name' => $data['form_name'],
-            'submitted_at' => gmdate( 'c' ),
-            'cuft_tracked' => true,
-            'cuft_source' => 'contact_form_7_server',
-            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
-            'page_title' => get_the_title(),
-            'language' => get_locale()
-        );
-        
-        if ( ! empty( $data['user_email'] ) ) {
-            $payload['user_email'] = $data['user_email'];
-        }
-        if ( ! empty( $data['user_phone'] ) ) {
-            $payload['user_phone'] = $data['user_phone'];
-        }
-        
-        // Add UTM data if available
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        if ( ! empty( $utm_data ) ) {
-            foreach ( $utm_data as $key => $value ) {
-                $payload[ $key ] = $value;
-            }
-        }
-        
-        return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
-    }
     
-    /**
-     * Generate lead event if conditions are met
-     */
-    private function generate_lead_event( $data ) {
-        // Check if we have email and UTM campaign
-        if ( empty( $data['user_email'] ) ) {
-            return false;
-        }
-        
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        if ( empty( $utm_data['utm_campaign'] ) ) {
-            return false;
-        }
-        
-        $payload = array(
-            'event' => 'generate_lead',
-            'currency' => 'USD',
-            'value' => 0,
-            'cuft_tracked' => true,
-            'cuft_source' => 'contact_form_7_server_lead',
-            'form_type' => 'contact_form_7',
-            'form_id' => $data['form_id'],
-            'form_name' => $data['form_name'],
-            'page_location' => home_url( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' ),
-            'page_title' => get_the_title(),
-            'language' => get_locale(),
-            'submitted_at' => gmdate( 'c' )
-        );
-        
-        // Add UTM data
-        foreach ( $utm_data as $key => $value ) {
-            $payload[ $key ] = $value;
-        }
-        
-        CUFT_Logger::log_form_submission( 'cf7_generate_lead', $payload );
-        
-        return 'window.dataLayer = window.dataLayer || []; window.dataLayer.push(' . wp_json_encode( $payload ) . ');';
-    }
     
     /**
      * Localize script with configuration
      */
     private function localize_script() {
-        wp_localize_script( 'cuft-cf7-forms', 'cuftCF7', array(
+        CUFT_Utils::localize( 'cuft-cf7-forms', 'cuftCF7', array(
             'debug' => apply_filters( 'cuft_debug', false ),
             'console_logging' => CUFT_Console_Logger::get_console_logging_setting(),
             'generate_lead_enabled' => get_option( 'cuft_generate_lead_enabled', false ),
