@@ -107,6 +107,9 @@ class CUFT_Click_Tracker {
 
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
         $result = dbDelta( $sql );
+        // Read the error before any other query runs: every $wpdb query,
+        // including the existence check below, resets last_error.
+        $db_error = $wpdb->last_error;
 
         // dbDelta() reports what it attempted, not what actually landed: it
         // logs "Created table" before running the query and does not
@@ -114,11 +117,21 @@ class CUFT_Click_Tracker {
         $exists = self::table_exists( $table_name );
 
         if ( ! $exists ) {
-            self::record_click_write_error(
-                'create_table',
-                $wpdb->last_error,
-                ''
-            );
+            // Run the CREATE directly once so MySQL's own error text is
+            // captured; dbDelta() can skip or reshape the statement.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin's own table cuft_click_tracking; $sql is the hardcoded schema above with only $wpdb->prefix and the charset interpolated.
+            $wpdb->query( $sql );
+            $direct_error = $wpdb->last_error;
+            $exists       = self::table_exists( $table_name );
+
+            if ( ! $exists ) {
+                $detail = $direct_error ? $direct_error : $db_error;
+                self::record_click_write_error(
+                    'create_table',
+                    $detail ? $detail : self::describe_missing_table( $table_name ),
+                    ''
+                );
+            }
         }
 
         // Log table creation
@@ -129,7 +142,7 @@ class CUFT_Click_Tracker {
                 array(
                     'result'        => $result,
                     'table_exists'  => $exists,
-                    'wpdb_error'    => $exists ? '' : $wpdb->last_error,
+                    'wpdb_error'    => $exists ? '' : $db_error,
                 )
             );
         }
@@ -143,6 +156,21 @@ class CUFT_Click_Tracker {
      * @param string $table_name Fully prefixed table name.
      * @return bool
      */
+    private static function describe_missing_table( $table_name ) {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic read of the current schema name.
+        $schema = $wpdb->get_var( 'SELECT DATABASE()' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic: can the table be read even though SHOW TABLES does not list it.
+        $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+        $select_error = $wpdb->last_error;
+        return sprintf(
+            'No MySQL error returned. schema=%s; SELECT on %s: %s',
+            $schema ? $schema : 'unknown',
+            $table_name,
+            $select_error ? $select_error : 'succeeded (table readable but not listed by SHOW TABLES)'
+        );
+    }
+
     private static function table_exists( $table_name ) {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; existence check, not cacheable.
@@ -232,6 +260,14 @@ class CUFT_Click_Tracker {
             return true;
         }
 
+        // After a failed repair, wait an hour before trying again, so a site
+        // whose database refuses the schema change does not retry the DDL on
+        // every admin page load.
+        $failure_key = $transient_key . '_failed';
+        if ( ! $force && false !== get_transient( $failure_key ) ) {
+            return false;
+        }
+
         $table_name = $wpdb->prefix . self::$table_name;
         $healthy    = true;
 
@@ -239,6 +275,7 @@ class CUFT_Click_Tracker {
             self::create_table();
             if ( ! self::table_exists( $table_name ) ) {
                 // create_table() already recorded the failure.
+                set_transient( $failure_key, true, HOUR_IN_SECONDS );
                 return false;
             }
         }
@@ -253,13 +290,14 @@ class CUFT_Click_Tracker {
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin's own table cuft_click_tracking; $add_fragment comes from the hardcoded map above, not user input, and %i cannot express a full ADD COLUMN definition.
             $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN ' . $add_fragment, $table_name ) );
+            $alter_error = $wpdb->last_error;
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; verifying the ALTER above landed.
             $now_has_column = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table_name ) );
 
             if ( ! in_array( $column, $now_has_column, true ) ) {
                 $healthy = false;
-                self::record_click_write_error( 'self_heal_add_column_' . $column, $wpdb->last_error, '' );
+                self::record_click_write_error( 'self_heal_add_column_' . $column, $alter_error, '' );
             } elseif ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log(
                     'Click tracking self-heal: added missing column ' . $column,
@@ -267,6 +305,10 @@ class CUFT_Click_Tracker {
                     array( 'column' => $column )
                 );
             }
+        }
+
+        if ( ! $healthy ) {
+            set_transient( $failure_key, true, HOUR_IN_SECONDS );
         }
 
         if ( $healthy ) {

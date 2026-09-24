@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.28.3] - 2026-09-24
+
+### Fixed
+- Click table repair now records MySQL's own error text. 3.28.2 read the error after running its existence check, which clears it, so failures showed "Unknown database error". When the table is still missing after dbDelta(), the CREATE is run once directly to capture the error, and a failed repair waits an hour before retrying instead of retrying on every admin page load.
+
 ## [3.28.2] - 2026-09-24
 
 ### Fixed

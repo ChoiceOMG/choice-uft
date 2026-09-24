@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.28.2
+Stable tag: 3.28.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.28.3 =
+* Click table repair now records MySQL's own error text. 3.28.2 read the error after running its existence check, which clears it, so failures showed "Unknown database error". When the table is still missing after dbDelta(), the CREATE is run once directly to capture the error, and a failed repair waits an hour before retrying instead of retrying on every admin page load.
 
 = 3.28.2 =
 * A click write that fails (missing table, missing column, or a database error) is now logged, and shows as a notice on the Click Tracking admin page, instead of failing silently. A missing click tracking table, or a table missing the `events` or `ga_client_id` columns added by earlier versions, is repaired automatically.
