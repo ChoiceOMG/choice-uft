@@ -10,6 +10,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CUFT_Utils {
 
     /**
+     * JSON flags for any value printed inside a <script> element.
+     *
+     * JSON_HEX_TAG turns < and > into \u003C and \u003E, so no value can close
+     * the script element or open a comment; the other three keep &, ' and "
+     * inert as well. Every value the plugin embeds in inline JavaScript goes
+     * through js_encode() or add_inline_data().
+     */
+    const JS_JSON_FLAGS = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+
+    /**
+     * Encode a value as a JavaScript literal that is safe inside <script>.
+     *
+     * @param mixed $value Value to encode.
+     * @return string JSON text; "null" if the value cannot be encoded.
+     */
+    public static function js_encode( $value ) {
+        $json = wp_json_encode( $value, self::JS_JSON_FLAGS );
+        return false === $json ? 'null' : $json;
+    }
+
+    /**
+     * Expose a data object to a script as a global, script-context safe.
+     *
+     * Drop-in replacement for wp_localize_script(): top-level scalars become
+     * strings exactly as core does it, so the scripts see the same values,
+     * but the object is encoded with js_encode() and printed before the
+     * script through wp_add_inline_script().
+     *
+     * @param string $handle Registered script handle.
+     * @param string $name   Global variable name (a fixed identifier, never user input).
+     * @param array  $data   Data to expose.
+     * @return bool
+     */
+    public static function localize( $handle, $name, $data ) {
+        if ( ! preg_match( '/^[A-Za-z_$][A-Za-z0-9_$]*$/', $name ) || ! is_array( $data ) ) {
+            return false;
+        }
+        foreach ( $data as $key => $value ) {
+            if ( is_scalar( $value ) ) {
+                $data[ $key ] = html_entity_decode( (string) $value, ENT_QUOTES, 'UTF-8' );
+            }
+        }
+        return wp_add_inline_script( $handle, 'var ' . $name . ' = ' . self::js_encode( $data ) . ';', 'before' );
+    }
+
+    /**
      * Check if a feature flag is enabled
      *
      * @param string $feature_name Feature flag name
