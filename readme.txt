@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.29.1
+Stable tag: 3.29.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -173,8 +173,8 @@ site's domain name and the registration secret to
 checked is sent from your server to
 `https://phone-validator.choice.zone/validate-phone` together with the
 site's registration token. Choice OMG's service looks the number up with its
-own providers, Twilio Lookup and Abstract API, and returns whether the number
-is valid, its line type, and a quality score.
+own providers and returns whether the number is valid, its line type, and a
+quality score. The plugin itself never contacts those providers.
 
 *When:* when a submitted phone number is validated. Results are cached on your
 site for 24 hours per number, so a repeated number is not sent again within
@@ -183,8 +183,6 @@ that window.
 * Service: [Choice OMG](https://choice.marketing/tools/choice-uft/)
 * Terms of service: [https://choice.marketing/terms/](https://choice.marketing/terms/)
 * Privacy policy: [https://choice.marketing/privacy-policy/](https://choice.marketing/privacy-policy/)
-* Sub-processor Twilio: [terms](https://www.twilio.com/en-us/legal/tos), [privacy policy](https://www.twilio.com/en-us/legal/privacy)
-* Sub-processor Abstract API: [terms and privacy policy](https://www.abstractapi.com/legal/legal)
 
 Because form submissions can carry personal data, review your own privacy
 policy and any applicable data-protection obligations (GDPR, CCPA, PIPEDA and
@@ -248,10 +246,9 @@ errors are caught so a failure cannot block a form submission.
 
 Yes. The Click Tracking screen shows a webhook URL that marks a tracked click
 as qualified, scores it, or records a lifecycle status such as `qualify_lead`.
-Each request must carry the site's webhook key, which the same screen displays
-and can regenerate. Sites that installed a version before 3.28.0 keep the key
-optional until an administrator switches on "Require webhook key", so their
-existing links keep working.
+Every request must carry the site's secret webhook key, which the same screen
+displays and can regenerate. Requests without the right key are rejected with
+HTTP 403 and change nothing.
 
 = Can I change what is tracked? =
 
@@ -268,6 +265,11 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.29.2 =
+* The webhook always requires the site's secret key. The "Require webhook key" setting is removed; a key is generated for any site that lacks one, and a request without the right key is rejected before any other input is read.
+* Scripts no longer fall back to a hard-coded `/wp-admin/admin-ajax.php`. The AJAX address comes only from `admin_url( 'admin-ajax.php' )`, passed in by PHP.
+* Readme: the phone validation section lists only the service the plugin contacts.
 
 = 3.29.1 =
 * Lead events are no longer lost on the click record. The browser sends form_submit, generate_lead and qualify_lead as three requests within milliseconds; each one read the saved events, added its own and wrote the list back, so they overwrote each other and the record kept one or two of the three. Writes now take a per-click database lock and only land if the saved list is unchanged since it was read, retrying otherwise. Works on InnoDB and MyISAM tables and on hosts without user locks.
@@ -365,6 +367,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.29.2 =
+The webhook now always requires the site's key. Any integration calling it without `key=` must use the URL shown on the Click Tracking screen.
 
 = 3.29.1 =
 Fixes lead events missing from click records (concurrent writes, and every Contact Form 7 submission). No settings change.

@@ -164,10 +164,15 @@
         return;
       }
 
+      // The endpoint comes only from admin_url( 'admin-ajax.php' ), passed in
+      // by PHP; without it there is nothing safe to call.
       var ajaxUrl =
         (window.cuftAjax && window.cuftAjax.ajax_url) ||
         (window.cuftConfig && window.cuftConfig.ajaxUrl) ||
-        "/wp-admin/admin-ajax.php";
+        "";
+      if (!ajaxUrl) {
+        return;
+      }
 
       var xhr = new XMLHttpRequest();
       xhr.open(

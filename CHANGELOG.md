@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.2] - 2026-10-02
+
+### Changed
+- `cuft_webhook` always requires the site key (`hash_equals()` against `cuft_webhook_key`), checked before any other input is read. `CUFT_Click_Tracker::webhook_key_required()`, `OPTION_REQUIRE_KEY` and the Click Tracking checkbox are removed. Migration 3.29.2 deletes `cuft_webhook_require_key` and generates a key where none exists; `cuft_db_version` is now 3.29.2. Migration 3.28.0 no longer writes the option.
+- `cuft-click-integration.js`, `admin/cuft-ajax-client.js` and `admin/js/cuft-lazy-loader.js` no longer fall back to `/wp-admin/admin-ajax.php`; with no localized URL they do nothing.
+
+### Removed
+- Twilio and Abstract API sub-processor links from the readme's phone validation section (the plugin only contacts `phone-validator.choice.zone`; twilio.com answers automated requests with 403).
+
 ## [3.29.1] - 2026-09-24
 
 ### Fixed

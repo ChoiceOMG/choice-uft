@@ -482,27 +482,9 @@ class CUFT_Click_Tracker {
      * @return array List of valid status strings.
      */
     /**
-     * Option that switches the webhook key check on.
-     */
-    const OPTION_REQUIRE_KEY = 'cuft_webhook_require_key';
-
-    /**
      * Option holding the shared webhook key.
      */
     const OPTION_WEBHOOK_KEY = 'cuft_webhook_key';
-
-    /**
-     * Whether webhook requests must carry the site's key.
-     *
-     * On for new installs since 3.28.0; installs upgrading from an earlier
-     * version keep it off until an administrator turns it on, so existing
-     * integrations keep working (see CUFT_DB_Migration::migrate_to_3_28_0()).
-     *
-     * @return bool
-     */
-    public static function webhook_key_required() {
-        return (bool) get_option( self::OPTION_REQUIRE_KEY, false );
-    }
 
     /**
      * Return the webhook key, generating one first if none exists.
@@ -849,8 +831,8 @@ class CUFT_Click_Tracker {
      * Public endpoint for updating a lead's status from outside WordPress
      * (a CRM, an automation tool, or a link in an email). Those callers
      * cannot hold a WordPress nonce or session, so what protects it is:
-     * - the shared webhook key, compared with hash_equals(), when the
-     *   "require key" setting is on (the default for new installs);
+     * - the site's webhook key, required on every request and compared
+     *   with hash_equals(); a request without it changes nothing;
      * - it only updates rows whose click_id already exists, and returns the
      *   same generic error for unknown IDs;
      * - it writes only qualified (0/1), score (0-10) and one of five
@@ -858,23 +840,21 @@ class CUFT_Click_Tracker {
      *
      * @since 3.13.0 Changed from key-based auth to public obscure endpoint
      * @since 3.28.0 Optional shared key (cuft_webhook_require_key), on by default for new installs
+     * @since 3.29.2 The key is always required; the opt-out setting is gone
      */
     public function handle_webhook() {
-        // Shared-key check. External callers (email links, CRM) cannot hold a
-        // nonce, so when the setting is on every request must carry the site's
-        // key, compared in constant time.
-        if ( self::webhook_key_required() ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- External webhook authenticated by the shared key compared below; a nonce cannot be issued to email links or CRM systems.
-            $provided_key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
-            if ( '' === $provided_key || ! hash_equals( self::get_webhook_key(), $provided_key ) ) {
-                wp_send_json_error( array( 'message' => 'Invalid or missing webhook key' ), 403 );
-            }
+        // Authorization comes first, before any other input is read.
+        // External callers (email links, CRM) cannot hold a nonce, so every
+        // request must carry the site's secret key, compared in constant time.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- External webhook authenticated by the secret key compared below; a nonce cannot be issued to email links or CRM systems.
+        $provided_key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+        if ( '' === $provided_key || ! hash_equals( self::get_webhook_key(), $provided_key ) ) {
+            wp_send_json_error( array( 'message' => 'Invalid or missing webhook key' ), 403 );
         }
 
-        // Get required parameters.
-        // No nonce by design: this endpoint is called from emails and CRM integrations
-        // that cannot hold a WordPress nonce. It only updates rows whose click_id already exists.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public webhook for external systems (email links, CRM); a nonce cannot be issued to them. Access is keyed by an existing click_id.
+        // The caller is authorized by the key check above. It still updates
+        // only rows whose click_id already exists.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above; external systems (email links, CRM) cannot hold a nonce.
         $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( wp_unslash( $_GET['click_id'] ) ) : '';
 
         if ( empty( $click_id ) ) {
@@ -892,12 +872,12 @@ class CUFT_Click_Tracker {
             wp_send_json_error( array( 'message' => 'Invalid request' ), 400 );
         }
 
-        // Get optional parameters (same public webhook as above; no nonce by design).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        // Optional parameters.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above.
         $qualified = isset( $_GET['qualified'] ) ? intval( $_GET['qualified'] ) : null;
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above.
         $score     = isset( $_GET['score'] ) ? intval( $_GET['score'] ) : null;
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above.
         $status    = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
 
         // Validate status if provided

@@ -1394,13 +1394,12 @@ class CUFT_Admin {
         // Use placeholder for display if no data exists
         $display_click_id = $has_data ? $sample_click_id : 'YOUR_CLICK_ID';
 
-        $require_key = class_exists( 'CUFT_Click_Tracker' ) && CUFT_Click_Tracker::webhook_key_required();
-        $webhook_key = $require_key ? CUFT_Click_Tracker::get_webhook_key() : '';
+        $webhook_key = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_webhook_key() : '';
 
-        $base_args = array( 'action' => 'cuft_webhook' );
-        if ( $require_key ) {
-            $base_args['key'] = $webhook_key;
-        }
+        $base_args = array(
+            'action' => 'cuft_webhook',
+            'key'    => $webhook_key,
+        );
         $endpoint_url = add_query_arg( $base_args, $webhook_url );
 
         $example_url = add_query_arg( array_merge( $base_args, array(
@@ -1414,37 +1413,20 @@ class CUFT_Admin {
             <h3 style="margin-top: 0;">📡 Webhook Endpoint</h3>
             <p style="color: #666; margin-top: 0;">
                 <strong>Updates a click's lead status from an email link, a CRM, or any system that can request a URL.</strong><br>
-                <?php if ( $require_key ) : ?>
-                    Every request must carry this site's webhook key in the <code>key</code> parameter. Requests without it are rejected with HTTP 403.
-                <?php else : ?>
-                    The webhook key is not required, so anyone who knows a click ID can update that click's status. Turn on "Require webhook key" below to close that.
-                <?php endif; ?>
+                Every request must carry this site's webhook key in the <code>key</code> parameter. Requests without it are rejected with HTTP 403.
             </p>
-
-            <form method="post" style="margin-bottom: 15px;">
-                <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
-                <input type="hidden" name="cuft_click_action" value="webhook_settings" />
-                <label>
-                    <input type="checkbox" name="cuft_webhook_require_key" value="1" <?php checked( $require_key ); ?> />
-                    <strong>Require webhook key</strong>
-                </label>
-                <?php submit_button( 'Save', 'secondary', 'cuft_webhook_settings_save', false ); ?>
-                <p class="description">When on, the webhook accepts only requests whose <code>key</code> matches the key shown below. Existing integrations must add <code>&amp;key=...</code> to their URLs before you turn this on.</p>
-            </form>
 
             <div style="margin-bottom: 15px;">
                 <label><strong>Webhook URL:</strong></label><br>
                 <input type="text" value="<?php echo esc_attr( $endpoint_url ); ?>" readonly class="large-text cuft-select-on-click" style="font-family: monospace;" />
-                <p class="description">Append <code>click_id</code> and the status parameters below.<?php echo $require_key ? ' Treat this URL as a secret: it contains the key.' : ''; ?></p>
+                <p class="description">Append <code>click_id</code> and the status parameters below. Treat this URL as a secret: it contains the key.</p>
             </div>
 
-            <?php if ( $require_key ) : ?>
             <form method="post" style="margin-bottom: 15px;" class="cuft-confirm-regenerate-key">
                 <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
                 <input type="hidden" name="cuft_click_action" value="regenerate_webhook_key" />
                 <?php submit_button( 'Regenerate webhook key', 'secondary', 'cuft_regenerate_webhook_key', false ); ?>
             </form>
-            <?php endif; ?>
 
             <div style="margin-bottom: 15px;">
                 <strong>Example Usage:</strong><br>
@@ -1454,9 +1436,7 @@ class CUFT_Admin {
                 <p class="description" style="margin-top: 8px;">
                     <strong>Parameters:</strong><br>
                     • <code>action</code> = cuft_webhook (required)<br>
-                    <?php if ( $require_key ) : ?>
                     • <code>key</code> = this site's webhook key (required)<br>
-                    <?php endif; ?>
                     • <code>click_id</code> = the click ID to update (required; only existing clicks can be updated)<br>
                     • <code>qualified</code> = 0 or 1 (optional)<br>
                     • <code>score</code> = 0-10 (optional)<br>
@@ -1822,15 +1802,6 @@ class CUFT_Admin {
         
         $action = isset( $_POST['cuft_click_action'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_click_action'] ) ) : '';
         
-        if ( 'webhook_settings' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
-            $require_key = ! empty( $_POST['cuft_webhook_require_key'] );
-            update_option( CUFT_Click_Tracker::OPTION_REQUIRE_KEY, $require_key ? 1 : 0 );
-            if ( $require_key ) {
-                CUFT_Click_Tracker::get_webhook_key(); // Generates a key if none exists yet.
-            }
-            add_settings_error( 'cuft_messages', 'cuft_message', $require_key ? 'Webhook key is now required.' : 'Webhook key is no longer required.', 'updated' );
-        }
-
         if ( 'dismiss_write_error' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
             CUFT_Click_Tracker::clear_last_write_error();
         }
