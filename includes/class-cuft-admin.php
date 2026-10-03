@@ -179,6 +179,23 @@ class CUFT_Admin {
                         </th>
                     </tr>
                     <tr>
+                        <th scope="row">Google tag gateway</th>
+                        <td>
+                            <?php $gtg_enabled = get_option( 'cuft_gtg_enabled', false ); ?>
+                            <label>
+                                <input type="checkbox" name="gtg_enabled" value="1" <?php checked( $gtg_enabled ); ?> id="cuft-gtg-enabled" />
+                                Load GTM from a same-origin gateway path
+                            </label>
+                            <p><input type="text" name="gtg_script_path" value="<?php echo esc_attr( get_option( 'cuft_gtg_script_path', '' ) ); ?>" placeholder="/k7q2fx/" class="regular-text" id="cuft-gtg-script-path" /></p>
+                            <p class="description">
+                                The path from register.yaml. The site's edge must route it to Google before you enable this.
+                                State: <strong><?php echo esc_html( get_option( 'cuft_gtg_active', 'fallback' ) ); ?></strong>
+                                <?php $gtg_reason = (string) get_option( 'cuft_gtg_fallback_reason', '' ); ?>
+                                <?php echo '' !== $gtg_reason ? '(' . esc_html( $gtg_reason ) . ')' : ''; ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row">Enable Server-Side GTM</th>
                         <td>
                             <?php $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false ); ?>
@@ -587,6 +604,26 @@ class CUFT_Admin {
                 $secret = sanitize_text_field( wp_unslash( $_POST['cuft_measurement_api_secret'] ) );
                 if ( ! empty( $secret ) ) {
                     update_option( 'cuft_measurement_api_secret', CUFT_Utils::encrypt_secret( $secret ) );
+                }
+            }
+
+            // Google tag gateway (tag gateway spec 5.1). An invalid path is reported and not saved.
+            $gtg_enabled = ! empty( $_POST['gtg_enabled'] );
+            $gtg_raw     = isset( $_POST['gtg_script_path'] ) ? sanitize_text_field( wp_unslash( $_POST['gtg_script_path'] ) ) : '';
+            $gtg_path    = class_exists( 'CUFT_GTG_Health' ) ? CUFT_GTG_Health::normalize_path( $gtg_raw ) : '';
+            if ( $gtg_enabled && '' === $gtg_path ) {
+                add_settings_error( 'cuft_messages', 'cuft_gtg', 'Gateway not enabled: the path must look like /k7q2fx/ (lowercase letters and digits, never containing gtm).', 'error' );
+            } else {
+                update_option( 'cuft_gtg_script_path', $gtg_path );
+                update_option( 'cuft_gtg_enabled', $gtg_enabled );
+                if ( $gtg_enabled && class_exists( 'CUFT_GTG_Health' ) ) {
+                    CUFT_GTG_Health::run();
+                    $gtg_state = CUFT_GTG_Health::run();   // two passes needed; both run now
+                    if ( 'gateway' === $gtg_state ) {
+                        add_settings_error( 'cuft_messages', 'cuft_gtg', 'Google tag gateway passed two checks and is live.', 'updated' );
+                    } else {
+                        add_settings_error( 'cuft_messages', 'cuft_gtg', 'Google tag gateway not live yet; the site keeps the loader it had: ' . get_option( 'cuft_gtg_fallback_reason', '' ), 'warning' );
+                    }
                 }
             }
 

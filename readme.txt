@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.28.4
+Stable tag: 3.29.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,12 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.29.0 =
+* Added a Google tag gateway loader mode (Settings > Server-Side GTM). When switched on with a same-origin script path, the container loads from that path instead of googletagmanager.com. It is off by default and changes nothing on a site that leaves it off.
+* An hourly health probe checks the path and the container. Two passes in a row select the gateway; two failures in a row return to the loader the site used before. The loader also falls back to Google in the browser if the gateway script errors or does not define the container.
+* Every state change purges the page caches of WP Super Cache, WP Rocket, W3 Total Cache, SiteGround Optimizer and LiteSpeed Cache, and the object cache.
+* The noscript iframe stays on googletagmanager.com while the gateway mode is enabled.
 
 = 3.28.4 =
 * Click tracking table now installs on hosts whose default storage engine is MyISAM (or InnoDB with the old 767/1000-byte index limit). The unique index on click_id covered all 255 utf8mb4 characters (1,020 bytes), which MySQL rejects there with "Specified key was too long; max key length is 1000 bytes", so the table was never created and no clicks were recorded. The index now covers the first 191 characters; click IDs are far shorter, so uniqueness is unchanged, and existing tables are not altered.

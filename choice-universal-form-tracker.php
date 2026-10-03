@@ -3,7 +3,7 @@
  * Plugin Name:       Choice Universal Form Tracker
  * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
- * Version:           3.28.4
+ * Version:           3.29.0
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Choice OMG
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.28.4' );
+define( 'CUFT_VERSION', '3.29.0' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -78,6 +78,7 @@ class CUFT_Plugin {
             'includes/class-cuft-db-migration.php',   // Load migration handler
             'includes/class-cuft-admin.php',
             'includes/admin/class-cuft-testing-dashboard.php',  // Testing dashboard
+            'includes/class-cuft-gtg-health.php',
             'includes/class-cuft-gtm.php',
             'includes/class-cuft-form-detector.php',
             'includes/class-cuft-form-tracker.php',
@@ -231,6 +232,10 @@ class CUFT_Plugin {
 
             if ( is_admin() && class_exists( 'CUFT_Admin' ) ) {
                 new CUFT_Admin();
+            }
+
+            if ( class_exists( 'CUFT_GTG_Health' ) ) {
+                CUFT_GTG_Health::init();
             }
 
             if ( class_exists( 'CUFT_GTM' ) ) {
@@ -407,6 +412,9 @@ class CUFT_Plugin {
         if ( $timestamp ) {
             wp_unschedule_event( $timestamp, 'cuft_scheduled_health_check' );
         }
+
+        // Clear the Google tag gateway health probe
+        wp_clear_scheduled_hook( 'cuft_gtg_health_check' );
 
         // Clear update validator orphaned downloads cleanup cron job (v3.17.0)
         if ( class_exists( 'CUFT_Update_Validator' ) ) {

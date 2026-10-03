@@ -32,11 +32,36 @@ class CUFT_GTM {
     }
 
     /**
-     * Resolve the GTM base URL and tag attributes from the sGTM settings.
+     * Resolve the loader source and tag attributes from the gateway and sGTM settings.
      *
-     * @return array { base_url: string, attributes: array }
+     * @return array { src_prefix: string, fallback_js: string, attributes: array, base_url?: string }
      */
     private function get_loader_config() {
+        $gtg_reason = null;
+        if ( get_option( 'cuft_gtg_enabled', false ) && class_exists( 'CUFT_GTG_Health' ) ) {
+            $gtg_path = CUFT_GTG_Health::normalize_path( get_option( 'cuft_gtg_script_path', '' ) );
+            if ( '' !== $gtg_path && 'gateway' === get_option( 'cuft_gtg_active', 'fallback' ) ) {
+                return array(
+                    'src_prefix'  => $gtg_path . '?id=',
+                    // Browser fallback (spec D6): an error, or a script that did not define the
+                    // container, loads gtm.js from Google instead.
+                    'fallback_js' => 'var fb=function(){if(j.cuftFb)return;j.cuftFb=1;var k=d.createElement(s);k.async=true;k.src='
+                        . wp_json_encode( 'https://www.googletagmanager.com/gtm.js?id=' )
+                        . '+i+dl;f.parentNode.insertBefore(k,f);};j.onerror=fb;'
+                        . 'j.onload=function(){if(!(w.google_tag_manager&&w.google_tag_manager[i]))fb();};',
+                    'attributes'  => array(
+                        'data-cuft-gtm-source' => 'gateway',
+                        'data-cuft-gtm-server' => $gtg_path,
+                    ),
+                );
+            }
+            if ( '' !== $gtg_path ) {
+                // Not healthy (yet): the loader the site used before stays, Google or its tagging
+                // server, and the tag says why.
+                $gtg_reason = (string) get_option( 'cuft_gtg_fallback_reason', 'not yet checked' );
+            }
+        }
+
         $sgtm_enabled  = get_option( 'cuft_sgtm_enabled', false );
         $sgtm_url      = get_option( 'cuft_sgtm_url', '' );
         $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
@@ -58,6 +83,13 @@ class CUFT_GTM {
                 'data-cuft-gtm-server'       => 'https://www.googletagmanager.com',
                 'data-cuft-fallback-reason'  => 'health_check_failed',
             );
+        }
+
+        $config['src_prefix']  = $config['base_url'] . '/gtm.js?id=';
+        $config['fallback_js'] = '';
+        if ( null !== $gtg_reason ) {
+            $config['attributes']['data-cuft-gtg-state']  = 'fallback';
+            $config['attributes']['data-cuft-gtg-reason'] = $gtg_reason;
         }
 
         return $config;
@@ -83,7 +115,7 @@ class CUFT_GTM {
         $loader = "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n"
             . "new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n"
             . "j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n"
-            . wp_json_encode( $config['base_url'] . '/gtm.js?id=' ) . "+i+dl;f.parentNode.insertBefore(j,f);\n"
+            . wp_json_encode( $config['src_prefix'] ) . '+i+dl;' . $config['fallback_js'] . "f.parentNode.insertBefore(j,f);\n"
             . "})(window,document,'script','dataLayer'," . wp_json_encode( $gtm_id ) . ');';
 
         // In the head (in_footer false) so the dataLayer exists before tags or form scripts push to it.
@@ -138,6 +170,11 @@ class CUFT_GTM {
         $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false );
         $sgtm_url = get_option( 'cuft_sgtm_url', '' );
         $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
+
+        // Google does not serve ns.html through the tag gateway (spec 2): keep the noscript on Google.
+        if ( get_option( 'cuft_gtg_enabled', false ) ) {
+            $sgtm_enabled = false;
+        }
 
         // Determine which URL to use
         $gtm_base_url = 'https://www.googletagmanager.com';
