@@ -34,7 +34,7 @@ class CUFT_GTM {
     /**
      * Resolve the loader source and tag attributes from the gateway and sGTM settings.
      *
-     * @return array { src_prefix: string, fallback_js: string, attributes: array, base_url?: string }
+     * @return array { src_prefix: string, fallback_js: string, attributes: array, base_url?: string, gtm_id?: string }
      */
     private function get_loader_config() {
         $gtg_reason = null;
@@ -42,6 +42,8 @@ class CUFT_GTM {
             $gtg_path = CUFT_GTG_Health::normalize_path( get_option( 'cuft_gtg_script_path', '' ) );
             if ( '' !== $gtg_path && 'gateway' === get_option( 'cuft_gtg_active', 'fallback' ) ) {
                 return array(
+                    // Upper case, as the probe asked for it (CUFT_GTG_Health::gtm_id()).
+                    'gtm_id'      => CUFT_GTG_Health::gtm_id(),
                     'src_prefix'  => $gtg_path . '?id=',
                     // Browser fallback (spec D6): an error, or a script that did not define the
                     // container, loads gtm.js from Google instead.
@@ -111,6 +113,9 @@ class CUFT_GTM {
 
         $config = $this->get_loader_config();
         $this->script_attributes = $config['attributes'];
+        if ( ! empty( $config['gtm_id'] ) ) {
+            $gtm_id = $config['gtm_id'];
+        }
 
         $loader = "(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':\n"
             . "new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],\n"

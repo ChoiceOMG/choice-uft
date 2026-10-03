@@ -94,10 +94,21 @@ class CUFT_GTG_Health {
         return trim( mb_substr( trim( $text ), 0, $max ) );
     }
 
+    /**
+     * The container id in upper case, or '' when the loader would not print one. The settings
+     * screen accepts any case (is_valid_gtm_id() matches with /i); the probe and the gateway
+     * loader both use this form, so the page asks the gateway for exactly the id that was probed
+     * and the browser fallback finds google_tag_manager[id] under the name Google registers.
+     */
+    public static function gtm_id() {
+        $id = strtoupper( (string) get_option( 'cuft_gtm_id', '' ) );
+        return preg_match( '/^GTM-[A-Z0-9]{4,}$/', $id ) ? $id : '';
+    }
+
     public static function probe() {
         $path = self::normalize_path( get_option( 'cuft_gtg_script_path', '' ) );
-        $id   = (string) get_option( 'cuft_gtm_id', '' );
-        if ( '' === $path || ! preg_match( '/^GTM-[A-Z0-9]+$/', $id ) ) {
+        $id   = self::gtm_id();
+        if ( '' === $path || '' === $id ) {
             return array( false, 'no valid gateway path or GTM id' );
         }
         $origin = self::origin();

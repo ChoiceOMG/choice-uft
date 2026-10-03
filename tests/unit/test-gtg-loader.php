@@ -376,4 +376,35 @@ class Test_GTG_Loader extends WP_UnitTestCase {
         $html = get_echo( array( new CUFT_GTM(), 'inject_body_code' ) );
         $this->assertStringContainsString( 'https://www.googletagmanager.com/ns.html?id=GTM-TKVDMKQ6', $html );
     }
+
+    /**
+     * The id is compared and requested in upper case on both sides: is_valid_gtm_id() accepts
+     * any case, so a lowercase stored id must neither stay in fallback forever nor have the
+     * page ask the gateway for a different id than the probe checked.
+     */
+    public function test_probe_accepts_a_lowercase_stored_id_and_asks_for_the_uppercase_one() {
+        update_option( 'cuft_gtm_id', 'gtm-tkvdmkq6' );
+        $this->fake_http( array(
+            '/k7q2fx/healthy'               => array( 200, 'ok' ),
+            '/k7q2fx/?validate_geo=healthy' => array( 200, 'ok' ),
+            '/k7q2fx/?id=GTM-TKVDMKQ6'      => array( 200, $this->container_body() ),
+        ) );
+        $this->assertSame( array( true, '' ), CUFT_GTG_Health::probe() );
+        $this->assertStringEndsWith( '/k7q2fx/?id=GTM-TKVDMKQ6', $this->probe_urls()[2] );
+    }
+
+    public function test_gateway_loader_names_the_uppercase_id_the_probe_checked() {
+        update_option( 'cuft_gtm_id', 'gtm-tkvdmkq6' );
+        $js = $this->loader();
+        $this->assertStringContainsString( '"\/k7q2fx\/?id="+i+dl', $js );
+        $this->assertStringContainsString( "'dataLayer',\"GTM-TKVDMKQ6\");", $js );
+        $this->assertStringNotContainsString( 'gtm-tkvdmkq6', $js );
+    }
+
+    public function test_probe_refuses_an_id_the_loader_would_not_print() {
+        update_option( 'cuft_gtm_id', 'GTM-AB1' );          // under the four characters is_valid_gtm_id() needs
+        $this->fake_http( array( '*' => array( 200, 'ok' ) ) );
+        $this->assertSame( array( false, 'no valid gateway path or GTM id' ), CUFT_GTG_Health::probe() );
+        $this->assertSame( array(), $this->http_calls );
+    }
 }
