@@ -181,14 +181,14 @@ class CUFT_Admin {
                     <tr>
                         <th scope="row">Google tag gateway</th>
                         <td>
-                            <?php $gtg_enabled = get_option( 'cuft_gtg_enabled', false ); ?>
+                            <?php $gtg_enabled = wp_validate_boolean( get_option( 'cuft_gtg_enabled', false ) ); ?>
                             <label>
                                 <input type="checkbox" name="gtg_enabled" value="1" <?php checked( $gtg_enabled ); ?> id="cuft-gtg-enabled" />
                                 Load GTM from a same-origin gateway path
                             </label>
                             <p><input type="text" name="gtg_script_path" value="<?php echo esc_attr( get_option( 'cuft_gtg_script_path', '' ) ); ?>" placeholder="/k7q2fx/" class="regular-text" id="cuft-gtg-script-path" /></p>
                             <p class="description">
-                                The path from register.yaml. The site's edge must route it to Google before you enable this.
+                                The script path your edge serves for Google's tag gateway, for example /k7q2fx/. The edge must route it to Google before you enable this.
                                 State: <strong><?php echo esc_html( get_option( 'cuft_gtg_active', 'fallback' ) ); ?></strong>
                                 <?php $gtg_reason = (string) get_option( 'cuft_gtg_fallback_reason', '' ); ?>
                                 <?php echo '' !== $gtg_reason ? '(' . esc_html( $gtg_reason ) . ')' : ''; ?>
@@ -622,7 +622,7 @@ class CUFT_Admin {
                     if ( 'gateway' === $gtg_state ) {
                         add_settings_error( 'cuft_messages', 'cuft_gtg', 'Google tag gateway passed two checks and is live.', 'updated' );
                     } else {
-                        add_settings_error( 'cuft_messages', 'cuft_gtg', 'Google tag gateway not live yet; the site keeps the loader it had: ' . get_option( 'cuft_gtg_fallback_reason', '' ), 'warning' );
+                        add_settings_error( 'cuft_messages', 'cuft_gtg', 'Google tag gateway not live yet; the site keeps the loader it had: ' . esc_html( (string) get_option( 'cuft_gtg_fallback_reason', '' ) ), 'warning' );
                     }
                 }
             }

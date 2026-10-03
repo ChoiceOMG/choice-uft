@@ -38,7 +38,7 @@ class CUFT_GTM {
      */
     private function get_loader_config() {
         $gtg_reason = null;
-        if ( get_option( 'cuft_gtg_enabled', false ) && class_exists( 'CUFT_GTG_Health' ) ) {
+        if ( wp_validate_boolean( get_option( 'cuft_gtg_enabled', false ) ) && class_exists( 'CUFT_GTG_Health' ) ) {
             $gtg_path = CUFT_GTG_Health::normalize_path( get_option( 'cuft_gtg_script_path', '' ) );
             if ( '' !== $gtg_path && 'gateway' === get_option( 'cuft_gtg_active', 'fallback' ) ) {
                 return array(
@@ -172,7 +172,7 @@ class CUFT_GTM {
         $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
 
         // Google does not serve ns.html through the tag gateway (spec 2): keep the noscript on Google.
-        if ( get_option( 'cuft_gtg_enabled', false ) ) {
+        if ( wp_validate_boolean( get_option( 'cuft_gtg_enabled', false ) ) ) {
             $sgtm_enabled = false;
         }
 

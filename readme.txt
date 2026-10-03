@@ -269,7 +269,7 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 = 3.29.0 =
 * Added a Google tag gateway loader mode (Settings > Server-Side GTM). When switched on with a same-origin script path, the container loads from that path instead of googletagmanager.com. It is off by default and changes nothing on a site that leaves it off.
-* An hourly health probe checks the path and the container. Two passes in a row select the gateway; two failures in a row return to the loader the site used before. The loader also falls back to Google in the browser if the gateway script errors or does not define the container.
+* An hourly health probe checks the path and the container (the response must hold the container id and follow no redirect). Two passes in a row select the gateway; two failures in a row return to the loader the site used before. The loader also falls back to Google in the browser if the gateway script errors or does not define the container.
 * Every state change purges the page caches of WP Super Cache, WP Rocket, W3 Total Cache, SiteGround Optimizer and LiteSpeed Cache, and the object cache.
 * The noscript iframe stays on googletagmanager.com while the gateway mode is enabled.
 

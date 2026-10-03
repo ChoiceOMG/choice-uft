@@ -11,12 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Google tag gateway loader mode.** Settings > Server-Side GTM gains a "Google tag gateway" checkbox and a script path (for example `/k7q2fx/`). When the mode is on and the path is healthy, the container loads from that same-origin path instead of googletagmanager.com, and the loader tag carries `data-cuft-gtm-source="gateway"` and `data-cuft-gtm-server`. The site's edge must route the path to Google before the mode is switched on. The mode is off by default, and a site that leaves it off gets byte-identical loader and noscript output to 3.28.4 (pinned by golden tests for the plain, sGTM custom and sGTM fallback loaders).
-- **Hourly gateway health probe.** It requests `healthy`, `?validate_geo=healthy` and `?id=<container>` on the path, and the container request must return a body that holds the container id (a CMS page that answers 200 does not pass). The mode starts in fallback; two passing probes in a row select the gateway and two failing probes in a row return to the loader the site used before (Google or its tagging server). While in fallback the loader tag carries `data-cuft-gtg-state="fallback"` and `data-cuft-gtg-reason`.
+- **Hourly gateway health probe.** It requests `healthy`, `?validate_geo=healthy` and `?id=<container>` on the path, and the container request must return a body that holds both the container id and `google_tag_manager` (a CMS page that answers 200, or that merely echoes the id, does not pass). The probe follows no redirects and asks the site origin root, so a subdirectory install checks the same path the loader uses. The stored failure reason is plain text (tags stripped, whitespace collapsed, cut to 60 characters of the response). The mode starts in fallback; two passing probes in a row select the gateway and two failing probes in a row return to the loader the site used before (Google or its tagging server). While in fallback the loader tag carries `data-cuft-gtg-state="fallback"` and `data-cuft-gtg-reason`.
 - **Browser-side fallback in the gateway loader.** If the gateway script errors, or loads without defining the container, the browser loads `gtm.js` from Google instead, once.
 - **Cache purge on every state change.** WP Super Cache, WP Rocket, W3 Total Cache, SiteGround Optimizer, LiteSpeed Cache and the object cache are purged when the state changes or the mode is switched off, and the `cuft_gtg_state_changed` action fires with the new and previous state.
 
 ### Changed
 - The `<noscript>` iframe stays on googletagmanager.com while the gateway mode is enabled, because Google does not serve `ns.html` through the gateway.
+- The gateway switch is read as a boolean everywhere, so `wp option update cuft_gtg_enabled false` (stored as the string "false") turns the gateway off and returns the site to its previous loader.
 
 ## [3.28.4] - 2026-09-24
 

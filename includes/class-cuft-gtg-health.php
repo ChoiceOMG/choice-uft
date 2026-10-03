@@ -19,7 +19,7 @@ class CUFT_GTG_Health {
         add_action( 'update_option_cuft_gtg_script_path', array( __CLASS__, 'on_path_change' ), 10, 2 );
         add_action( 'add_option_cuft_gtg_enabled', array( __CLASS__, 'reset' ), 10, 0 );
         add_action( 'add_option_cuft_gtg_script_path', array( __CLASS__, 'reset' ), 10, 0 );
-        if ( get_option( 'cuft_gtg_enabled', false ) ) {
+        if ( wp_validate_boolean( get_option( 'cuft_gtg_enabled', false ) ) ) {
             if ( ! wp_next_scheduled( self::HOOK ) ) {
                 wp_schedule_event( time() + 60, 'hourly', self::HOOK );
             }
@@ -30,10 +30,12 @@ class CUFT_GTG_Health {
 
     /**
      * WordPress fires update_option_* whenever the stored form differs ('1' versus true), so
-     * only a real change of meaning resets the state.
+     * only a real change of meaning resets the state. The switch is read with
+     * wp_validate_boolean() everywhere, because `wp option update cuft_gtg_enabled false`
+     * stores the string "false", which a plain (bool) cast would read as on.
      */
     public static function on_enabled_change( $old_value, $new_value ) {
-        if ( (bool) $old_value !== (bool) $new_value ) {
+        if ( wp_validate_boolean( $old_value ) !== wp_validate_boolean( $new_value ) ) {
             self::reset();
         }
     }
@@ -66,25 +68,72 @@ class CUFT_GTG_Health {
         return $p;
     }
 
+    /**
+     * Scheme, host and port of the home URL. The loader path is root-relative, so a site
+     * installed in a subdirectory (home_url() ending in /blog) still serves the gateway from
+     * the origin root, and the probe must ask there.
+     */
+    private static function origin() {
+        $parts = wp_parse_url( home_url() );
+        if ( empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+            return '';
+        }
+        return $parts['scheme'] . '://' . $parts['host'] . ( empty( $parts['port'] ) ? '' : ':' . $parts['port'] );
+    }
+
+    /**
+     * One-line plain text for a stored reason. A probed page is remote content, and the reason
+     * ends up in an admin notice and a tag attribute: no markup, no control characters, cut to
+     * $max characters.
+     */
+    public static function clean_text( $text, $max = 60 ) {
+        $text = wp_check_invalid_utf8( (string) $text, true );
+        $text = wp_strip_all_tags( $text );
+        $text = str_replace( array( '<', '>' ), '', $text );
+        $text = preg_replace( '/[\x00-\x20\x7F]+/', ' ', $text );
+        return trim( mb_substr( trim( $text ), 0, $max ) );
+    }
+
     public static function probe() {
         $path = self::normalize_path( get_option( 'cuft_gtg_script_path', '' ) );
         $id   = (string) get_option( 'cuft_gtm_id', '' );
         if ( '' === $path || ! preg_match( '/^GTM-[A-Z0-9]+$/', $id ) ) {
             return array( false, 'no valid gateway path or GTM id' );
         }
-        $base   = untrailingslashit( home_url() ) . $path;
+        $origin = self::origin();
+        if ( '' === $origin ) {
+            return array( false, 'no valid home URL' );
+        }
+        $base = $origin . $path;
+        // A null entry must answer exactly "ok"; a list must all appear in the body (the
+        // container script defines google_tag_manager and names the container, a CMS page that
+        // merely echoes the id does not).
         $checks = array(
-            'healthy'               => 'ok',
-            '?validate_geo=healthy' => 'ok',
-            '?id=' . $id            => $id,
+            'healthy'               => null,
+            '?validate_geo=healthy' => null,
+            '?id=' . $id            => array( $id, 'google_tag_manager' ),
         );
-        foreach ( $checks as $suffix => $want ) {
-            $r    = wp_remote_get( $base . $suffix, array( 'timeout' => 5 ) );
+        foreach ( $checks as $suffix => $needles ) {
+            // No redirects: a site that redirects the path to a page is not serving Google.
+            $r    = wp_remote_get(
+                $base . $suffix,
+                array(
+                    'timeout'     => 5,
+                    'redirection' => 0,
+                )
+            );
             $code = is_wp_error( $r ) ? 0 : (int) wp_remote_retrieve_response_code( $r );
             $body = is_wp_error( $r ) ? $r->get_error_message() : (string) wp_remote_retrieve_body( $r );
-            $good = 200 === $code && ( 'ok' === $want ? 'ok' === trim( $body ) : false !== strpos( $body, $want ) );
+            $good = 200 === $code;
+            if ( $good && null === $needles ) {
+                $good = 'ok' === trim( $body );
+            } elseif ( $good ) {
+                foreach ( $needles as $needle ) {
+                    $good = $good && false !== strpos( $body, $needle );
+                }
+            }
             if ( ! $good ) {
-                return array( false, $suffix . ': ' . $code . ' ' . substr( trim( $body ), 0, 60 ) );
+                return array( false, trim( $suffix . ': ' . $code . ' ' . self::clean_text( $body, 60 ) ) );
             }
         }
         return array( true, '' );
@@ -103,7 +152,7 @@ class CUFT_GTG_Health {
             $after = 'gateway';
         }
         if ( ! $ok && 'fallback' === $after ) {
-            update_option( 'cuft_gtg_fallback_reason', $reason );
+            update_option( 'cuft_gtg_fallback_reason', self::clean_text( $reason, 120 ) );
         }
         if ( $after !== $before ) {
             update_option( 'cuft_gtg_active', $after );
@@ -117,7 +166,7 @@ class CUFT_GTG_Health {
     }
 
     public static function run() {
-        if ( ! get_option( 'cuft_gtg_enabled', false ) ) {
+        if ( ! wp_validate_boolean( get_option( 'cuft_gtg_enabled', false ) ) ) {
             return '';
         }
         list( $ok, $reason ) = self::probe();
