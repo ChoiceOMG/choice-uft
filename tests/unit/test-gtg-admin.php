@@ -5,6 +5,8 @@
 class Test_GTG_Admin extends WP_UnitTestCase {
     public function set_up() {
         parent::set_up();
+        // Settings notices are a global the save adds to; each test reads only its own.
+        $GLOBALS['wp_settings_errors'] = array();
         update_option( 'cuft_gtm_id', 'GTM-TKVDMKQ6' );
         wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
     }
@@ -12,6 +14,7 @@ class Test_GTG_Admin extends WP_UnitTestCase {
     public function tear_down() {
         $_POST    = array();
         $_REQUEST = array();
+        $GLOBALS['wp_settings_errors'] = array();
         parent::tear_down();
     }
 
