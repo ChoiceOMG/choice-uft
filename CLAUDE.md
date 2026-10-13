@@ -1,5 +1,7 @@
 # CLAUDE.md - Development Guidelines for Choice Universal Form Tracker
 
+https://docs.choice.marketing/command/tracking-stack
+
 ## CRITICAL: Always Reference Specifications First
 
 ### Before ANY Code Changes
