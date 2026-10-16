@@ -151,7 +151,7 @@ class CUFT_Plugin {
                 'includes/migrations/create-update-log-table.php',  // Update log table migration
                 'includes/update/class-cuft-plugin-info.php',  // plugins_api filter for update modal
                 'includes/update/class-cuft-directory-fixer.php',  // upgrader_source_selection filter
-                'includes/update/class-cuft-update-logger.php',  // upgrader_process_complete hook for history
+                'includes/update/class-cuft-update-logger.php',  // Update history logging
                 'includes/update/class-cuft-update-validator.php',  // Download validation (FR-401)
                 'includes/update/class-cuft-backup-manager.php',  // Backup/restore (FR-402)
             ) );
