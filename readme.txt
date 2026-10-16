@@ -4,7 +4,7 @@ Tags: form tracking, google tag manager, conversion tracking, utm, attribution
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.29.4
+Stable tag: 3.30.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,7 +46,8 @@ plugin is not affiliated with, endorsed by, or supported by their makers.
   Generate Lead Events setting is on (off by default on new installs)
 * `qualify_lead` when a submission carries an email address, a phone number,
   and an advertising click ID
-* `phone_click` when a visitor clicks a `tel:` link
+* `phone_click` when a visitor clicks a `tel:` link, and `email_click` for a
+  `mailto:` link, except links and numbers you exclude (see the FAQ)
 * UTM parameters (source, medium, campaign, term, content) on all of the above
 * Advertising click IDs: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`,
   `ttclid`, `twclid`, `rdt_cid`, `li_fat_id`, `snap_click_id`, and `pclid`
@@ -230,6 +231,12 @@ from their first visit carrying them, so attribution survives a gap between
 the ad click and the form submission. First-touch attribution is kept for a
 year in a separate cookie.
 
+On the server, each tracked click is a row in the plugin's click tracking
+table. Rows older than the Click Data Retention setting (365 days by default)
+are deleted once a day. The visitor's IP address is never stored; the row
+holds a keyed hash of it, which cannot be reversed without the site's
+wp-config.php secret keys.
+
 = Is it GDPR compliant? =
 
 That depends on how you configure it. The plugin writes campaign parameters to
@@ -257,7 +264,19 @@ HTTP 403 and change nothing.
 Yes. Filters cover the computed `lead_id` (`cuft_lead_id`), the phone country
 code used to normalise it (`cuft_lead_id_phone_country`), the attribution
 payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
-(`cuft_enabled`).
+(`cuft_enabled`). Since 3.30.0, `cuft_ignore_phone_numbers` adds numbers that
+are never tracked, `cuft_record_event` decides whether an event reported by
+the browser is recorded on its click, and `cuft_click_retention_days` sets how
+long click rows are kept.
+
+= Can I keep one phone number or link out of tracking? =
+
+Yes. List the number under Settings > Ignored Phone Numbers, and clicks on any
+`tel:` link to it produce no `phone_click` in the dataLayer and nothing on the
+click record. Numbers match on their last 10 digits, so every formatting of the
+same number is covered. To exclude a single link of any kind, add the attribute
+`data-cuft-ignore` or the CSS class `cuft-ignore` to the link or to an element
+around it; in Elementor the class goes under Advanced > CSS Classes.
 
 == Screenshots ==
 
@@ -267,6 +286,13 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.30.0 =
+* Added Ignored Phone Numbers (Settings). Clicks on `tel:` links to a listed number are not tracked: no `phone_click` in the dataLayer and no request to the server. Numbers match on their last 10 digits, ignoring formatting and extensions. The `cuft_ignore_phone_numbers` filter adds numbers from code.
+* Any link inside an element with `data-cuft-ignore` or the class `cuft-ignore` is not tracked.
+* Added the `cuft_record_event` filter, which can stop an event reported by the browser from being recorded on its click.
+* Added Click Data Retention (Settings, default 365 days, 0 keeps rows forever). A daily job deletes older click rows in batches of 1,000, bounded in time, and continues in a follow-up run when there is more to delete. Before 3.30.0 click rows were never deleted.
+* IP hashes are now keyed (HMAC-SHA256 with a key derived from the wp-config.php secret keys) instead of a plain SHA-256 of the address, which could be reversed by hashing every IPv4 address. Hashes stored before the upgrade are cleared by the daily job. Define `CUFT_IP_HASH_KEY` to use your own key.
 
 = 3.29.4 =
 * First release published in the WordPress.org directory. No code change from 3.29.3, which was released on GitHub only.
@@ -381,6 +407,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.30.0 =
+Click rows older than 365 days are deleted by a daily job from now on; set Click Data Retention to 0 first if you need to keep them. IP hashes stored before the upgrade are cleared, and new ones no longer match a plain SHA-256 of the IP.
 
 = 3.29.4 =
 Readme and listing changes only; no code change from 3.29.3. Upgrading from 3.28.x: the webhook now always requires the site's key, and a server-side GTM URL becomes a bare hostname.

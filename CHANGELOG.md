@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.30.0] - Unreleased
+
+### Added
+- **Ignored Phone Numbers.** Settings gains a list of phone numbers whose `tel:` links are never tracked: no `phone_click` in the dataLayer and no `cuft_record_event` request, so nothing is recorded on the click. Numbers match on a key of the last 10 digits before any extension (`;ext=`, `,`, or a letter), applied the same way in PHP (`CUFT_Privacy::normalize_phone()`) and in `assets/cuft-links.js`, so `+1 (780) 555-0173`, `780.555.0173` and `tel:+17805550173;ext=2` are one number. Entries with fewer than 7 digits are refused with a notice. The list reaches the browser twice: in `cuftConfig.ignorePhones`, and as `window.cuftIgnorePhones` printed with the link tracking script itself, because `cuftConfig` is attached to jQuery and is missing on pages that do not load it.
+- **Per-link exclusion.** A `tel:` or `mailto:` link inside an element carrying `data-cuft-ignore` or the class `cuft-ignore` (the link itself included) is not tracked. The class form exists because page builders such as Elementor expose CSS classes to editors more readily than custom attributes.
+- **Filters.** `cuft_ignore_phone_numbers` adds numbers to the ignore list. `cuft_record_event` (`$record, $event_type, $click_id`) can stop an event reported by the browser from being recorded. The server never receives the clicked number, so number-based exclusion happens only in the browser. `cuft_click_retention_days` overrides the retention setting.
+- **Click Data Retention.** Settings gains a retention period for the click tracking table (default 365 days, minimum 30, maximum 3650, 0 keeps rows forever). The daily `cuft_click_retention` cron event deletes rows whose `date_created` is older, 1,000 rows per statement, at most 50 statements or 20 seconds per run, and schedules a follow-up run five minutes later when work remains. The cutoff is computed by MySQL, the same clock that fills `date_created`. The event is scheduled on the first request after the upgrade (no reactivation needed) and removed on deactivation and uninstall. `CUFT_Click_Tracker::cleanup_old_records()` also deletes in batches now.
+
+### Changed
+- **Keyed IP hashes.** `ip_hash` is now `hash_hmac( 'sha256', $ip, wp_salt( 'cuft_ip_hash' ) )` instead of `hash( 'sha256', $ip )`. The unkeyed form could be reversed by hashing all 2^32 IPv4 addresses. The key derives from `SECRET_KEY` in wp-config.php, so a copy of the database alone does not reverse it; defining `CUFT_IP_HASH_KEY` replaces it, for example to keep hashes comparable across sites. Rotating the wp-config.php salts changes the key. The Click Tracking IP search and the 3.21.0 migration use the keyed hash.
+- **Old hashes are cleared.** The 3.30.0 migration records the upgrade time in `cuft_ip_hash_legacy_before`. The retention job sets `ip_hash` to NULL on rows created before it, in the same bounded batches, then deletes the option. This runs even when retention is set to keep rows forever. A row created before the upgrade and revisited after it gets a keyed hash that is then cleared too.
+
 ## [3.29.4] - 2026-10-16
 
 First release published in the WordPress.org directory. No code change from 3.29.3, which was released on GitHub only; GitHub installs on 3.29.3 can skip it.
