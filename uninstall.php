@@ -141,6 +141,9 @@ wp_clear_scheduled_hook( 'cuft_check_updates' );
 wp_clear_scheduled_hook( 'cuft_daily_cleanup' );
 wp_clear_scheduled_hook( 'cuft_scheduled_health_check' );
 wp_clear_scheduled_hook( 'cuft_gtg_health_check' );
+// The click retention job also schedules a follow-up run with an argument,
+// which wp_clear_scheduled_hook() without arguments would leave behind.
+wp_unschedule_hook( 'cuft_click_retention' );
 wp_clear_scheduled_hook( 'cuft_cleanup_orphaned_downloads' );
 wp_clear_scheduled_hook( 'cuft_cleanup_update_logs' );
 wp_clear_scheduled_hook( 'cuft_clear_update_progress' );

@@ -78,7 +78,7 @@ class CUFT_Migration_3_21_0 {
 
             if ( ! empty( $records ) ) {
                 foreach ( $records as $record ) {
-                    $hashed_ip = hash( 'sha256', $record->ip_address );
+                    $hashed_ip = CUFT_Click_Tracker::hash_ip( $record->ip_address );
                     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; $wpdb->update() is the WP API, already parameterised.
                     $wpdb->update(
                         $table,

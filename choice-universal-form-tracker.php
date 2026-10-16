@@ -89,6 +89,7 @@ class CUFT_Plugin {
             'includes/class-cuft-form-attribution.php',  // Server-side attribution assembler (OPS-2209)
             'includes/class-cuft-console-logger.php',
             'includes/class-cuft-click-tracker.php',
+            'includes/class-cuft-privacy.php',           // Ignored phone numbers, click retention (3.30.0)
             'includes/class-cuft-click-integration.php',
             'includes/class-cuft-token-manager.php',
             'includes/class-cuft-phone-validator.php',
@@ -266,6 +267,10 @@ class CUFT_Plugin {
             if ( class_exists( 'CUFT_Click_Tracker' ) ) {
                 new CUFT_Click_Tracker();
             }
+
+            if ( class_exists( 'CUFT_Privacy' ) ) {
+                CUFT_Privacy::init();
+            }
             
             if ( class_exists( 'CUFT_Click_Integration' ) ) {
                 new CUFT_Click_Integration();
@@ -417,6 +422,11 @@ class CUFT_Plugin {
         // Clear the Google tag gateway health probe
         wp_clear_scheduled_hook( 'cuft_gtg_health_check' );
 
+        // Clear the click retention job and any pending follow-up run
+        if ( class_exists( 'CUFT_Privacy' ) ) {
+            CUFT_Privacy::unschedule();
+        }
+
         // Clear update validator orphaned downloads cleanup cron job (v3.17.0)
         if ( class_exists( 'CUFT_Update_Validator' ) ) {
             CUFT_Update_Validator::deactivate();
@@ -458,6 +468,8 @@ class CUFT_Plugin {
             'debug' => defined( 'WP_DEBUG' ) && WP_DEBUG,
             'console_logging' => $console_logging,
             'custom_server_enabled' => $custom_server_enabled,
+            // Clicks on these numbers are not tracked (match keys, last 10 digits).
+            'ignorePhones' => class_exists( 'CUFT_Privacy' ) ? CUFT_Privacy::get_ignored_phones() : array(),
         );
 
         // Print the config from a handle of our own, in the head. It used to

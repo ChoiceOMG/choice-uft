@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '3.29.2';
+    const CURRENT_VERSION = '3.30.0';
 
     /**
      * Option name for storing database version
@@ -118,6 +118,12 @@ class CUFT_DB_Migration {
             self::migrate_to_3_29_2();
         }
 
+        // 3.30.0: IP hashes become keyed. Mark which rows still hold the old
+        // unkeyed sha256(ip) so the retention job can clear them.
+        if ( version_compare( $current_version, '3.30.0', '<' ) ) {
+            self::migrate_to_3_30_0( self::is_existing_install( $stored_version ) );
+        }
+
         // Verify the click tracking table itself (not just the migration
         // bookkeeping above) actually carries every column the code
         // depends on. A version bump is exactly the moment a previous
@@ -141,6 +147,27 @@ class CUFT_DB_Migration {
                     'to_version' => self::CURRENT_VERSION
                 )
             );
+        }
+    }
+
+    /**
+     * Migration to version 3.30.0
+     *
+     * Rows written before this upgrade carry sha256(ip) with no key, which
+     * can be reversed by hashing every IPv4 address. Record the upgrade time;
+     * CUFT_Privacy::run_retention() clears ip_hash on rows created before it,
+     * in batches, then deletes the option. A new install has no such rows.
+     *
+     * @param bool $existing_install Whether the site ran an earlier version.
+     */
+    private static function migrate_to_3_30_0( $existing_install ) {
+        if ( $existing_install && class_exists( 'CUFT_Privacy' ) && false === get_option( CUFT_Privacy::OPTION_LEGACY_IP_HASH_BEFORE ) ) {
+            global $wpdb;
+            // The database clock, because date_created is filled by MySQL's
+            // CURRENT_TIMESTAMP and the server may not run in UTC.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the database clock once during migration.
+            $now = $wpdb->get_var( 'SELECT NOW()' );
+            add_option( CUFT_Privacy::OPTION_LEGACY_IP_HASH_BEFORE, $now ? $now : gmdate( 'Y-m-d H:i:s' ), '', false );
         }
     }
 

@@ -360,6 +360,27 @@ class CUFT_Admin {
                         </td>
                     </tr>
                     <tr>
+                        <th scope="row"><label for="cuft_ignore_phone_numbers">Ignored Phone Numbers</label></th>
+                        <td>
+                            <?php $cuft_ignored_phones = get_option( CUFT_Privacy::OPTION_IGNORE_PHONES, array() ); ?>
+                            <textarea id="cuft_ignore_phone_numbers" name="cuft_ignore_phone_numbers" rows="3" class="regular-text" placeholder="780-555-0173"><?php echo esc_textarea( implode( "\n", is_array( $cuft_ignored_phones ) ? $cuft_ignored_phones : array() ) ); ?></textarea>
+                            <p class="description">
+                                One number per line. Clicks on <code>tel:</code> links to these numbers are not tracked at all: no <code>phone_click</code> in the dataLayer and nothing recorded on the click. Numbers match on their last 10 digits, so <code>+1 (780) 555-0173</code> and <code>780.555.0173</code> are the same number; they are saved in that 10-digit form.
+                                To exclude any single link (phone or email) instead, add the attribute <code>data-cuft-ignore</code> or the CSS class <code>cuft-ignore</code> to the link or to an element around it. Developers can add numbers with the <code>cuft_ignore_phone_numbers</code> filter.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="cuft_click_retention_days">Click Data Retention</label></th>
+                        <td>
+                            <input type="number" id="cuft_click_retention_days" name="cuft_click_retention_days" min="0" max="<?php echo esc_attr( CUFT_Privacy::MAX_RETENTION_DAYS ); ?>" step="1" class="small-text"
+                                value="<?php echo esc_attr( CUFT_Privacy::sanitize_retention_days( get_option( CUFT_Privacy::OPTION_RETENTION_DAYS, CUFT_Privacy::DEFAULT_RETENTION_DAYS ) ) ); ?>" /> days
+                            <p class="description">
+                                Click tracking rows older than this are deleted once a day, in batches. Default <?php echo esc_html( CUFT_Privacy::DEFAULT_RETENTION_DAYS ); ?>; the shortest accepted is <?php echo esc_html( CUFT_Privacy::MIN_RETENTION_DAYS ); ?>. Enter 0 to keep rows forever.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
                         <th scope="row">Browser Console Logging</th>
                         <td>
                             <select name="console_logging">
@@ -570,6 +591,24 @@ class CUFT_Admin {
             update_option( 'cuft_console_logging', $console_logging );
             update_option( 'cuft_collector_host', $collector_host );
             update_option( 'cuft_sgtm_enabled', $sgtm_enabled );
+
+            // Privacy: ignored phone numbers and click retention (3.30.0)
+            if ( isset( $_POST['cuft_ignore_phone_numbers'] ) ) {
+                $rejected_phones = array();
+                $ignored_phones  = CUFT_Privacy::parse_phone_list( sanitize_textarea_field( wp_unslash( $_POST['cuft_ignore_phone_numbers'] ) ), $rejected_phones );
+                update_option( CUFT_Privacy::OPTION_IGNORE_PHONES, $ignored_phones );
+                if ( $rejected_phones ) {
+                    add_settings_error( 'cuft_messages', 'cuft_ignore_phones', 'Not saved as ignored phone numbers (fewer than ' . CUFT_Privacy::MIN_PHONE_DIGITS . ' digits): ' . esc_html( implode( ', ', $rejected_phones ) ), 'warning' );
+                }
+            }
+            if ( isset( $_POST['cuft_click_retention_days'] ) ) {
+                $retention_raw  = sanitize_text_field( wp_unslash( $_POST['cuft_click_retention_days'] ) );
+                $retention_days = CUFT_Privacy::sanitize_retention_days( $retention_raw );
+                update_option( CUFT_Privacy::OPTION_RETENTION_DAYS, $retention_days );
+                if ( '' !== $retention_raw && (string) $retention_days !== $retention_raw ) {
+                    add_settings_error( 'cuft_messages', 'cuft_retention', 'Click data retention set to ' . $retention_days . ' days (accepted range: 0, or ' . CUFT_Privacy::MIN_RETENTION_DAYS . ' to ' . CUFT_Privacy::MAX_RETENTION_DAYS . ').', 'warning' );
+                }
+            }
 
             // Only save the sGTM host if sGTM is enabled (validated above).
             if ( $sgtm_enabled ) {
@@ -1365,7 +1404,7 @@ class CUFT_Admin {
         }
         if ( ! empty( $filter_ip_search ) ) {
             // Hash the IP address for lookup
-            $args['ip_hash'] = hash( 'sha256', $filter_ip_search );
+            $args['ip_hash'] = CUFT_Click_Tracker::hash_ip( $filter_ip_search );
         }
         if ( $filter_has_events !== '' ) {
             $args['has_events'] = $filter_has_events;
@@ -1583,7 +1622,7 @@ class CUFT_Admin {
             <?php if ( ! empty( $filter_ip_search ) ) : ?>
             <div style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 4px;">
                 <strong>🔍 IP Search:</strong> Showing results for IP <code><?php echo esc_html( $filter_ip_search ); ?></code>
-                (Hash: <code><?php echo esc_html( substr( hash( 'sha256', $filter_ip_search ), 0, 16 ) ); ?>...</code>)
+                (Hash: <code><?php echo esc_html( substr( CUFT_Click_Tracker::hash_ip( $filter_ip_search ), 0, 16 ) ); ?>...</code>)
             </div>
             <?php endif; ?>
         </form>

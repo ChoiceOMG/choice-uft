@@ -119,6 +119,29 @@ class CUFT_Event_Recorder {
                 return;
             }
 
+            /**
+             * Filter whether an event reported by the browser is recorded on the click.
+             *
+             * Ignored phone numbers and links marked data-cuft-ignore are
+             * dropped in the browser before this request is made; the request
+             * carries no phone number, so the server cannot tell which link was
+             * clicked. Use this filter for decisions the server can make, such
+             * as dropping every email_click.
+             *
+             * @since 3.30.0
+             *
+             * @param bool   $record     Whether to record the event. Default true.
+             * @param string $event_type Validated event type.
+             * @param string $click_id   Validated click ID.
+             */
+            if ( ! apply_filters( 'cuft_record_event', true, $event_type, $click_id ) ) {
+                wp_send_json_success( array(
+                    'message' => 'Event not recorded',
+                    'skipped' => true,
+                ) );
+                return;
+            }
+
             // Record event using Click Tracker
             $result = CUFT_Click_Tracker::add_event( $click_id, $event_type );
 

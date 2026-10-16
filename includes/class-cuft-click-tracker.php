@@ -943,16 +943,39 @@ class CUFT_Click_Tracker {
     }
 
     /**
-     * Hash IP address using SHA256 for privacy
+     * Keyed hash of an IP address (HMAC-SHA256, 64 hex characters).
+     *
+     * Before 3.30.0 this was sha256(ip) with no key. There are only 2^32 IPv4
+     * addresses, so anyone holding a row could recover the IP by hashing them
+     * all. The key comes from wp-config.php (see ip_hash_key()), so a copy of
+     * the database alone no longer reverses it.
      *
      * @param string $ip The IP address to hash
-     * @return string The SHA256 hash of the IP (64 characters) or empty string
+     * @return string 64-character hex hash, or empty string when there is no IP
      */
-    private static function hash_ip( $ip ) {
+    public static function hash_ip( $ip ) {
         if ( empty( $ip ) ) {
             return '';
         }
-        return hash( 'sha256', $ip );
+        return hash_hmac( 'sha256', $ip, self::ip_hash_key() );
+    }
+
+    /**
+     * Key for hash_ip().
+     *
+     * wp_salt() with a scheme of our own derives from SECRET_KEY in
+     * wp-config.php, which is not stored in the database, unlike a generated
+     * option would be. Define CUFT_IP_HASH_KEY to share one key across sites
+     * whose hashes must match. Rotating the wp-config.php salts changes the
+     * key: hashes written before and after no longer match each other.
+     *
+     * @return string
+     */
+    private static function ip_hash_key() {
+        if ( defined( 'CUFT_IP_HASH_KEY' ) && '' !== (string) CUFT_IP_HASH_KEY ) {
+            return (string) CUFT_IP_HASH_KEY;
+        }
+        return wp_salt( 'cuft_ip_hash' );
     }
     
     /**
@@ -1239,7 +1262,10 @@ class CUFT_Click_Tracker {
     }
     
     /**
-     * Delete old records
+     * Delete records created more than $days days ago, in batches of 1,000.
+     *
+     * The scheduled retention job is CUFT_Privacy::run_retention(), which
+     * also bounds its run time; this is the direct, unbounded-time form.
      */
     public static function cleanup_old_records( $days = 365 ) {
         global $wpdb;
@@ -1248,8 +1274,12 @@ class CUFT_Click_Tracker {
         $days        = absint( $days );
         $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
-        $result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE date_created < %s', $table_name, $cutoff_date ) );
+        $result = 0;
+        do {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
+            $rows    = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE date_created < %s LIMIT 1000', $table_name, $cutoff_date ) );
+            $result += max( 0, (int) $rows );
+        } while ( 1000 === $rows );
         
         if ( class_exists( 'CUFT_Logger' ) ) {
             CUFT_Logger::log( "Cleaned up {$result} old click tracking records", 'info' );

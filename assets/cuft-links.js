@@ -2,6 +2,8 @@
    - Sends phone_click for tel: links (with normalized number)
    - Also sends email_click for mailto: links (optional bonus)
    - Never prevents default; wrapped in try/catch so it cannot interfere
+   - Skips links inside [data-cuft-ignore] or .cuft-ignore, and tel: links to
+     numbers on the Ignored Phone Numbers list: no dataLayer push, no request
 */
 
 // Set page load time for engagement tracking
@@ -38,6 +40,41 @@ try {
     } catch (e) {
       return href || "";
     }
+  }
+
+  // Match key for a tel: href: digits before any extension, last 10 kept.
+  // Same rule as CUFT_Privacy::normalize_phone() in PHP.
+  function phoneKey(href) {
+    try {
+      var value = String(href || "").replace(/^\s*tel:/i, "");
+      try {
+        value = decodeURIComponent(value);
+      } catch (e) {}
+      var digits = value.split(/[;,a-z]/i)[0].replace(/\D/g, "");
+      return digits.length < 7 ? "" : digits.slice(-10);
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function ignoredPhones() {
+    var cfg = window.cuftConfig;
+    var list = (cfg && cfg.ignorePhones) || window.cuftIgnorePhones || [];
+    return Object.prototype.toString.call(list) === "[object Array]" ? list : [];
+  }
+
+  function isIgnored(el, href) {
+    if (el.closest && el.closest("[data-cuft-ignore], .cuft-ignore")) return true;
+    if (/^tel:/i.test(href)) {
+      var key = phoneKey(href);
+      if (key) {
+        var list = ignoredPhones();
+        for (var i = 0; i < list.length; i++) {
+          if (String(list[i]) === key) return true;
+        }
+      }
+    }
+    return false;
   }
 
   function getGA4StandardParams() {
@@ -181,6 +218,12 @@ try {
       var hrefLower = href.toLowerCase();
       var a = (hrefLower.indexOf("tel:") === 0 || hrefLower.indexOf("mailto:") === 0) ? el : null;
       if (!a) return;
+
+      // Excluded by the site owner: nothing is pushed or recorded.
+      if (isIgnored(a, href)) {
+        log("ignored link:", hrefLower.indexOf("tel:") === 0 ? "tel" : "mailto");
+        return;
+      }
 
       // Get GA4 standard parameters
       var ga4Params = getGA4StandardParams();
