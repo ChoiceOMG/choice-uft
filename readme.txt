@@ -4,7 +4,7 @@ Tags: forms, form tracking, analytics, conversion tracking, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.29.0
+Stable tag: 3.29.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -108,7 +108,9 @@ and campaign data described above if you configure tags to forward it.
 = Server-side Google Tag Manager (optional custom host) =
 
 Used only when you enable server-side GTM and enter your own tagging server
-URL. Off by default.
+hostname. Off by default. The setting accepts a bare hostname only (for
+example `gtm.example.com`); the plugin builds the script address itself as
+`https://<host>/gtm.js?id=<container ID>`.
 
 *What is sent:* the container script is requested from the host you entered
 instead of from Google, so that host receives the same page-load request
@@ -171,8 +173,8 @@ site's domain name and the registration secret to
 checked is sent from your server to
 `https://phone-validator.choice.zone/validate-phone` together with the
 site's registration token. Choice OMG's service looks the number up with its
-own providers, Twilio Lookup and Abstract API, and returns whether the number
-is valid, its line type, and a quality score.
+own providers and returns whether the number is valid, its line type, and a
+quality score. The plugin itself never contacts those providers.
 
 *When:* when a submitted phone number is validated. Results are cached on your
 site for 24 hours per number, so a repeated number is not sent again within
@@ -181,8 +183,6 @@ that window.
 * Service: [Choice OMG](https://choice.marketing/tools/choice-uft/)
 * Terms of service: [https://choice.marketing/terms/](https://choice.marketing/terms/)
 * Privacy policy: [https://choice.marketing/privacy-policy/](https://choice.marketing/privacy-policy/)
-* Sub-processor Twilio: [terms](https://www.twilio.com/en-us/legal/tos), [privacy policy](https://www.twilio.com/en-us/legal/privacy)
-* Sub-processor Abstract API: [terms and privacy policy](https://www.abstractapi.com/legal/legal)
 
 Because form submissions can carry personal data, review your own privacy
 policy and any applicable data-protection obligations (GDPR, CCPA, PIPEDA and
@@ -246,10 +246,9 @@ errors are caught so a failure cannot block a form submission.
 
 Yes. The Click Tracking screen shows a webhook URL that marks a tracked click
 as qualified, scores it, or records a lifecycle status such as `qualify_lead`.
-Each request must carry the site's webhook key, which the same screen displays
-and can regenerate. Sites that installed a version before 3.28.0 keep the key
-optional until an administrator switches on "Require webhook key", so their
-existing links keep working.
+Every request must carry the site's secret webhook key, which the same screen
+displays and can regenerate. Requests without the right key are rejected with
+HTTP 403 and change nothing.
 
 = Can I change what is tracked? =
 
@@ -267,11 +266,30 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Changelog ==
 
-= 3.29.0 =
+= 3.29.3 =
+* First release that carries both 3.29 lines: the directory review fixes listed under 3.29.0 to 3.29.2, and the Google tag gateway loader mode below.
 * Added a Google tag gateway loader mode (Settings > Server-Side GTM). When switched on with a same-origin script path, the container loads from that path instead of googletagmanager.com. It is off by default and changes nothing on a site that leaves it off.
 * An hourly health probe checks the path and the container: the container response must hold both the container id and `google_tag_manager`, and the probe follows no redirects. Two passes in a row select the gateway; two failures in a row return to the loader the site used before. The loader also falls back to Google in the browser if the gateway script errors or does not define the container.
 * Every state change purges the page caches of WP Super Cache, WP Rocket, W3 Total Cache, SiteGround Optimizer and LiteSpeed Cache, and the object cache.
 * The noscript iframe stays on googletagmanager.com while the gateway mode is enabled.
+* The gateway loader builds its script URLs like every other mode: in PHP, from the validated path or host and the container ID, encoded for script context.
+
+= 3.29.2 =
+* The webhook always requires the site's secret key. The "Require webhook key" setting is removed; a key is generated for any site that lacks one, and a request without the right key is rejected before any other input is read.
+* Scripts no longer fall back to a hard-coded `/wp-admin/admin-ajax.php`. The AJAX address comes only from `admin_url( 'admin-ajax.php' )`, passed in by PHP.
+* Readme: the phone validation section lists only the service the plugin contacts.
+
+= 3.29.1 =
+* Lead events are no longer lost on the click record. The browser sends form_submit, generate_lead and qualify_lead as three requests within milliseconds; each one read the saved events, added its own and wrote the list back, so they overwrote each other and the record kept one or two of the three. Writes now take a per-click database lock and only land if the saved list is unchanged since it was read, retrying otherwise. Works on InnoDB and MyISAM tables and on hosts without user locks.
+* Contact Form 7 submissions now record their events on the click record. The script settings the recorder needs were attached to jQuery, which WordPress does not load on a page where nothing depends on it, and Contact Form 7 does not. The settings now load on every page from the plugin's own script handle.
+
+= 3.29.0 =
+* Server-side GTM: the setting now takes a bare hostname (for example `gtm.example.com`) instead of a URL. The plugin builds `https://<host>/gtm.js?id=<container ID>` itself; hostnames with a scheme other than https, a path, a query, a port, credentials, an IP address, localhost or an internal suffix are rejected. A URL saved by an earlier version is converted to its host automatically. A URL that carried a path keeps its host but falls back to Google's endpoint until you test the connection again.
+* Server-side GTM health checks always verify TLS certificates; the `.localnet` exception is removed. A new or changed host must pass its own health checks before pages load from it.
+* Every value printed inside an inline script is now encoded so it cannot close the script element. Removed unused server-side dataLayer code in the Contact Form 7, Elementor, Ninja Forms and Gravity Forms integrations; it never reached the page, and the browser scripts fire the same events.
+* The visitor event endpoint accepts only the events a browser produces (`phone_click`, `email_click`, `form_submit`, `generate_lead`, `qualify_lead`). CRM statuses reach the click table only through the webhook. Click IDs and UTM values longer than 255 characters are ignored or cut.
+* Removed the "is active with N form framework(s) detected" admin notice. The remaining notices appear only on the plugin's own screens and can be dismissed.
+* A click-write error shown on the Click Tracking screen now clears after the next successful write or table repair, and can be dismissed.
 
 = 3.28.4 =
 * Click tracking table now installs on hosts whose default storage engine is MyISAM (or InnoDB with the old 767/1000-byte index limit). The unique index on click_id covered all 255 utf8mb4 characters (1,020 bytes), which MySQL rejects there with "Specified key was too long; max key length is 1000 bytes", so the table was never created and no clicks were recorded. The index now covers the first 191 characters; click IDs are far shorter, so uniqueness is unchanged, and existing tables are not altered.
@@ -357,6 +375,18 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.29.3 =
+Upgrading from 3.28.x: the webhook now always requires the site's key, and a server-side GTM URL becomes a bare hostname. Adds an optional Google tag gateway mode, off by default.
+
+= 3.29.2 =
+The webhook now always requires the site's key. Any integration calling it without `key=` must use the URL shown on the Click Tracking screen.
+
+= 3.29.1 =
+Fixes lead events missing from click records (concurrent writes, and every Contact Form 7 submission). No settings change.
+
+= 3.29.0 =
+The server-side GTM setting now takes a hostname only; a saved URL is converted automatically. A saved URL that included a path falls back to Google's endpoint until you test the connection again.
 
 = 3.28.0 =
 Requires WordPress 6.2 or later. Existing sites keep generate_lead firing and the webhook open; new installs start with generate_lead off and the webhook key required. The Test Form Builder is removed and its test pages are deleted.

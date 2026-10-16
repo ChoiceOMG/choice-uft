@@ -201,6 +201,54 @@ class Test_Click_Tracker_Self_Heal extends WP_UnitTestCase {
     }
 
     /**
+     * A successful write after a failure clears the recorded error, so a
+     * fixed site stops showing a stale notice.
+     */
+    public function test_successful_write_clears_last_write_error() {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Test setup: drop the table so the next insert fails.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE %i', $this->table_name ) );
+        $this->assertFalse( CUFT_Click_Tracker::track_click( 'STALE-ERROR-A' ) );
+        $this->assertNotNull( CUFT_Click_Tracker::get_last_write_error() );
+
+        CUFT_Click_Tracker::create_table();
+        $this->assertNotFalse( CUFT_Click_Tracker::track_click( 'STALE-ERROR-B' ) );
+        $this->assertNull( CUFT_Click_Tracker::get_last_write_error() );
+    }
+
+    /**
+     * A successful schema repair clears the recorded error.
+     */
+    public function test_successful_repair_clears_last_write_error() {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Test setup: drop the table so the next insert fails.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE %i', $this->table_name ) );
+        $this->assertFalse( CUFT_Click_Tracker::track_click( 'STALE-ERROR-C' ) );
+        $this->assertNotNull( CUFT_Click_Tracker::get_last_write_error() );
+
+        $this->assertTrue( CUFT_Click_Tracker::self_heal_schema( true ) );
+        $this->assertNull( CUFT_Click_Tracker::get_last_write_error() );
+    }
+
+    /**
+     * A healthy check that repaired nothing leaves an unrelated write error
+     * in place for the administrator to see.
+     */
+    public function test_healthy_check_keeps_unrelated_write_error() {
+        update_option( CUFT_Click_Tracker::OPTION_LAST_WRITE_ERROR, array(
+            'timestamp' => '2026-09-24 00:00:00',
+            'context'   => 'update',
+            'message'   => 'Data too long',
+            'click_id'  => '',
+        ) );
+
+        $this->assertTrue( CUFT_Click_Tracker::self_heal_schema( true ) );
+        $this->assertNotNull( CUFT_Click_Tracker::get_last_write_error() );
+    }
+
+    /**
      * CUFT_Logger::log() normalises the historical call shape used across
      * this codebase, CUFT_Logger::log( 'error', 'message' ) (level and
      * message swapped), so those entries are stored under the level the

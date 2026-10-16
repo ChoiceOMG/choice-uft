@@ -5,7 +5,7 @@ class Test_Loader_Golden extends WP_UnitTestCase {
     public function set_up() {
         parent::set_up();
         $GLOBALS['wp_scripts'] = new WP_Scripts();
-        foreach ( array( 'cuft_sgtm_enabled', 'cuft_sgtm_url', 'cuft_sgtm_active_server', 'cuft_gtg_enabled', 'cuft_gtg_script_path', 'cuft_gtg_active' ) as $o ) {
+        foreach ( array( 'cuft_sgtm_enabled', 'cuft_sgtm_url', 'cuft_sgtm_active_server', 'cuft_gtg_enabled', 'cuft_gtg_script_path', 'cuft_gtg_active', 'cuft_gtg_fallback_reason' ) as $o ) {
             delete_option( $o );
         }
         update_option( 'cuft_gtm_id', 'GTM-TKVDMKQ6' );
@@ -19,6 +19,9 @@ class Test_Loader_Golden extends WP_UnitTestCase {
             'sgtm-fallback'         => array( 'sgtm-fallback', $sgtm + array( 'cuft_sgtm_active_server' => 'fallback' ) ),
             // A path saved but the gateway switched off must change nothing.
             'gtg-off-with-path'     => array( 'plain', array( 'cuft_gtg_enabled' => false, 'cuft_gtg_script_path' => '/k7q2fx/' ) ),
+            // Enabling the gateway or changing its path resets the state to fallback, so the state is set last.
+            'gtg-gateway'           => array( 'gtg-gateway', array( 'cuft_gtg_enabled' => true, 'cuft_gtg_script_path' => '/k7q2fx/', 'cuft_gtg_active' => 'gateway' ) ),
+            'gtg-fallback'          => array( 'gtg-fallback', array( 'cuft_gtg_enabled' => true, 'cuft_gtg_script_path' => '/k7q2fx/', 'cuft_gtg_active' => 'fallback', 'cuft_gtg_fallback_reason' => 'healthy: 502' ) ),
         );
     }
 

@@ -17,17 +17,14 @@ class CUFT_Admin {
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
         add_action( 'admin_init', array( $this, 'handle_export_actions' ) );
         add_action( 'wp_ajax_cuft_test_sgtm', array( $this, 'ajax_test_sgtm' ) );
-        add_action( 'wp_ajax_cuft_save_sgtm_config', array( $this, 'ajax_save_sgtm_config' ) );
         add_action( 'wp_ajax_cuft_manual_health_check', array( $this, 'ajax_manual_health_check' ) );
         add_action( 'wp_ajax_cuft_get_sgtm_status', array( $this, 'ajax_get_sgtm_status' ) );
         add_action( 'wp_ajax_cuft_download_gtm_template', array( $this, 'ajax_download_gtm_template' ) );
-        add_action( 'wp_ajax_cuft_dismiss_update_notice', array( $this, 'ajax_dismiss_update_notice' ) );
         
         // Cron job for scheduled health checks
         add_action( 'cuft_scheduled_health_check', array( $this, 'scheduled_health_check' ) );
         add_filter( 'cron_schedules', array( $this, 'add_cron_intervals' ) );
         // cuft_record_event is handled by CUFT_Event_Recorder.
-        add_action( 'wp_ajax_cuft_dismiss_notice', array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
     
@@ -210,7 +207,7 @@ class CUFT_Admin {
                     </tr>
                     <tr id="cuft-sgtm-url-row" style="<?php echo $sgtm_enabled ? '' : 'display:none;'; ?>">
                         <th scope="row">
-                            Server GTM URL
+                            <label for="cuft-sgtm-host">Server GTM Host</label>
                             <?php // The WordPress.org package ships without the GTM container exports, so the button only appears where the file exists. ?>
                             <?php if ( file_exists( CUFT_PATH . 'gtm-server/CUFT - Server Defaults.json' ) ) : ?>
                             <br><br>
@@ -222,23 +219,23 @@ class CUFT_Admin {
                         </th>
                         <td>
                             <?php
-                            $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+                            $sgtm_host = CUFT_SGTM::get_host();
                             $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
                             ?>
-                            <input type="text" name="sgtm_url" value="<?php echo esc_attr( $sgtm_url ); ?>"
-                                   placeholder="https://gtm.yourdomain.com" class="regular-text" id="cuft-sgtm-url" />
+                            <input type="text" name="sgtm_host" value="<?php echo esc_attr( $sgtm_host ); ?>"
+                                   placeholder="gtm.example.com" class="regular-text" id="cuft-sgtm-host"
+                                   autocomplete="off" spellcheck="false" maxlength="253" />
                             <button type="button" class="button button-secondary" id="cuft-test-sgtm">Test Connection</button>
                             <div id="cuft-sgtm-status" style="margin-top: 10px;">
-                                <?php if ( $sgtm_url && $sgtm_validated ): ?>
+                                <?php if ( $sgtm_host && $sgtm_validated ): ?>
                                     <span style="color: #28a745;">✓ Server GTM endpoint validated</span>
-                                <?php elseif ( $sgtm_url && ! $sgtm_validated ): ?>
+                                <?php elseif ( $sgtm_host && ! $sgtm_validated ): ?>
                                     <span style="color: #dc3545;">✗ Server GTM endpoint not validated - please test connection</span>
                                 <?php endif; ?>
                             </div>
                             <p class="description">
-                                Enter your server-side GTM URL (without trailing slash). This will replace googletagmanager.com in script sources.<br>
-                                Example: <code>https://gtm.yourdomain.com</code> or <code>https://yourdomain.com/gtm</code><br>
-                                <strong>Local Development:</strong> <code>.localnet</code> domains are supported with automatic SSL verification bypass (e.g., <code>https://tagging-server.localnet</code>)
+                                The hostname of your server-side tagging server, with no <code>https://</code>, path or port. Example: <code>gtm.example.com</code><br>
+                                The plugin loads <code>https://&lt;host&gt;/gtm.js?id=&lt;your GTM container ID&gt;</code> from it, and falls back to www.googletagmanager.com if the server fails its health check.
                             </p>
                         </td>
                     </tr>
@@ -494,15 +491,15 @@ class CUFT_Admin {
                         <td>
                             <?php
                             $sgtm_enabled = get_option( 'cuft_sgtm_enabled', false );
-                            $sgtm_url = get_option( 'cuft_sgtm_url', '' );
+                            $sgtm_host = CUFT_SGTM::get_host();
                             $sgtm_validated = get_option( 'cuft_sgtm_validated', false );
 
-                            if ( $sgtm_enabled && $sgtm_url && $sgtm_validated ): ?>
-                                <span style="color: #28a745;">✓</span> Active - <?php echo esc_html( $sgtm_url ); ?>
-                            <?php elseif ( $sgtm_enabled && $sgtm_url && ! $sgtm_validated ): ?>
-                                <span style="color: #ffc107;">⚠</span> Configured but not validated - <?php echo esc_html( $sgtm_url ); ?>
-                            <?php elseif ( $sgtm_enabled && ! $sgtm_url ): ?>
-                                <span style="color: #dc3545;">✗</span> Enabled but no URL configured
+                            if ( $sgtm_enabled && $sgtm_host && $sgtm_validated ): ?>
+                                <span style="color: #28a745;">✓</span> Active - <?php echo esc_html( $sgtm_host ); ?>
+                            <?php elseif ( $sgtm_enabled && $sgtm_host && ! $sgtm_validated ): ?>
+                                <span style="color: #ffc107;">⚠</span> Configured but not validated - <?php echo esc_html( $sgtm_host ); ?>
+                            <?php elseif ( $sgtm_enabled && ! $sgtm_host ): ?>
+                                <span style="color: #dc3545;">✗</span> Enabled but no host configured
                             <?php else: ?>
                                 <span style="color: #6c757d;">-</span> Disabled (using standard GTM)
                             <?php endif; ?>
@@ -542,18 +539,28 @@ class CUFT_Admin {
         }
         $console_logging_raw = isset( $_POST['console_logging'] ) ? sanitize_text_field( wp_unslash( $_POST['console_logging'] ) ) : 'no';
         $console_logging = in_array( $console_logging_raw, array( 'no', 'yes', 'admin_only' ), true ) ? $console_logging_raw : 'no';
-        $collector_host = isset( $_POST['cuft_collector_host'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_collector_host'] ) ) : '';
-        // Strip protocol/path if a user pastes a full URL - we only want the host.
-        $collector_host = preg_replace( '#^https?://#i', '', $collector_host );
-        $collector_host = trim( $collector_host, "/ \t\n\r\0\x0B" );
-        $sgtm_enabled = ! empty( $_POST['sgtm_enabled'] );
-        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
+        $collector_host_raw = isset( $_POST['cuft_collector_host'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_collector_host'] ) ) : '';
+        $collector_host     = '' === trim( $collector_host_raw ) ? '' : CUFT_SGTM::sanitize_host( $collector_host_raw );
+        $sgtm_enabled       = ! empty( $_POST['sgtm_enabled'] );
+        $sgtm_host_raw      = isset( $_POST['sgtm_host'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_host'] ) ) : '';
+        $sgtm_host          = '' === trim( $sgtm_host_raw ) ? '' : CUFT_SGTM::sanitize_host( $sgtm_host_raw );
 
-        // Remove trailing slash from sGTM URL
-        $sgtm_url = rtrim( $sgtm_url, '/' );
+        // Validate the hostnames before anything is written, so a rejected
+        // value leaves every stored setting as it was.
+        if ( false === $collector_host ) {
+            add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid collector host. Enter a hostname only, for example collect.example.com (no https://, path or port). Nothing was saved.', 'error' );
+            settings_errors( 'cuft_messages' );
+            return;
+        }
+        if ( $sgtm_enabled && ( false === $sgtm_host || '' === $sgtm_host ) ) {
+            add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid Server GTM host. Enter a hostname only, for example gtm.example.com (no https://, path, query or port; IP addresses and localhost are not accepted). Nothing was saved.', 'error' );
+            settings_errors( 'cuft_messages' );
+            return;
+        }
 
         // Validate GTM-ID format
-        if ( empty( $gtm_id ) || $this->is_valid_gtm_id( $gtm_id ) ) {
+        if ( empty( $gtm_id ) || CUFT_SGTM::sanitize_gtm_id( $gtm_id ) ) {
+            $gtm_id = empty( $gtm_id ) ? '' : CUFT_SGTM::sanitize_gtm_id( $gtm_id );
             update_option( 'cuft_gtm_id', $gtm_id );
             update_option( 'cuft_debug_enabled', $debug_enabled );
             update_option( 'cuft_generate_lead_enabled', $generate_lead_enabled );
@@ -564,23 +571,20 @@ class CUFT_Admin {
             update_option( 'cuft_collector_host', $collector_host );
             update_option( 'cuft_sgtm_enabled', $sgtm_enabled );
 
-            // Only save sGTM URL if sGTM is enabled
+            // Only save the sGTM host if sGTM is enabled (validated above).
             if ( $sgtm_enabled ) {
-                if ( $this->is_valid_sgtm_url( $sgtm_url ) ) {
-                    // Get old URL BEFORE updating it
-                    $old_url = get_option( 'cuft_sgtm_url', '' );
+                $old_host = CUFT_SGTM::get_host();
+                update_option( CUFT_SGTM::OPTION_HOST, $sgtm_host );
 
-                    update_option( 'cuft_sgtm_url', $sgtm_url );
-
-                    // Reset validation only if URL actually changed
-                    if ( $old_url !== $sgtm_url && ! empty( $old_url ) ) {
-                        update_option( 'cuft_sgtm_validated', false );
-                        add_settings_error( 'cuft_messages', 'cuft_message', 'Server GTM URL changed. Please test the connection again to validate.', 'info' );
+                // A new host has to pass its own health checks before pages
+                // load gtm.js from it; until then they use Google's endpoint.
+                if ( $old_host !== $sgtm_host ) {
+                    update_option( 'cuft_sgtm_validated', false );
+                    update_option( 'cuft_sgtm_active_server', 'fallback' );
+                    update_option( 'cuft_sgtm_health_consecutive_success', 0 );
+                    if ( '' !== $old_host ) {
+                        add_settings_error( 'cuft_messages', 'cuft_message', 'Server GTM host changed. Please test the connection again to validate.', 'info' );
                     }
-                    // Otherwise preserve the current validation status - don't change it!
-                } else {
-                    add_settings_error( 'cuft_messages', 'cuft_message', 'Invalid Server GTM URL format. Please enter a valid HTTPS URL.', 'error' );
-                    return;
                 }
             } else {
                 // If sGTM is disabled, clear the validation
@@ -639,45 +643,9 @@ class CUFT_Admin {
      * Validate GTM ID format
      */
     private function is_valid_gtm_id( $gtm_id ) {
-        return preg_match( '/^GTM-[A-Z0-9]{4,}$/i', $gtm_id );
+        return false !== CUFT_SGTM::sanitize_gtm_id( (string) $gtm_id );
     }
 
-    /**
-     * Validate sGTM URL format
-     */
-    private function is_valid_sgtm_url( $sgtm_url ) {
-        if ( empty( $sgtm_url ) ) {
-            return false;
-        }
-
-        // Check if it's a valid URL starting with https
-        if ( ! filter_var( $sgtm_url, FILTER_VALIDATE_URL ) || strpos( $sgtm_url, 'https://' ) !== 0 ) {
-            return false;
-        }
-
-        // Additional validation for localnet domains
-        if ( $this->is_localnet_url( $sgtm_url ) ) {
-            // For localnet URLs, ensure they follow the expected pattern
-            if ( ! preg_match( '/^https:\/\/[a-zA-Z0-9\-\.]+\.localnet(\/.*)?$/', $sgtm_url ) ) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if URL is a localnet domain
-     */
-    private function is_localnet_url( $url ) {
-        $parsed = wp_parse_url( $url );
-        if ( ! $parsed || ! isset( $parsed['host'] ) ) {
-            return false;
-        }
-
-        return strpos( $parsed['host'], '.localnet' ) !== false;
-    }
-    
     /**
      * Render UTM tracking status
      */
@@ -799,25 +767,13 @@ class CUFT_Admin {
         $settings_hook = 'settings_page_choice-universal-form-tracker';
         $click_hook    = 'toplevel_page_cuft-click-tracking';
 
-        // Plugin screens use the admin stylesheet. The GitHub build also styles
-        // its updater notices with it on other screens, so it keeps loading it
-        // everywhere; the WordPress.org build (no updater) loads it only here.
-        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) || CUFT_Plugin::has_updater() ) {
+        // The admin stylesheet loads on the plugin's own screens only.
+        if ( in_array( $hook, array( $settings_hook, $click_hook ), true ) ) {
             wp_enqueue_style(
                 'cuft-admin',
                 CUFT_URL . '/assets/cuft-admin.css',
                 array(),
                 CUFT_VERSION
-            );
-        }
-
-        // Dismiss handler for the informational notice rendered by admin_notices().
-        if ( $this->should_show_active_notice() ) {
-            wp_register_script( 'cuft-admin-notice', false, array( 'jquery' ), CUFT_VERSION, true );
-            wp_enqueue_script( 'cuft-admin-notice' );
-            wp_add_inline_script(
-                'cuft-admin-notice',
-                'jQuery(function($){$(document).on("click",".notice[data-dismiss-action=\"cuft-dismiss-notice\"] .notice-dismiss",function(){$.post(ajaxurl,{action:"cuft_dismiss_notice",nonce:' . wp_json_encode( wp_create_nonce( 'cuft_dismiss_notice' ) ) . '});});});'
             );
         }
 
@@ -834,7 +790,7 @@ class CUFT_Admin {
             true
         );
 
-        wp_localize_script( 'cuft-admin', 'cuftAdmin', array(
+        CUFT_Utils::localize( 'cuft-admin', 'cuftAdmin', array(
             'ajax_url'        => admin_url( 'admin-ajax.php' ),
             'nonce'           => wp_create_nonce( 'cuft_admin' ),
             'register_nonce'  => wp_create_nonce( 'cuft_token_register' ),
@@ -858,7 +814,7 @@ class CUFT_Admin {
                 true
             );
 
-            wp_localize_script( 'cuft-force-update', 'cuftForceUpdate', array(
+            CUFT_Utils::localize( 'cuft-force-update', 'cuftForceUpdate', array(
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                 'nonce' => wp_create_nonce( 'cuft_force_update' ),
             ) );
@@ -880,115 +836,43 @@ class CUFT_Admin {
     public function ajax_test_sgtm() {
         // Verify nonce and permissions
         if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+            wp_send_json_error( array( 'message' => 'Security check failed' ), 403 );
         }
 
-        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
+        $raw_host = isset( $_POST['sgtm_host'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_host'] ) ) : '';
+        $gtm_id   = CUFT_SGTM::sanitize_gtm_id( (string) get_option( 'cuft_gtm_id', '' ) );
 
-        if ( empty( $sgtm_url ) ) {
-            wp_send_json_error( array( 'message' => 'Please enter a Server GTM URL' ) );
+        if ( '' === trim( $raw_host ) ) {
+            wp_send_json_error( array( 'message' => 'Please enter a Server GTM host' ) );
         }
 
-        if ( empty( $gtm_id ) ) {
+        if ( ! $gtm_id ) {
             wp_send_json_error( array( 'message' => 'Please configure a GTM ID first' ) );
         }
 
-        // Remove trailing slash
-        $sgtm_url = rtrim( $sgtm_url, '/' );
-
-        // Validate URL format
-        if ( ! $this->is_valid_sgtm_url( $sgtm_url ) ) {
-            wp_send_json_error( array( 'message' => 'Invalid URL format. Please use HTTPS.' ) );
+        $sgtm_host = CUFT_SGTM::sanitize_host( $raw_host );
+        if ( ! $sgtm_host ) {
+            wp_send_json_error( array( 'message' => 'Invalid host. Enter a hostname only, for example gtm.example.com.' ) );
         }
 
-        // Test the endpoints
-        $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+        // Only the saved host may change stored state; testing a host that
+        // has not been saved yet reports the result without recording it.
+        $is_saved_host = ( CUFT_SGTM::get_host() === $sgtm_host );
+        $test_results  = $this->test_sgtm_endpoints( $sgtm_host, $gtm_id, $is_saved_host );
 
-        if ( $test_results['success'] ) {
-            // Save validation status
-            update_option( 'cuft_sgtm_validated', true );
-            wp_send_json_success( array(
-                'valid' => true,
-                'message' => 'Custom server validated successfully',
-                'response_time' => 200.0, // Mock value - in real implementation, measure actual time
-                'endpoints_tested' => array(
-                    'gtm_js' => isset( $test_results['details']['gtm_js'] ) && strpos( $test_results['details']['gtm_js'], '✓' ) !== false,
-                    'ns_html' => isset( $test_results['details']['ns_html'] ) && strpos( $test_results['details']['ns_html'], '✓' ) !== false
-                )
-            ) );
-        } else {
-            update_option( 'cuft_sgtm_validated', false );
-            wp_send_json_success( array(
-                'valid' => false,
-                'message' => $test_results['message'],
-                'response_time' => 5000.0, // Mock value for timeout
-                'endpoints_tested' => array(
-                    'gtm_js' => false,
-                    'ns_html' => false
-                )
-            ) );
-        }
-    }
-
-    /**
-     * AJAX handler for saving custom GTM server configuration
-     */
-    public function ajax_save_sgtm_config() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_admin' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
+        if ( $is_saved_host ) {
+            update_option( 'cuft_sgtm_validated', (bool) $test_results['success'] );
         }
 
-        $enabled = ! empty( $_POST['enabled'] );
-        $sgtm_url = isset( $_POST['sgtm_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sgtm_url'] ) ) : '';
-
-        // Validate URL if provided
-        if ( $enabled && ! empty( $sgtm_url ) ) {
-            if ( ! filter_var( $sgtm_url, FILTER_VALIDATE_URL ) ) {
-                wp_send_json_error( array( 'message' => 'Invalid URL format' ) );
-            }
-        }
-
-        // Save configuration
-        update_option( 'cuft_sgtm_enabled', $enabled );
-        if ( ! empty( $sgtm_url ) ) {
-            update_option( 'cuft_sgtm_url', $sgtm_url );
-        }
-
-        // Trigger initial health check if enabled and URL provided
-        $validated = false;
-        $active_server = 'fallback';
-        $validation_error = '';
-
-        if ( $enabled && ! empty( $sgtm_url ) ) {
-            $gtm_id = get_option( 'cuft_gtm_id', '' );
-            if ( ! empty( $gtm_id ) ) {
-                $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
-                $validated = $test_results['success'];
-                $active_server = $validated ? 'custom' : 'fallback';
-                if ( ! $validated ) {
-                    $validation_error = $test_results['message'];
-                }
-            }
-        }
-
-        // Set initial active server
-        update_option( 'cuft_sgtm_active_server', $active_server );
-
-        $response_data = array(
-            'message' => $validated ? 'Configuration saved successfully' : 'Configuration saved. Server validation failed - using fallback',
-            'enabled' => $enabled,
-            'url' => $sgtm_url,
-            'validated' => $validated,
-            'active_server' => $active_server
-        );
-
-        if ( ! $validated && ! empty( $validation_error ) ) {
-            $response_data['validation_error'] = $validation_error;
-        }
-
-        wp_send_json_success( $response_data );
+        wp_send_json_success( array(
+            'valid'            => (bool) $test_results['success'],
+            'message'          => $test_results['success'] ? 'Custom server validated successfully' : $test_results['message'],
+            'details'          => $test_results['details'],
+            'endpoints_tested' => array(
+                'gtm_js'  => isset( $test_results['details']['gtm_js'] ) && 0 === strpos( $test_results['details']['gtm_js'], 'OK' ),
+                'ns_html' => isset( $test_results['details']['ns_html'] ) && 0 === strpos( $test_results['details']['ns_html'], 'OK' ),
+            ),
+        ) );
     }
 
     /**
@@ -1001,16 +885,16 @@ class CUFT_Admin {
         }
 
         // Check if custom server is enabled
-        $enabled = get_option( 'cuft_sgtm_enabled', false );
-        $sgtm_url = get_option( 'cuft_sgtm_url', '' );
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
+        $enabled   = get_option( 'cuft_sgtm_enabled', false );
+        $sgtm_host = CUFT_SGTM::get_host();
+        $gtm_id    = CUFT_SGTM::sanitize_gtm_id( (string) get_option( 'cuft_gtm_id', '' ) );
 
-        if ( ! $enabled || empty( $sgtm_url ) || empty( $gtm_id ) ) {
+        if ( ! $enabled || '' === $sgtm_host || ! $gtm_id ) {
             wp_send_json_error( array( 'message' => 'Custom server not configured' ) );
         }
 
         // Perform health check
-        $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+        $test_results = $this->test_sgtm_endpoints( $sgtm_host, $gtm_id );
         $health_check_passed = $test_results['success'];
         $timestamp = time();
         $response_time = $test_results['success'] ? 200.0 : 5000.0; // Mock values
@@ -1044,7 +928,7 @@ class CUFT_Admin {
 
         // Get configuration
         $enabled = get_option( 'cuft_sgtm_enabled', false );
-        $url = get_option( 'cuft_sgtm_url', '' );
+        $url = CUFT_SGTM::get_host();
         $validated = get_option( 'cuft_sgtm_validated', false );
 
         // Get status
@@ -1069,7 +953,7 @@ class CUFT_Admin {
         $response_data = array(
             'configuration' => array(
                 'enabled' => $enabled,
-                'url' => $url,
+                'host' => $url,
                 'validated' => $validated
             ),
             'status' => array(
@@ -1148,16 +1032,16 @@ class CUFT_Admin {
      */
     public function scheduled_health_check() {
         // Check if custom server is enabled
-        $enabled = get_option( 'cuft_sgtm_enabled', false );
-        $sgtm_url = get_option( 'cuft_sgtm_url', '' );
-        $gtm_id = get_option( 'cuft_gtm_id', '' );
+        $enabled   = get_option( 'cuft_sgtm_enabled', false );
+        $sgtm_host = CUFT_SGTM::get_host();
+        $gtm_id    = CUFT_SGTM::sanitize_gtm_id( (string) get_option( 'cuft_gtm_id', '' ) );
 
-        if ( ! $enabled || empty( $sgtm_url ) || empty( $gtm_id ) ) {
+        if ( ! $enabled || '' === $sgtm_host || ! $gtm_id ) {
             return; // Skip health check if not configured
         }
 
         // Perform health check
-        $test_results = $this->test_sgtm_endpoints( $sgtm_url, $gtm_id );
+        $this->test_sgtm_endpoints( $sgtm_host, $gtm_id );
         
         // The store_health_check_result method will handle:
         // - Storing health check results
@@ -1167,122 +1051,74 @@ class CUFT_Admin {
     }
 
     /**
-     * Get the appropriate GTM server URL
-     * @return string The server URL to use for loading GTM
+     * Test the tagging server's gtm.js and ns.html endpoints.
+     *
+     * Both URLs are built by CUFT_SGTM from the validated host and container
+     * ID; TLS certificates are always verified.
+     *
+     * @param string $sgtm_host Validated bare host.
+     * @param string $gtm_id    Validated container ID.
+     * @param bool   $record    Store the result and update the server switch.
+     * @return array
      */
-    public function get_gtm_server_url() {
-        // Check if custom server is enabled
-        $enabled = get_option( 'cuft_sgtm_enabled', false );
-        if ( ! $enabled ) {
-            return 'https://www.googletagmanager.com';
-        }
-
-        // Check if we should use custom server
-        $active_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
-        if ( $active_server !== 'custom' ) {
-            return 'https://www.googletagmanager.com';
-        }
-
-        // Get and validate custom URL
-        $custom_url = get_option( 'cuft_sgtm_url', '' );
-        if ( empty( $custom_url ) ) {
-            return 'https://www.googletagmanager.com';
-        }
-
-        // Remove trailing slash if present
-        return rtrim( $custom_url, '/' );
-    }
-
-    /**
-     * Test sGTM endpoints
-     */
-    private function test_sgtm_endpoints( $sgtm_url, $gtm_id ) {
+    private function test_sgtm_endpoints( $sgtm_host, $gtm_id, $record = true ) {
         $results = array(
             'success' => false,
             'message' => '',
-            'details' => array()
+            'details' => array(),
         );
 
-        // Determine SSL verification setting based on whether this is a localnet URL
-        $is_localnet = $this->is_localnet_url( $sgtm_url );
-        $ssl_verify = ! $is_localnet; // Disable SSL verification for localnet URLs
+        $endpoints = array(
+            'gtm_js'  => CUFT_SGTM::script_url( $sgtm_host, $gtm_id ),
+            'ns_html' => CUFT_SGTM::noscript_url( $sgtm_host, $gtm_id ),
+        );
 
-        if ( $is_localnet ) {
-            $results['details']['ssl_note'] = 'ℹ️ SSL verification disabled for .localnet domain';
+        foreach ( $endpoints as $key => $url ) {
+            $label = 'gtm_js' === $key ? 'gtm.js' : 'ns.html';
+
+            if ( '' === $url ) {
+                $results['message'] = 'Invalid host or GTM container ID';
+                break;
+            }
+
+            $response = wp_remote_get( $url, array( 'timeout' => 5 ) );
+
+            if ( is_wp_error( $response ) ) {
+                $results['message']       = 'Failed to connect to ' . $label . ' endpoint: ' . $response->get_error_message();
+                $results['details'][ $key ] = 'Error: ' . $response->get_error_message();
+                break;
+            }
+
+            $code = (int) wp_remote_retrieve_response_code( $response );
+            $body = (string) wp_remote_retrieve_body( $response );
+
+            if ( 200 !== $code ) {
+                $results['message']       = $label . ' endpoint returned status code: ' . $code;
+                $results['details'][ $key ] = 'HTTP ' . $code;
+                break;
+            }
+
+            $looks_right = 'gtm_js' === $key
+                ? ( false !== strpos( $body, 'google' ) || false !== strpos( $body, 'gtm' ) )
+                : ( false !== strpos( $body, '<' ) );
+
+            if ( ! $looks_right ) {
+                $results['message']       = $label . ' endpoint did not return the expected content';
+                $results['details'][ $key ] = 'Invalid response content';
+                break;
+            }
+
+            $results['details'][ $key ] = 'OK (HTTP 200)';
         }
 
-        // Test gtm.js endpoint
-        $gtm_js_url = $sgtm_url . '/gtm.js?id=' . $gtm_id;
-        $gtm_js_response = wp_remote_get( $gtm_js_url, array(
-            'timeout' => 5,
-            'sslverify' => $ssl_verify
-        ) );
+        if ( '' === $results['message'] ) {
+            $results['success'] = true;
+            $results['message'] = 'Both endpoints validated successfully';
+        }
 
-        if ( is_wp_error( $gtm_js_response ) ) {
-            $results['message'] = 'Failed to connect to gtm.js endpoint: ' . $gtm_js_response->get_error_message();
-            $results['details']['gtm_js'] = 'Error: ' . $gtm_js_response->get_error_message();
+        if ( $record ) {
             $this->store_health_check_result( $results );
-            return $results;
         }
-
-        $gtm_js_code = wp_remote_retrieve_response_code( $gtm_js_response );
-        $gtm_js_body = wp_remote_retrieve_body( $gtm_js_response );
-
-        if ( $gtm_js_code !== 200 ) {
-            $results['message'] = 'gtm.js endpoint returned status code: ' . $gtm_js_code;
-            $results['details']['gtm_js'] = 'HTTP ' . $gtm_js_code;
-            $this->store_health_check_result( $results );
-            return $results;
-        }
-
-        // Check if response looks like GTM JavaScript
-        if ( strpos( $gtm_js_body, 'google' ) === false && strpos( $gtm_js_body, 'gtm' ) === false ) {
-            $results['message'] = 'gtm.js endpoint does not return valid GTM JavaScript';
-            $results['details']['gtm_js'] = 'Invalid response content';
-            $this->store_health_check_result( $results );
-            return $results;
-        }
-
-        $results['details']['gtm_js'] = '✓ OK (HTTP 200)';
-
-        // Test ns.html endpoint
-        $ns_html_url = $sgtm_url . '/ns.html?id=' . $gtm_id;
-        $ns_html_response = wp_remote_get( $ns_html_url, array(
-            'timeout' => 5,
-            'sslverify' => $ssl_verify
-        ) );
-
-        if ( is_wp_error( $ns_html_response ) ) {
-            $results['message'] = 'Failed to connect to ns.html endpoint: ' . $ns_html_response->get_error_message();
-            $results['details']['ns_html'] = 'Error: ' . $ns_html_response->get_error_message();
-            $this->store_health_check_result( $results );
-            return $results;
-        }
-
-        $ns_html_code = wp_remote_retrieve_response_code( $ns_html_response );
-        $ns_html_body = wp_remote_retrieve_body( $ns_html_response );
-
-        if ( $ns_html_code !== 200 ) {
-            $results['message'] = 'ns.html endpoint returned status code: ' . $ns_html_code;
-            $results['details']['ns_html'] = 'HTTP ' . $ns_html_code;
-            $this->store_health_check_result( $results );
-            return $results;
-        }
-
-        // Check if response looks like valid HTML
-        if ( strpos( $ns_html_body, '<' ) === false ) {
-            $results['message'] = 'ns.html endpoint does not return valid HTML';
-            $results['details']['ns_html'] = 'Invalid response content';
-            $this->store_health_check_result( $results );
-            return $results;
-        }
-
-        $results['details']['ns_html'] = '✓ OK (HTTP 200)';
-        $results['success'] = true;
-        $results['message'] = 'Both endpoints validated successfully';
-
-        // Store health check results
-        $this->store_health_check_result( $results );
 
         return $results;
     }
@@ -1476,6 +1312,11 @@ class CUFT_Admin {
                 <br>
                 <code><?php echo esc_html( $error['message'] ); ?></code>
             </p>
+            <form method="post" style="margin: 0 0 10px 0;">
+                <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
+                <input type="hidden" name="cuft_click_action" value="dismiss_write_error" />
+                <button type="submit" class="button button-small"><?php esc_html_e( 'Dismiss', 'choice-universal-form-tracker' ); ?></button>
+            </form>
         </div>
         <?php
     }
@@ -1590,13 +1431,12 @@ class CUFT_Admin {
         // Use placeholder for display if no data exists
         $display_click_id = $has_data ? $sample_click_id : 'YOUR_CLICK_ID';
 
-        $require_key = class_exists( 'CUFT_Click_Tracker' ) && CUFT_Click_Tracker::webhook_key_required();
-        $webhook_key = $require_key ? CUFT_Click_Tracker::get_webhook_key() : '';
+        $webhook_key = class_exists( 'CUFT_Click_Tracker' ) ? CUFT_Click_Tracker::get_webhook_key() : '';
 
-        $base_args = array( 'action' => 'cuft_webhook' );
-        if ( $require_key ) {
-            $base_args['key'] = $webhook_key;
-        }
+        $base_args = array(
+            'action' => 'cuft_webhook',
+            'key'    => $webhook_key,
+        );
         $endpoint_url = add_query_arg( $base_args, $webhook_url );
 
         $example_url = add_query_arg( array_merge( $base_args, array(
@@ -1610,37 +1450,20 @@ class CUFT_Admin {
             <h3 style="margin-top: 0;">📡 Webhook Endpoint</h3>
             <p style="color: #666; margin-top: 0;">
                 <strong>Updates a click's lead status from an email link, a CRM, or any system that can request a URL.</strong><br>
-                <?php if ( $require_key ) : ?>
-                    Every request must carry this site's webhook key in the <code>key</code> parameter. Requests without it are rejected with HTTP 403.
-                <?php else : ?>
-                    The webhook key is not required, so anyone who knows a click ID can update that click's status. Turn on "Require webhook key" below to close that.
-                <?php endif; ?>
+                Every request must carry this site's webhook key in the <code>key</code> parameter. Requests without it are rejected with HTTP 403.
             </p>
-
-            <form method="post" style="margin-bottom: 15px;">
-                <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
-                <input type="hidden" name="cuft_click_action" value="webhook_settings" />
-                <label>
-                    <input type="checkbox" name="cuft_webhook_require_key" value="1" <?php checked( $require_key ); ?> />
-                    <strong>Require webhook key</strong>
-                </label>
-                <?php submit_button( 'Save', 'secondary', 'cuft_webhook_settings_save', false ); ?>
-                <p class="description">When on, the webhook accepts only requests whose <code>key</code> matches the key shown below. Existing integrations must add <code>&amp;key=...</code> to their URLs before you turn this on.</p>
-            </form>
 
             <div style="margin-bottom: 15px;">
                 <label><strong>Webhook URL:</strong></label><br>
                 <input type="text" value="<?php echo esc_attr( $endpoint_url ); ?>" readonly class="large-text cuft-select-on-click" style="font-family: monospace;" />
-                <p class="description">Append <code>click_id</code> and the status parameters below.<?php echo $require_key ? ' Treat this URL as a secret: it contains the key.' : ''; ?></p>
+                <p class="description">Append <code>click_id</code> and the status parameters below. Treat this URL as a secret: it contains the key.</p>
             </div>
 
-            <?php if ( $require_key ) : ?>
             <form method="post" style="margin-bottom: 15px;" class="cuft-confirm-regenerate-key">
                 <?php wp_nonce_field( 'cuft_click_tracking', 'cuft_click_nonce' ); ?>
                 <input type="hidden" name="cuft_click_action" value="regenerate_webhook_key" />
                 <?php submit_button( 'Regenerate webhook key', 'secondary', 'cuft_regenerate_webhook_key', false ); ?>
             </form>
-            <?php endif; ?>
 
             <div style="margin-bottom: 15px;">
                 <strong>Example Usage:</strong><br>
@@ -1650,9 +1473,7 @@ class CUFT_Admin {
                 <p class="description" style="margin-top: 8px;">
                     <strong>Parameters:</strong><br>
                     • <code>action</code> = cuft_webhook (required)<br>
-                    <?php if ( $require_key ) : ?>
                     • <code>key</code> = this site's webhook key (required)<br>
-                    <?php endif; ?>
                     • <code>click_id</code> = the click ID to update (required; only existing clicks can be updated)<br>
                     • <code>qualified</code> = 0 or 1 (optional)<br>
                     • <code>score</code> = 0-10 (optional)<br>
@@ -2018,13 +1839,8 @@ class CUFT_Admin {
         
         $action = isset( $_POST['cuft_click_action'] ) ? sanitize_text_field( wp_unslash( $_POST['cuft_click_action'] ) ) : '';
         
-        if ( 'webhook_settings' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
-            $require_key = ! empty( $_POST['cuft_webhook_require_key'] );
-            update_option( CUFT_Click_Tracker::OPTION_REQUIRE_KEY, $require_key ? 1 : 0 );
-            if ( $require_key ) {
-                CUFT_Click_Tracker::get_webhook_key(); // Generates a key if none exists yet.
-            }
-            add_settings_error( 'cuft_messages', 'cuft_message', $require_key ? 'Webhook key is now required.' : 'Webhook key is no longer required.', 'updated' );
+        if ( 'dismiss_write_error' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
+            CUFT_Click_Tracker::clear_last_write_error();
         }
 
         if ( 'regenerate_webhook_key' === $action && class_exists( 'CUFT_Click_Tracker' ) ) {
@@ -2130,47 +1946,6 @@ class CUFT_Admin {
     }
 
     /**
-     * AJAX handler for dismissing the admin notice
-     */
-    public function ajax_dismiss_notice() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_dismiss_notice' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
-        }
-
-        // Save user meta to remember dismissal
-        $user_id = get_current_user_id();
-        update_user_meta( $user_id, 'cuft_notice_dismissed', true );
-
-        wp_send_json_success( array( 'message' => 'Notice dismissed' ) );
-    }
-
-    /**
-     * AJAX handler for dismissing update notice (per version)
-     */
-    public function ajax_dismiss_update_notice() {
-        // Verify nonce and permissions
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'cuft_dismiss_update_notice' ) || ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Security check failed' ) );
-        }
-
-        // Get version from request
-        $version = isset( $_POST['version'] ) ? sanitize_text_field( wp_unslash( $_POST['version'] ) ) : '';
-
-        if ( empty( $version ) ) {
-            wp_send_json_error( array( 'message' => 'Version not specified' ) );
-        }
-
-        // Save user meta to remember dismissal for this specific version
-        $user_id = get_current_user_id();
-        $dismissed_version_key = 'cuft_notice_dismissed_v' . str_replace( '.', '_', $version );
-        update_user_meta( $user_id, $dismissed_version_key, true );
-
-        wp_send_json_success( array( 'message' => 'Update notice dismissed for version ' . $version ) );
-    }
-
-
-    /**
      * Screen IDs of the plugin's own admin pages: the settings page, the
      * Click Tracking page, and the Testing Dashboard.
      *
@@ -2198,89 +1973,45 @@ class CUFT_Admin {
     }
 
     /**
-     * Whether the informational "tracker is active" notice should render on
-     * this request: plugin screens only, valid GTM ID, not dismissed by this user.
-     *
-     * @return bool
-     */
-    private function should_show_active_notice() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return false;
-        }
-        if ( ! in_array( $this->get_current_screen_id(), $this->get_plugin_screen_ids(), true ) ) {
-            return false;
-        }
-        $gtm_id = get_option( 'cuft_gtm_id' );
-        if ( ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id ) ) {
-            return false;
-        }
-        return ! get_user_meta( get_current_user_id(), 'cuft_notice_dismissed', true );
-    }
-
-    /**
      * Display admin notices.
      *
-     * Scope, so nothing nags site-wide:
-     * - Missing or invalid GTM ID (a setup problem): the Plugins screen and the
-     *   plugin's own screens other than the settings page, which carries the
-     *   form and its own setup progress box.
-     * - "Tracker is active" (informational): the plugin's own screens only,
-     *   dismissible, and dismissal persists per user in the
-     *   cuft_notice_dismissed user meta.
-     * - Custom GTM server switched to fallback (operational warning): the
-     *   Plugins screen and the plugin's own screens.
-     * - Custom GTM server recovered (informational): the plugin's own screens.
+     * Every notice renders only on the plugin's own screens (Settings >
+     * Universal Form Tracker, Click Tracking, Testing Dashboard), only when
+     * there is something to act on, and is dismissible:
+     * - Missing or invalid GTM ID: on the Click Tracking and Testing
+     *   Dashboard screens; the settings screen carries the form itself.
+     * - Custom GTM server switched to fallback, or recovered: shown once.
      */
     public function admin_notices() {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
 
-        $screen_id      = $this->get_current_screen_id();
-        $is_plugin_page = in_array( $screen_id, $this->get_plugin_screen_ids(), true );
-        $is_plugins     = ( 'plugins' === $screen_id );
-
-        if ( ! $is_plugin_page && ! $is_plugins ) {
+        $screen_id = $this->get_current_screen_id();
+        if ( ! in_array( $screen_id, $this->get_plugin_screen_ids(), true ) ) {
             return;
         }
 
-        $gtm_id = get_option( 'cuft_gtm_id' );
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
 
-        // Check if GTM ID is missing or invalid
-        $gtm_missing = ! $gtm_id || ! $this->is_valid_gtm_id( $gtm_id );
-
-        if ( $gtm_missing ) {
-            if ( 'settings_page_choice-universal-form-tracker' !== $screen_id ) {
-                echo '<div class="notice notice-warning">';
-                echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
-                echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
-                echo '</div>';
-            }
-        } elseif ( $this->should_show_active_notice() ) {
-            $detected_count = count( array_filter( CUFT_Form_Detector::get_detected_frameworks() ) );
-
-            // Dismissible success notice; the dismiss click is sent to
-            // cuft_dismiss_notice by the inline script added in enqueue_admin_scripts().
-            echo '<div class="notice notice-success is-dismissible" data-dismiss-action="cuft-dismiss-notice">';
-            echo '<p><strong>Choice Universal Form Tracker</strong> is active with ' . esc_html( $detected_count ) . ' form framework(s) detected. ';
-            echo 'GTM container <code>' . esc_html( $gtm_id ) . '</code> is configured. ';
-            echo '<a href="' . esc_url( $settings_url ) . '">Settings</a></p>';
+        if ( ! $this->is_valid_gtm_id( get_option( 'cuft_gtm_id', '' ) ) && 'settings_page_choice-universal-form-tracker' !== $screen_id ) {
+            echo '<div class="notice notice-warning is-dismissible">';
+            echo '<p><strong>Choice Universal Form Tracker:</strong> GTM container ID is missing or invalid. ';
+            echo 'Please <a href="' . esc_url( $settings_url ) . '"><strong>configure your GTM ID</strong></a> to enable conversion tracking.</p>';
             echo '</div>';
         }
 
-        // Check for custom server status change notices
-        $this->check_server_status_notices( $is_plugin_page );
+        $this->check_server_status_notices();
     }
 
     /**
      * Check and display server status change notices
      */
-    private function check_server_status_notices( $is_plugin_page = true ) {
+    private function check_server_status_notices() {
         $settings_url = admin_url( 'options-general.php?page=choice-universal-form-tracker' );
-        
-        // Check for server recovery notice (informational: plugin screens only)
-        $server_recovered = $is_plugin_page ? get_option( 'cuft_sgtm_server_recovered', false ) : false;
+
+        // Check for server recovery notice
+        $server_recovered = get_option( 'cuft_sgtm_server_recovered', false );
         if ( $server_recovered ) {
             echo '<div class="notice notice-success is-dismissible">';
             echo '<p><strong>✅ Custom GTM server is now active</strong><br>';

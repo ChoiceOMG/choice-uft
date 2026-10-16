@@ -3,7 +3,7 @@
  * Plugin Name:       Choice Universal Form Tracker
  * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
- * Version:           3.29.0
+ * Version:           3.29.3
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Choice OMG
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.29.0' );
+define( 'CUFT_VERSION', '3.29.3' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -78,6 +78,7 @@ class CUFT_Plugin {
             'includes/class-cuft-db-migration.php',   // Load migration handler
             'includes/class-cuft-admin.php',
             'includes/admin/class-cuft-testing-dashboard.php',  // Testing dashboard
+            'includes/class-cuft-sgtm.php',          // Server-side GTM host validation and URL building
             'includes/class-cuft-gtg-health.php',
             'includes/class-cuft-gtm.php',
             'includes/class-cuft-form-detector.php',
@@ -310,7 +311,7 @@ class CUFT_Plugin {
             }
 
             // Enqueue cuftConfig JavaScript object with AJAX URL and nonce
-            add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ) );
+            add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cuft_config' ), 0 );
 
             // Tell the shared dataLayer script whether generate_lead may fire.
             // Late priority: the form framework classes register that script
@@ -441,15 +442,13 @@ class CUFT_Plugin {
      * Enqueue cuftConfig JavaScript object (v3.12.0)
      *
      * Provides AJAX URL and nonce for client-side event recording.
-     * Also enqueues frontend health check script when custom server is enabled.
      */
     public function enqueue_cuft_config() {
         // Create nonce for event recording
         $nonce = wp_create_nonce( 'cuft-event-recorder' );
 
-        // Check if custom server is enabled
-        $custom_server_enabled = get_option( 'cuft_sgtm_enabled', false ) && 
-                                get_option( 'cuft_sgtm_active_server', 'fallback' ) === 'custom';
+        // Whether gtm.js is currently served from the server-side GTM host.
+        $custom_server_enabled = class_exists( 'CUFT_SGTM' ) && CUFT_SGTM::custom_host_active();
 
         // Prepare config object
         $console_logging = CUFT_Console_Logger::get_console_logging_setting();
@@ -461,23 +460,17 @@ class CUFT_Plugin {
             'custom_server_enabled' => $custom_server_enabled,
         );
 
-        // Add inline script to make config globally available
+        // Print the config from a handle of our own, in the head. It used to
+        // ride on 'jquery', but WordPress prints jQuery on the front end only
+        // when some script depends on it, and Contact Form 7 does not. On a
+        // CF7 page without jQuery cuftConfig was never printed, so every
+        // event recording request was silently skipped.
+        wp_register_script( 'cuft-config', false, array(), CUFT_VERSION, false );
+        wp_enqueue_script( 'cuft-config' );
         wp_add_inline_script(
-            'jquery', // Attach to jQuery since it's always loaded
-            'var cuftConfig = ' . wp_json_encode( $cuft_config ) . ';',
-            'before'
+            'cuft-config',
+            'var cuftConfig = ' . CUFT_Utils::js_encode( $cuft_config ) . ';'
         );
-
-        // Enqueue frontend health check script when custom server is enabled
-        if ( $custom_server_enabled ) {
-            wp_enqueue_script(
-                'cuft-health-check',
-                CUFT_URL . '/assets/cuft-health-check.js',
-                array(),
-                CUFT_VERSION,
-                true
-            );
-        }
 
         // Enqueue passive-ping emitter when a collector host is configured.
         // Posts click context to https://<collector_host>/p on every page load
@@ -492,7 +485,7 @@ class CUFT_Plugin {
                 CUFT_VERSION,
                 true
             );
-            wp_localize_script(
+            CUFT_Utils::localize(
                 'cuft-passive-ping',
                 'cuftPing',
                 array(
@@ -516,7 +509,7 @@ class CUFT_Plugin {
         }
         wp_add_inline_script(
             'cuft-dataLayer-utils',
-            'window.cuftLeadSettings = ' . wp_json_encode( array(
+            'window.cuftLeadSettings = ' . CUFT_Utils::js_encode( array(
                 'generate_lead_enabled' => (bool) get_option( 'cuft_generate_lead_enabled', false ),
             ) ) . ';',
             'before'
@@ -567,10 +560,30 @@ class CUFT_Plugin {
     }
 
     /**
+     * Whether a requirement or initialisation error notice may render here.
+     *
+     * These notices report that the plugin itself is not running, so they
+     * appear on the Plugins screen, where the plugin is managed, and on the
+     * plugin's own settings screen; never on the Dashboard or other screens.
+     *
+     * @return bool
+     */
+    private function on_plugin_management_screen() {
+        if ( ! current_user_can( 'activate_plugins' ) || ! function_exists( 'get_current_screen' ) ) {
+            return false;
+        }
+        $screen = get_current_screen();
+        return $screen && in_array( $screen->id, array( 'plugins', 'settings_page_choice-universal-form-tracker' ), true );
+    }
+
+    /**
      * PHP version compatibility notice
      */
     public function php_version_notice() {
-        echo '<div class="notice notice-error"><p>';
+        if ( ! $this->on_plugin_management_screen() ) {
+            return;
+        }
+        echo '<div class="notice notice-error is-dismissible"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires PHP 7.4 or higher. ';
         echo 'You are running PHP ' . esc_html( PHP_VERSION ) . '. Please contact your hosting provider to upgrade PHP.';
         echo '</p></div>';
@@ -580,7 +593,10 @@ class CUFT_Plugin {
      * WordPress version compatibility notice
      */
     public function wp_version_notice() {
-        echo '<div class="notice notice-error"><p>';
+        if ( ! $this->on_plugin_management_screen() ) {
+            return;
+        }
+        echo '<div class="notice notice-error is-dismissible"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> This plugin requires WordPress 6.2 or higher. ';
         echo 'You are running WordPress ' . esc_html( get_bloginfo( 'version' ) ) . '. Please update WordPress.';
         echo '</p></div>';
@@ -590,7 +606,10 @@ class CUFT_Plugin {
      * Initialization error notice
      */
     public function init_error_notice() {
-        echo '<div class="notice notice-error"><p>';
+        if ( ! $this->on_plugin_management_screen() ) {
+            return;
+        }
+        echo '<div class="notice notice-error is-dismissible"><p>';
         echo '<strong>Choice Universal Form Tracker:</strong> Plugin initialization failed. ';
         echo 'Please check error logs for details or contact support.';
         echo '</p></div>';

@@ -15,7 +15,7 @@
      */
     class CUFTAjaxClient {
         constructor() {
-            this.ajaxUrl = window.cuftConfig?.ajaxUrl || '/wp-admin/admin-ajax.php';
+            this.ajaxUrl = window.cuftConfig?.ajaxUrl || ''; // admin_url( 'admin-ajax.php' ), localized by PHP
             this.nonce = window.cuftConfig?.nonce || '';
         }
 
@@ -24,6 +24,9 @@
          */
         async request(action, data = {}) {
             try {
+                if (!this.ajaxUrl) {
+                    throw new Error('AJAX URL not configured');
+                }
                 const formData = new FormData();
                 formData.append('action', action);
                 formData.append('nonce', this.nonce);

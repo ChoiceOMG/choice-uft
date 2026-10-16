@@ -25,6 +25,16 @@ class CUFT_Click_Tracker {
     const OPTION_LAST_WRITE_ERROR = 'cuft_last_click_write_error';
 
     /**
+     * Compare-and-swap attempts add_event() makes before giving up.
+     */
+    const EVENT_WRITE_ATTEMPTS = 25;
+
+    /**
+     * Seconds add_event() waits for the per-click GET_LOCK.
+     */
+    const EVENT_LOCK_TIMEOUT = 5;
+
+    /**
      * Option/transient family used by the schema self-heal check.
      */
     const OPTION_SCHEMA_VERIFIED_VERSION = 'cuft_click_schema_verified_version';
@@ -238,6 +248,27 @@ class CUFT_Click_Tracker {
     }
 
     /**
+     * Whether a recorded failure came from creating or repairing the table.
+     *
+     * @param string $context Context label passed to record_click_write_error().
+     * @return bool
+     */
+    private static function is_schema_error_context( $context ) {
+        return 'create_table' === $context || 0 === strpos( (string) $context, 'self_heal_' );
+    }
+
+    /**
+     * Clear a recorded failure once a write or repair has succeeded, so a
+     * fixed site stops showing a stale error. Reads before deleting, so the
+     * common case (no recorded error) costs one cached option lookup.
+     */
+    private static function clear_stale_write_error() {
+        if ( null !== self::get_last_write_error() ) {
+            self::clear_last_write_error();
+        }
+    }
+
+    /**
      * Verify the click tracking table exists and carries every column the
      * current code depends on, creating or repairing it if not.
      *
@@ -270,6 +301,7 @@ class CUFT_Click_Tracker {
 
         $table_name = $wpdb->prefix . self::$table_name;
         $healthy    = true;
+        $repaired   = false;
 
         if ( ! self::table_exists( $table_name ) ) {
             self::create_table();
@@ -278,6 +310,7 @@ class CUFT_Click_Tracker {
                 set_transient( $failure_key, true, HOUR_IN_SECONDS );
                 return false;
             }
+            $repaired = true;
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; schema introspection, not cacheable, and gated by the transient above.
@@ -298,7 +331,11 @@ class CUFT_Click_Tracker {
             if ( ! in_array( $column, $now_has_column, true ) ) {
                 $healthy = false;
                 self::record_click_write_error( 'self_heal_add_column_' . $column, $alter_error, '' );
-            } elseif ( class_exists( 'CUFT_Logger' ) ) {
+            } else {
+                $repaired = true;
+            }
+
+            if ( in_array( $column, $now_has_column, true ) && class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log(
                     'Click tracking self-heal: added missing column ' . $column,
                     CUFT_Logger::INFO,
@@ -316,6 +353,14 @@ class CUFT_Click_Tracker {
             // automatically since it is part of the transient name.
             set_transient( $transient_key, true, DAY_IN_SECONDS );
             update_option( self::OPTION_SCHEMA_VERIFIED_VERSION, $version_key, false );
+            delete_transient( $failure_key );
+
+            // A repair fixes whatever write failed before it; a healthy check
+            // with nothing to repair only clears errors about the schema itself.
+            $last_error = self::get_last_write_error();
+            if ( $last_error && ( $repaired || self::is_schema_error_context( isset( $last_error['context'] ) ? $last_error['context'] : '' ) ) ) {
+                self::clear_last_write_error();
+            }
         }
 
         return $healthy;
@@ -416,6 +461,7 @@ class CUFT_Click_Tracker {
         }
         
         if ( $result !== false ) {
+            self::clear_stale_write_error();
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'Click tracked: ' . $click_id, CUFT_Logger::INFO, $data );
             }
@@ -436,27 +482,9 @@ class CUFT_Click_Tracker {
      * @return array List of valid status strings.
      */
     /**
-     * Option that switches the webhook key check on.
-     */
-    const OPTION_REQUIRE_KEY = 'cuft_webhook_require_key';
-
-    /**
      * Option holding the shared webhook key.
      */
     const OPTION_WEBHOOK_KEY = 'cuft_webhook_key';
-
-    /**
-     * Whether webhook requests must carry the site's key.
-     *
-     * On for new installs since 3.28.0; installs upgrading from an earlier
-     * version keep it off until an administrator turns it on, so existing
-     * integrations keep working (see CUFT_DB_Migration::migrate_to_3_28_0()).
-     *
-     * @return bool
-     */
-    public static function webhook_key_required() {
-        return (bool) get_option( self::OPTION_REQUIRE_KEY, false );
-    }
 
     /**
      * Return the webhook key, generating one first if none exists.
@@ -800,30 +828,33 @@ class CUFT_Click_Tracker {
     /**
      * Handle webhook requests
      *
-     * Public endpoint for updating click status. Security through obscurity:
-     * - No authentication required (for use in email messages)
-     * - click_id acts as the obscure identifier
-     * - Only allows updates to existing records
+     * Public endpoint for updating a lead's status from outside WordPress
+     * (a CRM, an automation tool, or a link in an email). Those callers
+     * cannot hold a WordPress nonce or session, so what protects it is:
+     * - the site's webhook key, required on every request and compared
+     *   with hash_equals(); a request without it changes nothing;
+     * - it only updates rows whose click_id already exists, and returns the
+     *   same generic error for unknown IDs;
+     * - it writes only qualified (0/1), score (0-10) and one of five
+     *   whitelisted lifecycle statuses.
      *
      * @since 3.13.0 Changed from key-based auth to public obscure endpoint
      * @since 3.28.0 Optional shared key (cuft_webhook_require_key), on by default for new installs
+     * @since 3.29.2 The key is always required; the opt-out setting is gone
      */
     public function handle_webhook() {
-        // Shared-key check. External callers (email links, CRM) cannot hold a
-        // nonce, so when the setting is on every request must carry the site's
-        // key, compared in constant time.
-        if ( self::webhook_key_required() ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- External webhook authenticated by the shared key compared below; a nonce cannot be issued to email links or CRM systems.
-            $provided_key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
-            if ( '' === $provided_key || ! hash_equals( self::get_webhook_key(), $provided_key ) ) {
-                wp_send_json_error( array( 'message' => 'Invalid or missing webhook key' ), 403 );
-            }
+        // Authorization comes first, before any other input is read.
+        // External callers (email links, CRM) cannot hold a nonce, so every
+        // request must carry the site's secret key, compared in constant time.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- External webhook authenticated by the secret key compared below; a nonce cannot be issued to email links or CRM systems.
+        $provided_key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+        if ( '' === $provided_key || ! hash_equals( self::get_webhook_key(), $provided_key ) ) {
+            wp_send_json_error( array( 'message' => 'Invalid or missing webhook key' ), 403 );
         }
 
-        // Get required parameters.
-        // No nonce by design: this endpoint is called from emails and CRM integrations
-        // that cannot hold a WordPress nonce. It only updates rows whose click_id already exists.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public webhook for external systems (email links, CRM); a nonce cannot be issued to them. Access is keyed by an existing click_id.
+        // The caller is authorized by the key check above. It still updates
+        // only rows whose click_id already exists.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above; external systems (email links, CRM) cannot hold a nonce.
         $click_id = isset( $_GET['click_id'] ) ? sanitize_text_field( wp_unslash( $_GET['click_id'] ) ) : '';
 
         if ( empty( $click_id ) ) {
@@ -841,12 +872,12 @@ class CUFT_Click_Tracker {
             wp_send_json_error( array( 'message' => 'Invalid request' ), 400 );
         }
 
-        // Get optional parameters (same public webhook as above; no nonce by design).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        // Optional parameters.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above.
         $qualified = isset( $_GET['qualified'] ) ? intval( $_GET['qualified'] ) : null;
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above.
         $score     = isset( $_GET['score'] ) ? intval( $_GET['score'] ) : null;
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Same public webhook as above; external callers cannot hold a nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller already authorized by the secret webhook key checked above.
         $status    = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
 
         // Validate status if provided
@@ -1266,101 +1297,224 @@ class CUFT_Click_Tracker {
             return false;
         }
 
-        try {
-            // Get current events or initialize empty array
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
-            $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
+        $click_id = sanitize_text_field( $click_id );
+        $locked   = self::acquire_events_lock( $click_id );
 
-            if ( ! $current_record ) {
-                // Create new record if it doesn't exist
-                $result = self::track_click( $click_id, array() );
-                if ( ! $result ) {
+        try {
+            // The browser sends form_submit, generate_lead and qualify_lead as
+            // three requests within milliseconds. A plain read-modify-write
+            // lets them overwrite each other, so the write below is a
+            // compare-and-swap: it only lands if the events value is still the
+            // one this request read, and a lost race re-reads and retries. The
+            // named lock serializes writers so retries are rare; the
+            // compare-and-swap keeps the write lossless where GET_LOCK is
+            // unavailable (Galera, some proxies) and on MyISAM, which has no
+            // row locks.
+            for ( $attempt = 1; $attempt <= self::EVENT_WRITE_ATTEMPTS; $attempt++ ) {
+                $current_record = self::get_events_row( $table_name, $click_id );
+
+                if ( ! $current_record ) {
+                    // Create new record if it doesn't exist. A concurrent
+                    // request may win the insert (unique click_id), so read
+                    // again before treating a failed insert as an error.
+                    $created        = self::track_click( $click_id, array() );
+                    $current_record = self::get_events_row( $table_name, $click_id );
+                    if ( ! $current_record ) {
+                        return false;
+                    }
+                    if ( ! $created ) {
+                        self::clear_stale_write_error();
+                    }
+                }
+
+                $old_value = $current_record->events;
+                $events    = self::merge_event( self::decode_events( $old_value ), $event_type, gmdate( 'c' ), $source );
+                $new_value = wp_json_encode( $events );
+
+                if ( null === $old_value ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; compare-and-swap write that no WP API covers.
+                    $result = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET events = %s, date_updated = %s WHERE id = %d AND events IS NULL', $table_name, $new_value, current_time( 'mysql', true ), $current_record->id ) );
+                } else {
+                    // MD5 of the stored text compares byte for byte on JSON and
+                    // LONGTEXT columns alike; a JSON column never equals a
+                    // string literal, and a _ci collation would ignore case.
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; compare-and-swap write that no WP API covers.
+                    $result = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET events = %s, date_updated = %s WHERE id = %d AND MD5(events) = %s', $table_name, $new_value, current_time( 'mysql', true ), $current_record->id, md5( $old_value ) ) );
+                }
+
+                if ( false === $result ) {
                     return false;
                 }
 
-                // Get the newly created record
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
-                $current_record = $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, sanitize_text_field( $click_id ) ) );
-            }
-
-            // Parse existing events
-            $events = array();
-            if ( ! empty( $current_record->events ) ) {
-                $events = json_decode( $current_record->events, true );
-                if ( ! is_array( $events ) ) {
-                    $events = array();
+                if ( $result < 1 ) {
+                    // Zero rows: either another request changed the value
+                    // (retry) or this write matched but changed nothing.
+                    $check = self::get_events_row( $table_name, $click_id );
+                    if ( ! $check || $check->events !== $old_value ) {
+                        if ( ! $locked ) {
+                            usleep( wp_rand( 2000, 20000 ) );
+                        }
+                        continue;
+                    }
                 }
-            }
 
-            // Create new event timestamp
-            $new_timestamp = gmdate( 'c' ); // ISO 8601 UTC format
-
-            // Check for duplicate event type (deduplication)
-            $event_exists = false;
-            foreach ( $events as &$existing_event ) {
-                if ( $existing_event['event'] === $event_type ) {
-                    // Update timestamp for duplicate event type
-                    $existing_event['timestamp'] = $new_timestamp;
-                    $event_exists = true;
-                    break;
+                self::clear_stale_write_error();
+                if ( class_exists( 'CUFT_Logger' ) ) {
+                    CUFT_Logger::log( "Event added: {$event_type} for click_id: {$click_id}", CUFT_Logger::INFO );
                 }
-            }
-            unset( $existing_event ); // Break reference
-
-            // If event type doesn't exist, append it
-            if ( ! $event_exists ) {
-                $new_event = array(
-                    'event'     => $event_type,
-                    'timestamp' => $new_timestamp,
-                );
-                if ( $source ) {
-                    $new_event['source']      = $source;
-                    $new_event['replayed_at'] = null;
-                }
-                $events[] = $new_event;
+                return true;
             }
 
-            // FIFO cleanup: Limit to 100 events (remove oldest if exceeded)
-            if ( count( $events ) > 100 ) {
-                // Sort by timestamp to identify oldest
-                usort( $events, function( $a, $b ) {
-                    return strcmp( $a['timestamp'], $b['timestamp'] );
-                } );
-
-                // Keep only newest 100
-                $events = array_slice( $events, -100 );
+            if ( class_exists( 'CUFT_Logger' ) ) {
+                CUFT_Logger::log( "Event {$event_type} for click_id {$click_id} lost the write race " . self::EVENT_WRITE_ATTEMPTS . ' times', CUFT_Logger::ERROR );
             }
-
-            // Sort by timestamp (newest last)
-            usort( $events, function( $a, $b ) {
-                return strcmp( $a['timestamp'], $b['timestamp'] );
-            } );
-
-            // Update record with new events
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
-            $result = $wpdb->update(
-                $table_name,
-                array(
-                    'events' => wp_json_encode( $events ),
-                    'date_updated' => current_time( 'mysql', true )
-                ),
-                array( 'id' => $current_record->id ),
-                array( '%s', '%s' ),
-                array( '%d' )
-            );
-
-            if ( $result !== false && class_exists( 'CUFT_Logger' ) ) {
-                CUFT_Logger::log( "Event added: {$event_type} for click_id: {$click_id}", CUFT_Logger::INFO );
-            }
-
-            return $result !== false;
+            return false;
 
         } catch ( Exception $e ) {
             if ( class_exists( 'CUFT_Logger' ) ) {
                 CUFT_Logger::log( 'Failed to add event: ' . $e->getMessage(), CUFT_Logger::ERROR );
             }
             return false;
+        } finally {
+            if ( $locked ) {
+                self::release_events_lock( $click_id );
+            }
         }
+    }
+
+    /**
+     * Read the id and events columns of one click row, uncached.
+     *
+     * @param string $table_name Full table name.
+     * @param string $click_id   Sanitized click ID.
+     * @return object|null Row with id and events, or null.
+     */
+    private static function get_events_row( $table_name, $click_id ) {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
+        return $wpdb->get_row( $wpdb->prepare( 'SELECT id, events FROM %i WHERE click_id = %s', $table_name, $click_id ) );
+    }
+
+    /**
+     * Decode a stored events value into a list of event arrays.
+     *
+     * NULL, empty strings and legacy non-JSON or non-array values all decode
+     * to an empty list, as they did before 3.29.1; entries that are not
+     * arrays with an event name are dropped.
+     *
+     * @param string|null $value Raw events column value.
+     * @return array
+     */
+    public static function decode_events( $value ) {
+        if ( null === $value || '' === $value ) {
+            return array();
+        }
+        $events = json_decode( $value, true );
+        if ( ! is_array( $events ) ) {
+            return array();
+        }
+        return array_values(
+            array_filter(
+                $events,
+                function ( $event ) {
+                    return is_array( $event ) && isset( $event['event'] );
+                }
+            )
+        );
+    }
+
+    /**
+     * Merge one event into an events list (pure; no database access).
+     *
+     * Semantics unchanged from earlier versions: an event type already in
+     * the list gets its timestamp refreshed instead of a second entry, the
+     * list keeps the newest 100 entries, and it is sorted oldest first.
+     *
+     * @param array       $events     Decoded events.
+     * @param string      $event_type Event type.
+     * @param string      $timestamp  ISO 8601 UTC timestamp.
+     * @param string|null $source     Optional origin tag; adds source and replayed_at.
+     * @return array
+     */
+    public static function merge_event( array $events, $event_type, $timestamp, $source = null ) {
+        $event_exists = false;
+        foreach ( $events as &$existing_event ) {
+            if ( $existing_event['event'] === $event_type ) {
+                $existing_event['timestamp'] = $timestamp;
+                $event_exists                = true;
+                break;
+            }
+        }
+        unset( $existing_event );
+
+        if ( ! $event_exists ) {
+            $new_event = array(
+                'event'     => $event_type,
+                'timestamp' => $timestamp,
+            );
+            if ( $source ) {
+                $new_event['source']      = $source;
+                $new_event['replayed_at'] = null;
+            }
+            $events[] = $new_event;
+        }
+
+        // Sort by timestamp (newest last), then keep only the newest 100.
+        usort(
+            $events,
+            function ( $a, $b ) {
+                return strcmp( isset( $a['timestamp'] ) ? (string) $a['timestamp'] : '', isset( $b['timestamp'] ) ? (string) $b['timestamp'] : '' );
+            }
+        );
+        if ( count( $events ) > 100 ) {
+            $events = array_slice( $events, -100 );
+        }
+
+        return $events;
+    }
+
+    /**
+     * Name of the MySQL user lock guarding one click row's events.
+     *
+     * User locks are server-wide, so the name includes the table (and with it
+     * the site prefix). Always 44 characters, under MySQL's 64 limit.
+     *
+     * @param string $click_id Click ID.
+     * @return string
+     */
+    public static function events_lock_name( $click_id ) {
+        global $wpdb;
+        return 'cuft_events_' . md5( $wpdb->prefix . self::$table_name . '|' . $click_id );
+    }
+
+    /**
+     * Take the per-click events lock (GET_LOCK). Works on InnoDB and MyISAM.
+     *
+     * @param string $click_id Click ID.
+     * @return bool True when the lock is held; false on timeout or when the
+     *              server does not support user locks (callers fall back to
+     *              compare-and-swap alone).
+     */
+    public static function acquire_events_lock( $click_id ) {
+        global $wpdb;
+        $suppress = $wpdb->suppress_errors( true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL user lock; no WP API exists for it.
+        $got = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', self::events_lock_name( $click_id ), self::EVENT_LOCK_TIMEOUT ) );
+        $wpdb->suppress_errors( $suppress );
+        return '1' === (string) $got;
+    }
+
+    /**
+     * Release the per-click events lock.
+     *
+     * @param string $click_id Click ID.
+     */
+    public static function release_events_lock( $click_id ) {
+        global $wpdb;
+        $suppress = $wpdb->suppress_errors( true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL user lock; no WP API exists for it.
+        $wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', self::events_lock_name( $click_id ) ) );
+        $wpdb->suppress_errors( $suppress );
     }
 
     /**

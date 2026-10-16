@@ -59,32 +59,40 @@ class CUFT_UTM_Tracker {
             false // Load in head to capture UTMs early
         );
         
-        wp_localize_script( 'cuft-utm-tracker', 'cuftUTM', array(
+        CUFT_Utils::localize( 'cuft-utm-tracker', 'cuftUTM', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_utm_tracking' ),
             'debug' => apply_filters( 'cuft_debug', get_option( 'cuft_debug_enabled', false ) )
         ) );
     }
     
-        /**
-     * AJAX handler to store tracking data in session
+    /**
+     * Longest UTM or click ID value kept; matches the click table columns
+     * and keeps both cookies well under the browser's 4 KB limit.
+     */
+    const MAX_VALUE_LENGTH = 255;
+
+    /**
+     * AJAX handler to store tracking data in the visitor's own cookies.
+     *
+     * Public by design: it runs for anonymous visitors landing from a
+     * campaign. Its only effect is Set-Cookie on the caller's own response
+     * (cuft_utm_data, and cuft_first_touch once); nothing is written to the
+     * database. Only the named UTM and click ID keys are read, each
+     * sanitized and cut to 255 characters. The shared visitor nonce is a
+     * CSRF guard, not authentication.
      */
     public function ajax_store_utm() {
         check_ajax_referer( 'cuft_utm_tracking', 'nonce' );
-        
-        $tracking_data = array();
-        
-        // Extract UTM parameters
-        foreach ( $this->utm_params as $param ) {
-            if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) ) {
-                $tracking_data[ $param ] = sanitize_text_field( wp_unslash( $_POST[ $param ] ) );
-            }
-        }
 
-        // Extract Click ID parameters
-        foreach ( $this->click_id_params as $param ) {
-            if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) ) {
-                $tracking_data[ $param ] = sanitize_text_field( wp_unslash( $_POST[ $param ] ) );
+        $tracking_data = array();
+
+        foreach ( array_merge( $this->utm_params, $this->click_id_params ) as $param ) {
+            if ( isset( $_POST[ $param ] ) && ! empty( $_POST[ $param ] ) && is_string( $_POST[ $param ] ) ) {
+                $value = mb_substr( sanitize_text_field( wp_unslash( $_POST[ $param ] ) ), 0, self::MAX_VALUE_LENGTH );
+                if ( '' !== $value ) {
+                    $tracking_data[ $param ] = $value;
+                }
             }
         }
         

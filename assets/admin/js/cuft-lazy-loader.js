@@ -31,7 +31,7 @@
             this.options = Object.assign({
                 pageSize: 10,
                 threshold: 200, // pixels from bottom to trigger load
-                ajaxUrl: window.cuftUpdater?.ajaxUrl || '/wp-admin/admin-ajax.php',
+                ajaxUrl: window.cuftUpdater?.ajaxUrl || '', // admin_url( 'admin-ajax.php' ), localized by PHP
                 nonce: window.cuftUpdater?.nonce || '',
                 action: 'cuft_update_history',
                 loadingClass: 'cuft-loading',
@@ -110,7 +110,7 @@
          * Check if user scrolled near bottom
          */
         checkScroll() {
-            if (this.loading || !this.hasMore) {
+            if (this.loading || !this.hasMore || !this.options.ajaxUrl) {
                 return;
             }
 
@@ -126,7 +126,7 @@
          * Load more entries
          */
         async loadMore() {
-            if (this.loading || !this.hasMore) {
+            if (this.loading || !this.hasMore || !this.options.ajaxUrl) {
                 return;
             }
 

@@ -1,0 +1,16 @@
+
+(function(w,d,s,l){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s);j.async=true;j.src="\/k7q2fx\/?id=GTM-TKVDMKQ6";
+var fb=function(){if(j.cuftFb)return;j.cuftFb=1;var k=d.createElement(s);k.async=true;k.src="https:\/\/www.googletagmanager.com\/gtm.js?id=GTM-TKVDMKQ6";f.parentNode.insertBefore(k,f);};j.onerror=fb;
+j.onload=function(){if(!(w.google_tag_manager&&w.google_tag_manager["GTM-TKVDMKQ6"]))fb();};
+f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer');
+---
+{"id":"cuft-gtm-js-after","data-cuft-gtm-source":"gateway","data-cuft-gtm-server":"\/k7q2fx\/"}
+---
+        <!-- Google Tag Manager (noscript) -->
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TKVDMKQ6"
+        height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+        <!-- End Google Tag Manager (noscript) -->
+        

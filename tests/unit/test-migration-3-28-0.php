@@ -24,36 +24,36 @@ class Test_Migration_3_28_0 extends WP_UnitTestCase {
         $prop->setValue( null, $value );
     }
 
-    public function test_new_install_requires_webhook_key_and_leaves_generate_lead_off() {
+    public function test_new_install_gets_webhook_key_and_leaves_generate_lead_off() {
         CUFT_DB_Migration::run_migrations();
 
-        $this->assertSame( '1', (string) get_option( 'cuft_webhook_require_key' ) );
+        $this->assertFalse( get_option( 'cuft_webhook_require_key' ) );
         $this->assertSame( 32, strlen( (string) get_option( 'cuft_webhook_key' ) ) );
         $this->assertSame( '0', (string) get_option( 'cuft_generate_lead_enabled' ) );
-        $this->assertTrue( CUFT_Click_Tracker::webhook_key_required() );
     }
 
-    public function test_upgrade_from_3_27_keeps_webhook_open_and_turns_generate_lead_on() {
+    public function test_upgrade_from_3_27_generates_webhook_key_and_turns_generate_lead_on() {
         update_option( 'cuft_db_version', '3.22.0' );
         update_option( 'cuft_gtm_id', 'GTM-ABC123' );
         update_option( 'cuft_generate_lead_enabled', false );
 
         CUFT_DB_Migration::run_migrations();
 
-        $this->assertSame( '0', (string) get_option( 'cuft_webhook_require_key' ) );
-        $this->assertFalse( CUFT_Click_Tracker::webhook_key_required() );
+        $this->assertFalse( get_option( 'cuft_webhook_require_key' ) );
+        $this->assertSame( 32, strlen( (string) get_option( 'cuft_webhook_key' ) ) );
         $this->assertSame( '1', (string) get_option( 'cuft_generate_lead_enabled' ) );
-        $this->assertSame( '3.28.0', get_option( 'cuft_db_version' ) );
+        $this->assertSame( CUFT_DB_Migration::CURRENT_VERSION, get_option( 'cuft_db_version' ) );
     }
 
-    public function test_upgrade_keeps_an_explicit_webhook_key_setting() {
-        update_option( 'cuft_db_version', '3.22.0' );
-        update_option( 'cuft_webhook_require_key', 1 );
+    public function test_upgrade_from_3_28_drops_opt_out_and_keeps_existing_key() {
+        update_option( 'cuft_db_version', '3.28.0' );
+        update_option( 'cuft_webhook_require_key', 0 );
+        update_option( 'cuft_webhook_key', 'existing-key-0123456789abcdefghi' );
 
         CUFT_DB_Migration::run_migrations();
 
-        $this->assertSame( '1', (string) get_option( 'cuft_webhook_require_key' ) );
-        $this->assertNotEmpty( get_option( 'cuft_webhook_key' ) );
+        $this->assertFalse( get_option( 'cuft_webhook_require_key' ) );
+        $this->assertSame( 'existing-key-0123456789abcdefghi', get_option( 'cuft_webhook_key' ) );
     }
 
     public function test_upgrade_from_version_without_db_version_counts_as_existing() {
@@ -61,7 +61,6 @@ class Test_Migration_3_28_0 extends WP_UnitTestCase {
 
         CUFT_DB_Migration::run_migrations();
 
-        $this->assertSame( '0', (string) get_option( 'cuft_webhook_require_key' ) );
         $this->assertSame( '1', (string) get_option( 'cuft_generate_lead_enabled' ) );
     }
 
@@ -72,7 +71,6 @@ class Test_Migration_3_28_0 extends WP_UnitTestCase {
 
         CUFT_DB_Migration::run_migrations();
 
-        $this->assertSame( '1', (string) get_option( 'cuft_webhook_require_key' ) );
         $this->assertSame( '0', (string) get_option( 'cuft_generate_lead_enabled' ) );
     }
 

@@ -53,13 +53,13 @@ class Test_GTG_Loader extends WP_UnitTestCase {
 
     public function test_gateway_loader_uses_same_origin_path() {
         $js = $this->loader();
-        $this->assertStringContainsString( '"\/k7q2fx\/?id="+i+dl', $js );
+        $this->assertStringContainsString( '"\/k7q2fx\/?id=GTM-TKVDMKQ6"', $js );
     }
 
     public function test_gateway_loader_has_browser_fallback() {
         $js = $this->loader();
         $this->assertStringContainsString( 'j.onerror=fb', $js );
-        $this->assertStringContainsString( 'w.google_tag_manager&&w.google_tag_manager[i]', $js );
+        $this->assertStringContainsString( 'w.google_tag_manager&&w.google_tag_manager["GTM-TKVDMKQ6"]', $js );
         $this->assertSame( 1, substr_count( $js, 'googletagmanager.com' ) );   // only inside fb
     }
 
@@ -73,7 +73,7 @@ class Test_GTG_Loader extends WP_UnitTestCase {
         update_option( 'cuft_gtg_active', 'fallback' );
         update_option( 'cuft_gtg_fallback_reason', 'healthy: 502' );
         $js = $this->loader();
-        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id="+i+dl', $js );
+        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id=GTM-TKVDMKQ6"', $js );
         $this->assertStringNotContainsString( 'j.onerror', $js );
         $attrs = $this->attrs();
         $this->assertSame( 'fallback', $attrs['data-cuft-gtg-state'] );
@@ -86,7 +86,7 @@ class Test_GTG_Loader extends WP_UnitTestCase {
         update_option( 'cuft_sgtm_url', 'https://tagging-server.example.com' );
         update_option( 'cuft_sgtm_active_server', 'custom' );
         update_option( 'cuft_gtg_active', 'fallback' );
-        $this->assertStringContainsString( '"https:\/\/tagging-server.example.com\/gtm.js?id="+i+dl', $this->loader() );
+        $this->assertStringContainsString( '"https:\/\/tagging-server.example.com\/gtm.js?id=GTM-TKVDMKQ6"', $this->loader() );
         $attrs = $this->attrs();
         $this->assertSame( 'custom', $attrs['data-cuft-gtm-source'] );
         $this->assertSame( 'fallback', $attrs['data-cuft-gtg-state'] );
@@ -97,7 +97,7 @@ class Test_GTG_Loader extends WP_UnitTestCase {
         $js = $this->loader();
         $this->assertStringNotContainsString( '/gtm/?id=', $js );
         // The existing Google loader must still be emitted, not nothing at all.
-        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id="+i+dl', $js );
+        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id=GTM-TKVDMKQ6"', $js );
         $this->assertStringNotContainsString( 'j.onerror', $js );
         $this->assertArrayNotHasKey( 'data-cuft-gtg-state', $this->attrs() );
     }
@@ -137,7 +137,7 @@ class Test_GTG_Loader extends WP_UnitTestCase {
         $this->assertFalse( wp_cache_get( 'cuft_gtg_probe', 'cuft_gtg_test' ) );
         $js = $this->loader();
         $this->assertStringNotContainsString( 'k7q2fx', $js );
-        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id="+i+dl', $js );
+        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id=GTM-TKVDMKQ6"', $js );
         $attrs = $this->attrs();
         $this->assertArrayNotHasKey( 'data-cuft-gtg-state', $attrs );
         $this->assertArrayNotHasKey( 'data-cuft-gtm-source', $attrs );
@@ -396,13 +396,21 @@ class Test_GTG_Loader extends WP_UnitTestCase {
     public function test_gateway_loader_names_the_uppercase_id_the_probe_checked() {
         update_option( 'cuft_gtm_id', 'gtm-tkvdmkq6' );
         $js = $this->loader();
-        $this->assertStringContainsString( '"\/k7q2fx\/?id="+i+dl', $js );
-        $this->assertStringContainsString( "'dataLayer',\"GTM-TKVDMKQ6\");", $js );
+        $this->assertStringContainsString( '"\/k7q2fx\/?id=GTM-TKVDMKQ6"', $js );
+        $this->assertStringContainsString( 'w.google_tag_manager["GTM-TKVDMKQ6"]', $js );
         $this->assertStringNotContainsString( 'gtm-tkvdmkq6', $js );
     }
 
-    public function test_probe_refuses_an_id_the_loader_would_not_print() {
-        update_option( 'cuft_gtm_id', 'GTM-AB1' );          // under the four characters is_valid_gtm_id() needs
+    public function test_gateway_is_not_used_for_an_id_the_probe_refuses() {
+        update_option( 'cuft_gtm_id', 'GTM-AB1' );
+        $js = $this->loader();
+        $this->assertStringNotContainsString( 'k7q2fx', $js );
+        $this->assertStringContainsString( '"https:\/\/www.googletagmanager.com\/gtm.js?id=GTM-AB1"', $js );
+        $this->assertStringNotContainsString( 'j.onerror', $js );
+    }
+
+    public function test_probe_refuses_a_short_container_id() {
+        update_option( 'cuft_gtm_id', 'GTM-AB1' );          // under the four characters CUFT_GTG_Health::gtm_id() needs
         $this->fake_http( array( '*' => array( 200, 'ok' ) ) );
         $this->assertSame( array( false, 'no valid gateway path or GTM id' ), CUFT_GTG_Health::probe() );
         $this->assertSame( array(), $this->http_calls );

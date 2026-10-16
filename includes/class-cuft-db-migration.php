@@ -13,7 +13,7 @@ class CUFT_DB_Migration {
     /**
      * Current database schema version
      */
-    const CURRENT_VERSION = '3.28.0';
+    const CURRENT_VERSION = '3.29.2';
 
     /**
      * Option name for storing database version
@@ -112,6 +112,12 @@ class CUFT_DB_Migration {
             self::migrate_to_3_28_0( self::is_existing_install( $stored_version ) );
         }
 
+        // 3.29.2: the webhook key is always required. Drop the retired opt-out
+        // setting and make sure every site has a key.
+        if ( version_compare( $current_version, '3.29.2', '<' ) ) {
+            self::migrate_to_3_29_2();
+        }
+
         // Verify the click tracking table itself (not just the migration
         // bookkeeping above) actually carries every column the code
         // depends on. A version bump is exactly the moment a previous
@@ -141,33 +147,21 @@ class CUFT_DB_Migration {
     /**
      * Migration to version 3.28.0
      *
-     * New installs get the stricter defaults: the webhook requires its key and
-     * generate_lead stays off until an administrator turns it on. Existing
-     * installs keep behaving exactly as before the upgrade: the webhook key
-     * stays optional, and generate_lead is switched on, because before 3.28.0
-     * the client script pushed generate_lead whatever the setting said.
+     * New installs keep generate_lead off until an administrator turns it on.
+     * Existing installs get generate_lead switched on, because before 3.28.0
+     * the client script pushed generate_lead whatever the setting said. (The
+     * optional webhook-key setting this step used to write was removed in
+     * 3.29.2, when the key became mandatory.)
      *
      * @param bool $existing_install Whether the site ran an earlier version.
      */
     private static function migrate_to_3_28_0( $existing_install ) {
         if ( $existing_install ) {
-            if ( false === get_option( 'cuft_webhook_require_key' ) ) {
-                add_option( 'cuft_webhook_require_key', 0 );
-            }
             if ( ! get_option( 'cuft_generate_lead_enabled', false ) ) {
                 update_option( 'cuft_generate_lead_enabled', 1 );
             }
-        } else {
-            if ( false === get_option( 'cuft_webhook_require_key' ) ) {
-                add_option( 'cuft_webhook_require_key', 1 );
-            }
-            if ( false === get_option( 'cuft_generate_lead_enabled' ) ) {
-                add_option( 'cuft_generate_lead_enabled', 0 );
-            }
-        }
-
-        if ( get_option( 'cuft_webhook_require_key', false ) && class_exists( 'CUFT_Click_Tracker' ) ) {
-            CUFT_Click_Tracker::get_webhook_key();
+        } elseif ( false === get_option( 'cuft_generate_lead_enabled' ) ) {
+            add_option( 'cuft_generate_lead_enabled', 0 );
         }
 
         if ( $existing_install ) {
@@ -178,6 +172,20 @@ class CUFT_DB_Migration {
             // Deleting the stored rules makes WordPress rebuild them on the next
             // request, without it.
             delete_option( 'rewrite_rules' );
+        }
+    }
+
+    /**
+     * Migration to version 3.29.2
+     *
+     * The webhook no longer has an unauthenticated mode, so the
+     * cuft_webhook_require_key setting is removed and a key is generated for
+     * any site that does not have one yet.
+     */
+    private static function migrate_to_3_29_2() {
+        delete_option( 'cuft_webhook_require_key' );
+        if ( class_exists( 'CUFT_Click_Tracker' ) ) {
+            CUFT_Click_Tracker::get_webhook_key();
         }
     }
 

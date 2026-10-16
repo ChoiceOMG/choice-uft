@@ -38,14 +38,10 @@ class CUFT_Admin_Notices {
 			return;
 		}
 
-		// Don't show on WordPress core update pages (WordPress handles it there)
+		// Only on the plugin's own screens. Everywhere else WordPress's own
+		// update row and Updates screen already announce a new version.
 		$screen = get_current_screen();
-		if ( $screen && $screen->id === 'update-core' ) {
-			return;
-		}
-
-		// Don't show on plugins page - redundant with WordPress native update row
-		if ( $screen && $screen->id === 'plugins' ) {
+		if ( ! $screen || ! in_array( $screen->id, array( 'settings_page_choice-universal-form-tracker', 'toplevel_page_cuft-click-tracking', 'settings_page_cuft-testing-dashboard' ), true ) ) {
 			return;
 		}
 
@@ -238,9 +234,9 @@ class CUFT_Admin_Notices {
 	 *
 	 * @return void
 	 */
-	public function enqueue_scripts() {
-		// Only enqueue on pages where we show notices
-		if ( ! current_user_can( 'update_plugins' ) ) {
+	public function enqueue_scripts( $hook = '' ) {
+		// Only enqueue on the plugin's own screens, where the notices show.
+		if ( ! current_user_can( 'update_plugins' ) || ! in_array( $hook, array( 'settings_page_choice-universal-form-tracker', 'toplevel_page_cuft-click-tracking', 'settings_page_cuft-testing-dashboard' ), true ) ) {
 			return;
 		}
 
@@ -252,7 +248,7 @@ class CUFT_Admin_Notices {
 			true
 		);
 
-		wp_localize_script( 'cuft-admin-notices', 'cuftNotices', array(
+		CUFT_Utils::localize( 'cuft-admin-notices', 'cuftNotices', array(
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'cuft_updater_nonce' ),
 			'dismissing' => __( 'Dismissing...', 'choice-universal-form-tracker' ),

@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.29.0] - 2026-10-03
+## [3.29.3] - 2026-10-16
+
+First GitHub release since 3.28.4, and the first release in the WordPress.org directory. It joins two lines that were developed in parallel: the directory review fixes (3.29.0 to 3.29.2 below, never released on GitHub) and the Google tag gateway loader mode (built as a separate 3.29.0 that was never released either). Upgrading from 3.28.x picks up every entry from here down to 3.29.0. The webhook now always requires the site key (3.29.2).
 
 ### Added
-- **Google tag gateway loader mode.** Settings > Server-Side GTM gains a "Google tag gateway" checkbox and a script path (for example `/k7q2fx/`). When the mode is on and the path is healthy, the container loads from that same-origin path instead of googletagmanager.com, and the loader tag carries `data-cuft-gtm-source="gateway"` and `data-cuft-gtm-server`. The site's edge must route the path to Google before the mode is switched on. The mode is off by default, and a site that leaves it off gets byte-identical loader and noscript output to 3.28.4 (pinned by golden tests for the plain, sGTM custom and sGTM fallback loaders).
+- **Google tag gateway loader mode.** Settings > Server-Side GTM gains a "Google tag gateway" checkbox and a script path (for example `/k7q2fx/`). When the mode is on and the path is healthy, the container loads from that same-origin path instead of googletagmanager.com, and the loader tag carries `data-cuft-gtm-source="gateway"` and `data-cuft-gtm-server`. The site's edge must route the path to Google before the mode is switched on. The mode is off by default, and a site that leaves it off gets the same loader and noscript as the other modes (pinned by golden tests for the plain, sGTM custom and sGTM fallback loaders).
 - **Hourly gateway health probe.** It requests `healthy`, `?validate_geo=healthy` and `?id=<container>` on the path, and the container request must return a body that holds both the container id and `google_tag_manager` (a CMS page that answers 200, or that merely echoes the id, does not pass). The probe and the gateway loader both use the container id in upper case, so an id saved in lower case (the settings screen accepts either) is probed and loaded under the name Google registers instead of staying in fallback. The probe follows no redirects and asks the site origin root, so a subdirectory install checks the same path the loader uses. The stored failure reason is plain text (tags stripped, whitespace collapsed, cut to 60 characters of the response). The mode starts in fallback; two passing probes in a row select the gateway and two failing probes in a row return to the loader the site used before (Google or its tagging server). While in fallback the loader tag carries `data-cuft-gtg-state="fallback"` and `data-cuft-gtg-reason`.
 - **Browser-side fallback in the gateway loader.** If the gateway script errors, or loads without defining the container, the browser loads `gtm.js` from Google instead, once.
 - **Cache purge on every state change.** WP Super Cache, WP Rocket, W3 Total Cache, SiteGround Optimizer, LiteSpeed Cache and the object cache are purged when the state changes or the mode is switched off, and the `cuft_gtg_state_changed` action fires with the new and previous state.
@@ -18,6 +20,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The `<noscript>` iframe stays on googletagmanager.com while the gateway mode is enabled, because Google does not serve `ns.html` through the gateway.
 - The gateway switch is read as a boolean everywhere, so `wp option update cuft_gtg_enabled false` (stored as the string "false") turns the gateway off and returns the site to its previous loader.
+- The gateway loader is built the way 3.29.0 builds every loader: the script URL is assembled in PHP from the validated gateway path (or sGTM host) and the container ID, passed through `esc_url()` and `CUFT_Utils::js_encode()`. The browser fallback URL and the container ID it checks for are encoded the same way. The loader no longer passes the container ID or a `dl` suffix as snippet arguments.
+- The gateway is used only for the container ID the probe checked (`CUFT_GTG_Health::gtm_id()`, upper case).
+
+## [3.29.2] - 2026-10-02
+
+### Changed
+- `cuft_webhook` always requires the site key (`hash_equals()` against `cuft_webhook_key`), checked before any other input is read. `CUFT_Click_Tracker::webhook_key_required()`, `OPTION_REQUIRE_KEY` and the Click Tracking checkbox are removed. Migration 3.29.2 deletes `cuft_webhook_require_key` and generates a key where none exists; `cuft_db_version` is now 3.29.2. Migration 3.28.0 no longer writes the option.
+- `cuft-click-integration.js`, `admin/cuft-ajax-client.js` and `admin/js/cuft-lazy-loader.js` no longer fall back to `/wp-admin/admin-ajax.php`; with no localized URL they do nothing.
+
+### Removed
+- Twilio and Abstract API sub-processor links from the readme's phone validation section (the plugin only contacts `phone-validator.choice.zone`; twilio.com answers automated requests with 403).
+
+## [3.29.1] - 2026-09-24
+
+### Fixed
+- Lost event writes on the click row. `CUFT_Click_Tracker::add_event()` read the `events` JSON, changed it in PHP and wrote it back with no lock; the three lead events arrive as parallel `cuft_record_event` requests, so the row kept one or two of them. The write is now a compare-and-swap (`UPDATE ... WHERE id = %d AND MD5(events) = md5(<value read>)`, or `events IS NULL`), re-read and retried up to 25 times, inside a per-click `GET_LOCK()` (`cuft_events_<md5(table|click_id)>`, 5 s timeout). If the lock is unavailable (Galera, proxies) or times out, the compare-and-swap alone still keeps every write. Works on JSON and LONGTEXT columns and on InnoDB and MyISAM. Dedupe by event type, the 100-entry cap and timestamp order are unchanged; the logic moved to `CUFT_Click_Tracker::merge_event()` and `decode_events()`. A duplicate-key failure when two first events race to create the row no longer fails the request.
+- `CUFT_Event_Replay::mark_events_replayed()` and `get_and_mark_pending_events()` take the same per-click lock, since their transaction protects nothing on MyISAM.
+- Contact Form 7 submissions recorded no events on the click row. `cuftConfig` (AJAX URL and nonce) was printed as an inline script on the `jquery` handle, and jQuery is not loaded on a CF7 page with nothing else needing it, so `recordEvent()` returned early. It now prints from a src-less `cuft-config` handle in the head, enqueued at priority 0.
+
+## [3.29.0] - 2026-09-24
+
+### Changed
+- Server-side GTM setting takes a bare hostname (`gtm.example.com`), validated with `FILTER_VALIDATE_DOMAIN` and `FILTER_FLAG_HOSTNAME`. Schemes other than a leading `https://`, paths, queries, ports, credentials, IP addresses, `localhost` and internal suffixes (`.local`, `.localnet`, `.internal`) are rejected. `CUFT_SGTM` builds `https://<host>/gtm.js?id=<GTM-ID>` and `ns.html` from the validated host and container ID; nothing else user-supplied reaches the URL. Stored in `cuft_sgtm_host`; the pre-3.29.0 `cuft_sgtm_url` is migrated on first read and deleted. A legacy URL with a path keeps its host and falls back to Google until retested.
+- A changed sGTM host resets validation and the active server to the fallback until it passes its own health checks.
+- `cuft_record_event` accepts only `phone_click`, `email_click`, `form_submit`, `generate_lead` and `qualify_lead`. Lifecycle statuses come only through the webhook.
+- Admin notices render only on the plugin's own screens and are dismissible. Requirement and init-failure notices render on the Plugins screen and the settings screen only. GitHub build: update notices likewise.
+
+### Removed
+- The "is active with N form framework(s) detected" notice, its dismiss script and the `cuft_dismiss_notice` handler.
+- Server-side `form_submit`/`generate_lead` inline scripts in the CF7, Elementor, Ninja Forms and Gravity Forms classes. The hooks run on the submission request before any front-end script is registered, so the scripts were never printed.
+- The TLS verification bypass for `.localnet` sGTM hosts.
+- Unused `cuft_save_sgtm_config` handler, `CUFT_Admin::get_gtm_server_url()`, a duplicate `cuft_dismiss_update_notice` handler, and `assets/cuft-health-check.js` (it read a config key that does not exist, so it never ran).
+
+### Security
+- Every value embedded in inline JavaScript goes through `CUFT_Utils::js_encode()` (`JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT`); `wp_localize_script()` calls are replaced by `CUFT_Utils::localize()`, which keeps core's value handling.
+- Click IDs over 255 characters are rejected by the event recorder and replay endpoints and ignored on capture; `cuft_store_utm` cuts each value to 255 characters.
+- The collector host setting is validated as a hostname.
+
+### Fixed
+- `cuft_last_click_write_error` is cleared after a successful click write or table repair, so a fixed site stops showing a stale error. The notice also has a Dismiss button.
 
 ## [3.28.4] - 2026-09-24
 
