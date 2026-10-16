@@ -201,6 +201,7 @@ class CUFT_GTG_Health {
         if ( function_exists( 'sg_cachepress_purge_cache' ) ) {
             sg_cachepress_purge_cache();     // SiteGround Optimizer
         }
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- LiteSpeed Cache's own purge action; it does nothing when LiteSpeed is absent.
         do_action( 'litespeed_purge_all' );  // LiteSpeed Cache
         if ( function_exists( 'wp_cache_flush' ) ) {
             wp_cache_flush();                // Object cache
