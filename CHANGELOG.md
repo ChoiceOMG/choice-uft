@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin links to choice.marketing carry `utm_source=wp-plugin&utm_medium=admin&utm_campaign=choice-uft` with a `utm_content` naming the link's position (`header`, `footer`, `plugin-row`).
 
 ### Fixed
+- **Testing Dashboard Event Viewer and Test Database Events.** Both panels were static since 3.14.0: nothing constructed `CUFTDataLayerMonitor` or bound their controls, so simulated events never appeared and Load Events, Delete Session Events and Delete All Test Events did nothing. `assets/admin/cuft-event-viewer.js` lists each captured event with its `CUFTEventValidator` result and its payload, honours the test-events-only filter and Clear, and drives the existing `cuft_get_test_events` and `cuft_delete_test_events` endpoints. Event data is written with `textContent` only. The Details column is wider and wraps the payload.
+- **Event validator field names.** `phone_click` and `email_click` were checked for `phone_number` and `email_address`. `assets/cuft-links.js` and the simulator send `clicked_phone` and `clicked_email`, so every real click event would have shown as invalid.
 - `build.sh` packaged a local `svn-assets/` folder (the WordPress.org listing artwork, git-excluded) into both builds. `.distignore` now excludes it. Release builds from a clean checkout were not affected.
 
 ## [3.30.0] - 2026-10-17

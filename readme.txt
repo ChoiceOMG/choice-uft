@@ -325,13 +325,16 @@ around it; in Elementor the class goes under Advanced > CSS Classes.
 1. Settings: Google Tag Manager container, Google tag gateway, server-side GTM and lead events.
 2. Framework detection for Avada, Elementor Pro, Contact Form 7, Ninja Forms and Gravity Forms, with the active tracking features.
 3. Click Tracking: each advertising click ID with its campaign, lead events, qualification status and score.
-4. Testing Dashboard: generate sample data and simulate events to validate tracking.
+4. Testing Dashboard: a simulated form submission in the Event Viewer, checked for required fields, with its full dataLayer payload.
+5. Privacy settings: phone numbers that are never tracked, and how long click records are kept.
 
 == Changelog ==
 
 = 3.30.1 =
 * The plugin's settings screen shows its mark and maker, and its three screens credit Choice OMG in the admin footer with a link to leave a review. Other admin screens are unchanged.
 * The Plugins screen row adds Documentation and Write a review links beside Support.
+* Fixed: the Testing Dashboard's Event Viewer and Test Database Events panels never showed anything. Simulated events now appear with their validation result and full payload, and stored test events can be listed and deleted.
+* Fixed: the Event Viewer's check marked real `phone_click` and `email_click` events invalid, because it looked for field names the plugin does not send.
 * Readme: a GTM setup section for GA4, Google Ads and Meta, and FAQ entries on using the plugin beside GTM4WP, GTM Kit or Site Kit and on paid versions (there are none).
 
 = 3.30.0 =

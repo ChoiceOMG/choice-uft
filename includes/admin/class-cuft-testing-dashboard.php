@@ -171,6 +171,15 @@ class CUFT_Testing_Dashboard {
             true
         );
 
+        // Event Viewer and Test Database Events panels
+        wp_enqueue_script(
+            'cuft-event-viewer',
+            CUFT_URL . '/assets/admin/cuft-event-viewer.js',
+            array('cuft-datalayer-monitor', 'cuft-event-validator'),
+            CUFT_VERSION,
+            true
+        );
+
         // Main dashboard controller (depends on modules above)
         wp_enqueue_script(
             'cuft-testing-dashboard',

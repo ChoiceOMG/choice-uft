@@ -20,8 +20,8 @@
                 'form_submit': ['event', 'cuft_tracked', 'cuft_source', 'form_type', 'form_id'],
                 'generate_lead': ['event', 'cuft_tracked', 'cuft_source', 'currency', 'value'],
                 'qualify_lead': ['event', 'cuft_tracked', 'cuft_source', 'currency', 'value'],
-                'phone_click': ['event', 'cuft_tracked', 'cuft_source', 'phone_number'],
-                'email_click': ['event', 'cuft_tracked', 'cuft_source', 'email_address']
+                'phone_click': ['event', 'cuft_tracked', 'cuft_source', 'clicked_phone'],
+                'email_click': ['event', 'cuft_tracked', 'cuft_source', 'clicked_email']
             };
         }
 
