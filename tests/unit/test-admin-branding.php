@@ -37,6 +37,21 @@ class Test_Admin_Branding extends WP_UnitTestCase {
         }
     }
 
+    public function test_footer_escapes_a_translation_carrying_markup() {
+        $hostile = function ( $translation, $text, $domain ) {
+            if ( 'choice-universal-form-tracker' === $domain && 0 === strpos( $text, 'Choice Universal Form Tracker is free' ) ) {
+                return '<script>alert(1)</script> %1$s %2$s';
+            }
+            return $translation;
+        };
+        add_filter( 'gettext', $hostile, 10, 3 );
+        $footer = $this->footer_on( 'settings_page_choice-universal-form-tracker' );
+        remove_filter( 'gettext', $hostile, 10 );
+
+        $this->assertStringNotContainsString( '<script>', $footer );
+        $this->assertStringContainsString( '>Choice OMG</a>', $footer );
+    }
+
     public function test_footer_is_untouched_elsewhere() {
         $this->assertSame( 'Thank you for creating with WordPress.', $this->footer_on( 'dashboard' ) );
         $this->assertSame( 'Thank you for creating with WordPress.', $this->footer_on( 'plugins' ) );

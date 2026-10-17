@@ -69,7 +69,7 @@ class CUFT_Admin {
 
         return sprintf(
             /* translators: 1: link to Choice OMG, 2: link to the WordPress.org review form. */
-            __( 'Choice Universal Form Tracker is free, built and maintained by %1$s. If it saves you time, %2$s helps other site owners find it.', 'choice-universal-form-tracker' ),
+            esc_html__( 'Choice Universal Form Tracker is free, built and maintained by %1$s. If it saves you time, %2$s helps other site owners find it.', 'choice-universal-form-tracker' ),
             '<a href="' . esc_url( $maker ) . '" target="_blank" rel="noopener">Choice OMG</a>',
             '<a href="' . esc_url( $review ) . '" target="_blank" rel="noopener">' . esc_html__( 'a review on WordPress.org', 'choice-universal-form-tracker' ) . '</a>'
         );
