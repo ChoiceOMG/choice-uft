@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.30.0] - Unreleased
+## [3.30.0] - 2026-10-17
 
 ### Added
 - **Ignored Phone Numbers.** Settings gains a list of phone numbers whose `tel:` links are never tracked: no `phone_click` in the dataLayer and no `cuft_record_event` request, so nothing is recorded on the click. Numbers match on a key of the last 10 digits before any extension (`;ext=`, `,`, or a letter), applied the same way in PHP (`CUFT_Privacy::normalize_phone()`) and in `assets/cuft-links.js`, so `+1 (780) 555-0173`, `780.555.0173` and `tel:+17805550173;ext=2` are one number. Entries with fewer than 7 digits are refused with a notice. The list reaches the browser twice: in `cuftConfig.ignorePhones`, and as `window.cuftIgnorePhones` printed with the link tracking script itself, so the click handler never depends on another script having been printed.
