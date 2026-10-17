@@ -45,6 +45,11 @@ or otherwise installing plugins from servers other than WordPress.org's", so dir
 installs get their updates from core. `CUFT_Plugin::has_updater()` detects
 the missing files at runtime and skips loading them, the Force Update tab, and its assets.
 
+**Both channels ship every version (Peter, 2026-10-16).** Client sites stay on the GitHub
+build; features clients need are built in this one plugin, the self-updater is the only
+difference, and a single channel is the long-term goal. Order per release: GitHub tag,
+then drlampee.com as the gate site, then WordPress.org (step 7 below).
+
 The directory names differ on purpose: the GitHub updater matches releases against the
 `choice-uft/` install path, while WordPress.org derives the slug from the directory and
 expects it to match the `Text Domain` header.
@@ -137,6 +142,19 @@ When creating a new GitHub release, follow these steps IN ORDER:
    unzip -l /tmp/rel/choice-uft-v3.x.x.zip | head
    # Every path starts with choice-uft/ ; no tests/, .github/, .specify/, vendor/
    ```
+
+7. **Publish to WordPress.org** (listing live since 3.29.4, 2026-10-16):
+   `~/sysadmin/plugin-ops` clones the tag, runs 11 gates (Plugin Check included) and
+   commits trunk, `tags/<ver>` and `assets/`. The SVN password lives only on
+   peter-desktop and travels over ssh stdin; the listing images are staged in
+   `svn-assets/` and copied to wwwchoice `~/cuft-svn-assets/`. Dry run first:
+   ```bash
+   ssh wwwchoice 'IFS= read -r WPORG_SVN_PASS; export WPORG_SVN_PASS WPORG_SVN_USER=jaffray
+     cd ~/plugin-ops && set -a && . ./.env && set +a
+     ./plugin-ops release choice-universal-form-tracker --version 3.x.x --dry-run --assets ~/cuft-svn-assets' < ~/.config/wporg/svn.pass
+   ```
+   Drop `--dry-run` for the real commit. A readme-only change still needs a new version:
+   the release is built from the tag, so the tag's readme is what the directory shows.
 
 ### Post-Release Validation
 
