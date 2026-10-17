@@ -25,8 +25,18 @@ function element(tag) {
     className: "",
     checked: false,
     own: "",
+    open: false,
     appendChild(child) {
       node.children.push(child);
+      return child;
+    },
+    insertBefore(child, ref) {
+      const at = node.children.indexOf(ref);
+      node.children.splice(at === -1 ? node.children.length : at, 0, child);
+      return child;
+    },
+    removeChild(child) {
+      node.children = node.children.filter((c) => c !== child);
       return child;
     },
     replaceChildren(...kids) {
@@ -54,6 +64,8 @@ function element(tag) {
       return out;
     },
   };
+  Object.defineProperty(node, "firstChild", { get: () => node.children[0] || null });
+  Object.defineProperty(node, "lastChild", { get: () => node.children[node.children.length - 1] || null });
   Object.defineProperty(node, "textContent", {
     get: () => node.own + node.children.map((c) => c.textContent).join(""),
     set: (v) => {
@@ -72,7 +84,15 @@ function element(tag) {
   return node;
 }
 
-function load({ confirmAnswer = true, sessionId = null, responses = [] } = {}) {
+function load({
+  confirmAnswer = true,
+  sessionId = null,
+  responses = [],
+  validator = true,
+  config = { ajaxUrl: "/wp-admin/admin-ajax.php", nonce: "n0nce" },
+  stored = {},
+  placeholder = "No events captured yet. Generate test data and simulate events to begin.",
+} = {}) {
   const ids = {};
   [
     "cuft-event-list",
@@ -85,6 +105,12 @@ function load({ confirmAnswer = true, sessionId = null, responses = [] } = {}) {
     "cuft-db-events-container",
   ].forEach((id) => (ids[id] = element(id === "cuft-event-list" ? "tbody" : "div")));
   ids["cuft-filter-test-only"].checked = true;
+  // The page arrives with PHP's translated placeholder row.
+  const placeholderRow = element("tr");
+  const placeholderCell = element("td");
+  placeholderCell.textContent = placeholder;
+  placeholderRow.appendChild(placeholderCell);
+  ids["cuft-event-list"].appendChild(placeholderRow);
 
   const requests = [];
   class FormData {
@@ -97,9 +123,10 @@ function load({ confirmAnswer = true, sessionId = null, responses = [] } = {}) {
   }
   const window = {
     dataLayer: [],
-    cuftConfig: { ajaxUrl: "/wp-admin/admin-ajax.php", nonce: "n0nce" },
+    cuftConfig: config,
     CUFTTestingDashboard: { sessionId },
     confirm: () => confirmAnswer,
+    localStorage: { getItem: (k) => (k in stored ? stored[k] : null) },
   };
   const document = {
     readyState: "complete",
@@ -122,7 +149,8 @@ function load({ confirmAnswer = true, sessionId = null, responses = [] } = {}) {
   };
   vm.createContext(sandbox);
   // Each script publishes its class on window, as in the browser.
-  for (const file of ["cuft-datalayer-monitor.js", "cuft-event-validator.js", "cuft-event-viewer.js"]) {
+  const files = ["cuft-datalayer-monitor.js", "cuft-event-validator.js", "cuft-event-viewer.js"];
+  for (const file of validator ? files : files.filter((f) => f !== "cuft-event-validator.js")) {
     vm.runInContext(source(file), sandbox);
   }
   return { window, ids, requests };
@@ -253,4 +281,66 @@ test("Delete Session Events without a session explains and sends nothing", async
 
   assert.strictEqual(requests.length, 0);
   assert.match(ids["cuft-db-events-container"].textContent, /Generate sample data first/);
+});
+
+test("a hidden push leaves the list alone, so an open View stays open", () => {
+  // With a GTM click trigger, opening View pushes gtm.click; rebuilding the
+  // table on that push replaced the row before it could open.
+  const { window, ids } = load();
+  window.dataLayer.push(Object.assign({}, TEST_SUBMIT));
+  const row = ids["cuft-event-list"].find("tr")[0];
+  row.find("details")[0].open = true;
+
+  window.dataLayer.push({ event: "gtm.click" });
+  assert.strictEqual(ids["cuft-event-list"].find("tr")[0], row);
+  assert.strictEqual(row.find("details")[0].open, true);
+
+  window.dataLayer.push(Object.assign({}, TEST_SUBMIT, { form_id: "cf7-13" }));
+  const rows = ids["cuft-event-list"].find("tr");
+  assert.strictEqual(rows.length, 2);
+  assert.strictEqual(rows[1], row, "the new event goes on top; the open row is kept");
+  assert.strictEqual(row.find("details")[0].open, true);
+});
+
+test("without the validator, events read Not checked rather than Valid", () => {
+  const { window, ids } = load({ validator: false });
+  window.dataLayer.push(Object.assign({}, TEST_SUBMIT));
+  assert.match(ids["cuft-event-list"].textContent, /Not checked/);
+  assert.doesNotMatch(ids["cuft-event-list"].textContent, /Valid/);
+});
+
+test("a payload that cannot be serialised still lists the event", () => {
+  const { window, ids } = load();
+  const circular = Object.assign({}, TEST_SUBMIT);
+  circular.self = circular;
+  window.dataLayer.push(circular);
+  window.dataLayer.push(Object.assign({}, TEST_SUBMIT, { form_id: "cf7-14" }));
+  assert.strictEqual(ids["cuft-event-list"].find("tr").length, 2);
+  assert.match(ids["cuft-event-list"].textContent, /could not be shown/);
+});
+
+test("the translated placeholder from the page is kept for the empty list", () => {
+  const { window, ids } = load({ placeholder: "Aucun evenement pour le moment." });
+  window.dataLayer.push(Object.assign({}, TEST_SUBMIT));
+  ids["cuft-clear-events"].fire("click");
+  assert.match(ids["cuft-event-list"].textContent, /Aucun evenement pour le moment\./);
+});
+
+test("without cuftConfig, Load Events explains instead of posting", async () => {
+  const { ids, requests } = load({ config: null });
+  ids["cuft-load-db-events"].fire("click");
+  await settle();
+  assert.strictEqual(requests.length, 0);
+  assert.match(ids["cuft-db-events-container"].textContent, /settings are missing/);
+});
+
+test("after a reload, Delete Session Events uses the last session saved in the browser", async () => {
+  const { ids, requests } = load({
+    sessionId: null,
+    stored: { cuft_test_sessions: JSON.stringify([{ session_id: "s-saved" }, { session_id: "s-older" }]) },
+  });
+  ids["cuft-delete-session-events"].fire("click");
+  await settle();
+  assert.strictEqual(requests[0].delete_type, "by_session");
+  assert.strictEqual(requests[0].session_id, "s-saved");
 });

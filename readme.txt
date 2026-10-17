@@ -1,4 +1,4 @@
-=== Choice Universal Form Tracker - Form Tracking for Google Tag Manager ===
+=== Choice Universal Form Tracker for Google Tag Manager ===
 Contributors: jaffray
 Tags: form tracking, google tag manager, conversion tracking, datalayer, utm
 Requires at least: 6.2
@@ -60,14 +60,16 @@ condition to build triggers on.
 One trigger in Google Tag Manager covers every form on the site, and a form
 plugin added later needs no new tag:
 
-1. Create a Custom Event trigger for `form_submit` with the condition
+1. Add Data Layer Variables for `cuft_tracked` and for the fields you need,
+   such as `form_type`, `form_id`, `utm_campaign`, `gclid` and `lead_id`.
+2. Create a Custom Event trigger for `form_submit` with the condition
    `cuft_tracked` equals `true`.
-2. Add Data Layer Variables for the fields you need, such as `form_type`,
-   `form_id`, `utm_campaign`, `gclid` and `lead_id`.
 3. Fire your GA4 event tag, Google Ads conversion tag or Meta Pixel `Lead`
    event on that trigger. For Google Ads enhanced conversions, map
-   `user_email` and `user_phone` into a User-Provided Data variable; for GA4,
-   send `lead_id` and leave the contact details out.
+   `user_email` into a User-Provided Data variable. `user_phone` holds the
+   number as the visitor typed it, so convert it to E.164 form (such as
+   `+17805550173`) before mapping it. For GA4, send `lead_id` and leave the
+   contact details out.
 
 = Shared lead identity =
 
@@ -243,9 +245,11 @@ affiliated with their makers.
 
 = Is there a paid version? =
 
-No. Every feature ships in this free plugin, with no paid tier, no account to
-create and no upgrade prompts. The one optional feature that relies on a
-Choice OMG service, phone validation, is described under External services.
+No. There is no paid tier and no upgrade prompt. Two optional features can
+use services Choice OMG runs for its agency clients: phone validation, which
+needs a registration secret Choice OMG issues to those clients, and the click
+collector, which can point at a collector of your own instead. Both are off by
+default and are described under External services.
 
 = Which form plugins does it support? =
 

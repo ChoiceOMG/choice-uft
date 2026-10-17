@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Choice Universal Form Tracker - Form Tracking for Google Tag Manager
+ * Plugin Name:       Choice Universal Form Tracker for Google Tag Manager
  * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
  * Version:           3.30.1

@@ -32,9 +32,15 @@
     }
 
     function details(data) {
+        let text;
+        try {
+            text = JSON.stringify(data, null, 2);
+        } catch (error) {
+            text = '(payload could not be shown: ' + error.message + ')';
+        }
         const box = el('details');
         box.appendChild(el('summary', '', 'View'));
-        box.appendChild(el('pre', '', JSON.stringify(data, null, 2)));
+        box.appendChild(el('pre', '', text));
         return box;
     }
 
@@ -51,10 +57,13 @@
             this.validator = validator;
             this.list = document.getElementById('cuft-event-list');
             this.dbContainer = document.getElementById('cuft-db-events-container');
+            // Keep the page's own (translated) empty-state text.
+            this.emptyText = (this.list && this.list.textContent.trim()) || EMPTY_VIEWER;
+            this.showingEmpty = true;
         }
 
         bind() {
-            this.monitor.onEvent(() => this.render());
+            this.monitor.onEvent(event => this.add(event));
 
             const filter = document.getElementById('cuft-filter-test-only');
             if (filter) {
@@ -77,13 +86,36 @@
             this.render();
         }
 
+        /**
+         * Put one new event on top. Rows already listed are left alone, so a
+         * push that the filter hides (GTM's own gtm.click, for one) cannot
+         * close a payload someone has open.
+         */
+        add(event) {
+            if (!this.list || this.monitor.getFilteredEvents()[0] !== event) {
+                return;
+            }
+            const row = this.row(event);
+            if (this.showingEmpty) {
+                this.list.replaceChildren(row);
+                this.showingEmpty = false;
+            } else {
+                this.list.insertBefore(row, this.list.firstChild);
+            }
+            const max = this.monitor.maxEvents || 100;
+            while (this.list.children.length > max) {
+                this.list.removeChild(this.list.lastChild);
+            }
+        }
+
         render() {
             if (!this.list) {
                 return;
             }
             const events = this.monitor.getFilteredEvents();
-            if (!events.length) {
-                const empty = el('td', 'no-events', EMPTY_VIEWER);
+            this.showingEmpty = !events.length;
+            if (this.showingEmpty) {
+                const empty = el('td', 'no-events', this.emptyText);
                 empty.setAttribute('colspan', '4');
                 const row = el('tr');
                 row.appendChild(empty);
@@ -94,7 +126,7 @@
         }
 
         row(event) {
-            const check = this.validator ? this.validator.validate(event) : { valid: true, errors: [] };
+            const check = this.validator ? this.validator.validate(event) : null;
             const payload = Object.assign({}, event);
             delete payload._cuft_captured_at;
             delete payload._cuft_index;
@@ -102,14 +134,21 @@
             const row = el('tr');
             row.appendChild(el('td', '', new Date(event._cuft_captured_at).toLocaleTimeString()));
             row.appendChild(el('td', '', String(event.event || '(no event name)')));
-            row.appendChild(cell(el('span', 'event-status ' + (check.valid ? 'valid' : 'invalid'),
-                check.valid ? 'Valid' : check.errors.join('; '))));
+            if (!check) {
+                row.appendChild(cell(el('span', 'event-status', 'Not checked')));
+            } else {
+                row.appendChild(cell(el('span', 'event-status ' + (check.valid ? 'valid' : 'invalid'),
+                    check.valid ? 'Valid' : check.errors.join('; '))));
+            }
             row.appendChild(cell(details(payload)));
             return row;
         }
 
         async post(fields) {
             const config = window.cuftConfig || {};
+            if (!config.ajaxUrl || !config.nonce) {
+                throw new Error('the dashboard settings are missing; reload the page');
+            }
             const body = new FormData();
             body.append('nonce', config.nonce);
             Object.keys(fields).forEach(key => body.append(key, fields[key]));
@@ -171,9 +210,25 @@
             }
         }
 
-        async deleteSessionEvents() {
+        /**
+         * The session generated on this page, or after a reload the newest one
+         * the dashboard saved in this browser.
+         */
+        currentSessionId() {
             const dashboard = window.CUFTTestingDashboard;
-            const sessionId = dashboard && dashboard.sessionId;
+            if (dashboard && dashboard.sessionId) {
+                return dashboard.sessionId;
+            }
+            try {
+                const saved = JSON.parse(window.localStorage.getItem('cuft_test_sessions') || '[]');
+                return (saved[0] && saved[0].session_id) || null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async deleteSessionEvents() {
+            const sessionId = this.currentSessionId();
             if (!sessionId) {
                 this.dbMessage('Generate sample data first: session events belong to the current test session.');
                 return;
