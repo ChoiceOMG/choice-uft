@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.4] - 2026-10-16
+
+First release published in the WordPress.org directory. No code change from 3.29.3, which was released on GitHub only; GitHub installs on 3.29.3 can skip it.
+
+### Changed
+- readme.txt: screenshots retaken on 3.29.3 (the old set showed the webhook key toggle that 3.29.2 removed), directory tags narrowed to form tracking, google tag manager, conversion tracking, utm and attribution, and the maintainer section links to choice.marketing and the plugin's overview page.
+- Plugin header: Author URI ends in a slash, matching the site's canonical URL.
+
 ## [3.29.3] - 2026-10-16
 
-First GitHub release since 3.28.4, and the first release in the WordPress.org directory. It joins two lines that were developed in parallel: the directory review fixes (3.29.0 to 3.29.2 below, never released on GitHub) and the Google tag gateway loader mode (built as a separate 3.29.0 that was never released either). Upgrading from 3.28.x picks up every entry from here down to 3.29.0. The webhook now always requires the site key (3.29.2).
+First GitHub release since 3.28.4. It joins two lines that were developed in parallel: the directory review fixes (3.29.0 to 3.29.2 below, never released on GitHub) and the Google tag gateway loader mode (built as a separate 3.29.0 that was never released either). Upgrading from 3.28.x picks up every entry from here down to 3.29.0. The webhook now always requires the site key (3.29.2).
 
 ### Added
 - **Google tag gateway loader mode.** Settings > Server-Side GTM gains a "Google tag gateway" checkbox and a script path (for example `/k7q2fx/`). When the mode is on and the path is healthy, the container loads from that same-origin path instead of googletagmanager.com, and the loader tag carries `data-cuft-gtm-source="gateway"` and `data-cuft-gtm-server`. The site's edge must route the path to Google before the mode is switched on. The mode is off by default, and a site that leaves it off gets the same loader and noscript as the other modes (pinned by golden tests for the plain, sGTM custom and sGTM fallback loaders).

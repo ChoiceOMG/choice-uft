@@ -1,10 +1,10 @@
 === Choice Universal Form Tracker ===
 Contributors: jaffray
-Tags: forms, form tracking, analytics, conversion tracking, utm
+Tags: form tracking, google tag manager, conversion tracking, utm, attribution
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.29.3
+Stable tag: 3.29.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,9 +74,11 @@ expect, so the value doubles as a match key for offline conversion imports.
 
 = Who maintains this =
 
-Choice OMG maintains this plugin. We are a digital marketing and web agency in
-Edmonton, Alberta, and we built it because our clients' sites run several form
-plugins at once and each one needed its own analytics plumbing.
+[Choice OMG](https://choice.marketing/) maintains this plugin. We are a
+digital marketing and web agency in Edmonton, Alberta, and we built it because
+our clients' sites run several form plugins at once and each one needed its own
+analytics plumbing. The plugin's overview page is
+[Choice Universal Form Tracker for WordPress](https://choice.marketing/tools/choice-uft/).
 
 == External services ==
 
@@ -259,12 +261,16 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 
 == Screenshots ==
 
-1. Settings: Google Tag Manager container, server-side GTM, lead events and phone validation.
+1. Settings: Google Tag Manager container, Google tag gateway, server-side GTM and lead events.
 2. Framework detection for Avada, Elementor Pro, Contact Form 7, Ninja Forms and Gravity Forms, with the active tracking features.
-3. Click Tracking: click IDs, qualification status and export for Google Ads offline conversions.
+3. Click Tracking: each advertising click ID with its campaign, lead events, qualification status and score.
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.29.4 =
+* First release published in the WordPress.org directory. No code change from 3.29.3, which was released on GitHub only.
+* Readme: new screenshots taken on 3.29.3, directory tags that match what the plugin does, and links to the maintainer and the plugin's overview page.
 
 = 3.29.3 =
 * First release that carries both 3.29 lines: the directory review fixes listed under 3.29.0 to 3.29.2, and the Google tag gateway loader mode below.
@@ -375,6 +381,9 @@ payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
 * Rewrote the plugin around a modular architecture with automatic framework detection, and removed the jQuery dependency.
 
 == Upgrade Notice ==
+
+= 3.29.4 =
+Readme and listing changes only; no code change from 3.29.3. Upgrading from 3.28.x: the webhook now always requires the site's key, and a server-side GTM URL becomes a bare hostname.
 
 = 3.29.3 =
 Upgrading from 3.28.x: the webhook now always requires the site's key, and a server-side GTM URL becomes a bare hostname. Adds an optional Google tag gateway mode, off by default.

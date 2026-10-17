@@ -3,11 +3,11 @@
  * Plugin Name:       Choice Universal Form Tracker
  * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
- * Version:           3.29.3
+ * Version:           3.29.4
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Choice OMG
- * Author URI:        https://choice.marketing
+ * Author URI:        https://choice.marketing/
  * Text Domain:       choice-universal-form-tracker
  * License:           GPLv2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.29.3' );
+define( 'CUFT_VERSION', '3.29.4' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
