@@ -34,16 +34,75 @@ class Test_SGTM_Health_Cron extends WP_UnitTestCase {
         parent::tearDown();
     }
 
-    public function test_dead_tagging_server_falls_back_on_a_cron_run() {
-        $this->assertFalse( is_admin() );
+    private function server_is_down() {
         add_filter( 'pre_http_request', function () {
             return new WP_Error( 'http_request_failed', 'Connection refused' );
         } );
+    }
+
+    private function server_is_up() {
+        add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
+            $body = false !== strpos( $url, 'ns.html' ) ? '<html></html>' : '/* google_tag_manager gtm.js */';
+            return array( 'headers' => array(), 'body' => $body, 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array(), 'filename' => null );
+        }, 10, 3 );
+    }
+
+    private function recheck_time() {
+        return wp_next_scheduled( self::HOOK, array( 'recheck' ) );
+    }
+
+    public function test_dead_tagging_server_falls_back_after_two_failed_checks() {
+        $this->assertFalse( is_admin() );
+        $this->server_is_down();
+
+        CUFT_Plugin::get_instance()->init();
+        do_action( self::HOOK );
+        do_action( self::HOOK );
+
+        $this->assertSame( 'fallback', get_option( 'cuft_sgtm_active_server' ) );
+    }
+
+    /**
+     * One timeout from a busy host must not take a site off its tagging
+     * server; a recheck 15 minutes later confirms or clears it.
+     */
+    public function test_one_failed_check_keeps_the_server_and_rechecks_soon() {
+        $this->server_is_down();
 
         CUFT_Plugin::get_instance()->init();
         do_action( self::HOOK );
 
+        $this->assertSame( 'custom', get_option( 'cuft_sgtm_active_server' ) );
+        $this->assertIsInt( $this->recheck_time() );
+        $this->assertLessThanOrEqual( time() + 20 * MINUTE_IN_SECONDS, $this->recheck_time() );
+    }
+
+    /**
+     * Three passes in a row bring the tagging server back. Six hours apart
+     * that took 18 hours; rechecks 15 minutes apart take under an hour.
+     */
+    public function test_recovery_is_rechecked_soon_and_restores_the_server() {
+        update_option( 'cuft_sgtm_active_server', 'fallback' );
+        $this->server_is_up();
+
+        CUFT_Plugin::get_instance()->init();
+        do_action( self::HOOK );
         $this->assertSame( 'fallback', get_option( 'cuft_sgtm_active_server' ) );
+        $this->assertIsInt( $this->recheck_time() );
+
+        do_action( self::HOOK, 'recheck' );
+        do_action( self::HOOK, 'recheck' );
+        $this->assertSame( 'custom', get_option( 'cuft_sgtm_active_server' ) );
+    }
+
+    public function test_healthy_server_needs_no_recheck() {
+        $this->server_is_up();
+
+        CUFT_Plugin::get_instance()->init();
+        do_action( self::HOOK );
+
+        $this->assertSame( 'custom', get_option( 'cuft_sgtm_active_server' ) );
+        $this->assertFalse( $this->recheck_time() );
     }
 
     public function test_check_is_scheduled_every_six_hours_when_sgtm_is_on() {

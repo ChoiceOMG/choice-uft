@@ -73,8 +73,8 @@ class CUFT_Click_Integration {
     /**
      * UTM parameters on the current request's URL.
      *
-     * Taken as one set: when the URL carries any of them, the cookie's
-     * values from an earlier campaign are not mixed in.
+     * The landing URL is the whole record of the campaign behind a click;
+     * values a cookie holds from an earlier visit never mix in.
      *
      * @return array utm_* => value, only the parameters present.
      */
@@ -97,17 +97,16 @@ class CUFT_Click_Integration {
      * Track click ID with UTM data
      */
     private function track_click_id( $click_id, $platform ) {
-        if ( ! class_exists( 'CUFT_Click_Tracker' ) || ! class_exists( 'CUFT_UTM_Tracker' ) ) {
+        if ( ! class_exists( 'CUFT_Click_Tracker' ) ) {
             return;
         }
         
-        // UTMs on the landing URL belong to this click. The cuft_utm_data
-        // cookie is written by the browser only after this page loads, so on
-        // the landing request it holds an earlier visit's values or nothing.
+        // The row takes UTMs only from the landing URL. The cuft_utm_data
+        // cookie is written by the browser after this page loads, so here it
+        // holds an earlier visit's campaign, and on this same page view the
+        // browser replaces it with this click's parameters alone (a gclid
+        // from Google Ads auto-tagging carries no UTMs at all).
         $utm_data = self::get_landing_utm_data();
-        if ( empty( $utm_data ) ) {
-            $utm_data = CUFT_UTM_Tracker::get_utm_data();
-        }
         
         // Prepare tracking data
         $tracking_data = array(

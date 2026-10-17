@@ -169,6 +169,12 @@ class CUFT_DB_Migration {
             $now = $wpdb->get_var( 'SELECT NOW()' );
             add_option( CUFT_Privacy::OPTION_LEGACY_IP_HASH_BEFORE, $now ? $now : gmdate( 'Y-m-d H:i:s' ), '', false );
         }
+
+        // Log entries written before 3.30.0 can hold visitors' contact
+        // details and form answers; new entries are scrubbed as written.
+        if ( class_exists( 'CUFT_Logger' ) ) {
+            CUFT_Logger::scrub_stored_logs();
+        }
     }
 
     /**

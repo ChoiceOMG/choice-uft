@@ -274,6 +274,23 @@ class Test_CUFT_Privacy extends WP_UnitTestCase {
         $this->assertSame( hash_hmac( 'sha256', '203.0.113.7', $key ), $hash );
     }
 
+    /**
+     * No other secret moves the hash: not a custom scheme, not the
+     * database-backed secret_key that custom schemes fall back to.
+     */
+    public function test_only_the_auth_secrets_key_the_ip_hash() {
+        $before = CUFT_Click_Tracker::hash_ip( '203.0.113.7' );
+
+        $move_others = function ( $salt, $scheme ) {
+            return 'auth' === $scheme ? $salt : 'a-different-secret-' . $scheme;
+        };
+        add_filter( 'salt', $move_others, 10, 2 );
+        $after = CUFT_Click_Tracker::hash_ip( '203.0.113.7' );
+        remove_filter( 'salt', $move_others, 10 );
+
+        $this->assertSame( $before, $after );
+    }
+
     public function test_new_clicks_store_the_keyed_hash() {
         $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
         CUFT_Click_Tracker::track_click( 'keyed_click', array( 'platform' => 'google' ) );

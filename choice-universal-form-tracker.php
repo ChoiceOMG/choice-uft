@@ -418,11 +418,8 @@ class CUFT_Plugin {
         // Cleanup debug logs older than 30 days
         delete_option( 'cuft_debug_logs' );
 
-        // Clear scheduled health check cron job
-        $timestamp = wp_next_scheduled( 'cuft_scheduled_health_check' );
-        if ( $timestamp ) {
-            wp_unschedule_event( $timestamp, 'cuft_scheduled_health_check' );
-        }
+        // Clear the six-hour health check and any pending recheck
+        wp_clear_scheduled_hook( 'cuft_scheduled_health_check' );
 
         // Clear the Google tag gateway health probe
         wp_clear_scheduled_hook( 'cuft_gtg_health_check' );

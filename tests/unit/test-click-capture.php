@@ -81,7 +81,12 @@ class Test_Click_Capture extends WP_UnitTestCase {
         $this->assertSame( 'new_campaign', $row->utm_campaign );
     }
 
-    public function test_cookie_utms_fill_in_when_the_url_has_none() {
+    /**
+     * Google Ads auto-tagging adds a gclid and no UTMs. The browser script
+     * replaces the UTM cookie with that click alone on the same page view, so
+     * a newsletter visit last week must not label this ad click.
+     */
+    public function test_click_without_utms_does_not_inherit_an_older_campaign() {
         $_COOKIE['cuft_utm_data'] = wp_json_encode( array(
             'utm'       => array( 'utm_source' => 'newsletter', 'utm_campaign' => 'october' ),
             'timestamp' => current_time( 'timestamp' ),
@@ -89,7 +94,10 @@ class Test_Click_Capture extends WP_UnitTestCase {
 
         $this->land( array( 'gclid' => 'GCLID-UTM-3' ) );
 
-        $this->assertSame( 'newsletter', $this->row( 'GCLID-UTM-3' )->utm_source );
+        $row = $this->row( 'GCLID-UTM-3' );
+        $this->assertSame( 'google', $row->platform );
+        $this->assertSame( '', (string) $row->utm_source );
+        $this->assertSame( '', (string) $row->utm_campaign );
     }
 
     public function test_revisiting_the_landing_url_keeps_the_row() {
@@ -149,6 +157,12 @@ class Test_Click_Capture extends WP_UnitTestCase {
         $this->assertStringNotContainsString( $ip_hash, $before );
     }
 
+    /**
+     * Pins the recorded value across the switch away from
+     * add_query_arg( null, null ). That call's deprecation only shows on
+     * PHP 8.5, so this test cannot catch a revert on older PHP; the 8.5 run
+     * is part of the release verification instead.
+     */
     public function test_landing_page_is_recorded() {
         $this->land( array( 'gclid' => 'GCLID-LP' ) );
 

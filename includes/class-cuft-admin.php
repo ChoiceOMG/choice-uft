@@ -1214,27 +1214,46 @@ class CUFT_Admin {
             update_option( 'cuft_sgtm_health_consecutive_failure', 0 );
             
             // Switch to custom server after 3 consecutive successes
+            $current_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
             if ( $consecutive_success >= 3 ) {
-                $current_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
                 if ( $current_server !== 'custom' ) {
                     update_option( 'cuft_sgtm_active_server', 'custom' );
                     // Trigger admin notice for server recovery
                     add_option( 'cuft_sgtm_server_recovered', $timestamp );
                 }
+            } elseif ( $current_server !== 'custom' ) {
+                // Recovering: confirm within the hour, not over 18 hours.
+                self::schedule_health_recheck();
             }
         } else {
             // Increment consecutive failure, reset success counter
             $consecutive_failure = get_option( 'cuft_sgtm_health_consecutive_failure', 0 ) + 1;
             update_option( 'cuft_sgtm_health_consecutive_failure', $consecutive_failure );
             update_option( 'cuft_sgtm_health_consecutive_success', 0 );
-            
-            // Switch to fallback on first failure
+
+            // Fall back on the second failure in a row. One timeout from a
+            // busy host would otherwise take the site off its tagging server
+            // until three passes six hours apart brought it back; a recheck
+            // 15 minutes later settles it instead.
             $current_server = get_option( 'cuft_sgtm_active_server', 'fallback' );
-            if ( $current_server === 'custom' ) {
-                update_option( 'cuft_sgtm_active_server', 'fallback' );
-                // Trigger admin notice for server failure
-                add_option( 'cuft_sgtm_server_failed', $timestamp );
+            if ( $consecutive_failure >= 2 ) {
+                if ( $current_server === 'custom' ) {
+                    update_option( 'cuft_sgtm_active_server', 'fallback' );
+                    // Trigger admin notice for server failure
+                    add_option( 'cuft_sgtm_server_failed', $timestamp );
+                }
+            } else {
+                self::schedule_health_recheck();
             }
+        }
+    }
+
+    /**
+     * One-off health check 15 minutes from now, beside the six-hour run.
+     */
+    private static function schedule_health_recheck() {
+        if ( ! wp_next_scheduled( 'cuft_scheduled_health_check', array( 'recheck' ) ) ) {
+            wp_schedule_single_event( time() + 15 * MINUTE_IN_SECONDS, 'cuft_scheduled_health_check', array( 'recheck' ) );
         }
     }
 

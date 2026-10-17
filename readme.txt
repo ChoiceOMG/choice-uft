@@ -124,9 +124,11 @@ example `gtm.example.com`); the plugin builds the script address itself as
 instead of from Google, so that host receives the same page-load request
 described above. To decide whether the host is healthy, the plugin also
 requests `gtm.js` and `ns.html` from it, server to server, when you press
-the test button and on a six-hour schedule. Those checks carry the container
-ID and no visitor data. When the custom host fails its check, the plugin
-falls back to `www.googletagmanager.com`.
+the test button and on a six-hour schedule, with a recheck 15 minutes after a
+failed check. Those checks carry the container ID and no visitor data. When
+the custom host fails two checks in a row, the plugin falls back to
+`www.googletagmanager.com`, and returns to the host after three passes in a
+row.
 
 *When:* on every front-end page load, and on the six-hour health check, while
 server-side GTM is enabled.
@@ -237,13 +239,15 @@ the ad click and the form submission. First-touch attribution is kept for a
 year in a separate cookie.
 
 On the server, each tracked click is a row in the plugin's click tracking
-table: the click ID, the campaign parameters, a keyed hash of the visitor's
-IP address, the browser's user agent, the referring page and the landing page
-address. A click on a phone or email link by a visitor who did not arrive from
-an ad also creates a row, under a temporary ID. Rows older than the Click Data
-Retention setting (365 days by default) are deleted once a day. The IP address
-itself is never stored, and the hash is keyed with the authentication keys in
-wp-config.php, so a copy of the database alone cannot reverse it.
+table: the click ID and its ad platform, the campaign parameters, a keyed
+hash of the visitor's IP address, the browser's user agent, the referring
+page, the landing page address, the Google Analytics client ID when the
+visitor has one, and the tracked events with their times. A click on a phone
+or email link by a visitor who did not arrive from an ad also creates a row,
+under a temporary ID. Rows older than the Click Data Retention setting (365
+days by default) are deleted once a day. The IP address itself is never
+stored, and the hash is keyed with the authentication keys in wp-config.php,
+so a copy of the database alone cannot reverse it.
 
 = Is it GDPR compliant? =
 
@@ -303,10 +307,10 @@ around it; in Elementor the class goes under Advanced > CSS Classes.
 * IP hashes are now keyed (HMAC-SHA256 with a key derived from `AUTH_KEY` and `AUTH_SALT` in wp-config.php) instead of a plain SHA-256 of the address, which could be reversed by hashing every IPv4 address. Hashes stored before the upgrade are cleared by the daily job. Define `CUFT_IP_HASH_KEY` to use your own key.
 * Pages no longer contain the visitor's click ID or IP hash. A full-page cache could have served one ad visitor's click ID to everyone after them; the scripts now read the visitor's own cookie. Form events no longer carry `ip_hash` or `click_platform`.
 * Fixed: reloading an ad landing page reset the click's qualification and score from your CRM and replaced its campaign. A click row is now written once and never rewritten from the front end.
-* Fixed: the click row written on an ad landing had no campaign, because the browser saves the UTM parameters only after the page loads. They are now read from the landing URL, and values longer than their column are shortened instead of losing the row.
-* Fixed: a failed Contact Form 7 email stored the visitor's email address and phone number in the plugin's log, even with debug logging off. The log no longer keeps contact details or form answers, and it is no longer loaded on every request.
+* Fixed: the click row written on an ad landing had no campaign, or an earlier visit's campaign, because the browser saves the UTM parameters only after the page loads. They are now read from the landing URL alone, and values longer than their column are shortened instead of losing the row.
+* Fixed: a failed Contact Form 7 email stored the visitor's email address and phone number in the plugin's log, even with debug logging off. The log no longer keeps contact details or form answers, entries written before the upgrade are cleaned once, and the log is no longer loaded on every request.
 * Fixed: the click retention job did not run where the `cuft_enabled` filter switched tracking off.
-* Fixed: the six-hour server-side GTM health check never ran, so a failed tagging server never fell back to Google.
+* Fixed: the six-hour server-side GTM health check never ran, so a failed tagging server never fell back to Google. It now falls back after two failed checks in a row (a failure is rechecked 15 minutes later) and returns within the hour once the server passes three checks.
 * Contact Form 7 failure, validation and spam warnings appear in the browser console only when Console Logging is on.
 * The Support link on the Plugins screen goes to the WordPress.org support forum.
 

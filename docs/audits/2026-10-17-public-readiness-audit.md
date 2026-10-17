@@ -46,6 +46,8 @@ to D are open; B is planned as 3.31.0.
 14. **Multisite:** uninstall drops only the main site's data; activation ignores network activation. M.
 15. **Log noise:** `CUFT_Logger::debug_log` writes on any WP_DEBUG site regardless of the plugin's own setting (21 lines per test run). S.
 
+16. **Left open by the 3.30.0 review (2026-10-17).** Front-end writers that still change an existing click row: Elementor phone validation calls `update_click_status()` with the cookie's click ID, so a repeat submission overwrites the CRM's qualified and score (class-cuft-elementor-forms.php:111-119); the event recorder overwrites `ga_client_id` for any supplied click ID (class-cuft-event-recorder.php:150-158). On fully cached landings the server never sees the click, so the row is created later by `add_event()` with no platform or UTMs; have the browser send them with the first recorded event. The log's `url` field and free-text phone numbers are not scrubbed. When rolling out 3.30.0, purge page and CDN caches so no 3.29.x script is served beside new HTML.
+
 ## C. Reach (3.32.0 and later)
 
 - **Form plugins with the largest install bases are missing:** WPForms Lite 5,000,000+, Fluent Forms 800,000+, Forminator 600,000+, SureForms 500,000+, Formidable 300,000+ (WordPress.org API, 2026-10-17). GTM4WP and GTM Kit cover CF7 only, so breadth is CUFT's lane.

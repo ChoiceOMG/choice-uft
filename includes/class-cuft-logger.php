@@ -52,7 +52,7 @@ class CUFT_Logger {
         $entry = array(
             'timestamp' => current_time( 'mysql' ),
             'level' => $level,
-            'message' => $message,
+            'message' => self::scrub_text( $message ),
             'context' => self::scrub_context( $context ),
             'url' => isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '',
             'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : ''
@@ -85,10 +85,12 @@ class CUFT_Logger {
      */
     private static function scrub_context( $context ) {
         if ( ! is_array( $context ) ) {
-            return ( is_string( $context ) && is_email( $context ) ) ? '[email]' : $context;
+            return is_string( $context ) ? self::scrub_text( $context ) : $context;
         }
         foreach ( $context as $key => $value ) {
-            if ( is_string( $key ) && ! is_array( $value ) && preg_match( '/(^|_)(email|phone|tel|mobile)$/i', $key ) ) {
+            // user_email, your-phone, phone_number, telephone, userEmail,
+            // Mobile, tel. Over-matching costs a debug detail, never data.
+            if ( is_string( $key ) && ! is_array( $value ) && preg_match( '/e-?mail|phone|mobile|(^|[_-])tel($|[_-])/i', $key ) ) {
                 $context[ $key ] = ! empty( $value );
             } elseif ( 'field_data' === $key && is_array( $value ) ) {
                 $fields = array();
@@ -101,6 +103,47 @@ class CUFT_Logger {
             }
         }
         return $context;
+    }
+
+    /**
+     * Replace email addresses inside a string.
+     *
+     * @param mixed $text Text to scrub.
+     * @return mixed
+     */
+    private static function scrub_text( $text ) {
+        if ( ! is_string( $text ) || false === strpos( $text, '@' ) ) {
+            return $text;
+        }
+        return preg_replace( '/[^\s@<>"\'(),;:]+@[^\s@<>"\'(),;:]+\.[a-z]{2,}/i', '[email]', $text );
+    }
+
+    /**
+     * Scrub the stored log once, for entries written before 3.30.0.
+     *
+     * Re-adds the option with autoload off: an option that is never written
+     * again keeps whatever autoload flag it was created with.
+     */
+    public static function scrub_stored_logs() {
+        $logs = get_option( 'cuft_debug_logs', array() );
+        delete_option( 'cuft_debug_logs' );
+        if ( ! is_array( $logs ) || empty( $logs ) ) {
+            return;
+        }
+        $clean = array();
+        foreach ( $logs as $entry ) {
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
+            if ( isset( $entry['message'] ) ) {
+                $entry['message'] = self::scrub_text( $entry['message'] );
+            }
+            if ( isset( $entry['context'] ) ) {
+                $entry['context'] = self::scrub_context( $entry['context'] );
+            }
+            $clean[] = $entry;
+        }
+        add_option( 'cuft_debug_logs', $clean, '', false );
     }
     
     /**
