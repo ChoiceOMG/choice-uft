@@ -166,6 +166,18 @@ window.cuftDataLayerUtils = (function () {
   }
 
   /**
+   * The visitor's cuft_click_id cookie, or "" when there is none.
+   */
+  function getClickIdCookie() {
+    try {
+      var match = document.cookie.match(/(^|; )cuft_click_id=([^;]*)/);
+      return match && match[2] ? decodeURIComponent(match[2]) : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  /**
    * Extract GA4 client_id from _ga cookie
    */
   function getGaClientId() {
@@ -428,17 +440,14 @@ window.cuftDataLayerUtils = (function () {
       }
     }
 
-    // Add click tracking data (ip_hash, platform) from server-side tracking
-    if (typeof window.cuftClickData === 'object' && window.cuftClickData) {
-      if (window.cuftClickData.ip_hash) {
-        payload.ip_hash = window.cuftClickData.ip_hash;
-      }
-      if (window.cuftClickData.platform) {
-        payload.click_platform = window.cuftClickData.platform;
-      }
-      // Also set click_id from server if not already present
-      if (!payload.click_id && window.cuftClickData.click_id) {
-        payload.click_id = window.cuftClickData.click_id;
+    // Fall back to the click ID cookie set when the visitor arrived from an
+    // ad. Nothing is read from window.cuftClickData: pages rendered before
+    // 3.30.0 printed a click ID and IP hash there, and a cached copy of one
+    // carries another visitor's values.
+    if (!payload.click_id) {
+      var cookieClickId = getClickIdCookie();
+      if (cookieClickId) {
+        payload.click_id = cookieClickId;
       }
     }
 

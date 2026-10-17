@@ -229,6 +229,22 @@ class Test_CUFT_Privacy extends WP_UnitTestCase {
         $this->assertNotFalse( has_action( CUFT_Privacy::RETENTION_HOOK, array( 'CUFT_Privacy', 'run_retention' ) ) );
     }
 
+    /**
+     * cuft_enabled switches tracking off, for example from a consent check,
+     * and is false on every wp-cron.php request when it reads a visitor
+     * cookie. Retention is cleanup, not tracking, so it must still run.
+     */
+    public function test_retention_runs_when_tracking_is_disabled() {
+        $this->insert_click( 'expired', 400 );
+        remove_all_actions( CUFT_Privacy::RETENTION_HOOK );
+
+        add_filter( 'cuft_enabled', '__return_false' );
+        CUFT_Plugin::get_instance()->init();
+        do_action( CUFT_Privacy::RETENTION_HOOK );
+
+        $this->assertSame( 0, $this->count_rows() );
+    }
+
     // Keyed IP hashes
 
     public function test_ip_hash_is_keyed() {
@@ -236,9 +252,26 @@ class Test_CUFT_Privacy extends WP_UnitTestCase {
         $hash = CUFT_Click_Tracker::hash_ip( $ip );
         $this->assertSame( 64, strlen( $hash ) );
         $this->assertNotSame( hash( 'sha256', $ip ), $hash );
-        $this->assertSame( hash_hmac( 'sha256', $ip, wp_salt( 'cuft_ip_hash' ) ), $hash );
         $this->assertSame( $hash, CUFT_Click_Tracker::hash_ip( $ip ) );
         $this->assertSame( '', CUFT_Click_Tracker::hash_ip( '' ) );
+    }
+
+    /**
+     * The key must come from the wp-config.php auth secrets. A custom
+     * wp_salt() scheme falls back to the secret_key option in the database
+     * on any wp-config.php that does not define SECRET_KEY (the sample file
+     * does not), and a database copy alone would then reverse every hash.
+     */
+    public function test_ip_hash_key_derives_from_the_auth_secrets() {
+        $pin_auth = function ( $salt, $scheme ) {
+            return 'auth' === $scheme ? 'auth-secret-from-wp-config' : $salt;
+        };
+        add_filter( 'salt', $pin_auth, 10, 2 );
+        $hash = CUFT_Click_Tracker::hash_ip( '203.0.113.7' );
+        remove_filter( 'salt', $pin_auth, 10 );
+
+        $key = hash_hmac( 'sha256', 'cuft_ip_hash', 'auth-secret-from-wp-config' );
+        $this->assertSame( hash_hmac( 'sha256', '203.0.113.7', $key ), $hash );
     }
 
     public function test_new_clicks_store_the_keyed_hash() {

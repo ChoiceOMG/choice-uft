@@ -71,6 +71,29 @@ class CUFT_Click_Integration {
     }
     
     /**
+     * UTM parameters on the current request's URL.
+     *
+     * Taken as one set: when the URL carries any of them, the cookie's
+     * values from an earlier campaign are not mixed in.
+     *
+     * @return array utm_* => value, only the parameters present.
+     */
+    private static function get_landing_utm_data() {
+        $utm_data = array();
+        foreach ( array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content' ) as $param ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Campaign parameters on the landing URL; the ad platform builds that link and cannot carry a nonce.
+            if ( isset( $_GET[ $param ] ) && is_string( $_GET[ $param ] ) ) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- As above.
+                $value = sanitize_text_field( wp_unslash( $_GET[ $param ] ) );
+                if ( '' !== $value ) {
+                    $utm_data[ $param ] = $value;
+                }
+            }
+        }
+        return $utm_data;
+    }
+
+    /**
      * Track click ID with UTM data
      */
     private function track_click_id( $click_id, $platform ) {
@@ -78,8 +101,13 @@ class CUFT_Click_Integration {
             return;
         }
         
-        // Get current UTM data
-        $utm_data = CUFT_UTM_Tracker::get_utm_data();
+        // UTMs on the landing URL belong to this click. The cuft_utm_data
+        // cookie is written by the browser only after this page loads, so on
+        // the landing request it holds an earlier visit's values or nothing.
+        $utm_data = self::get_landing_utm_data();
+        if ( empty( $utm_data ) ) {
+            $utm_data = CUFT_UTM_Tracker::get_utm_data();
+        }
         
         // Prepare tracking data
         $tracking_data = array(
@@ -94,7 +122,7 @@ class CUFT_Click_Integration {
             'score' => 0,     // Default score
             'additional_data' => wp_json_encode( array(
                 'referrer' => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '',
-                'landing_page' => home_url( add_query_arg( null, null ) ),
+                'landing_page' => isset( $_SERVER['REQUEST_URI'] ) ? home_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) : home_url( '/' ),
                 'timestamp' => current_time( 'mysql', true )
             ) )
         );
@@ -104,14 +132,19 @@ class CUFT_Click_Integration {
         
         // Store click ID in cookie for form submissions
         if ( $result !== false ) {
-            setcookie( 'cuft_click_id', $click_id, array(
-                'expires'  => time() + ( 30 * DAY_IN_SECONDS ),
-                'path'     => COOKIEPATH,
-                'domain'   => COOKIE_DOMAIN,
-                'secure'   => is_ssl(),
-                'httponly'  => false, // Read by client-side JS for event replay
-                'samesite' => 'Lax',
-            ) );
+            // A theme or plugin that prints before the wp action leaves no
+            // way to send the cookie; skip it rather than raise a warning on
+            // every ad landing. The row is already written.
+            if ( ! headers_sent() ) {
+                setcookie( 'cuft_click_id', $click_id, array(
+                    'expires'  => time() + ( 30 * DAY_IN_SECONDS ),
+                    'path'     => COOKIEPATH,
+                    'domain'   => COOKIE_DOMAIN,
+                    'secure'   => is_ssl(),
+                    'httponly'  => false, // Read by client-side JS for event replay
+                    'samesite' => 'Lax',
+                ) );
+            }
             $_COOKIE['cuft_click_id'] = $click_id; // Make available in current request
 
             // Log the tracking
@@ -157,28 +190,11 @@ class CUFT_Click_Integration {
             true
         );
         
-        // Pass click ID and tracking data to JavaScript
-        $click_id = '';
-        $ip_hash = '';
-        $platform = '';
-
-        if ( isset( $_COOKIE['cuft_click_id'] ) ) {
-            $click_id = sanitize_text_field( wp_unslash( $_COOKIE['cuft_click_id'] ) );
-
-            // Fetch additional tracking data from database
-            if ( ! empty( $click_id ) && class_exists( 'CUFT_Click_Tracker' ) ) {
-                $click_data = CUFT_Click_Tracker::get_click_by_id( $click_id );
-                if ( $click_data ) {
-                    $ip_hash = isset( $click_data->ip_hash ) ? $click_data->ip_hash : '';
-                    $platform = isset( $click_data->platform ) ? $click_data->platform : '';
-                }
-            }
-        }
-
+        // Nothing about the visitor goes into the page. A full-page cache
+        // would serve this HTML to everyone, so a click ID printed here would
+        // attach one ad visitor's click to every later visitor's leads. The
+        // script reads the visitor's own cuft_click_id cookie instead.
         CUFT_Utils::localize( 'cuft-click-integration', 'cuftClickData', array(
-            'click_id' => $click_id,
-            'ip_hash' => $ip_hash,
-            'platform' => $platform,
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'cuft_click_nonce' )
         ) );

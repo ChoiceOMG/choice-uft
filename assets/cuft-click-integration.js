@@ -1,8 +1,20 @@
 (function () {
   "use strict";
 
-  // Only run if we have click data
-  if (!window.cuftClickData || !window.cuftClickData.click_id) {
+  // The visitor's own click ID, from the cookie set when they arrived from an
+  // ad. Never from window.cuftClickData: pages rendered before 3.30.0 printed
+  // it there, and a cached copy of one carries another visitor's click.
+  function readClickIdCookie() {
+    try {
+      var match = document.cookie.match(/(^|; )cuft_click_id=([^;]*)/);
+      return match && match[2] ? decodeURIComponent(match[2]) : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  var clickId = readClickIdCookie();
+  if (!clickId) {
     return;
   }
 
@@ -28,12 +40,12 @@
       // Add click ID to dataLayer for tracking
       dataLayer.push({
         event: "click_id_detected",
-        click_id: window.cuftClickData.click_id,
+        click_id: clickId,
         cuft_tracked: true,
         cuft_source: "click_integration",
       });
 
-      log("Click ID added to dataLayer:", window.cuftClickData.click_id);
+      log("Click ID added to dataLayer:", clickId);
     } catch (e) {
       log("Error adding click ID to dataLayer:", e);
     }
@@ -56,7 +68,7 @@
         var hiddenField = document.createElement("input");
         hiddenField.type = "hidden";
         hiddenField.name = "cuft_click_id";
-        hiddenField.value = window.cuftClickData.click_id;
+        hiddenField.value = clickId;
 
         form.appendChild(hiddenField);
 
@@ -112,7 +124,7 @@
       var hiddenField = document.createElement("input");
       hiddenField.type = "hidden";
       hiddenField.name = "cuft_click_id";
-      hiddenField.value = window.cuftClickData.click_id;
+      hiddenField.value = clickId;
 
       form.appendChild(hiddenField);
 
@@ -137,7 +149,7 @@
   ready(function () {
     log(
       "Initializing click integration for click ID:",
-      window.cuftClickData.click_id
+      clickId
     );
 
     // Add click ID to dataLayer
@@ -145,20 +157,6 @@
 
     // Check for pending webhook events to replay into dataLayer
     (function checkPendingEvents() {
-      var clickId = null;
-      try {
-        var match = document.cookie.match(/(^|; )cuft_click_id=([^;]*)/);
-        if (match && match[2]) {
-          clickId = decodeURIComponent(match[2]);
-        }
-      } catch (e) {
-        return;
-      }
-
-      if (!clickId) {
-        return;
-      }
-
       var nonce = (window.cuftConfig && window.cuftConfig.nonce) || "";
       if (!nonce) {
         return;

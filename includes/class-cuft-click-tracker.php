@@ -367,7 +367,19 @@ class CUFT_Click_Tracker {
     }
     
     /**
-     * Insert or update click tracking record
+     * Insert a click tracking record, once.
+     *
+     * A row is written by the first request that carries its click ID. Any
+     * later call for the same ID leaves the row as it is: a reload of the
+     * landing URL, the back button, or a stranger who knows the ID must not
+     * reset the qualified and score values the CRM webhook recorded or
+     * replace the campaign the click came from. Those change only through
+     * update_click_status() and add_event().
+     *
+     * @param string $click_id Click ID.
+     * @param array  $data     Column values for a new row.
+     * @return int|false Rows inserted (0 when the row already existed), or
+     *                   false when the insert failed.
      */
     public static function track_click( $click_id, $data = array() ) {
         global $wpdb;
@@ -405,6 +417,13 @@ class CUFT_Click_Tracker {
         $data['utm_campaign'] = sanitize_text_field( $data['utm_campaign'] );
         $data['utm_term'] = sanitize_text_field( $data['utm_term'] );
         $data['utm_content'] = sanitize_text_field( $data['utm_content'] );
+
+        // $wpdb->insert() rejects the whole row when one value is longer
+        // than its column, and these arrive from the landing URL.
+        $column_widths = array( 'platform' => 100, 'campaign' => 255, 'utm_source' => 255, 'utm_medium' => 255, 'utm_campaign' => 255, 'utm_term' => 255, 'utm_content' => 255 );
+        foreach ( $column_widths as $column => $width ) {
+            $data[ $column ] = mb_substr( (string) $data[ $column ], 0, $width );
+        }
         $data['qualified'] = (int) $data['qualified'];
         $data['score'] = max( 0, min( 10, (int) $data['score'] ) ); // Ensure score is 0-10
         $data['ip_hash'] = sanitize_text_field( $data['ip_hash'] );
@@ -422,44 +441,26 @@ class CUFT_Click_Tracker {
             $data['events'] = wp_json_encode( array() );
         }
 
-        // Check if record exists
+        // An existing row is never rewritten (see the docblock).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it, and click rows must be read fresh per request.
         $existing = $wpdb->get_row( $wpdb->prepare( 'SELECT id FROM %i WHERE click_id = %s', $table_name, $data['click_id'] ) );
-
         if ( $existing ) {
-            // Update existing record (preserve events if they exist)
-            if ( ! empty( $columns ) ) {
-                // Don't overwrite existing events on update
-                unset( $data['events'] );
-            }
-            unset( $data['click_id'] ); // Don't update click_id
-
-            $format = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' );
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table cuft_click_tracking; no WP API covers it.
-            $result = $wpdb->update(
-                $table_name,
-                $data,
-                array( 'click_id' => $click_id ),
-                $format,
-                array( '%s' )
-            );
-        } else {
-            // Insert new record
-            // Format: platform, campaign, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
-            //         qualified(%d), score(%d), ip_hash, user_agent, additional_data, click_id, [events]
-            $format = ! empty( $columns )
-                ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
-                : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' );
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin's own table cuft_click_tracking; no WP API covers it.
-            $result = $wpdb->insert(
-                $table_name,
-                $data,
-                $format
-            );
+            return 0;
         }
-        
+
+        // Format: platform, campaign, utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+        //         qualified(%d), score(%d), ip_hash, user_agent, additional_data, click_id, [events]
+        $format = ! empty( $columns )
+            ? array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
+            : array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin's own table cuft_click_tracking; no WP API covers it.
+        $result = $wpdb->insert(
+            $table_name,
+            $data,
+            $format
+        );
+
         if ( $result !== false ) {
             self::clear_stale_write_error();
             if ( class_exists( 'CUFT_Logger' ) ) {
@@ -467,7 +468,7 @@ class CUFT_Click_Tracker {
             }
         } else {
             self::record_click_write_error(
-                $existing ? 'update' : 'insert',
+                'insert',
                 $wpdb->last_error,
                 $click_id
             );
@@ -963,11 +964,15 @@ class CUFT_Click_Tracker {
     /**
      * Key for hash_ip().
      *
-     * wp_salt() with a scheme of our own derives from SECRET_KEY in
-     * wp-config.php, which is not stored in the database, unlike a generated
-     * option would be. Define CUFT_IP_HASH_KEY to share one key across sites
-     * whose hashes must match. Rotating the wp-config.php salts changes the
-     * key: hashes written before and after no longer match each other.
+     * Derived from wp_salt( 'auth' ), which is AUTH_KEY and AUTH_SALT from
+     * wp-config.php, through one HMAC so the IP hash never reuses the login
+     * cookie key directly. A scheme of our own would not do: wp_salt() builds
+     * custom schemes from SECRET_KEY, which the sample wp-config.php does not
+     * define, and then from the secret_key option in the database.
+     *
+     * Define CUFT_IP_HASH_KEY to share one key across sites whose hashes must
+     * match. Rotating the wp-config.php salts changes the key: hashes written
+     * before and after no longer match each other.
      *
      * @return string
      */
@@ -975,7 +980,7 @@ class CUFT_Click_Tracker {
         if ( defined( 'CUFT_IP_HASH_KEY' ) && '' !== (string) CUFT_IP_HASH_KEY ) {
             return (string) CUFT_IP_HASH_KEY;
         }
-        return wp_salt( 'cuft_ip_hash' );
+        return hash_hmac( 'sha256', 'cuft_ip_hash', wp_salt( 'auth' ) );
     }
     
     /**

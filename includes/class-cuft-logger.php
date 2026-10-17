@@ -53,7 +53,7 @@ class CUFT_Logger {
             'timestamp' => current_time( 'mysql' ),
             'level' => $level,
             'message' => $message,
-            'context' => $context,
+            'context' => self::scrub_context( $context ),
             'url' => isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '',
             'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : ''
         );
@@ -66,7 +66,41 @@ class CUFT_Logger {
             $logs = array_slice( $logs, 0, self::MAX_LOGS );
         }
         
-        update_option( 'cuft_debug_logs', $logs );
+        // Not autoloaded: the log can reach 1,000 entries and is read only on
+        // the settings screen.
+        update_option( 'cuft_debug_logs', $logs, false );
+    }
+
+    /**
+     * Strip visitor data from a log context.
+     *
+     * Error entries are stored even with debug logging off, and nothing
+     * erases them on a visitor's request, so the log must never hold
+     * personal data. Contact fields become a yes/no flag, form fields keep
+     * only their type, and any other string that is an email address is
+     * replaced.
+     *
+     * @param mixed $context Log context.
+     * @return mixed
+     */
+    private static function scrub_context( $context ) {
+        if ( ! is_array( $context ) ) {
+            return ( is_string( $context ) && is_email( $context ) ) ? '[email]' : $context;
+        }
+        foreach ( $context as $key => $value ) {
+            if ( is_string( $key ) && ! is_array( $value ) && preg_match( '/(^|_)(email|phone|tel|mobile)$/i', $key ) ) {
+                $context[ $key ] = ! empty( $value );
+            } elseif ( 'field_data' === $key && is_array( $value ) ) {
+                $fields = array();
+                foreach ( $value as $field_id => $field ) {
+                    $fields[ $field_id ] = array( 'type' => ( is_array( $field ) && isset( $field['type'] ) ) ? $field['type'] : '' );
+                }
+                $context[ $key ] = $fields;
+            } else {
+                $context[ $key ] = self::scrub_context( $value );
+            }
+        }
+        return $context;
     }
     
     /**

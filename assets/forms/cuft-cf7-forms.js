@@ -309,18 +309,29 @@
   }
 
   /**
-   * Handle CF7 wpcf7mailfailed event
+   * Print a warning when Console Logging is on.
    *
-   * Warns unconditionally (not gated by DEBUG) so a silently failing
-   * submission is visible in the console without turning on CUFT debug
-   * logging first (OPS-2652).
+   * Visitors see nothing otherwise: the console is not theirs to read, and
+   * the project rule is production silence. A mail failure is still recorded
+   * server-side at error level (CUFT_CF7_Forms::track_mail_failed, OPS-2652).
+   */
+  function warn() {
+    if (!DEBUG) return;
+    try {
+      if (window.console && window.console.warn) {
+        window.console.warn.apply(window.console, arguments);
+      }
+    } catch (e) {
+      // Silent failure
+    }
+  }
+
+  /**
+   * Handle CF7 wpcf7mailfailed event
    */
   function handleCF7MailFailed(event) {
     try {
-      console.warn("[CUFT CF7] Submission ended in wpcf7mailfailed - form_submit/generate_lead will NOT fire for this attempt:", event.target);
-      if (DEBUG) {
-        log("CF7 mail failed for form:", event.target);
-      }
+      warn("[CUFT CF7] Submission ended in wpcf7mailfailed - form_submit/generate_lead will NOT fire for this attempt:", event.target);
     } catch (e) {
       log("CF7 mailfailed handler error:", e);
     }
@@ -328,15 +339,10 @@
 
   /**
    * Handle CF7 wpcf7invalid event
-   *
-   * Warns unconditionally (not gated by DEBUG) - see handleCF7MailFailed.
    */
   function handleCF7Invalid(event) {
     try {
-      console.warn("[CUFT CF7] Submission ended in wpcf7invalid - form_submit/generate_lead will NOT fire for this attempt:", event.target);
-      if (DEBUG) {
-        log("CF7 form validation failed:", event.target);
-      }
+      warn("[CUFT CF7] Submission ended in wpcf7invalid - form_submit/generate_lead will NOT fire for this attempt:", event.target);
     } catch (e) {
       log("CF7 invalid handler error:", e);
     }
@@ -351,10 +357,7 @@
    */
   function handleCF7Spam(event) {
     try {
-      console.warn("[CUFT CF7] Submission was flagged as spam (wpcf7spam) - form_submit/generate_lead will NOT fire for this attempt:", event.target);
-      if (DEBUG) {
-        log("CF7 submission flagged as spam:", event.target);
-      }
+      warn("[CUFT CF7] Submission was flagged as spam (wpcf7spam) - form_submit/generate_lead will NOT fire for this attempt:", event.target);
     } catch (e) {
       log("CF7 spam handler error:", e);
     }

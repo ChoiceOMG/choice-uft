@@ -61,7 +61,12 @@ Each event can carry a `lead_id`: the SHA-256 hash of the visitor's email
 address, lowercased and trimmed, or of their phone number in E.164 form when
 no email was given. The same hash is computed server-side, so an analytics
 event and a downstream CRM record derived from the same person produce the
-same identifier without any raw personal data reaching your analytics.
+same identifier.
+
+The `form_submit` event also carries the raw email address and phone number.
+Send `lead_id` instead of those fields wherever raw personal data must not
+go; Google Analytics, for one, forbids sending it email addresses or phone
+numbers.
 
 The normalisation matches what Google Enhanced Conversions and Meta CAPI
 expect, so the value doubles as a match key for offline conversion imports.
@@ -232,10 +237,13 @@ the ad click and the form submission. First-touch attribution is kept for a
 year in a separate cookie.
 
 On the server, each tracked click is a row in the plugin's click tracking
-table. Rows older than the Click Data Retention setting (365 days by default)
-are deleted once a day. The visitor's IP address is never stored; the row
-holds a keyed hash of it, which cannot be reversed without the site's
-wp-config.php secret keys.
+table: the click ID, the campaign parameters, a keyed hash of the visitor's
+IP address, the browser's user agent, the referring page and the landing page
+address. A click on a phone or email link by a visitor who did not arrive from
+an ad also creates a row, under a temporary ID. Rows older than the Click Data
+Retention setting (365 days by default) are deleted once a day. The IP address
+itself is never stored, and the hash is keyed with the authentication keys in
+wp-config.php, so a copy of the database alone cannot reverse it.
 
 = Is it GDPR compliant? =
 
@@ -292,7 +300,15 @@ around it; in Elementor the class goes under Advanced > CSS Classes.
 * Any link inside an element with `data-cuft-ignore` or the class `cuft-ignore` is not tracked.
 * Added the `cuft_record_event` filter, which can stop an event reported by the browser from being recorded on its click.
 * Added Click Data Retention (Settings, default 365 days, 0 keeps rows forever). A daily job deletes older click rows in batches of 1,000, bounded in time, and continues in a follow-up run when there is more to delete. Before 3.30.0 click rows were never deleted.
-* IP hashes are now keyed (HMAC-SHA256 with a key derived from the wp-config.php secret keys) instead of a plain SHA-256 of the address, which could be reversed by hashing every IPv4 address. Hashes stored before the upgrade are cleared by the daily job. Define `CUFT_IP_HASH_KEY` to use your own key.
+* IP hashes are now keyed (HMAC-SHA256 with a key derived from `AUTH_KEY` and `AUTH_SALT` in wp-config.php) instead of a plain SHA-256 of the address, which could be reversed by hashing every IPv4 address. Hashes stored before the upgrade are cleared by the daily job. Define `CUFT_IP_HASH_KEY` to use your own key.
+* Pages no longer contain the visitor's click ID or IP hash. A full-page cache could have served one ad visitor's click ID to everyone after them; the scripts now read the visitor's own cookie. Form events no longer carry `ip_hash` or `click_platform`.
+* Fixed: reloading an ad landing page reset the click's qualification and score from your CRM and replaced its campaign. A click row is now written once and never rewritten from the front end.
+* Fixed: the click row written on an ad landing had no campaign, because the browser saves the UTM parameters only after the page loads. They are now read from the landing URL, and values longer than their column are shortened instead of losing the row.
+* Fixed: a failed Contact Form 7 email stored the visitor's email address and phone number in the plugin's log, even with debug logging off. The log no longer keeps contact details or form answers, and it is no longer loaded on every request.
+* Fixed: the click retention job did not run where the `cuft_enabled` filter switched tracking off.
+* Fixed: the six-hour server-side GTM health check never ran, so a failed tagging server never fell back to Google.
+* Contact Form 7 failure, validation and spam warnings appear in the browser console only when Console Logging is on.
+* The Support link on the Plugins screen goes to the WordPress.org support forum.
 
 = 3.29.4 =
 * First release published in the WordPress.org directory. No code change from 3.29.3, which was released on GitHub only.
@@ -409,7 +425,7 @@ around it; in Elementor the class goes under Advanced > CSS Classes.
 == Upgrade Notice ==
 
 = 3.30.0 =
-Click rows older than 365 days are deleted by a daily job from now on; set Click Data Retention to 0 first if you need to keep them. IP hashes stored before the upgrade are cleared, and new ones no longer match a plain SHA-256 of the IP.
+Click rows older than 365 days are now deleted daily; set Click Data Retention to 0 first to keep them. Stored IP hashes are cleared and new ones are keyed. Form events no longer carry `ip_hash` or `click_platform`.
 
 = 3.29.4 =
 Readme and listing changes only; no code change from 3.29.3. Upgrading from 3.28.x: the webhook now always requires the site's key, and a server-side GTM URL becomes a bare hostname.

@@ -20,10 +20,8 @@ class CUFT_Admin {
         add_action( 'wp_ajax_cuft_manual_health_check', array( $this, 'ajax_manual_health_check' ) );
         add_action( 'wp_ajax_cuft_get_sgtm_status', array( $this, 'ajax_get_sgtm_status' ) );
         add_action( 'wp_ajax_cuft_download_gtm_template', array( $this, 'ajax_download_gtm_template' ) );
-        
-        // Cron job for scheduled health checks
-        add_action( 'cuft_scheduled_health_check', array( $this, 'scheduled_health_check' ) );
-        add_filter( 'cron_schedules', array( $this, 'add_cron_intervals' ) );
+        // The scheduled health check registers in register_health_check(),
+        // because WP-Cron requests never construct this class.
         // cuft_record_event is handled by CUFT_Event_Recorder.
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
     }
@@ -1058,12 +1056,41 @@ class CUFT_Admin {
     /**
      * Add custom cron intervals
      */
-    public function add_cron_intervals( $schedules ) {
+    public static function add_cron_intervals( $schedules ) {
         $schedules['six_hours'] = array(
             'interval' => 6 * 60 * 60, // 6 hours in seconds
             'display' => 'Every 6 hours'
         );
         return $schedules;
+    }
+
+    /**
+     * Register the six-hour health check on every request.
+     *
+     * WP-Cron requests are not admin requests, so the callback and its
+     * six_hours schedule cannot live in the constructor. The event is kept
+     * scheduled here rather than on activation, because sites updated by
+     * copying files or through an updater never reactivate, and on activation
+     * the six_hours schedule did not exist yet.
+     */
+    public static function register_health_check() {
+        add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_intervals' ) );
+        add_action( 'cuft_scheduled_health_check', array( __CLASS__, 'run_scheduled_health_check' ) );
+
+        if ( get_option( 'cuft_sgtm_enabled', false ) ) {
+            if ( ! wp_next_scheduled( 'cuft_scheduled_health_check' ) ) {
+                wp_schedule_event( time(), 'six_hours', 'cuft_scheduled_health_check' );
+            }
+        } elseif ( wp_next_scheduled( 'cuft_scheduled_health_check' ) ) {
+            wp_clear_scheduled_hook( 'cuft_scheduled_health_check' );
+        }
+    }
+
+    /**
+     * WP-Cron entry point for the scheduled health check.
+     */
+    public static function run_scheduled_health_check() {
+        ( new self() )->scheduled_health_check();
     }
 
     /**

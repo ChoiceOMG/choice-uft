@@ -197,6 +197,17 @@ class CUFT_Plugin {
      * Initialize plugin components
      */
     public function init() {
+        // Background jobs register before the cuft_enabled check. The filter
+        // switches tracking off, often from a consent check that reads a
+        // visitor cookie, so it is false on every wp-cron.php request; the
+        // retention job deletes data and must run regardless.
+        if ( class_exists( 'CUFT_Privacy' ) ) {
+            CUFT_Privacy::init();
+        }
+        if ( class_exists( 'CUFT_Admin' ) ) {
+            CUFT_Admin::register_health_check();
+        }
+
         // Check if plugin is enabled
         if ( ! apply_filters( 'cuft_enabled', true ) ) {
             return;
@@ -268,10 +279,6 @@ class CUFT_Plugin {
                 new CUFT_Click_Tracker();
             }
 
-            if ( class_exists( 'CUFT_Privacy' ) ) {
-                CUFT_Privacy::init();
-            }
-            
             if ( class_exists( 'CUFT_Click_Integration' ) ) {
                 new CUFT_Click_Integration();
             }
@@ -395,10 +402,8 @@ class CUFT_Plugin {
         // Flush rewrite rules to enable webhook endpoints
         flush_rewrite_rules();
 
-        // Schedule health check cron job (every 6 hours)
-        if ( ! wp_next_scheduled( 'cuft_scheduled_health_check' ) ) {
-            wp_schedule_event( time(), 'six_hours', 'cuft_scheduled_health_check' );
-        }
+        // The six-hour health check schedules itself on the next request
+        // (CUFT_Admin::register_health_check()), once sGTM is enabled.
 
         // Schedule force update history cleanup cron (Feature 009 - v3.19.0)
         if ( class_exists( 'CUFT_Cron_Manager' ) ) {
@@ -549,7 +554,8 @@ class CUFT_Plugin {
         }
 
         $row_meta = array(
-            'support' => '<a href="' . esc_url( 'https://github.com/ChoiceOMG/choice-uft/issues' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Support', 'choice-universal-form-tracker' ) . '</a>',
+            // The WordPress.org forum is the support channel for both builds.
+            'support' => '<a href="' . esc_url( 'https://wordpress.org/support/plugin/choice-universal-form-tracker/' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Support', 'choice-universal-form-tracker' ) . '</a>',
         );
 
         return array_merge( $plugin_meta, $row_meta );
