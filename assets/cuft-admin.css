@@ -15,22 +15,45 @@
 }
 
 .cuft-admin-header .cuft-logo {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   width: 52px;
   height: 52px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
   margin-right: 20px;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
+.cuft-admin-header .cuft-logo img {
+  display: block;
+  width: 52px;
+  height: 52px;
+}
+
 .cuft-admin-header h1 {
   margin: 0;
+  padding: 0;
   font-size: 28px;
   font-weight: 600;
   color: #1d2327;
+}
+
+.cuft-admin-header .cuft-byline {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #646970;
+}
+
+.cuft-admin-header .cuft-byline a {
+  color: #646970;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cuft-admin-header .cuft-byline a:hover,
+.cuft-admin-header .cuft-byline a:focus {
+  color: #2271b1;
+  text-decoration: underline;
 }
 
 /* Setup Progress Indicator */

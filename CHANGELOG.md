@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.30.1] - 2026-10-17
+
+### Changed
+- **Directory name and readme.** The plugin header and readme name the plugin "Choice Universal Form Tracker - Form Tracking for Google Tag Manager". The directory weights the name most in search, and the old name carried neither "tracking" nor "Google Tag Manager". The short description names the supported form plugins, and the `datalayer` tag replaces `attribution`. The readme gains a setup section for GA4, Google Ads and Meta through one GTM trigger, and FAQ entries on running beside GTM4WP, GTM Kit or Site Kit and on whether a paid version exists.
+- **Settings header.** The plugin's mark (`assets/images/cuft-icon-128.png`) replaces the chart emoji, and a "by Choice OMG" line links to choice.marketing.
+
+### Added
+- **Footer credit** on the plugin's three screens (Settings, Click Tracking, Testing Dashboard) through `admin_footer_text`, with a link to the WordPress.org review form. Every other admin screen keeps its footer.
+- **Plugins screen row:** Documentation (the choice.marketing tool page) and Write a review links beside Support.
+- Admin links to choice.marketing carry `utm_source=wp-plugin&utm_medium=admin&utm_campaign=choice-uft` with a `utm_content` naming the link's position (`header`, `footer`, `plugin-row`).
+
+### Fixed
+- `build.sh` packaged a local `svn-assets/` folder (the WordPress.org listing artwork, git-excluded) into both builds. `.distignore` now excludes it. Release builds from a clean checkout were not affected.
+
 ## [3.30.0] - 2026-10-17
 
 ### Added

@@ -24,6 +24,55 @@ class CUFT_Admin {
         // because WP-Cron requests never construct this class.
         // cuft_record_event is handled by CUFT_Event_Recorder.
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+        add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
+    }
+
+    /**
+     * Settings screen title with the plugin mark and its maker.
+     */
+    private function render_admin_header() {
+        $maker = 'https://choice.marketing/?utm_source=wp-plugin&utm_medium=admin&utm_campaign=choice-uft&utm_content=header';
+        ?>
+        <div class="cuft-admin-header">
+            <div class="cuft-logo">
+                <img src="<?php echo esc_url( CUFT_URL . '/assets/images/cuft-icon-128.png' ); ?>" width="52" height="52" alt="">
+            </div>
+            <div class="cuft-title">
+                <h1>Choice Universal Form Tracker</h1>
+                <p class="cuft-byline">
+                    <?php
+                    printf(
+                        /* translators: %s: link to Choice OMG. */
+                        esc_html__( 'by %s', 'choice-universal-form-tracker' ),
+                        '<a href="' . esc_url( $maker ) . '" target="_blank" rel="noopener">Choice OMG</a>'
+                    );
+                    ?>
+                </p>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Footer credit on the plugin's own screens; every other screen keeps its text.
+     *
+     * @param string $text Footer text from core or another plugin.
+     * @return string
+     */
+    public function admin_footer_text( $text ) {
+        if ( ! in_array( $this->get_current_screen_id(), $this->get_plugin_screen_ids(), true ) ) {
+            return $text;
+        }
+
+        $maker  = 'https://choice.marketing/?utm_source=wp-plugin&utm_medium=admin&utm_campaign=choice-uft&utm_content=footer';
+        $review = 'https://wordpress.org/support/plugin/choice-universal-form-tracker/reviews/#new-post';
+
+        return sprintf(
+            /* translators: 1: link to Choice OMG, 2: link to the WordPress.org review form. */
+            __( 'Choice Universal Form Tracker is free, built and maintained by %1$s. If it saves you time, %2$s helps other site owners find it.', 'choice-universal-form-tracker' ),
+            '<a href="' . esc_url( $maker ) . '" target="_blank" rel="noopener">Choice OMG</a>',
+            '<a href="' . esc_url( $review ) . '" target="_blank" rel="noopener">' . esc_html__( 'a review on WordPress.org', 'choice-universal-form-tracker' ) . '</a>'
+        );
     }
     
     /**
@@ -114,12 +163,7 @@ class CUFT_Admin {
         $current_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'settings';
         ?>
         <div class="wrap cuft-admin-container">
-            <div class="cuft-admin-header">
-                <div class="cuft-logo">
-                    <span style="color: white; font-size: 24px; font-weight: bold;">📊</span>
-                </div>
-                <h1>Choice Universal Form Tracker</h1>
-            </div>
+            <?php $this->render_admin_header(); ?>
             <hr class="wp-header-end">
 
             <?php $this->render_setup_progress(); ?>

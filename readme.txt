@@ -1,14 +1,14 @@
-=== Choice Universal Form Tracker ===
+=== Choice Universal Form Tracker - Form Tracking for Google Tag Manager ===
 Contributors: jaffray
-Tags: form tracking, google tag manager, conversion tracking, utm, attribution
+Tags: form tracking, google tag manager, conversion tracking, datalayer, utm
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.30.0
+Stable tag: 3.30.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-One dataLayer event shape for every form plugin on your site, with campaign attribution attached to each submission.
+Track Contact Form 7, Gravity Forms, Ninja Forms, Elementor and Avada form submissions in Google Tag Manager, with UTM and click ID attribution.
 
 == Description ==
 
@@ -55,6 +55,20 @@ plugin is not affiliated with, endorsed by, or supported by their makers.
 Every event carries `cuft_tracked: true`, which gives you one reliable
 condition to build triggers on.
 
+= Send it to GA4, Google Ads and Meta =
+
+One trigger in Google Tag Manager covers every form on the site, and a form
+plugin added later needs no new tag:
+
+1. Create a Custom Event trigger for `form_submit` with the condition
+   `cuft_tracked` equals `true`.
+2. Add Data Layer Variables for the fields you need, such as `form_type`,
+   `form_id`, `utm_campaign`, `gclid` and `lead_id`.
+3. Fire your GA4 event tag, Google Ads conversion tag or Meta Pixel `Lead`
+   event on that trigger. For Google Ads enhanced conversions, map
+   `user_email` and `user_phone` into a User-Provided Data variable; for GA4,
+   send `lead_id` and leave the contact details out.
+
 = Shared lead identity =
 
 Each event can carry a `lead_id`: the SHA-256 hash of the visitor's email
@@ -85,6 +99,8 @@ digital marketing and web agency in Edmonton, Alberta, and we built it because
 our clients' sites run several form plugins at once and each one needed its own
 analytics plumbing. The plugin's overview page is
 [Choice Universal Form Tracker for WordPress](https://choice.marketing/tools/choice-uft/).
+If you would rather have GTM, GA4 and Google Ads conversion tracking set up for
+you, [Choice OMG does that for clients](https://choice.marketing/services/conversion-optimization/).
 
 == External services ==
 
@@ -217,6 +233,20 @@ injects a container for you. If you already load GTM through a theme or
 another plugin, leave the container ID empty and the events will reach your
 existing container.
 
+= Can I use it alongside GTM4WP, GTM Kit or Site Kit? =
+
+Yes. When another plugin already loads your container, leave this plugin's
+container ID empty. Its events go into the same `window.dataLayer`, so your
+existing container receives them, provided that plugin keeps the default
+`dataLayer` name. Those plugins are separate products, and this one is not
+affiliated with their makers.
+
+= Is there a paid version? =
+
+No. Every feature ships in this free plugin, with no paid tier, no account to
+create and no upgrade prompts. The one optional feature that relies on a
+Choice OMG service, phone validation, is described under External services.
+
 = Which form plugins does it support? =
 
 Contact Form 7, Gravity Forms, Ninja Forms, Elementor Pro forms, and Avada /
@@ -298,6 +328,11 @@ around it; in Elementor the class goes under Advanced > CSS Classes.
 4. Testing Dashboard: generate sample data and simulate events to validate tracking.
 
 == Changelog ==
+
+= 3.30.1 =
+* The plugin's settings screen shows its mark and maker, and its three screens credit Choice OMG in the admin footer with a link to leave a review. Other admin screens are unchanged.
+* The Plugins screen row adds Documentation and Write a review links beside Support.
+* Readme: a GTM setup section for GA4, Google Ads and Meta, and FAQ entries on using the plugin beside GTM4WP, GTM Kit or Site Kit and on paid versions (there are none).
 
 = 3.30.0 =
 * Added Ignored Phone Numbers (Settings). Clicks on `tel:` links to a listed number are not tracked: no `phone_click` in the dataLayer and no request to the server. Numbers match on their last 10 digits, ignoring formatting and extensions. The `cuft_ignore_phone_numbers` filter adds numbers from code.

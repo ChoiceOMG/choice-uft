@@ -14,6 +14,7 @@
 /specs
 /vendor
 /node_modules
+/svn-assets
 
 # Dev config files
 .gitignore

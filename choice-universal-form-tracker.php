@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       Choice Universal Form Tracker
+ * Plugin Name:       Choice Universal Form Tracker - Form Tracking for Google Tag Manager
  * Plugin URI:        https://choice.marketing/tools/choice-uft/
  * Description:       Tracks form submissions and link clicks from the form plugins already on your site, and pushes structured events to the Google Tag Manager dataLayer.
- * Version:           3.30.0
+ * Version:           3.30.1
  * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Choice OMG
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'CUFT_VERSION', '3.30.0' );
+define( 'CUFT_VERSION', '3.30.1' );
 define( 'CUFT_URL', untrailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'CUFT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CUFT_BASENAME', plugin_basename( __FILE__ ) );
@@ -551,8 +551,10 @@ class CUFT_Plugin {
         }
 
         $row_meta = array(
+            'docs'    => '<a href="' . esc_url( 'https://choice.marketing/tools/choice-uft/?utm_source=wp-plugin&utm_medium=admin&utm_campaign=choice-uft&utm_content=plugin-row' ) . '" target="_blank" rel="noopener">' . esc_html__( 'Documentation', 'choice-universal-form-tracker' ) . '</a>',
             // The WordPress.org forum is the support channel for both builds.
             'support' => '<a href="' . esc_url( 'https://wordpress.org/support/plugin/choice-universal-form-tracker/' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Support', 'choice-universal-form-tracker' ) . '</a>',
+            'review'  => '<a href="' . esc_url( 'https://wordpress.org/support/plugin/choice-universal-form-tracker/reviews/#new-post' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Write a review', 'choice-universal-form-tracker' ) . '</a>',
         );
 
         return array_merge( $plugin_meta, $row_meta );
