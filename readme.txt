@@ -12,22 +12,13 @@ Track Contact Form 7, Gravity Forms, Ninja Forms, Elementor and Avada form submi
 
 == Description ==
 
-Five form plugins, one event shape. Each form plugin fires its submissions
-differently, so a site running more than one ends up with a different tag, a
-different trigger, and a different set of field names for each. This plugin
-detects whichever form plugins are active and emits a single, consistent
-`form_submit` event for all of them, so one tag in Google Tag Manager covers
-the whole site.
+Five form plugins, one event shape. Each form plugin fires its submissions differently, so a site running more than one ends up with a different tag, a different trigger, and a different set of field names for each. This plugin detects whichever form plugins are active and emits a single, consistent `form_submit` event for all of them, so one tag in Google Tag Manager covers the whole site.
 
-Campaign attribution rides along. UTM parameters and advertising click IDs are
-captured on the visitor's first landing and stored for 30 days, so a form
-submitted a week after the ad click still reports the campaign that produced
-it.
+Campaign attribution rides along. UTM parameters and advertising click IDs are captured on the visitor's first landing and stored for 30 days, so a form submitted a week after the ad click still reports the campaign that produced it.
 
 = Supported form plugins =
 
-Detection is automatic. No configuration is needed beyond activating the
-plugin, and nothing is loaded for a form plugin that is not installed.
+Detection is automatic. No configuration is needed beyond activating the plugin, and nothing is loaded for a form plugin that is not installed.
 
 * Contact Form 7
 * Gravity Forms
@@ -35,57 +26,34 @@ plugin, and nothing is loaded for a form plugin that is not installed.
 * Elementor Pro forms
 * Avada / Fusion Builder forms
 
-These are third-party products, listed here to describe compatibility. This
-plugin is not affiliated with, endorsed by, or supported by their makers.
+These are third-party products, listed here to describe compatibility. This plugin is not affiliated with, endorsed by, or supported by their makers.
 
 = What gets tracked =
 
-* `form_submit` on every detected submission, carrying the form type, form ID,
-  and the email address and phone number the visitor entered
-* `generate_lead` when a submission includes a valid email address and the
-  Generate Lead Events setting is on (off by default on new installs)
-* `qualify_lead` when a submission carries an email address, a phone number,
-  and an advertising click ID
-* `phone_click` when a visitor clicks a `tel:` link, and `email_click` for a
-  `mailto:` link, except links and numbers you exclude (see the FAQ)
+* `form_submit` on every detected submission, carrying the form type, form ID, and the email address and phone number the visitor entered
+* `generate_lead` when a submission includes a valid email address and the Generate Lead Events setting is on (off by default on new installs)
+* `qualify_lead` when a submission carries an email address, a phone number, and an advertising click ID
+* `phone_click` when a visitor clicks a `tel:` link, and `email_click` for a `mailto:` link, except links and numbers you exclude (see the FAQ)
 * UTM parameters (source, medium, campaign, term, content) on all of the above
-* Advertising click IDs: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`,
-  `ttclid`, `twclid`, `rdt_cid`, `li_fat_id`, `snap_click_id`, and `pclid`
+* Advertising click IDs: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `ttclid`, `twclid`, `rdt_cid`, `li_fat_id`, `snap_click_id`, and `pclid`
 
-Every event carries `cuft_tracked: true`, which gives you one reliable
-condition to build triggers on.
+Every event carries `cuft_tracked: true`, which gives you one reliable condition to build triggers on.
 
 = Send it to GA4, Google Ads and Meta =
 
-One trigger in Google Tag Manager covers every form on the site, and a form
-plugin added later needs no new tag:
+One trigger in Google Tag Manager covers every form on the site, and a form plugin added later needs no new tag:
 
-1. Add Data Layer Variables for `cuft_tracked` and for the fields you need,
-   such as `form_type`, `form_id`, `utm_campaign`, `gclid` and `lead_id`.
-2. Create a Custom Event trigger for `form_submit` with the condition
-   `cuft_tracked` equals `true`.
-3. Fire your GA4 event tag, Google Ads conversion tag or Meta Pixel `Lead`
-   event on that trigger. For Google Ads enhanced conversions, map
-   `user_email` into a User-Provided Data variable. `user_phone` holds the
-   number as the visitor typed it, so convert it to E.164 form (such as
-   `+17805550173`) before mapping it. For GA4, send `lead_id` and leave the
-   contact details out.
+1. Add Data Layer Variables for `cuft_tracked` and for the fields you need, such as `form_type`, `form_id`, `utm_campaign`, `gclid` and `lead_id`.
+2. Create a Custom Event trigger for `form_submit` with the condition `cuft_tracked` equals `true`.
+3. Fire your GA4 event tag, Google Ads conversion tag or Meta Pixel `Lead` event on that trigger. For Google Ads enhanced conversions, map `user_email` into a User-Provided Data variable. `user_phone` holds the number as the visitor typed it, so convert it to E.164 form (such as `+17805550173`) before mapping it. For GA4, send `lead_id` and leave the contact details out.
 
 = Shared lead identity =
 
-Each event can carry a `lead_id`: the SHA-256 hash of the visitor's email
-address, lowercased and trimmed, or of their phone number in E.164 form when
-no email was given. The same hash is computed server-side, so an analytics
-event and a downstream CRM record derived from the same person produce the
-same identifier.
+Each event can carry a `lead_id`: the SHA-256 hash of the visitor's email address, lowercased and trimmed, or of their phone number in E.164 form when no email was given. The same hash is computed server-side, so an analytics event and a downstream CRM record derived from the same person produce the same identifier.
 
-The `form_submit` event also carries the raw email address and phone number.
-Send `lead_id` instead of those fields wherever raw personal data must not
-go; Google Analytics, for one, forbids sending it email addresses or phone
-numbers.
+The `form_submit` event also carries the raw email address and phone number. Send `lead_id` instead of those fields wherever raw personal data must not go; Google Analytics, for one, forbids sending it email addresses or phone numbers.
 
-The normalisation matches what Google Enhanced Conversions and Meta CAPI
-expect, so the value doubles as a match key for offline conversion imports.
+The normalisation matches what Google Enhanced Conversions and Meta CAPI expect, so the value doubles as a match key for offline conversion imports.
 
 = Built to stay out of the way =
 
@@ -96,34 +64,17 @@ expect, so the value doubles as a match key for offline conversion imports.
 
 = Who maintains this =
 
-[Choice OMG](https://choice.marketing/) maintains this plugin. We are a
-digital marketing and web agency in Edmonton, Alberta, and we built it because
-our clients' sites run several form plugins at once and each one needed its own
-analytics plumbing. The plugin's overview page is
-[Choice Universal Form Tracker for WordPress](https://choice.marketing/tools/choice-uft/).
-If you would rather have GTM, GA4 and Google Ads conversion tracking set up for
-you, [Choice OMG does that for clients](https://choice.marketing/services/conversion-optimization/).
+[Choice OMG](https://choice.marketing/) maintains this plugin. We are a digital marketing and web agency in Edmonton, Alberta, and we built it because our clients' sites run several form plugins at once and each one needed its own analytics plumbing. The plugin's overview page is [Choice Universal Form Tracker for WordPress](https://choice.marketing/tools/choice-uft/). If you would rather have GTM, GA4 and Google Ads conversion tracking set up for you, [Choice OMG does that for clients](https://choice.marketing/services/conversion-optimization/).
 
 == External services ==
 
-This plugin can connect to the external services below. Every one of them is
-off on a new install and stays off until an administrator configures it on
-the settings screen. With none configured, the plugin only pushes events to
-the `window.dataLayer` array in the visitor's own browser and sends nothing
-anywhere.
+This plugin can connect to the external services below. Every one of them is off on a new install and stays off until an administrator configures it on the settings screen. With none configured, the plugin only pushes events to the `window.dataLayer` array in the visitor's own browser and sends nothing anywhere.
 
 = Google Tag Manager =
 
-Used when you enter a GTM container ID on the settings screen. Leave that
-field empty and no request is made; the plugin then pushes events to a
-dataLayer supplied by your own GTM installation instead.
+Used when you enter a GTM container ID on the settings screen. Leave that field empty and no request is made; the plugin then pushes events to a dataLayer supplied by your own GTM installation instead.
 
-*What is sent:* the visitor's browser requests the container script from
-`https://www.googletagmanager.com/gtm.js` (and, for visitors without
-JavaScript, the `ns.html` frame). As with any GTM installation, Google
-receives the request, the visitor's IP address and browser details, and
-whatever your own container tags choose to send, which will include the form
-and campaign data described above if you configure tags to forward it.
+*What is sent:* the visitor's browser requests the container script from `https://www.googletagmanager.com/gtm.js` (and, for visitors without JavaScript, the `ns.html` frame). As with any GTM installation, Google receives the request, the visitor's IP address and browser details, and whatever your own container tags choose to send, which will include the form and campaign data described above if you configure tags to forward it.
 
 *When:* on every front-end page load, once a container ID is set.
 
@@ -133,39 +84,21 @@ and campaign data described above if you configure tags to forward it.
 
 = Server-side Google Tag Manager (optional custom host) =
 
-Used only when you enable server-side GTM and enter your own tagging server
-hostname. Off by default. The setting accepts a bare hostname only (for
-example `gtm.example.com`); the plugin builds the script address itself as
-`https://<host>/gtm.js?id=<container ID>`.
+Used only when you enable server-side GTM and enter your own tagging server hostname. Off by default. The setting accepts a bare hostname only (for example `gtm.example.com`); the plugin builds the script address itself as `https://<host>/gtm.js?id=<container ID>`.
 
-*What is sent:* the container script is requested from the host you entered
-instead of from Google, so that host receives the same page-load request
-described above. To decide whether the host is healthy, the plugin also
-requests `gtm.js` and `ns.html` from it, server to server, when you press
-the test button and on a six-hour schedule, with a recheck 15 minutes after a
-failed check. Those checks carry the container ID and no visitor data. When
-the custom host fails two checks in a row, the plugin falls back to
-`www.googletagmanager.com`, and returns to the host after three passes in a
-row.
+*What is sent:* the container script is requested from the host you entered instead of from Google, so that host receives the same page-load request described above. To decide whether the host is healthy, the plugin also requests `gtm.js` and `ns.html` from it, server to server, when you press the test button and on a six-hour schedule, with a recheck 15 minutes after a failed check. Those checks carry the container ID and no visitor data. When the custom host fails two checks in a row, the plugin falls back to `www.googletagmanager.com`, and returns to the host after three passes in a row.
 
-*When:* on every front-end page load, and on the six-hour health check, while
-server-side GTM is enabled.
+*When:* on every front-end page load, and on the six-hour health check, while server-side GTM is enabled.
 
-You choose the host, so you decide who receives the request and which terms
-apply.
+You choose the host, so you decide who receives the request and which terms apply.
 
 = Google Analytics Measurement Protocol =
 
-Used only when you supply both a GA4 Measurement ID and an API secret on the
-settings screen. Without both, no request is made.
+Used only when you supply both a GA4 Measurement ID and an API secret on the settings screen. Without both, no request is made.
 
-*What is sent:* a server-side event to
-`https://www.google-analytics.com/mp/collect`, containing the GA client ID
-read from the visitor's `_ga` cookie, the event name, the configured lead
-value and currency, and the event parameters for that submission.
+*What is sent:* a server-side event to `https://www.google-analytics.com/mp/collect`, containing the GA client ID read from the visitor's `_ga` cookie, the event name, the configured lead value and currency, and the event parameters for that submission.
 
-*When:* when a lead's status is updated through the plugin's webhook (for
-example, a lead marked qualified).
+*When:* when a lead's status is updated through the plugin's webhook (for example, a lead marked qualified).
 
 * Service: [Google Analytics](https://marketingplatform.google.com/about/analytics/)
 * Terms of service: [https://marketingplatform.google.com/about/analytics/terms/us/](https://marketingplatform.google.com/about/analytics/terms/us/)
@@ -173,48 +106,27 @@ example, a lead marked qualified).
 
 = Click collector (optional custom host) =
 
-Used only when you enter a Click Collector Host on the settings screen. Empty
-by default, in which case nothing is sent.
+Used only when you enter a Click Collector Host on the settings screen. Empty by default, in which case nothing is sent.
 
-*What is sent:* the visitor's browser sends a POST (`navigator.sendBeacon`)
-to `https://<the host you entered>/p` carrying the advertising click ID and
-its platform, the five UTM parameters, the referring URL, the landing page
-URL, and the GA client ID from the `_ga` cookie.
+*What is sent:* the visitor's browser sends a POST (`navigator.sendBeacon`) to `https://<the host you entered>/p` carrying the advertising click ID and its platform, the five UTM parameters, the referring URL, the landing page URL, and the GA client ID from the `_ga` cookie.
 
-*When:* on page load, only when a click ID is present in the URL or in the
-plugin's own click cookie.
+*When:* on page load, only when a click ID is present in the URL or in the plugin's own click cookie.
 
-You choose the host. Point it at your own collector, or at the one Choice OMG
-operates for its clients, in which case Choice OMG receives the data above
-under the terms and privacy policy linked in the next section.
+You choose the host. Point it at your own collector, or at the one Choice OMG operates for its clients, in which case Choice OMG receives the data above under the terms and privacy policy linked in the next section.
 
 = Choice OMG phone validation service =
 
-Used only when an administrator switches phone validation on and registers
-the site with a registration secret that Choice OMG issues to its clients.
-Both are off and empty by default, so this service is never contacted on a
-standard install.
+Used only when an administrator switches phone validation on and registers the site with a registration secret that Choice OMG issues to its clients. Both are off and empty by default, so this service is never contacted on a standard install.
 
-*What is sent:* registering the site (the Register Site button) sends the
-site's domain name and the registration secret to
-`https://phone-validator.choice.zone`. After that, each phone number to be
-checked is sent from your server to
-`https://phone-validator.choice.zone/validate-phone` together with the
-site's registration token. Choice OMG's service looks the number up with its
-own providers and returns whether the number is valid, its line type, and a
-quality score. The plugin itself never contacts those providers.
+*What is sent:* registering the site (the Register Site button) sends the site's domain name and the registration secret to `https://phone-validator.choice.zone`. After that, each phone number to be checked is sent from your server to `https://phone-validator.choice.zone/validate-phone` together with the site's registration token. Choice OMG's service looks the number up with its own providers and returns whether the number is valid, its line type, and a quality score. The plugin itself never contacts those providers.
 
-*When:* when a submitted phone number is validated. Results are cached on your
-site for 24 hours per number, so a repeated number is not sent again within
-that window.
+*When:* when a submitted phone number is validated. Results are cached on your site for 24 hours per number, so a repeated number is not sent again within that window.
 
 * Service: [Choice OMG](https://choice.marketing/tools/choice-uft/)
 * Terms of service: [https://choice.marketing/terms/](https://choice.marketing/terms/)
 * Privacy policy: [https://choice.marketing/privacy-policy/](https://choice.marketing/privacy-policy/)
 
-Because form submissions can carry personal data, review your own privacy
-policy and any applicable data-protection obligations (GDPR, CCPA, PIPEDA and
-similar) before enabling any of these services.
+Because form submissions can carry personal data, review your own privacy policy and any applicable data-protection obligations (GDPR, CCPA, PIPEDA and similar) before enabling any of these services.
 
 == Installation ==
 
@@ -230,99 +142,49 @@ Nothing else is required. Tracking starts as soon as the plugin is active.
 
 = Do I need Google Tag Manager? =
 
-No. The plugin pushes its events to `window.dataLayer` whether or not it
-injects a container for you. If you already load GTM through a theme or
-another plugin, leave the container ID empty and the events will reach your
-existing container.
+No. The plugin pushes its events to `window.dataLayer` whether or not it injects a container for you. If you already load GTM through a theme or another plugin, leave the container ID empty and the events will reach your existing container.
 
 = Can I use it alongside GTM4WP, GTM Kit or Site Kit? =
 
-Yes. When another plugin already loads your container, leave this plugin's
-container ID empty. Its events go into the same `window.dataLayer`, so your
-existing container receives them, provided that plugin keeps the default
-`dataLayer` name. Those plugins are separate products, and this one is not
-affiliated with their makers.
+Yes. When another plugin already loads your container, leave this plugin's container ID empty. Its events go into the same `window.dataLayer`, so your existing container receives them, provided that plugin keeps the default `dataLayer` name. Those plugins are separate products, and this one is not affiliated with their makers.
 
 = Is there a paid version? =
 
-No. There is no paid tier and no upgrade prompt. Two optional features can
-use services Choice OMG runs for its agency clients: phone validation, which
-needs a registration secret Choice OMG issues to those clients, and the click
-collector, which can point at a collector of your own instead. Both are off by
-default and are described under External services.
+No. There is no paid tier and no upgrade prompt. Two optional features can use services Choice OMG runs for its agency clients: phone validation, which needs a registration secret Choice OMG issues to those clients, and the click collector, which can point at a collector of your own instead. Both are off by default and are described under External services.
 
 = Which form plugins does it support? =
 
-Contact Form 7, Gravity Forms, Ninja Forms, Elementor Pro forms, and Avada /
-Fusion Builder forms. Detection is automatic; scripts for a form plugin that
-is not installed are never loaded.
+Contact Form 7, Gravity Forms, Ninja Forms, Elementor Pro forms, and Avada / Fusion Builder forms. Detection is automatic; scripts for a form plugin that is not installed are never loaded.
 
 = What data does it collect, and where does it go? =
 
-Form submissions produce dataLayer events containing the email address and
-phone number entered, the form's identity, and the campaign parameters
-captured when the visitor arrived. Those events go to your own analytics
-setup. Nothing leaves your site unless you configure one of the services
-listed under External services.
+Form submissions produce dataLayer events containing the email address and phone number entered, the form's identity, and the campaign parameters captured when the visitor arrived. Those events go to your own analytics setup. Nothing leaves your site unless you configure one of the services listed under External services.
 
 = How long is campaign attribution kept? =
 
-UTM parameters and click IDs are stored in the visitor's browser for 30 days
-from their first visit carrying them, so attribution survives a gap between
-the ad click and the form submission. First-touch attribution is kept for a
-year in a separate cookie.
+UTM parameters and click IDs are stored in the visitor's browser for 30 days from their first visit carrying them, so attribution survives a gap between the ad click and the form submission. First-touch attribution is kept for a year in a separate cookie.
 
-On the server, each tracked click is a row in the plugin's click tracking
-table: the click ID and its ad platform, the campaign parameters, a keyed
-hash of the visitor's IP address, the browser's user agent, the referring
-page, the landing page address, the Google Analytics client ID when the
-visitor has one, and the tracked events with their times. A click on a phone
-or email link by a visitor who did not arrive from an ad also creates a row,
-under a temporary ID. Rows older than the Click Data Retention setting (365
-days by default) are deleted once a day. The IP address itself is never
-stored, and the hash is keyed with the authentication keys in wp-config.php,
-so a copy of the database alone cannot reverse it.
+On the server, each tracked click is a row in the plugin's click tracking table: the click ID and its ad platform, the campaign parameters, a keyed hash of the visitor's IP address, the browser's user agent, the referring page, the landing page address, the Google Analytics client ID when the visitor has one, and the tracked events with their times. A click on a phone or email link by a visitor who did not arrive from an ad also creates a row, under a temporary ID. Rows older than the Click Data Retention setting (365 days by default) are deleted once a day. The IP address itself is never stored, and the hash is keyed with the authentication keys in wp-config.php, so a copy of the database alone cannot reverse it.
 
 = Is it GDPR compliant? =
 
-That depends on how you configure it. The plugin writes campaign parameters to
-the visitor's browser and puts submitted contact details into your dataLayer,
-so it processes personal data and belongs in your privacy policy and your
-consent flow. Review the External services section for anything that leaves
-your site.
+That depends on how you configure it. The plugin writes campaign parameters to the visitor's browser and puts submitted contact details into your dataLayer, so it processes personal data and belongs in your privacy policy and your consent flow. Review the External services section for anything that leaves your site.
 
 = Does it slow the site down? =
 
-The tracking scripts are plain JavaScript with no jQuery dependency, and each
-form plugin's handler loads only when that form plugin is present. Tracking
-errors are caught so a failure cannot block a form submission.
+The tracking scripts are plain JavaScript with no jQuery dependency, and each form plugin's handler loads only when that form plugin is present. Tracking errors are caught so a failure cannot block a form submission.
 
 = Can my CRM or email platform update a lead's status? =
 
-Yes. The Click Tracking screen shows a webhook URL that marks a tracked click
-as qualified, scores it, or records a lifecycle status such as `qualify_lead`.
-Every request must carry the site's secret webhook key, which the same screen
-displays and can regenerate. Requests without the right key are rejected with
-HTTP 403 and change nothing.
+Yes. The Click Tracking screen shows a webhook URL that marks a tracked click as qualified, scores it, or records a lifecycle status such as `qualify_lead`. Every request must carry the site's secret webhook key, which the same screen displays and can regenerate. Requests without the right key are rejected with HTTP 403 and change nothing.
 
 = Can I change what is tracked? =
 
-Yes. Filters cover the computed `lead_id` (`cuft_lead_id`), the phone country
-code used to normalise it (`cuft_lead_id_phone_country`), the attribution
-payload (`cuft_form_attribution_payload`), and whether the plugin runs at all
-(`cuft_enabled`). Since 3.30.0, `cuft_ignore_phone_numbers` adds numbers that
-are never tracked, `cuft_record_event` decides whether an event reported by
-the browser is recorded on its click, and `cuft_click_retention_days` sets how
-long click rows are kept.
+Yes. Filters cover the computed `lead_id` (`cuft_lead_id`), the phone country code used to normalise it (`cuft_lead_id_phone_country`), the attribution payload (`cuft_form_attribution_payload`), and whether the plugin runs at all (`cuft_enabled`). Since 3.30.0, `cuft_ignore_phone_numbers` adds numbers that are never tracked, `cuft_record_event` decides whether an event reported by the browser is recorded on its click, and `cuft_click_retention_days` sets how long click rows are kept.
 
 = Can I keep one phone number or link out of tracking? =
 
-Yes. List the number under Settings > Ignored Phone Numbers, and clicks on any
-`tel:` link to it produce no `phone_click` in the dataLayer and nothing on the
-click record. Numbers match on their last 10 digits, so every formatting of the
-same number is covered. To exclude a single link of any kind, add the attribute
-`data-cuft-ignore` or the CSS class `cuft-ignore` to the link or to an element
-around it; in Elementor the class goes under Advanced > CSS Classes.
+Yes. List the number under Settings > Ignored Phone Numbers, and clicks on any `tel:` link to it produce no `phone_click` in the dataLayer and nothing on the click record. Numbers match on their last 10 digits, so every formatting of the same number is covered. To exclude a single link of any kind, add the attribute `data-cuft-ignore` or the CSS class `cuft-ignore` to the link or to an element around it; in Elementor the class goes under Advanced > CSS Classes.
 
 == Screenshots ==
 
