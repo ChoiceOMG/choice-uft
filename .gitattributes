@@ -32,4 +32,5 @@
 # Build/temp files
 /node_modules export-ignore
 /vendor export-ignore
+/test-harness export-ignore
 *.log export-ignore

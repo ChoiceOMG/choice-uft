@@ -15,6 +15,7 @@
 /vendor
 /node_modules
 /svn-assets
+/test-harness
 
 # Dev config files
 .gitignore
